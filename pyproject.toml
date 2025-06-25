@@ -1,0 +1,120 @@
+[tool.poetry]
+name = "python-project-template"
+version = "0.0.1"
+description = "A template for python-based research project"
+authors = ["Haofei Yu <yuhaofei44@gmail.com>"]
+license = "Apache 2.0 License"
+readme = "README.md"
+packages = [
+    { include = "src" }
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9, <3.12"
+mypy = "^1.8.0"
+beartype = "^0.17.1"
+pydantic = "^2.8.2"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.6.0"
+nbmake = "^1.5.0"
+types-setuptools = "^69.0.0.0"
+ruff = "^0.3.0"
+commitizen = "^3.14.1"
+# Removed black and isort since we're using ruff
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.0.0"
+pytest-asyncio = "^0.23.5"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.12.0"
+hypothesis = "^6.98.0"
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+ignore_missing_imports = true
+check_untyped_defs = true
+follow_imports = "normal"
+strict = true
+plugins = ["pydantic.mypy"]
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+strict_optional = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "-v --cov=python_project_template --cov-report=term-missing"
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["python_project_template"]
+omit = ["tests/*", "**/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "raise ImportError",
+    "except ImportError:",
+]
+
+[tool.codespell]
+ignore-words-list = "dout, te, indicies, astroid"
+skip = ["data", ".git", "*.pyc", "*.csv", "*.json"]
+quiet-level = 3
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = ["E203", "E266", "E501"]
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["S101"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.0.1"
+tag_format = "v$version"
+bump_message = "bump: version $current_version → $new_version"
+version_files = [
+    "pyproject.toml:version",
+    "python_project_template/__init__.py:__version__"
+]
+
+[[tool.poetry.source]]
+name = "torchcpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
