@@ -1,17 +1,16 @@
-from typing import List, Dict
-
 class MetricsLogger:
     """
     Aggregates return percentages and provides summary statistics.
     """
+
     def __init__(self):
-        self.returns: List[float] = []
+        self.returns: list[float] = []
 
     def record(self, return_pct: float) -> None:
         """Add a realized return percentage from one trade."""
         self.returns.append(return_pct)
 
-    def summary(self) -> Dict[str, float]:
+    def summary(self) -> dict[str, float]:
         """
         Compute summary metrics:
           - trades: total number of trades
@@ -21,8 +20,13 @@ class MetricsLogger:
           - min_return: lowest return
         """
         if not self.returns:
-            return {"trades": 0, "avg_return": 0.0, "win_rate": 0.0,
-                    "max_return": 0.0, "min_return": 0.0}
+            return {
+                'trades': 0,
+                'avg_return': 0.0,
+                'win_rate': 0.0,
+                'max_return': 0.0,
+                'min_return': 0.0,
+            }
 
         trades = len(self.returns)
         avg_return = sum(self.returns) / trades
@@ -31,9 +35,9 @@ class MetricsLogger:
         min_return = min(self.returns)
 
         return {
-            "trades": trades,
-            "avg_return": avg_return,
-            "win_rate": win_rate,
-            "max_return": max_return,
-            "min_return": min_return,
+            'trades': trades,
+            'avg_return': avg_return,
+            'win_rate': win_rate,
+            'max_return': max_return,
+            'min_return': min_return,
         }

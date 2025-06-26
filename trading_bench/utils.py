@@ -6,10 +6,7 @@ def setup_logging(level=logging.INFO):
     """
     Configure root logger formatting and level.
     """
-    logging.basicConfig(
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        level=level
-    )
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=level)
 
 
 def parse_date(date_str: str) -> datetime:
