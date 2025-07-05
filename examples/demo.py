@@ -5,16 +5,20 @@ from trading_bench.model_wrapper import RuleBasedModel
 from trading_bench.utils import setup_logging
 
 
-def main():
+def main() -> None:
     setup_logging()
     parser = argparse.ArgumentParser(
         description='Run the simulated trading bench with Finnhub data crawler'
     )
-    parser.add_argument('--ticker', required=True, help='Stock ticker symbol')
-    parser.add_argument('--start_date', required=True, help='Start date (YYYY-MM-DD)')
-    parser.add_argument('--end_date', required=True, help='End date (YYYY-MM-DD)')
+    parser.add_argument('--ticker', default='AAPL', help='Stock ticker symbol')
     parser.add_argument(
-        '--data_dir', required=True, help='Root directory where data is stored'
+        '--start_date', default='2025-01-01', help='Start date (YYYY-MM-DD)'
+    )
+    parser.add_argument(
+        '--end_date', default='2025-06-01', help='End date (YYYY-MM-DD)'
+    )
+    parser.add_argument(
+        '--data_dir', default='./data', help='Root directory where data is stored'
     )
     parser.add_argument(
         '--eval_delay', type=int, default=5, help='Evaluation delay in data points'

@@ -1,13 +1,14 @@
 import json
-import os
 from collections import defaultdict, deque
 from datetime import datetime
+from pathlib import Path
 
 from .data_fetcher import fetch_price_data
 from .evaluator import ReturnEvaluator
 from .metrics import MetricsLogger
 from .model_wrapper import BaseModel
 from .signal import Signal
+from .visualization import BacktestVisualizer
 
 
 class SimBench:
@@ -44,13 +45,13 @@ class SimBench:
         )
 
         # Load fetched JSON data from yfinance_data
-        data_path = os.path.join(
-            self.data_dir,
-            'yfinance_data',
-            'price_data',
-            f'{self.ticker}_data_formatted.json',
+        data_path = (
+            Path(self.data_dir)
+            / 'yfinance_data'
+            / 'price_data'
+            / f'{self.ticker}_data_formatted.json'
         )
-        if not os.path.isfile(data_path):
+        if not data_path.is_file():
             raise FileNotFoundError(f'Expected data file not found at {data_path}')
 
         with open(data_path, encoding='utf-8') as f:
@@ -66,10 +67,11 @@ class SimBench:
 
         # Sort chronologically and initialize history deque
         self.data: list[tuple[datetime, float]] = sorted(parsed, key=lambda x: x[0])
-        self.history: deque = deque(self.data)
+        self.history: deque[tuple[datetime, float]] = deque(self.data)
 
         self.evaluator = ReturnEvaluator()
         self.logger = MetricsLogger()
+        self.visualizer = BacktestVisualizer(self.logger)
 
     def run(self) -> dict[str, float]:
         prices = [price for _, price in self.data]
@@ -95,9 +97,20 @@ class SimBench:
                 for signal in pending.pop(idx):
                     # you might want to pass only the slice of history from buy→eval
                     # but ReturnEvaluator could also just use signal.price + actual price at eval_time
-                    ret = self.evaluator.evaluate(
-                        signal, list(self.history)[-self.eval_delay - 1 :]
-                    )
-                    self.logger.record(ret)
+                    history_slice = deque(list(self.history)[-self.eval_delay - 1 :])
+                    trade_record = self.evaluator.evaluate(signal, history_slice)
+                    self.logger.record(trade_record)
 
         return self.logger.summary()
+
+    def generate_charts(self, save: bool = True) -> dict[str, str | None]:
+        """
+        Generate all backtesting charts.
+
+        Args:
+            save: Whether to save charts to files
+
+        Returns:
+            Dictionary of chart file paths
+        """
+        return self.visualizer.generate_all_charts(self.ticker, save)
