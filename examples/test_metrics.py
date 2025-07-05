@@ -22,8 +22,8 @@ def test_metrics():
     model = RuleBasedModel()
     bench = SimBench(
         ticker='AAPL',
-        start_date='2024-01-01',
-        end_date='2024-06-01',
+        start_date='2025-01-01',
+        end_date='2025-06-01',
         data_dir='./data',
         model=model,
         eval_delay=5,
