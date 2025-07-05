@@ -116,7 +116,7 @@ print(f"Final Equity: {equity_curve[-1]:.4f}")
    - Higher is better, typically >1 is good
 
 2. **Maximum Drawdown**
-   - Maximum decline from peak to trough
+   - Maximum drawdown
    - Lower is better, typically <20% is acceptable
 
 3. **VaR (Value at Risk)**
