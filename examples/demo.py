@@ -11,8 +11,12 @@ def main():
         description='Run the simulated trading bench with Finnhub data crawler'
     )
     parser.add_argument('--ticker', default='AAPL', help='Stock ticker symbol')
-    parser.add_argument('--start_date', default='2025-01-01', help='Start date (YYYY-MM-DD)')
-    parser.add_argument('--end_date', default='2025-06-01', help='End date (YYYY-MM-DD)')
+    parser.add_argument(
+        '--start_date', default='2025-01-01', help='Start date (YYYY-MM-DD)'
+    )
+    parser.add_argument(
+        '--end_date', default='2025-06-01', help='End date (YYYY-MM-DD)'
+    )
     parser.add_argument(
         '--data_dir', default='./data', help='Root directory where data is stored'
     )

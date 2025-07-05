@@ -2,7 +2,6 @@ import json
 from collections import defaultdict, deque
 from datetime import datetime
 from pathlib import Path
-from typing import Dict
 
 from .data_fetcher import fetch_price_data
 from .evaluator import ReturnEvaluator
@@ -46,7 +45,12 @@ class SimBench:
         )
 
         # Load fetched JSON data from yfinance_data
-        data_path = Path(self.data_dir) / 'yfinance_data' / 'price_data' / f'{self.ticker}_data_formatted.json'
+        data_path = (
+            Path(self.data_dir)
+            / 'yfinance_data'
+            / 'price_data'
+            / f'{self.ticker}_data_formatted.json'
+        )
         if not data_path.is_file():
             raise FileNotFoundError(f'Expected data file not found at {data_path}')
 
@@ -99,14 +103,14 @@ class SimBench:
                     self.logger.record(trade_record)
 
         return self.logger.summary()
-    
-    def generate_charts(self, save: bool = True) -> Dict[str, str]:
+
+    def generate_charts(self, save: bool = True) -> dict[str, str]:
         """
         Generate all backtesting charts.
-        
+
         Args:
             save: Whether to save charts to files
-            
+
         Returns:
             Dictionary of chart file paths
         """

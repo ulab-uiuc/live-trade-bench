@@ -6,6 +6,7 @@ Demonstrate chart generation capabilities
 
 import sys
 from pathlib import Path
+
 sys.path.append(str(Path(__file__).parent.parent))
 
 from trading_bench.bench import SimBench
@@ -16,9 +17,9 @@ from trading_bench.utils import setup_logging
 def test_visualization():
     """Test the backtesting visualization system"""
     setup_logging()
-    
-    print("🚀 Starting backtesting visualization test...")
-    
+
+    print('🚀 Starting backtesting visualization test...')
+
     # Create backtesting instance
     model = RuleBasedModel()
     bench = SimBench(
@@ -28,32 +29,32 @@ def test_visualization():
         data_dir='./data',
         model=model,
         eval_delay=5,
-        resolution='D'
+        resolution='D',
     )
-    
+
     # Run backtesting
-    print("📊 Running backtesting...")
+    print('📊 Running backtesting...')
     summary = bench.run()
-    
+
     # Generate charts
-    print("📈 Generating charts...")
+    print('📈 Generating charts...')
     chart_paths = bench.generate_charts(save=True)
-    
+
     # Print chart information
-    print("\n" + "="*60)
-    print("📊 Generated Charts")
-    print("="*60)
-    
+    print('\n' + '=' * 60)
+    print('📊 Generated Charts')
+    print('=' * 60)
+
     for chart_type, filepath in chart_paths.items():
         if filepath:
-            print(f"✅ {chart_type}: {filepath}")
+            print(f'✅ {chart_type}: {filepath}')
         else:
-            print(f"❌ {chart_type}: No data available")
-    
-    print("\n" + "="*60)
-    print("📈 Chart Descriptions:")
-    print("="*60)
-    
+            print(f'❌ {chart_type}: No data available')
+
+    print('\n' + '=' * 60)
+    print('📈 Chart Descriptions:')
+    print('=' * 60)
+
     print("""
 📊 Chart Types Generated:
 
@@ -67,16 +68,16 @@ def test_visualization():
 
 All charts are saved in the './charts' directory with high resolution (300 DPI).
     """)
-    
+
     # Print summary statistics
-    print("\n📊 Key Performance Metrics:")
+    print('\n📊 Key Performance Metrics:')
     print(f"  Total Return: {summary['total_return']:.2%}")
     print(f"  Sharpe Ratio: {summary['sharpe_ratio']:.4f}")
     print(f"  Max Drawdown: {summary['max_drawdown']:.2%}")
     print(f"  Win Rate: {summary['win_rate']:.2%}")
     print(f"  Total Trades: {summary['total_trades']}")
-    
-    print("\n✅ Visualization test completed!")
+
+    print('\n✅ Visualization test completed!')
     print("📁 Check the './charts' directory for generated images.")
 
 

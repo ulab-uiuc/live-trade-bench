@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -13,15 +12,16 @@ class Signal:
 @dataclass
 class TradeRecord:
     """Complete trade record with all trading information"""
+
     entry_time: datetime
     entry_price: float
     exit_time: datetime
     exit_price: float
     return_pct: float  # Return percentage
     trade_duration: int  # Trading duration in days
-    volume: Optional[int] = None  # Trading volume (if available)
-    high_during_trade: Optional[float] = None  # Highest price during trade
-    low_during_trade: Optional[float] = None   # Lowest price during trade
+    volume: int | None = None  # Trading volume (if available)
+    high_during_trade: float | None = None  # Highest price during trade
+    low_during_trade: float | None = None  # Lowest price during trade
 
 
 @dataclass
