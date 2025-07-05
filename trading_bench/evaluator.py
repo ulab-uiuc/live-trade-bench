@@ -42,7 +42,7 @@ class ReturnEvaluator:
 
         # Ensure exit_time is not None
         assert exit_time is not None, "Exit time should not be None"
-        
+
         return_pct = (exit_price - signal.entry_price) / signal.entry_price
         trade_duration = (exit_time - signal.entry_time).days
 
