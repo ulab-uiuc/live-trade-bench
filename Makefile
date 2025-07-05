@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format clean demo
+.PHONY: help install dev test lint format auto-lint clean demo
 
 # Default target
 help:
@@ -8,6 +8,7 @@ help:
 	@echo "  test       - Run tests"
 	@echo "  lint       - Run linting"
 	@echo "  format     - Format code"
+	@echo "  auto-lint  - Auto-fix all format and lint issues"
 	@echo "  clean      - Clean cache files"
 	@echo "  demo       - Run demo script"
 
@@ -31,6 +32,16 @@ lint:
 # Format code
 format:
 	ruff format .
+
+# Auto-fix all format and lint issues
+auto-lint:
+	@echo "🔧 Auto-fixing all format and lint issues..."
+	@echo "📝 Formatting code with ruff..."
+	ruff format .
+	@echo "🔍 Running linting with auto-fix..."
+	ruff check --fix .
+	@echo "✅ Auto-lint completed! All fixable issues have been resolved."
+	@echo "💡 Run 'make lint' to check for any remaining issues."
 
 # Clean cache files
 clean:
