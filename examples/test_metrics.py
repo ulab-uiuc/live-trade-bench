@@ -8,7 +8,7 @@ from trading_bench.model_wrapper import RuleBasedModel
 from trading_bench.utils import setup_logging
 
 
-def test_metrics():
+def test_metrics() -> None:
     """Test the new quantitative metrics system"""
     setup_logging()
 

@@ -26,7 +26,7 @@ class BacktestVisualizer:
         plt.rcParams['figure.figsize'] = (12, 8)
         plt.rcParams['font.size'] = 10
 
-    def generate_all_charts(self, ticker: str, save: bool = True) -> dict[str, str]:
+    def generate_all_charts(self, ticker: str, save: bool = True) -> dict[str, str | None]:
         """
         Generate all backtesting charts.
 
@@ -121,8 +121,8 @@ class BacktestVisualizer:
         max_dd = drawdown[max_dd_idx]
         plt.annotate(
             f'Max DD: {max_dd:.2f}%',
-            xy=(max_dd_idx, max_dd),
-            xytext=(max_dd_idx * 1.2, max_dd * 0.5),
+            xy=(float(max_dd_idx), float(max_dd)),
+            xytext=(float(max_dd_idx) * 1.2, float(max_dd) * 0.5),
             arrowprops={'arrowstyle': '->', 'color': 'red'},
             fontsize=10,
             fontweight='bold',
@@ -197,7 +197,7 @@ class BacktestVisualizer:
             return None
 
         # Group trades by month
-        monthly_returns = {}
+        monthly_returns: dict[str, list[float]] = {}
         for trade in trades:
             month_key = trade.entry_time.strftime('%Y-%m')
             if month_key not in monthly_returns:
@@ -256,7 +256,7 @@ class BacktestVisualizer:
 
         # Calculate cumulative returns
         cumulative_returns = []
-        total_return = 0
+        total_return: float = 0.0
         for trade in trades:
             total_return += trade.return_pct
             cumulative_returns.append(total_return * 100)  # Convert to percentage
@@ -311,7 +311,7 @@ class BacktestVisualizer:
         sizes = [abs(r) * 50 + 20 for r in returns]  # Size based on return magnitude
 
         plt.scatter(
-            entry_times,
+            entry_times,  # type: ignore
             [1] * len(entry_times),
             c=colors,
             s=sizes,
@@ -319,7 +319,7 @@ class BacktestVisualizer:
             label='Entry Points',
         )
         plt.scatter(
-            exit_times,
+            exit_times,  # type: ignore
             [0] * len(exit_times),
             c=colors,
             s=sizes,
@@ -331,7 +331,7 @@ class BacktestVisualizer:
         for entry, exit_time, color in zip(
             entry_times, exit_times, colors, strict=False
         ):
-            plt.plot([entry, exit_time], [1, 0], color=color, alpha=0.3, linewidth=1)
+            plt.plot([entry, exit_time], [1, 0], color=color, alpha=0.3, linewidth=1)  # type: ignore
 
         plt.title(f'{ticker} Trade Timeline', fontsize=14, fontweight='bold')
         plt.xlabel('Date', fontsize=12)
@@ -341,8 +341,8 @@ class BacktestVisualizer:
         plt.legend()
 
         # Format x-axis dates
-        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-        plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))  # type: ignore
+        plt.gca().xaxis.set_major_locator(mdates.MonthLocator())  # type: ignore
         plt.xticks(rotation=45)
 
         plt.tight_layout()
@@ -423,7 +423,7 @@ class BacktestVisualizer:
 
         # 5. Monthly returns (bottom middle)
         ax5 = plt.subplot(2, 3, 5)
-        monthly_returns = {}
+        monthly_returns: dict[str, list[float]] = {}
         for trade in trades:
             month_key = trade.entry_time.strftime('%Y-%m')
             if month_key not in monthly_returns:
@@ -448,7 +448,7 @@ class BacktestVisualizer:
         # 6. Performance vs benchmark (bottom right)
         ax6 = plt.subplot(2, 3, 6)
         cumulative_returns = []
-        total_return = 0
+        total_return: float = 0.0
         for trade in trades:
             total_return += trade.return_pct
             cumulative_returns.append(total_return * 100)

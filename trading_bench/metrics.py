@@ -9,7 +9,7 @@ class MetricsLogger:
     Quantitative backtesting metrics calculator with comprehensive trading strategy evaluation indicators
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.trades: list[TradeRecord] = []
         self.equity_curve: list[float] = [
             1.0

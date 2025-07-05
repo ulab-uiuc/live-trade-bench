@@ -67,7 +67,7 @@ class SimBench:
 
         # Sort chronologically and initialize history deque
         self.data: list[tuple[datetime, float]] = sorted(parsed, key=lambda x: x[0])
-        self.history: deque = deque(self.data)
+        self.history: deque[tuple[datetime, float]] = deque(self.data)
 
         self.evaluator = ReturnEvaluator()
         self.logger = MetricsLogger()
@@ -97,14 +97,13 @@ class SimBench:
                 for signal in pending.pop(idx):
                     # you might want to pass only the slice of history from buy→eval
                     # but ReturnEvaluator could also just use signal.price + actual price at eval_time
-                    trade_record = self.evaluator.evaluate(
-                        signal, list(self.history)[-self.eval_delay - 1 :]
-                    )
+                    history_slice = deque(list(self.history)[-self.eval_delay - 1 :])
+                    trade_record = self.evaluator.evaluate(signal, history_slice)
                     self.logger.record(trade_record)
 
         return self.logger.summary()
 
-    def generate_charts(self, save: bool = True) -> dict[str, str]:
+    def generate_charts(self, save: bool = True) -> dict[str, str | None]:
         """
         Generate all backtesting charts.
 

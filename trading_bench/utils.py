@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 
 
-def setup_logging(level=logging.INFO):
+def setup_logging(level: int = logging.INFO) -> None:
     """
     Configure root logger formatting and level.
     """

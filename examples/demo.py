@@ -5,7 +5,7 @@ from trading_bench.model_wrapper import RuleBasedModel
 from trading_bench.utils import setup_logging
 
 
-def main():
+def main() -> None:
     setup_logging()
     parser = argparse.ArgumentParser(
         description='Run the simulated trading bench with Finnhub data crawler'

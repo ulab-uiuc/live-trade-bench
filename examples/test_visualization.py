@@ -9,7 +9,7 @@ from trading_bench.model_wrapper import RuleBasedModel
 from trading_bench.utils import setup_logging
 
 
-def test_visualization():
+def test_visualization() -> None:
     """Test the backtesting visualization system"""
     setup_logging()
 
