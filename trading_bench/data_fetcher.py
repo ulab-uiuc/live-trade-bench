@@ -1,6 +1,6 @@
 import json
-import os
 import time
+from pathlib import Path
 
 import yfinance as yf
 
@@ -58,10 +58,10 @@ def fetch_price_data(
         }
 
     # Ensure target directory exists
-    out_dir = os.path.join(data_dir, 'yfinance_data', 'price_data')
-    os.makedirs(out_dir, exist_ok=True)
+    out_dir = Path(data_dir) / 'yfinance_data' / 'price_data'
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    out_path = os.path.join(out_dir, f'{ticker}_data_formatted.json')
+    out_path = out_dir / f'{ticker}_data_formatted.json'
     with open(out_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2)
 
