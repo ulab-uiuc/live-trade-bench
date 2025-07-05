@@ -3,11 +3,6 @@ Test the new quantitative metrics system
 Demonstrate calculation of various backtesting metrics
 """
 
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).parent.parent))
-
 from trading_bench.bench import SimBench
 from trading_bench.model_wrapper import RuleBasedModel
 from trading_bench.utils import setup_logging

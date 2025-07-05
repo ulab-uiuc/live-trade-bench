@@ -36,14 +36,12 @@ format:
 # Auto-fix all format and lint issues
 auto-lint:
 	@echo "🔧 Auto-fixing all format and lint issues..."
-	@echo "🔀 Sorting imports with isort..."
-	isort .
 	@echo "📝 Formatting code with ruff..."
+	ruff check --fix .
 	ruff format .
 	@echo "🔍 Running linting with auto-fix..."
 	ruff check --fix .
 	@echo "✅ Auto-lint completed! All fixable issues have been resolved."
-	@echo "💡 Run 'make lint' to check for any remaining issues."
 
 # Clean cache files
 clean:
