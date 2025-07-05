@@ -311,7 +311,7 @@ class BacktestVisualizer:
         sizes = [abs(r) * 50 + 20 for r in returns]  # Size based on return magnitude
 
         plt.scatter(
-            entry_times,  # type: ignore
+            entry_times,
             [1] * len(entry_times),
             c=colors,
             s=sizes,
@@ -319,7 +319,7 @@ class BacktestVisualizer:
             label='Entry Points',
         )
         plt.scatter(
-            exit_times,  # type: ignore
+            exit_times,
             [0] * len(exit_times),
             c=colors,
             s=sizes,
@@ -331,7 +331,7 @@ class BacktestVisualizer:
         for entry, exit_time, color in zip(
             entry_times, exit_times, colors, strict=False
         ):
-            plt.plot([entry, exit_time], [1, 0], color=color, alpha=0.3, linewidth=1)  # type: ignore
+            plt.plot([entry, exit_time], [1, 0], color=color, alpha=0.3, linewidth=1)
 
         plt.title(f'{ticker} Trade Timeline', fontsize=14, fontweight='bold')
         plt.xlabel('Date', fontsize=12)
@@ -341,8 +341,8 @@ class BacktestVisualizer:
         plt.legend()
 
         # Format x-axis dates
-        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))  # type: ignore
-        plt.gca().xaxis.set_major_locator(mdates.MonthLocator())  # type: ignore
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
         plt.xticks(rotation=45)
 
         plt.tight_layout()
