@@ -36,6 +36,8 @@ format:
 # Auto-fix all format and lint issues
 auto-lint:
 	@echo "🔧 Auto-fixing all format and lint issues..."
+	@echo "🔀 Sorting imports with isort..."
+	isort .
 	@echo "📝 Formatting code with ruff..."
 	ruff format .
 	@echo "🔍 Running linting with auto-fix..."
