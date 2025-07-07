@@ -37,6 +37,7 @@ def fetch_price_data(
         end=end_date,
         interval=interval,
         progress=False,
+        auto_adjust=True,
     )
 
     if df.empty:
@@ -50,11 +51,11 @@ def fetch_price_data(
         # idx is a pandas.Timestamp
         date_str = idx.strftime('%Y-%m-%d')
         data[date_str] = {
-            'open': float(row['Open']),
-            'high': float(row['High']),
-            'low': float(row['Low']),
-            'close': float(row['Close']),
-            'volume': int(row['Volume']),
+            'open': float(row['Open'].iloc[0]),
+            'high': float(row['High'].iloc[0]),
+            'low': float(row['Low'].iloc[0]),
+            'close': float(row['Close'].iloc[0]),
+            'volume': int(row['Volume'].iloc[0]),
         }
 
     # Ensure target directory exists

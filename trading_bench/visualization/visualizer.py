@@ -8,7 +8,7 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .metrics import MetricsLogger
+from ..core.metrics import MetricsLogger
 
 
 class BacktestVisualizer:
