@@ -26,7 +26,9 @@ class BacktestVisualizer:
         plt.rcParams['figure.figsize'] = (12, 8)
         plt.rcParams['font.size'] = 10
 
-    def generate_all_charts(self, ticker: str, save: bool = True) -> dict[str, str | None]:
+    def generate_all_charts(
+        self, ticker: str, save: bool = True
+    ) -> dict[str, str | None]:
         """
         Generate all backtesting charts.
 

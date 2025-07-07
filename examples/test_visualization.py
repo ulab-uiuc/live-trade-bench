@@ -4,7 +4,7 @@ Test the backtesting visualization system
 Demonstrate chart generation capabilities
 """
 
-from trading_bench import SimBench, RuleBasedModel
+from trading_bench import RuleBasedModel, SimBench
 from trading_bench.utils import setup_logging
 
 

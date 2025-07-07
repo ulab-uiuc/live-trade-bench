@@ -5,11 +5,11 @@ from pathlib import Path
 
 from ..data.data_fetcher import fetch_price_data
 from ..evaluation.evaluator import ReturnEvaluator
-from .metrics import MetricsLogger
 from ..models.base import BaseModel
-from ..models.ml_models import MLModelWrapper, BaseMLModel
-from .signal import Signal
+from ..models.ml_models import BaseMLModel, MLModelWrapper
 from ..visualization.visualizer import BacktestVisualizer
+from .metrics import MetricsLogger
+from .signal import Signal
 
 
 class SimBench:
@@ -121,7 +121,7 @@ class MLSimBench(SimBench):
     """
     Extended SimBench that supports machine learning models
     """
-    
+
     def __init__(
         self,
         ticker: str,
@@ -143,7 +143,7 @@ class MLSimBench(SimBench):
             resolution=resolution,
         )
         self.model_info = model_info or {}
-    
+
     @classmethod
     def from_trained_model(
         cls,
@@ -157,7 +157,7 @@ class MLSimBench(SimBench):
     ) -> 'MLSimBench':
         """
         Create MLSimBench from a saved trained model
-        
+
         Args:
             ticker: Stock ticker symbol
             start_date: Start date for backtesting
@@ -165,7 +165,7 @@ class MLSimBench(SimBench):
             model_path: Path to saved model file
             eval_delay: Evaluation delay
             resolution: Data resolution
-            
+
         Returns:
             MLSimBench instance
         """
@@ -174,18 +174,18 @@ class MLSimBench(SimBench):
             # Load from pickle file
             ml_model = BaseMLModel.load_model(model_path)
         else:
-            raise ValueError("Model path must be a .pkl file")
-        
+            raise ValueError('Model path must be a .pkl file')
+
         # Wrap the ML model
         wrapped_model = MLModelWrapper(ml_model)
-        
+
         # Create model info
         model_info = {
-            "model_path": model_path,
-            "model_type": ml_model.config.model_type,
-            "is_trained": ml_model.is_trained,
+            'model_path': model_path,
+            'model_type': ml_model.config.model_type,
+            'is_trained': ml_model.is_trained,
         }
-        
+
         return cls(
             ticker=ticker,
             start_date=start_date,
@@ -196,21 +196,21 @@ class MLSimBench(SimBench):
             resolution=resolution,
             model_info=model_info,
         )
-    
+
     def run_with_model_info(self) -> dict:
         """
         Run backtest and include model information in results
-        
+
         Returns:
             Dictionary with backtest results and model info
         """
         backtest_results = self.run()
-        
+
         return {
-            "backtest_results": backtest_results,
-            "model_info": self.model_info,
-            "ticker": self.ticker,
-            "start_date": self.start_date,
-            "end_date": self.end_date,
-            "eval_delay": self.eval_delay,
+            'backtest_results': backtest_results,
+            'model_info': self.model_info,
+            'ticker': self.ticker,
+            'start_date': self.start_date,
+            'end_date': self.end_date,
+            'eval_delay': self.eval_delay,
         }

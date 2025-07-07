@@ -3,7 +3,7 @@ Test the new quantitative metrics system
 Demonstrate calculation of various backtesting metrics
 """
 
-from trading_bench import SimBench, RuleBasedModel
+from trading_bench import RuleBasedModel, SimBench
 from trading_bench.utils import setup_logging
 
 
