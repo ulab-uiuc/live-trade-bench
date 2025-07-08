@@ -1,6 +1,7 @@
 from collections import deque
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from trading_bench.core.signal import Signal, TradeRecord
 
@@ -64,7 +65,7 @@ class MLBacktestRunner:
 
     """Runner for ML model backtesting (prediction only)"""
 
-    def __init__(self, data_dir: str = './data', models_dir: str = './models'):
+    def __init__(self, data_dir: str = './data', models_dir: str = './models') -> None:
         self.data_dir = Path(data_dir)
         self.models_dir = Path(models_dir)
 
@@ -76,7 +77,7 @@ class MLBacktestRunner:
         model_path: str,
         eval_delay: int = 5,
         resolution: str = 'D',
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Load a pre-trained model and run backtest
 

@@ -7,7 +7,7 @@ Load trained models and perform predictions (should_buy).
 
 import pickle
 from abc import abstractmethod
-from typing import Any
+from typing import Any, Optional, dict, type
 
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
@@ -26,15 +26,15 @@ class MLModelConfig(ModelConfig):
         model_type: str = 'random_forest',
         **model_params: Any,
     ):
-        self.model_type = model_type
-        self.model_params = model_params
+        self.model_type: str = model_type
+        self.model_params: dict[str, Any] = model_params
 
     def validate(self) -> bool:
         """Validate the configuration."""
         valid_types = ['random_forest', 'logistic_regression', 'svm']
         return self.model_type in valid_types
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             'model_type': self.model_type,
@@ -47,37 +47,40 @@ class BaseMLModel(BaseModel):
 
     def __init__(self, config: MLModelConfig):
         super().__init__(config)
-        self.model = None
+        self.model: Any = None
 
     @abstractmethod
     def _create_model(self) -> Any:
         pass
 
     @abstractmethod
-    def _extract_features(self, price_history: list[float]) -> np.ndarray:
+    def _extract_features(
+        self, price_history: list[float]
+    ) -> np.ndarray[Any, np.dtype[Any]]:
         pass
 
     def should_buy(self, price_history: list[float]) -> bool:
         if not self.is_trained:
             raise RuntimeError('Model must be trained before making predictions')
-        features = self._extract_features(price_history)
+        features: np.ndarray[Any, np.dtype[Any]] = self._extract_features(price_history)
+        assert self.model is not None
         prediction = self.model.predict([features])[0]
         return bool(prediction)
 
     @classmethod
     def load_model(cls, filepath: str) -> 'BaseMLModel':
         with open(filepath, 'rb') as f:
-            model_data = pickle.load(f)
+            model_data: dict[str, Any] = pickle.load(f)
         config = model_data['config']
-        model_map = {
+        model_map: dict[str, type[BaseMLModel]] = {
             'random_forest': RandomForestModel,
             'logistic_regression': LogisticRegressionModel,
             'svm': SVMModel,
         }
-
-        if config.model_type not in model_map:
-            raise ValueError(f'Unknown model type: {config.model_type}')
-
+        if not hasattr(config, 'model_type') or config.model_type not in model_map:
+            raise ValueError(
+                f'Unknown model type: {getattr(config, "model_type", None)}'
+            )
         instance = model_map[config.model_type](config)
         instance.model = model_data['model']
         instance.is_trained = model_data['is_trained']
@@ -86,9 +89,12 @@ class BaseMLModel(BaseModel):
 
 class RandomForestModel(BaseMLModel):
     def _create_model(self) -> RandomForestClassifier:
+        assert isinstance(self.config, MLModelConfig)
         return RandomForestClassifier(**self.config.model_params)
 
-    def _extract_features(self, price_history: list[float]) -> np.ndarray:
+    def _extract_features(
+        self, price_history: list[float]
+    ) -> np.ndarray[Any, np.dtype[Any]]:
         """Extract technical indicators as features (set as an example)"""
         if len(price_history) < 20:
             # Pad with the first price if not enough history
@@ -101,33 +107,22 @@ class RandomForestModel(BaseMLModel):
         prices = np.array(padded_history)
 
         # Calculate technical indicators
-        features = []
-
-        # Price-based features
-        features.extend(
-            [
-                prices[-1],  # Current price
-                np.mean(prices),  # Mean price
-                np.std(prices),  # Price volatility
-                prices[-1] / prices[0] - 1,  # Total return
-            ]
-        )
-
-        # Moving averages
-        features.extend(
-            [
-                np.mean(prices[-5:]),  # 5-period MA
-                np.mean(prices[-10:]),  # 10-period MA
-                np.mean(prices[-20:]),  # 20-period MA
-            ]
-        )
+        features: list[float] = [
+            prices[-1],  # Current price
+            float(np.mean(prices)),  # Mean price
+            float(np.std(prices)),  # Price volatility
+            float(prices[-1] / prices[0] - 1),  # Total return
+            float(np.mean(prices[-5:])),  # 5-period MA
+            float(np.mean(prices[-10:])),  # 10-period MA
+            float(np.mean(prices[-20:])),  # 20-period MA
+        ]
 
         # Price momentum
         features.extend(
             [
-                prices[-1] / prices[-5] - 1,  # 5-period momentum
-                prices[-1] / prices[-10] - 1,  # 10-period momentum
-                prices[-1] / prices[-20] - 1,  # 20-period momentum
+                float(prices[-1] / prices[-5] - 1),  # 5-period momentum
+                float(prices[-1] / prices[-10] - 1),  # 10-period momentum
+                float(prices[-1] / prices[-20] - 1),  # 20-period momentum
             ]
         )
 
@@ -135,9 +130,9 @@ class RandomForestModel(BaseMLModel):
         returns = np.diff(prices) / prices[:-1]
         features.extend(
             [
-                np.std(returns[-5:]),  # 5-period volatility
-                np.std(returns[-10:]),  # 10-period volatility
-                np.std(returns[-20:]),  # 20-period volatility
+                float(np.std(returns[-5:])),  # 5-period volatility
+                float(np.std(returns[-10:])),  # 10-period volatility
+                float(np.std(returns[-20:])),  # 20-period volatility
             ]
         )
 
@@ -155,22 +150,28 @@ class RandomForestModel(BaseMLModel):
 
 class LogisticRegressionModel(BaseMLModel):
     def _create_model(self) -> LogisticRegression:
+        assert isinstance(self.config, MLModelConfig)
         return LogisticRegression(**self.config.model_params)
 
-    def _extract_features(self, price_history: list[float]) -> np.ndarray:
+    def _extract_features(
+        self, price_history: list[float]
+    ) -> np.ndarray[Any, np.dtype[Any]]:
         return np.array([price_history[-20]])
 
 
 class SVMModel(BaseMLModel):
     def _create_model(self) -> SVC:
+        assert isinstance(self.config, MLModelConfig)
         return SVC(probability=True, **self.config.model_params)
 
-    def _extract_features(self, price_history: list[float]) -> np.ndarray:
+    def _extract_features(
+        self, price_history: list[float]
+    ) -> np.ndarray[Any, np.dtype[Any]]:
         return np.array([price_history[-20]])
 
 
 def create_ml_model(config: MLModelConfig) -> BaseMLModel:
-    model_map = {
+    model_map: dict[str, type[BaseMLModel]] = {
         'random_forest': RandomForestModel,
         'logistic_regression': LogisticRegressionModel,
         'svm': SVMModel,
@@ -205,7 +206,7 @@ class MLSimBench(SimBench):
         model: BaseModel,
         eval_delay: int = 5,
         resolution: str = 'D',
-        model_info: dict = None,
+        model_info: dict[str, Any] | None = None,
     ):
         super().__init__(
             ticker=ticker,
@@ -216,7 +217,7 @@ class MLSimBench(SimBench):
             eval_delay=eval_delay,
             resolution=resolution,
         )
-        self.model_info = model_info or {}
+        self.model_info: dict[str, Any] = model_info or {}
 
     @classmethod
     def from_trained_model(
@@ -237,7 +238,8 @@ class MLSimBench(SimBench):
         else:
             raise ValueError('Model path must be a .pkl file')
         wrapped_model = MLModelWrapper(ml_model)
-        model_info = {
+        assert isinstance(ml_model.config, MLModelConfig)
+        model_info: dict[str, Any] = {
             'model_path': model_path,
             'model_type': ml_model.config.model_type,
             'is_trained': ml_model.is_trained,
@@ -253,7 +255,7 @@ class MLSimBench(SimBench):
             model_info=model_info,
         )
 
-    def run_with_model_info(self) -> dict:
+    def run_with_model_info(self) -> dict[str, Any]:
         """
         Run backtest and include model information in results
         """

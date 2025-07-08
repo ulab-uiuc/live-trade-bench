@@ -42,7 +42,7 @@ class VisualizationConfig:
 
     output_dir: str = './charts'
     dpi: int = 300
-    figsize: tuple = (12, 8)
+    figsize: tuple[int, int] = (12, 8)
     style: str = 'seaborn-v0_8'
 
 
@@ -50,12 +50,12 @@ class VisualizationConfig:
 class TradingBenchConfig:
     """Main configuration class for the trading bench framework"""
 
-    data: DataConfig = None
-    backtest: BacktestConfig = None
-    model: ModelConfig = None
-    visualization: VisualizationConfig = None
+    data: DataConfig | None = None
+    backtest: BacktestConfig | None = None
+    model: ModelConfig | None = None
+    visualization: VisualizationConfig | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize default configurations if not provided"""
         if self.data is None:
             self.data = DataConfig()

@@ -53,7 +53,7 @@ class ModelFactory:
         cls._config_registry[name] = config_class
 
     @classmethod
-    def create_model(cls, model_type: str, **config_params) -> BaseModel:
+    def create_model(cls, model_type: str, **config_params: Any) -> BaseModel:
         """
         Create a model instance with the specified configuration.
 
@@ -121,11 +121,11 @@ def create_rule_based_model(
     return RuleBasedModel(config)
 
 
-def create_ml_model(model_type: str, **config_params) -> BaseMLModel:
+def create_ml_model(model_type: str, **config_params: Any) -> BaseMLModel:
     """Create a machine learning model with specified configuration."""
     config = MLModelConfig(model_type=model_type, **config_params)
 
-    model_map = {
+    model_map: dict[str, type[BaseMLModel]] = {
         'random_forest': RandomForestModel,
         'logistic_regression': LogisticRegressionModel,
         'svm': SVMModel,

@@ -302,9 +302,9 @@ class BacktestVisualizer:
             return None
 
         # Prepare data for timeline
-        entry_times = [trade.entry_time for trade in trades]
-        exit_times = [trade.exit_time for trade in trades]
-        returns = [trade.return_pct * 100 for trade in trades]
+        entry_times = np.array([trade.entry_time for trade in trades])
+        exit_times = np.array([trade.exit_time for trade in trades])
+        returns = np.array([trade.return_pct * 100 for trade in trades])
 
         plt.figure(figsize=(15, 8))
 
@@ -314,7 +314,7 @@ class BacktestVisualizer:
 
         plt.scatter(
             entry_times,
-            [1] * len(entry_times),
+            np.ones(len(entry_times)),
             c=colors,
             s=sizes,
             alpha=0.7,
@@ -322,7 +322,7 @@ class BacktestVisualizer:
         )
         plt.scatter(
             exit_times,
-            [0] * len(exit_times),
+            np.zeros(len(exit_times)),
             c=colors,
             s=sizes,
             alpha=0.7,
@@ -343,8 +343,8 @@ class BacktestVisualizer:
         plt.legend()
 
         # Format x-axis dates
-        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-        plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))  # type: ignore
+        plt.gca().xaxis.set_major_locator(mdates.MonthLocator())  # type: ignore
         plt.xticks(rotation=45)
 
         plt.tight_layout()

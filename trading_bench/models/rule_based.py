@@ -2,6 +2,8 @@
 Rule-based trading models
 """
 
+from typing import Any
+
 from trading_bench.core.base import BaseModel, ModelConfig
 
 
@@ -18,15 +20,15 @@ class RuleBasedConfig(ModelConfig):
             rule_type: Type of rule ("average", "momentum", "mean_reversion")
             threshold: Threshold for the rule
         """
-        self.rule_type = rule_type
-        self.threshold = threshold
+        self.rule_type: str = rule_type
+        self.threshold: float = threshold
 
     def validate(self) -> bool:
         """Validate the configuration."""
         valid_rules = ['average', 'momentum', 'mean_reversion']
         return self.rule_type in valid_rules and isinstance(self.threshold, int | float)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {'rule_type': self.rule_type, 'threshold': self.threshold}
 
@@ -38,7 +40,7 @@ class RuleBasedModel(BaseModel):
     This is a baseline model for comparison with more sophisticated approaches.
     """
 
-    def __init__(self, config: RuleBasedConfig = None):
+    def __init__(self, config: RuleBasedConfig | None = None) -> None:
         """
         Initialize the rule-based model.
 
@@ -63,6 +65,7 @@ class RuleBasedModel(BaseModel):
         if not price_history:
             return False
 
+        assert isinstance(self.config, RuleBasedConfig)
         if self.config.rule_type == 'average':
             return self._average_rule(price_history)
         elif self.config.rule_type == 'momentum':
@@ -75,6 +78,7 @@ class RuleBasedModel(BaseModel):
     def _average_rule(self, price_history: list[float]) -> bool:
         """Buy when current price is below historical average."""
         avg_price = sum(price_history) / len(price_history)
+        assert isinstance(self.config, RuleBasedConfig)
         return price_history[-1] < avg_price + self.config.threshold
 
     def _momentum_rule(self, price_history: list[float]) -> bool:
@@ -82,6 +86,7 @@ class RuleBasedModel(BaseModel):
         if len(price_history) < 2:
             return False
         momentum = (price_history[-1] - price_history[-2]) / price_history[-2]
+        assert isinstance(self.config, RuleBasedConfig)
         return momentum > self.config.threshold
 
     def _mean_reversion_rule(self, price_history: list[float]) -> bool:
@@ -90,4 +95,5 @@ class RuleBasedModel(BaseModel):
             return False
         moving_avg = sum(price_history[-10:]) / 10
         deviation = (price_history[-1] - moving_avg) / moving_avg
+        assert isinstance(self.config, RuleBasedConfig)
         return deviation < -self.config.threshold
