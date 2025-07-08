@@ -1,0 +1,169 @@
+.App {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.navigation {
+  background-color: #282c34;
+  padding: 1rem;
+  color: white;
+}
+
+.navigation button {
+  background-color: #61dafb;
+  color: #282c34;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin-right: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.navigation button:hover {
+  background-color: #21a8c6;
+}
+
+.navigation button.active {
+  background-color: #fff;
+  color: #282c34;
+}
+
+.dashboard {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 80px);
+}
+
+.models-section {
+  width: 66.66%;
+  padding: 1rem;
+  background-color: #f5f5f5;
+  overflow-y: auto;
+}
+
+.trading-history-section {
+  width: 33.33%;
+  padding: 1rem;
+  background-color: #fff;
+  border-left: 1px solid #ddd;
+  overflow-y: auto;
+}
+
+.model-card {
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.model-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: #282c34;
+}
+
+.model-card p {
+  margin: 0.25rem 0;
+  color: #666;
+}
+
+.trading-history h2 {
+  margin-top: 0;
+  color: #282c34;
+}
+
+.trade-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.trade-item.profit {
+  border-left: 4px solid #28a745;
+}
+
+.trade-item.loss {
+  border-left: 4px solid #dc3545;
+}
+
+.trade-amount {
+  font-weight: bold;
+}
+
+.trade-amount.profit {
+  color: #28a745;
+}
+
+.trade-amount.loss {
+  color: #dc3545;
+}
+
+.news-page {
+  padding: 2rem;
+  flex: 1;
+}
+
+.news-item {
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.news-item h3 {
+  margin: 0 0 0.5rem 0;
+  color: #282c34;
+}
+
+.news-item p {
+  margin: 0.5rem 0;
+  color: #666;
+}
+
+.news-item .date {
+  color: #999;
+  font-size: 0.875rem;
+}
+
+.refresh-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.refresh-indicator.loading {
+  color: #61dafb;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #61dafb;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+}
