@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ModelsDisplay from './ModelsDisplay';
-import TradingHistory from './TradingHistory';
+import SystemLog from './SystemLog';
 
 const Dashboard: React.FC = () => {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -18,8 +18,8 @@ const Dashboard: React.FC = () => {
       <div className="models-section">
         <ModelsDisplay lastRefresh={lastRefresh} />
       </div>
-      <div className="trading-history-section">
-        <TradingHistory lastRefresh={lastRefresh} />
+      <div className="system-log-section">
+        <SystemLog lastRefresh={lastRefresh} />
       </div>
     </div>
   );

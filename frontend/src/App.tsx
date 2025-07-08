@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import News from './components/News';
+import SocialMedia from './components/SocialMedia';
+import TradingHistoryPage from './components/TradingHistoryPage';
 import Navigation from './components/Navigation';
 import './App.css';
 
@@ -13,6 +15,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/news" element={<News />} />
+          <Route path="/social" element={<SocialMedia />} />
+          <Route path="/trading-history" element={<TradingHistoryPage />} />
         </Routes>
       </div>
     </Router>

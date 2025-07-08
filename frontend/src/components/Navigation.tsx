@@ -19,6 +19,18 @@ const Navigation: React.FC = () => {
       >
         News
       </button>
+      <button 
+        className={location.pathname === '/social' ? 'active' : ''}
+        onClick={() => navigate('/social')}
+      >
+        Social Media
+      </button>
+      <button 
+        className={location.pathname === '/trading-history' ? 'active' : ''}
+        onClick={() => navigate('/trading-history')}
+      >
+        Trading History
+      </button>
     </nav>
   );
 };
