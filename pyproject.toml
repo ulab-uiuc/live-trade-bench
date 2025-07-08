@@ -13,6 +13,10 @@ beartype = "^0.17.1"
 pydantic = "^2.8.2"
 finnhub-python = "*"
 yfinance = "*"
+requests = "*"
+beautifulsoup4 = "*"
+tenacity = "*"
+scipy = "*"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.6.0"

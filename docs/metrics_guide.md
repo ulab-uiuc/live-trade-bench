@@ -112,10 +112,12 @@ print(f"Final Equity: {equity_curve[-1]:.4f}")
 ### Key Risk Metrics
 
 1. **Sharpe Ratio**
+
    - Measures risk-adjusted returns
    - Higher is better, typically >1 is good
 
 2. **Maximum Drawdown**
+
    - Maximum drawdown
    - Lower is better, typically <20% is acceptable
 
@@ -126,8 +128,9 @@ print(f"Final Equity: {equity_curve[-1]:.4f}")
 ### Key Return Metrics
 
 1. **Profit Factor**
+
    - Total profit / total loss
-   - >1 is profitable, >2 is good
+   - > 1 is profitable, >2 is good
 
 2. **Win Rate**
    - Proportion of profitable trades to total trades
@@ -154,11 +157,11 @@ def _annualized_return(self) -> float:
     """Calculate annualized return rate"""
     if not self.trades:
         return 0.0
-    
+
     total_days = (self.trades[-1].exit_time - self.trades[0].entry_time).days
     if total_days == 0:
         return 0.0
-    
+
     total_return = self.current_equity - 1.0
     annualized = (1 + total_return) ** (365 / total_days) - 1
     return annualized

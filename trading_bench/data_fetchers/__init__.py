@@ -1,19 +1,18 @@
 """
-Data fetcher module for trading bench.
+Data fetchers module for trading bench.
 
-This module provides a unified interface for fetching various types of data:
-- Stock and option data from Yahoo Finance
-- News data from Google News
-- Prediction market data from Polymarket
-
-All functions are imported from specialized modules in the data_fetchers package.
+This module contains specialized data fetchers for different data sources:
+- stock_fetcher: Stock price data from Yahoo Finance
+- option_fetcher: Option data from Yahoo Finance
+- news_fetcher: News data from Google News
+- polymarket_fetcher: Prediction market data from Polymarket
+- reddit_fetcher: Reddit posts and comments data from local JSONL files
 """
 
-# Import all functions from the modular data fetchers
-from .data_fetchers.news_fetcher import (
+from .news_fetcher import (
     fetch_news_data,
 )
-from .data_fetchers.option_fetcher import (
+from .option_fetcher import (
     calculate_implied_volatility,
     calculate_option_greeks,
     fetch_option_chain,
@@ -23,7 +22,7 @@ from .data_fetchers.option_fetcher import (
     get_atm_options,
     get_option_chain_summary,
 )
-from .data_fetchers.polymarket_fetcher import (
+from .polymarket_fetcher import (
     fetch_polymarket_market_details,
     fetch_polymarket_market_stats,
     fetch_polymarket_markets,
@@ -32,7 +31,7 @@ from .data_fetchers.polymarket_fetcher import (
     fetch_polymarket_trending_markets,
     search_polymarket_markets,
 )
-from .data_fetchers.reddit_fetcher import (
+from .reddit_fetcher import (
     fetch_reddit_posts_by_ticker,
     fetch_reddit_sentiment_data,
     fetch_top_from_category,
@@ -40,11 +39,10 @@ from .data_fetchers.reddit_fetcher import (
     get_available_dates,
     get_reddit_statistics,
 )
-from .data_fetchers.stock_fetcher import (
+from .stock_fetcher import (
     fetch_price_data,
 )
 
-# Export all functions for backward compatibility
 __all__ = [
     # Stock data
     'fetch_price_data',
