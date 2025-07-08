@@ -4,28 +4,17 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from trading_bench.data_fetchers.news_fetcher import (
-    fetch_news_data,
-    is_rate_limited,
-    make_request,
-)
+from trading_bench.data_fetchers.news_fetcher import (fetch_news_data,
+                                                      is_rate_limited,
+                                                      make_request)
 from trading_bench.data_fetchers.polymarket_fetcher import (
-    fetch_polymarket_market_details,
-    fetch_polymarket_market_stats,
-    fetch_polymarket_markets,
-    fetch_polymarket_trades,
-    fetch_polymarket_trending_markets,
-    search_polymarket_markets,
-)
+    fetch_polymarket_market_details, fetch_polymarket_market_stats,
+    fetch_polymarket_markets, fetch_polymarket_trades,
+    fetch_polymarket_trending_markets, search_polymarket_markets)
 from trading_bench.data_fetchers.stock_fetcher import (
-    _download_price_data,
-    calculate_option_greeks,
-    fetch_option_chain,
-    fetch_option_data,
-    fetch_option_expirations,
-    fetch_option_historical_data,
-    fetch_price_data,
-)
+    _download_price_data, calculate_option_greeks, fetch_option_chain,
+    fetch_option_data, fetch_option_expirations, fetch_option_historical_data,
+    fetch_price_data)
 
 
 def test_is_rate_limited():

@@ -1,7 +1,6 @@
-from fastapi import APIRouter, HTTPException
-
 from app.data import SAMPLE_MODELS, get_models_data
 from app.schemas import APIResponse, TradingModel
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix='/api/models', tags=['models'])
 

@@ -1,15 +1,8 @@
 import random
 from datetime import datetime, timedelta
 
-from app.schemas import (
-    ModelStatus,
-    NewsCategory,
-    NewsImpact,
-    NewsItem,
-    Trade,
-    TradeType,
-    TradingModel,
-)
+from app.schemas import (ModelStatus, NewsCategory, NewsImpact, NewsItem,
+                         Trade, TradeType, TradingModel)
 
 # Sample trading models data
 SAMPLE_MODELS: list[TradingModel] = [
