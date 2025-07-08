@@ -5,22 +5,19 @@ Example script demonstrating how to use the modular data fetching structure.
 This example shows how to import and use functions from different data fetcher modules.
 """
 
+# Or import from the unified interface (backward compatibility)
 # Import from specific modules
 from trading_bench.data_fetcher import fetch_news_data as fetch_news_unified
-from trading_bench.data_fetcher import (
-    fetch_polymarket_trending_markets as fetch_trending_unified,
-)
-
-# Or import from the unified interface (backward compatibility)
+from trading_bench.data_fetcher import \
+    fetch_polymarket_trending_markets as fetch_trending_unified
 from trading_bench.data_fetcher import fetch_price_data as fetch_price_unified
-from trading_bench.data_fetcher import (
-    fetch_reddit_posts_by_ticker as fetch_reddit_unified,
-)
+from trading_bench.data_fetcher import \
+    fetch_reddit_posts_by_ticker as fetch_reddit_unified
 from trading_bench.data_fetchers.news_fetcher import fetch_news_data
-from trading_bench.data_fetchers.polymarket_fetcher import (
-    fetch_polymarket_trending_markets,
-)
-from trading_bench.data_fetchers.reddit_fetcher import fetch_reddit_posts_by_ticker
+from trading_bench.data_fetchers.polymarket_fetcher import \
+    fetch_polymarket_trending_markets
+from trading_bench.data_fetchers.reddit_fetcher import \
+    fetch_reddit_posts_by_ticker
 from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
 
 
@@ -121,7 +118,8 @@ def demonstrate_module_specific_features():
 
     try:
         # Option fetcher specific features
-        from trading_bench.data_fetchers.option_fetcher import calculate_option_greeks
+        from trading_bench.data_fetchers.option_fetcher import \
+            calculate_option_greeks
 
         print('1. Option Fetcher - Greeks Calculation:')
         greeks = calculate_option_greeks(
@@ -144,9 +142,8 @@ def demonstrate_module_specific_features():
         print()
 
         # Polymarket fetcher specific features
-        from trading_bench.data_fetchers.polymarket_fetcher import (
-            search_polymarket_markets,
-        )
+        from trading_bench.data_fetchers.polymarket_fetcher import \
+            search_polymarket_markets
 
         print('3. Polymarket Fetcher - Market Search:')
         election_markets = search_polymarket_markets('election', category='politics')
@@ -154,7 +151,8 @@ def demonstrate_module_specific_features():
         print()
 
         # Reddit fetcher specific features
-        from trading_bench.data_fetchers.reddit_fetcher import get_available_categories
+        from trading_bench.data_fetchers.reddit_fetcher import \
+            get_available_categories
 
         print('4. Reddit Fetcher - Category Discovery:')
         try:

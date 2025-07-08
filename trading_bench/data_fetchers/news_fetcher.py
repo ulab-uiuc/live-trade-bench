@@ -11,12 +11,8 @@ from datetime import datetime
 
 import requests
 from bs4 import BeautifulSoup
-from tenacity import (
-    retry,
-    retry_if_result,
-    stop_after_attempt,
-    wait_exponential,
-)
+from tenacity import (retry, retry_if_result, stop_after_attempt,
+                      wait_exponential)
 
 
 def is_rate_limited(response):
