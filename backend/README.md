@@ -13,12 +13,14 @@ FastAPI backend for the Live Trade Bench trading dashboard.
 ## API Endpoints
 
 ### Models
+
 - `GET /api/models` - Get all trading models
 - `GET /api/models/{id}` - Get specific model
 - `POST /api/models/{id}/toggle` - Toggle model status
 - `GET /api/models/{id}/performance` - Get detailed performance metrics
 
 ### Trades
+
 - `GET /api/trades` - Get trading history (with pagination and filtering)
 - `GET /api/trades/summary` - Get trading performance summary
 - `GET /api/trades/stats` - Get detailed trading statistics
@@ -26,6 +28,7 @@ FastAPI backend for the Live Trade Bench trading dashboard.
 - `GET /api/trades/by-model/{model}` - Get trades by model
 
 ### News
+
 - `GET /api/news` - Get news articles (with filtering and pagination)
 - `GET /api/news/{id}` - Get specific news article
 - `GET /api/news/category/{category}` - Get news by category
@@ -37,11 +40,13 @@ FastAPI backend for the Live Trade Bench trading dashboard.
 ## Setup
 
 1. **Install dependencies:**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 2. **Run the server:**
+
    ```bash
    python run.py
    ```
@@ -58,6 +63,7 @@ The server runs in development mode with auto-reload enabled. Any changes to the
 ## Sample Data
 
 The backend includes sample data for:
+
 - 5 trading models with performance metrics
 - 8 recent trades with various symbols
 - 8 news articles with different categories and impact levels
@@ -65,6 +71,7 @@ The backend includes sample data for:
 ## CORS Configuration
 
 CORS is configured to allow requests from:
+
 - http://localhost:3000 (default React dev server)
 
 ## Project Structure

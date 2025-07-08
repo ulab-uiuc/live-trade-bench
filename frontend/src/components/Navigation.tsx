@@ -7,25 +7,25 @@ const Navigation: React.FC = () => {
 
   return (
     <nav className="navigation">
-      <button 
+      <button
         className={location.pathname === '/' ? 'active' : ''}
         onClick={() => navigate('/')}
       >
         Dashboard
       </button>
-      <button 
+      <button
         className={location.pathname === '/news' ? 'active' : ''}
         onClick={() => navigate('/news')}
       >
         News
       </button>
-      <button 
+      <button
         className={location.pathname === '/social' ? 'active' : ''}
         onClick={() => navigate('/social')}
       >
         Social Media
       </button>
-      <button 
+      <button
         className={location.pathname === '/trading-history' ? 'active' : ''}
         onClick={() => navigate('/trading-history')}
       >

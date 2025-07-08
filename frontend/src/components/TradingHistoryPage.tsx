@@ -32,7 +32,7 @@ const TradingHistoryPage: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Transform backend data to frontend format
       const transformedTrades: Trade[] = data.map((trade: any) => ({
         id: trade.id,
@@ -48,7 +48,7 @@ const TradingHistoryPage: React.FC = () => {
         fees: trade.fees || 0,
         totalValue: trade.amount * trade.price
       }));
-      
+
       setTrades(transformedTrades);
       setLastRefresh(new Date());
     } catch (error) {
@@ -136,61 +136,61 @@ const TradingHistoryPage: React.FC = () => {
       </div>
 
       {/* Summary Statistics */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-        gap: '15px', 
-        marginBottom: '20px' 
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '15px',
+        marginBottom: '20px'
       }}>
-        <div style={{ 
-          background: totalProfit >= 0 ? '#e8f5e8' : '#ffe8e8', 
-          padding: '15px', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
+        <div style={{
+          background: totalProfit >= 0 ? '#e8f5e8' : '#ffe8e8',
+          padding: '15px',
+          borderRadius: '8px',
+          textAlign: 'center'
         }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: totalProfit >= 0 ? '#28a745' : '#dc3545' }}>
             ${totalProfit.toFixed(2)}
           </div>
           <div style={{ fontSize: '0.9rem', color: '#666' }}>Total P&L</div>
         </div>
-        <div style={{ 
-          background: '#f8f9fa', 
-          padding: '15px', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
+        <div style={{
+          background: '#f8f9fa',
+          padding: '15px',
+          borderRadius: '8px',
+          textAlign: 'center'
         }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#007bff' }}>
             {totalTrades}
           </div>
           <div style={{ fontSize: '0.9rem', color: '#666' }}>Total Trades</div>
         </div>
-        <div style={{ 
-          background: '#e8f5e8', 
-          padding: '15px', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
+        <div style={{
+          background: '#e8f5e8',
+          padding: '15px',
+          borderRadius: '8px',
+          textAlign: 'center'
         }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#28a745' }}>
             {buyTrades}
           </div>
           <div style={{ fontSize: '0.9rem', color: '#666' }}>Buy Trades</div>
         </div>
-        <div style={{ 
-          background: '#ffe8e8', 
-          padding: '15px', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
+        <div style={{
+          background: '#ffe8e8',
+          padding: '15px',
+          borderRadius: '8px',
+          textAlign: 'center'
         }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
             {sellTrades}
           </div>
           <div style={{ fontSize: '0.9rem', color: '#666' }}>Sell Trades</div>
         </div>
-        <div style={{ 
-          background: '#fff3cd', 
-          padding: '15px', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
+        <div style={{
+          background: '#fff3cd',
+          padding: '15px',
+          borderRadius: '8px',
+          textAlign: 'center'
         }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ffc107' }}>
             ${totalFees.toFixed(2)}
@@ -206,8 +206,8 @@ const TradingHistoryPage: React.FC = () => {
             <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block' }}>
               Category
             </label>
-            <select 
-              value={selectedCategory} 
+            <select
+              value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as any)}
               style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
             >
@@ -221,8 +221,8 @@ const TradingHistoryPage: React.FC = () => {
             <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block' }}>
               Type
             </label>
-            <select 
-              value={selectedType} 
+            <select
+              value={selectedType}
               onChange={(e) => setSelectedType(e.target.value as any)}
               style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
             >
@@ -235,8 +235,8 @@ const TradingHistoryPage: React.FC = () => {
             <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block' }}>
               Status
             </label>
-            <select 
-              value={selectedStatus} 
+            <select
+              value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value as any)}
               style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
             >
@@ -329,9 +329,9 @@ const TradingHistoryPage: React.FC = () => {
       </div>
 
       {sortedTrades.length === 0 && !loading && (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '40px', 
+        <div style={{
+          textAlign: 'center',
+          padding: '40px',
           color: '#666',
           background: '#f8f9fa',
           borderRadius: '8px'
@@ -343,4 +343,4 @@ const TradingHistoryPage: React.FC = () => {
   );
 };
 
-export default TradingHistoryPage; 
+export default TradingHistoryPage;

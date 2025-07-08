@@ -32,7 +32,7 @@ const ModelActions: React.FC<ModelActionsProps> = ({ lastRefresh }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Transform backend data to frontend format
       const transformedActions: ModelAction[] = data.map((action: any) => ({
         id: action.id,
@@ -48,7 +48,7 @@ const ModelActions: React.FC<ModelActionsProps> = ({ lastRefresh }) => {
         category: action.category,
         status: action.status
       }));
-      
+
       setActions(transformedActions);
     } catch (error) {
       console.error('Error fetching model actions:', error);
@@ -59,10 +59,10 @@ const ModelActions: React.FC<ModelActionsProps> = ({ lastRefresh }) => {
 
   useEffect(() => {
     fetchModelActions();
-    
+
     // Auto-refresh every 30 seconds for real-time updates
     const interval = setInterval(fetchModelActions, 30 * 1000);
-    
+
     return () => clearInterval(interval);
   }, [lastRefresh]);
 
@@ -147,50 +147,50 @@ const ModelActions: React.FC<ModelActionsProps> = ({ lastRefresh }) => {
       </div>
 
       {/* Action Statistics */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(2, 1fr)', 
-        gap: '10px', 
-        marginBottom: '20px' 
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '10px',
+        marginBottom: '20px'
       }}>
-        <div style={{ 
-          background: '#e8f5e8', 
-          padding: '10px', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
+        <div style={{
+          background: '#e8f5e8',
+          padding: '10px',
+          borderRadius: '8px',
+          textAlign: 'center'
         }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#28a745' }}>
             {actionStats.buy}
           </div>
           <div style={{ fontSize: '0.8rem', color: '#666' }}>Buy Signals</div>
         </div>
-        <div style={{ 
-          background: '#ffe8e8', 
-          padding: '10px', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
+        <div style={{
+          background: '#ffe8e8',
+          padding: '10px',
+          borderRadius: '8px',
+          textAlign: 'center'
         }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
             {actionStats.sell}
           </div>
           <div style={{ fontSize: '0.8rem', color: '#666' }}>Sell Signals</div>
         </div>
-        <div style={{ 
-          background: '#f8f9fa', 
-          padding: '10px', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
+        <div style={{
+          background: '#f8f9fa',
+          padding: '10px',
+          borderRadius: '8px',
+          textAlign: 'center'
         }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#6c757d' }}>
             {actionStats.hold}
           </div>
           <div style={{ fontSize: '0.8rem', color: '#666' }}>Hold Signals</div>
         </div>
-        <div style={{ 
-          background: '#fff3cd', 
-          padding: '10px', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
+        <div style={{
+          background: '#fff3cd',
+          padding: '10px',
+          borderRadius: '8px',
+          textAlign: 'center'
         }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ffc107' }}>
             {actionStats.alert}
@@ -268,9 +268,9 @@ const ModelActions: React.FC<ModelActionsProps> = ({ lastRefresh }) => {
             <div style={{ marginBottom: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.8rem', color: '#666' }}>
-                  Confidence: 
-                  <span style={{ 
-                    color: getConfidenceColor(action.confidence), 
+                  Confidence:
+                  <span style={{
+                    color: getConfidenceColor(action.confidence),
                     fontWeight: 'bold',
                     marginLeft: '4px'
                   }}>
@@ -284,9 +284,9 @@ const ModelActions: React.FC<ModelActionsProps> = ({ lastRefresh }) => {
             </div>
 
             {action.reason && (
-              <div style={{ 
-                fontSize: '0.8rem', 
-                color: '#666', 
+              <div style={{
+                fontSize: '0.8rem',
+                color: '#666',
                 fontStyle: 'italic',
                 background: '#f8f9fa',
                 padding: '6px',
@@ -301,9 +301,9 @@ const ModelActions: React.FC<ModelActionsProps> = ({ lastRefresh }) => {
       </div>
 
       {recentActions.length === 0 && !loading && (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '40px', 
+        <div style={{
+          textAlign: 'center',
+          padding: '40px',
           color: '#666',
           background: '#f8f9fa',
           borderRadius: '8px'
@@ -315,4 +315,4 @@ const ModelActions: React.FC<ModelActionsProps> = ({ lastRefresh }) => {
   );
 };
 
-export default ModelActions; 
+export default ModelActions;

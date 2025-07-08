@@ -25,7 +25,7 @@ const News: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Transform backend data to frontend format
       const transformedNews: NewsItem[] = data.map((article: any) => ({
         id: article.id,
@@ -37,7 +37,7 @@ const News: React.FC = () => {
         category: article.category,
         url: article.url
       }));
-      
+
       setNews(transformedNews);
       setLastRefresh(new Date());
     } catch (error) {

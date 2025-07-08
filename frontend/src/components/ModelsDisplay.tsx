@@ -33,7 +33,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Transform backend data to frontend format
       const transformedModels: Model[] = data.map((model: any) => ({
         id: model.id,
@@ -48,7 +48,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
         ticker: model.ticker,
         strategy: model.strategy
       }));
-      
+
       setModels(transformedModels);
     } catch (error) {
       console.error('Error fetching models:', error);
@@ -88,8 +88,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
     }
   };
 
-  const filteredModels = selectedCategory === 'all' 
-    ? models 
+  const filteredModels = selectedCategory === 'all'
+    ? models
     : models.filter(model => model.category === selectedCategory);
 
   const categoryStats = {
@@ -170,9 +170,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
           </button>
         </div>
       </div>
-      
+
       {filteredModels.map(model => (
-        <div key={model.id} className="model-card" style={{ 
+        <div key={model.id} className="model-card" style={{
           borderLeft: `4px solid ${getCategoryColor(model.category)}`,
           marginBottom: '15px',
           padding: '15px',
@@ -185,8 +185,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
               <span style={{ fontSize: '20px' }}>{getCategoryIcon(model.category)}</span>
               <h3 style={{ margin: 0, color: getCategoryColor(model.category) }}>{model.name}</h3>
             </div>
-            <span 
-              style={{ 
+            <span
+              style={{
                 color: getStatusColor(model.status),
                 fontWeight: 'bold',
                 textTransform: 'uppercase',
@@ -203,9 +203,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
           {/* Category-specific information */}
           <div style={{ marginBottom: '10px', fontSize: '0.9rem', color: '#666' }}>
             {model.category === 'polymarket' && model.market_type && (
-              <span style={{ 
-                background: '#8e44ad20', 
-                padding: '2px 8px', 
+              <span style={{
+                background: '#8e44ad20',
+                padding: '2px 8px',
                 borderRadius: '12px',
                 marginRight: '8px'
               }}>
@@ -213,9 +213,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
               </span>
             )}
             {model.category === 'stock' && model.ticker && (
-              <span style={{ 
-                background: '#3498db20', 
-                padding: '2px 8px', 
+              <span style={{
+                background: '#3498db20',
+                padding: '2px 8px',
                 borderRadius: '12px',
                 marginRight: '8px'
               }}>
@@ -223,9 +223,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
               </span>
             )}
             {model.category === 'option' && model.ticker && (
-              <span style={{ 
-                background: '#e67e2220', 
-                padding: '2px 8px', 
+              <span style={{
+                background: '#e67e2220',
+                padding: '2px 8px',
                 borderRadius: '12px',
                 marginRight: '8px'
               }}>
@@ -237,7 +237,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
             <div>
               <p style={{ margin: '5px 0', fontSize: '0.9rem' }}>
-                <strong>Performance:</strong> 
+                <strong>Performance:</strong>
                 <span style={{ color: model.performance >= 0 ? '#28a745' : '#dc3545' }}>
                   {model.performance >= 0 ? '+' : ''}{model.performance.toFixed(1)}%
                 </span>
@@ -251,7 +251,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
                 <strong>Total Trades:</strong> {model.trades}
               </p>
               <p style={{ margin: '5px 0', fontSize: '0.9rem' }}>
-                <strong>Profit/Loss:</strong> 
+                <strong>Profit/Loss:</strong>
                 <span className={model.profit >= 0 ? 'trade-amount profit' : 'trade-amount loss'}>
                   {model.profit >= 0 ? '+' : ''}${model.profit.toFixed(2)}
                 </span>
@@ -262,9 +262,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
       ))}
 
       {filteredModels.length === 0 && !loading && (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '40px', 
+        <div style={{
+          textAlign: 'center',
+          padding: '40px',
           color: '#666',
           background: '#f8f9fa',
           borderRadius: '8px'

@@ -39,7 +39,7 @@ const SocialMedia: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Transform backend data to frontend format
       const transformedPosts: SocialPost[] = data.map((post: any) => ({
         id: post.id,
@@ -63,7 +63,7 @@ const SocialMedia: React.FC = () => {
         subreddit: post.subreddit,
         hashtags: post.hashtags
       }));
-      
+
       setPosts(transformedPosts);
       setLastRefresh(new Date());
     } catch (error) {
@@ -136,8 +136,8 @@ const SocialMedia: React.FC = () => {
   };
 
   const getTotalEngagement = (engagement: any) => {
-    return (engagement.upvotes || 0) + (engagement.likes || 0) + 
-           (engagement.retweets || 0) + (engagement.comments || 0) + 
+    return (engagement.upvotes || 0) + (engagement.likes || 0) +
+           (engagement.retweets || 0) + (engagement.comments || 0) +
            (engagement.shares || 0) - (engagement.downvotes || 0);
   };
 
@@ -359,9 +359,9 @@ const SocialMedia: React.FC = () => {
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
                     <span style={{ color: '#666', fontSize: '0.9rem' }}>by {post.author}</span>
                     {post.subreddit && (
-                      <span style={{ 
-                        background: '#f8f9fa', 
-                        padding: '2px 6px', 
+                      <span style={{
+                        background: '#f8f9fa',
+                        padding: '2px 6px',
                         borderRadius: '4px',
                         fontSize: '0.8rem',
                         color: '#666'
@@ -406,9 +406,9 @@ const SocialMedia: React.FC = () => {
 
             {post.ticker && (
               <div style={{ marginBottom: '0.5rem' }}>
-                <span style={{ 
-                  background: '#e3f2fd', 
-                  padding: '2px 8px', 
+                <span style={{
+                  background: '#e3f2fd',
+                  padding: '2px 8px',
                   borderRadius: '12px',
                   fontSize: '0.8rem',
                   color: '#1976d2',
@@ -422,9 +422,9 @@ const SocialMedia: React.FC = () => {
             {post.hashtags && post.hashtags.length > 0 && (
               <div style={{ marginBottom: '0.5rem' }}>
                 {post.hashtags.map((tag, index) => (
-                  <span key={index} style={{ 
-                    background: '#f0f0f0', 
-                    padding: '2px 6px', 
+                  <span key={index} style={{
+                    background: '#f0f0f0',
+                    padding: '2px 6px',
                     borderRadius: '4px',
                     fontSize: '0.8rem',
                     color: '#666',
@@ -469,9 +469,9 @@ const SocialMedia: React.FC = () => {
       </div>
 
       {filteredPosts.length === 0 && !loading && (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '40px', 
+        <div style={{
+          textAlign: 'center',
+          padding: '40px',
           color: '#666',
           background: '#f8f9fa',
           borderRadius: '8px'
@@ -483,4 +483,4 @@ const SocialMedia: React.FC = () => {
   );
 };
 
-export default SocialMedia; 
+export default SocialMedia;

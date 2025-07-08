@@ -28,7 +28,7 @@ const TradingHistory: React.FC<TradingHistoryProps> = ({ lastRefresh }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Transform backend data to frontend format
       const transformedTrades: Trade[] = data.map((trade: any) => ({
         id: trade.id,
@@ -40,7 +40,7 @@ const TradingHistory: React.FC<TradingHistoryProps> = ({ lastRefresh }) => {
         profit: trade.profit,
         model: trade.model
       }));
-      
+
       setTrades(transformedTrades);
     } catch (error) {
       console.error('Error fetching trading history:', error);
@@ -65,7 +65,7 @@ const TradingHistory: React.FC<TradingHistoryProps> = ({ lastRefresh }) => {
         <h2>Trading History</h2>
         {loading && <div className="spinner"></div>}
       </div>
-      
+
       <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
         <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>Total P&L Today</h3>
         <div className={`trade-amount ${totalProfit >= 0 ? 'profit' : 'loss'}`} style={{ fontSize: '1.25rem' }}>
@@ -93,7 +93,7 @@ const TradingHistory: React.FC<TradingHistoryProps> = ({ lastRefresh }) => {
           </div>
         ))}
       </div>
-      
+
       <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '1rem', textAlign: 'center' }}>
         Last updated: {lastRefresh.toLocaleTimeString()}
       </div>

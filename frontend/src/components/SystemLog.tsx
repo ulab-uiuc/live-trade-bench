@@ -34,7 +34,7 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Transform backend data to frontend format
       const transformedActions: SystemAction[] = data.map((action: any) => ({
         id: action.id,
@@ -50,7 +50,7 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
         targets: action.targets,
         metadata: action.metadata
       }));
-      
+
       setActions(transformedActions);
     } catch (error) {
       console.error('Error fetching system log:', error);
@@ -61,10 +61,10 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
 
   useEffect(() => {
     fetchSystemLog();
-    
+
     // Auto-refresh every 15 seconds for real-time updates
     const interval = setInterval(fetchSystemLog, 15 * 1000);
-    
+
     return () => clearInterval(interval);
   }, [lastRefresh]);
 
@@ -417,9 +417,9 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
             </div>
 
             {action.metadata && Object.keys(action.metadata).length > 0 && (
-              <div style={{ 
-                fontSize: '0.75rem', 
-                color: '#666', 
+              <div style={{
+                fontSize: '0.75rem',
+                color: '#666',
                 background: '#f8f9fa',
                 padding: '4px 8px',
                 borderRadius: '4px',
@@ -438,9 +438,9 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
       </div>
 
       {recentActions.length === 0 && !loading && (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '40px', 
+        <div style={{
+          textAlign: 'center',
+          padding: '40px',
           color: '#666',
           background: '#f8f9fa',
           borderRadius: '8px'
@@ -452,4 +452,4 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
   );
 };
 
-export default SystemLog; 
+export default SystemLog;
