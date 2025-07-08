@@ -3,7 +3,7 @@ Machine Learning Models for Live Trading Bench
 Load trained models and perform predictions (should_buy).
 """
 
-#TODO: To be refined
+# TODO: To be refined
 
 import pickle
 from abc import abstractmethod

@@ -5,9 +5,13 @@ Model factory for creating different types of trading models
 from typing import Any
 
 from trading_bench.core.base import BaseModel, ModelConfig
-from trading_bench.models.ml import (BaseMLModel, LogisticRegressionModel,
-                                     MLModelConfig, RandomForestModel,
-                                     SVMModel)
+from trading_bench.models.ml import (
+    BaseMLModel,
+    LogisticRegressionModel,
+    MLModelConfig,
+    RandomForestModel,
+    SVMModel,
+)
 from trading_bench.models.rule_based import RuleBasedConfig, RuleBasedModel
 
 
