@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.9, <3.12"
-mypy = "^1.8.0"
+mypy = "^1.16.1"
 beartype = "^0.17.1"
 pydantic = "^2.8.2"
 finnhub-python = "*"
