@@ -5,15 +5,15 @@ This module provides functions to fetch stock price data from Yahoo Finance
 using yfinance library.
 """
 
-import time
 import random
+import time
 
 import yfinance as yf
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
 
@@ -30,7 +30,7 @@ def _download_price_data(ticker: str, start_date: str, end_date: str, interval: 
     """
     # Random delay before each request to avoid rate limiting
     time.sleep(random.uniform(1, 3))
-    
+
     df = yf.download(
         tickers=ticker,
         start=start_date,
@@ -38,12 +38,12 @@ def _download_price_data(ticker: str, start_date: str, end_date: str, interval: 
         interval=interval,
         progress=False,
     )
-    
+
     if df.empty:
         raise RuntimeError(
             f'No data returned for {ticker} {start_date}→{end_date} @ {interval}'
         )
-    
+
     return df
 
 
@@ -98,4 +98,4 @@ def fetch_price_data(
     time.sleep(1)
 
     # Return the price data as JSON
-    return data 
+    return data

@@ -74,4 +74,4 @@ setup-hooks:
 
 # Full development setup
 setup: install setup-hooks
-	@echo "Development environment fully configured" 
+	@echo "Development environment fully configured"

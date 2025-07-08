@@ -102,7 +102,8 @@ Template/
 The project includes comprehensive data fetching capabilities organized into specialized modules:
 
 ### Stock Data (`stock_fetcher.py`)
-- **Functions**: 
+
+- **Functions**:
   - `fetch_price_data()` - Get historical OHLCV data
 - **Source**: Yahoo Finance via yfinance
 - **Data**: OHLCV price data
@@ -113,7 +114,8 @@ The project includes comprehensive data fetching capabilities organized into spe
 - **Usage**: Fetch historical stock price data for trading
 
 ### Option Data (`option_fetcher.py`)
-- **Functions**: 
+
+- **Functions**:
   - `fetch_option_chain()` - Get option chain for a ticker
   - `fetch_option_data()` - Get filtered option data
   - `fetch_option_expirations()` - Get available expiration dates
@@ -134,10 +136,11 @@ The project includes comprehensive data fetching capabilities organized into spe
 - **Usage**: Fetch and analyze option data for derivatives trading
 
 ### News Data (`news_fetcher.py`)
+
 - **Function**: `fetch_news_data()`
 - **Source**: Google News scraping
 - **Data**: News articles with title, snippet, date, source, and link
-- **Features**: 
+- **Features**:
   - Rate limiting protection with exponential backoff
   - Automatic retry logic
   - Date range filtering
@@ -145,6 +148,7 @@ The project includes comprehensive data fetching capabilities organized into spe
 - **Usage**: Fetch news articles related to specific queries and date ranges
 
 ### Polymarket Data (`polymarket_fetcher.py`)
+
 - **Functions**:
   - `fetch_polymarket_markets()` - Get available prediction markets
   - `fetch_polymarket_market_details()` - Get detailed market information
@@ -164,6 +168,7 @@ The project includes comprehensive data fetching capabilities organized into spe
 - **Usage**: Fetch prediction market data for alternative data analysis
 
 ### Reddit Data (`reddit_fetcher.py`)
+
 - **Functions**:
   - `fetch_top_from_category()` - Get top posts from a category
   - `fetch_reddit_posts_by_ticker()` - Get posts mentioning specific ticker
