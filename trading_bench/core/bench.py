@@ -3,13 +3,12 @@ from collections import defaultdict, deque
 from datetime import datetime
 from pathlib import Path
 
-from ..data.data_fetcher import fetch_price_data
-from ..evaluation.evaluator import ReturnEvaluator
-from ..models.base import BaseModel
-from ..models.ml_models import BaseMLModel, MLModelWrapper
-from ..visualization.visualizer import BacktestVisualizer
-from .metrics import MetricsLogger
-from .signal import Signal
+from trading_bench.core.base import BaseModel
+from trading_bench.core.metrics import MetricsLogger
+from trading_bench.core.signal import Signal
+from trading_bench.data.data_fetcher import fetch_price_data
+from trading_bench.evaluation.evaluator import ReturnEvaluator
+from trading_bench.visualization.visualizer import BacktestVisualizer
 
 
 class SimBench:
@@ -59,6 +58,7 @@ class SimBench:
             raw_data = json.load(f)
 
         # Parse into list of (datetime, close_price)
+        # TODO: Here, we need to prepare more comprehensive volume and price data.
         parsed: list[tuple[datetime, float]] = []
         for date_str, v in raw_data.items():
             date = datetime.fromisoformat(date_str)
@@ -115,102 +115,3 @@ class SimBench:
             Dictionary of chart file paths
         """
         return self.visualizer.generate_all_charts(self.ticker, save)
-
-
-class MLSimBench(SimBench):
-    """
-    Extended SimBench that supports machine learning models
-    """
-
-    def __init__(
-        self,
-        ticker: str,
-        start_date: str,
-        end_date: str,
-        data_dir: str,
-        model: BaseModel,
-        eval_delay: int = 5,
-        resolution: str = 'D',
-        model_info: dict = None,
-    ):
-        super().__init__(
-            ticker=ticker,
-            start_date=start_date,
-            end_date=end_date,
-            data_dir=data_dir,
-            model=model,
-            eval_delay=eval_delay,
-            resolution=resolution,
-        )
-        self.model_info = model_info or {}
-
-    @classmethod
-    def from_trained_model(
-        cls,
-        ticker: str,
-        start_date: str,
-        end_date: str,
-        data_dir: str,
-        model_path: str,
-        eval_delay: int = 5,
-        resolution: str = 'D',
-    ) -> 'MLSimBench':
-        """
-        Create MLSimBench from a saved trained model
-
-        Args:
-            ticker: Stock ticker symbol
-            start_date: Start date for backtesting
-            end_date: End date for backtesting
-            model_path: Path to saved model file
-            eval_delay: Evaluation delay
-            resolution: Data resolution
-
-        Returns:
-            MLSimBench instance
-        """
-        # Load the trained model
-        if model_path.endswith('.pkl'):
-            # Load from pickle file
-            ml_model = BaseMLModel.load_model(model_path)
-        else:
-            raise ValueError('Model path must be a .pkl file')
-
-        # Wrap the ML model
-        wrapped_model = MLModelWrapper(ml_model)
-
-        # Create model info
-        model_info = {
-            'model_path': model_path,
-            'model_type': ml_model.config.model_type,
-            'is_trained': ml_model.is_trained,
-        }
-
-        return cls(
-            ticker=ticker,
-            start_date=start_date,
-            end_date=end_date,
-            data_dir=data_dir,
-            model=wrapped_model,
-            eval_delay=eval_delay,
-            resolution=resolution,
-            model_info=model_info,
-        )
-
-    def run_with_model_info(self) -> dict:
-        """
-        Run backtest and include model information in results
-
-        Returns:
-            Dictionary with backtest results and model info
-        """
-        backtest_results = self.run()
-
-        return {
-            'backtest_results': backtest_results,
-            'model_info': self.model_info,
-            'ticker': self.ticker,
-            'start_date': self.start_date,
-            'end_date': self.end_date,
-            'eval_delay': self.eval_delay,
-        }

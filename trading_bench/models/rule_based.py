@@ -2,7 +2,7 @@
 Rule-based trading models
 """
 
-from .base import BaseModel, ModelConfig
+from trading_bench.core.base import BaseModel, ModelConfig
 
 
 class RuleBasedConfig(ModelConfig):

@@ -2,9 +2,7 @@ from collections import deque
 from datetime import datetime
 from pathlib import Path
 
-from ..core.signal import Signal, TradeRecord
-from ..models.ml_models import MLModelConfig
-from ..training.trainer import ModelTrainer
+from trading_bench.core.signal import Signal, TradeRecord
 
 
 class ReturnEvaluator:
@@ -63,154 +61,12 @@ class ReturnEvaluator:
 
 class MLBacktestRunner:
     # TODO: We may move this class to a more appropriate location, as it is essentially a process of ML model training combined with backtesting.
-    """Runner for ML model backtesting with multiple models"""
+
+    """Runner for ML model backtesting (prediction only)"""
 
     def __init__(self, data_dir: str = './data', models_dir: str = './models'):
         self.data_dir = Path(data_dir)
         self.models_dir = Path(models_dir)
-        self.trainer = ModelTrainer(str(self.data_dir))
-
-    def train_and_backtest(
-        self,
-        ticker: str,
-        train_start: str,
-        train_end: str,
-        test_start: str,
-        test_end: str,
-        model_config: MLModelConfig = None,
-        eval_delay: int = 5,
-        resolution: str = 'D',
-    ) -> dict:
-        """
-        Train a model and then backtest it
-
-        Args:
-            ticker: Stock ticker symbol
-            train_start: Training start date
-            train_end: Training end date
-            test_start: Testing start date
-            test_end: Testing end date
-            model_config: Model configuration
-            eval_delay: Evaluation delay
-            resolution: Data resolution
-
-        Returns:
-            Complete training and backtest results
-        """
-        if model_config is None:
-            model_config = MLModelConfig(model_type='random_forest')
-
-        # Prepare training data
-        print(f'Preparing training data for {ticker}...')
-        training_data = self.trainer.prepare_training_data(
-            ticker, train_start, train_end, resolution
-        )
-
-        # Train model
-        print(f'Training {model_config.model_type} model...')
-        model_save_path = (
-            self.models_dir / f'{ticker}_{model_config.model_type}_model.pkl'
-        )
-        self.models_dir.mkdir(parents=True, exist_ok=True)
-
-        training_result = self.trainer.train_model(
-            training_data=training_data,
-            config=model_config,
-            model_save_path=str(model_save_path),
-        )
-
-        # Backtest the trained model
-        print(f'Running backtest for {ticker}...')
-        from ..core.bench import MLSimBench
-
-        backtest_result = MLSimBench.from_trained_model(
-            ticker=ticker,
-            start_date=test_start,
-            end_date=test_end,
-            data_dir=str(self.data_dir),
-            model_path=str(model_save_path),
-            eval_delay=eval_delay,
-            resolution=resolution,
-        ).run_with_model_info()
-
-        return {
-            'training': training_result,
-            'backtest': backtest_result,
-            'model_path': str(model_save_path),
-        }
-
-    def compare_models(
-        self,
-        ticker: str,
-        train_start: str,
-        train_end: str,
-        test_start: str,
-        test_end: str,
-        eval_delay: int = 5,
-        resolution: str = 'D',
-    ) -> dict:
-        """
-        Train multiple models and compare their backtest performance
-
-        Args:
-            ticker: Stock ticker symbol
-            train_start: Training start date
-            train_end: Training end date
-            test_start: Testing start date
-            test_end: Testing end date
-            eval_delay: Evaluation delay
-            resolution: Data resolution
-
-        Returns:
-            Comparison results for all models
-        """
-        # Define model configurations
-        model_configs = {
-            'random_forest': MLModelConfig(
-                model_type='random_forest',
-                n_estimators=100,
-                max_depth=10,
-                random_state=42,
-            ),
-            'logistic_regression': MLModelConfig(
-                model_type='logistic_regression', random_state=42
-            ),
-            'svm': MLModelConfig(
-                model_type='svm', kernel='rbf', C=1.0, random_state=42
-            ),
-        }
-
-        results = {}
-
-        for model_name, config in model_configs.items():
-            print(f'\n=== Training and testing {model_name} ===')
-
-            try:
-                result = self.train_and_backtest(
-                    ticker=ticker,
-                    train_start=train_start,
-                    train_end=train_end,
-                    test_start=test_start,
-                    test_end=test_end,
-                    model_config=config,
-                    eval_delay=eval_delay,
-                    resolution=resolution,
-                )
-
-                results[model_name] = result
-
-                # Print summary
-                training_acc = result['training']['metrics']['accuracy']
-                backtest_return = result['backtest']['backtest_results']['total_return']
-                print(f'{model_name}:')
-                print(f'  Training Accuracy: {training_acc:.4f}')
-                print(f'  Backtest Return: {backtest_return:.4f}')
-
-            except Exception as e:
-                print(f'Error with {model_name}: {e}')
-                results[model_name] = {'error': str(e)}
-
-        return results
 
     def load_and_backtest(
         self,
@@ -237,7 +93,7 @@ class MLBacktestRunner:
         """
         print(f'Loading model from {model_path}...')
 
-        from ..core.bench import MLSimBench
+        from trading_bench.models.ml import MLSimBench
 
         backtest_result = MLSimBench.from_trained_model(
             ticker=ticker,
