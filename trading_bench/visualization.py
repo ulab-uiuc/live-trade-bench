@@ -8,7 +8,7 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .metrics import MetricsLogger
+from trading_bench.metrics import MetricsLogger
 
 
 class BacktestVisualizer:

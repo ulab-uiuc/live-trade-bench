@@ -1,7 +1,7 @@
 import math
 from typing import Any
 
-from .signal import TradeRecord
+from trading_bench.signal import TradeRecord
 
 
 class MetricsLogger:
