@@ -1,7 +1,7 @@
 from collections import deque
 from datetime import datetime
 
-from .signal import Signal, TradeRecord
+from trading_bench.signal import Signal, TradeRecord
 
 
 class ReturnEvaluator:
