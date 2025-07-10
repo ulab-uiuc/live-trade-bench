@@ -1,43 +1,64 @@
+from datetime import datetime, timedelta
+
+from trading_bench.data_fetchers.news_fetcher import fetch_news_data
 from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
 from trading_bench.evaluator import eval
 from trading_bench.model_wrapper import AIStockAnalysisModel
 
 
-def run_one_trade(ticker: str, date: str, quantity: int):
-    # 1. Get historical closes up to 'date'
-    hist = fetch_price_data(
+def fetch_news_for_ticker(
+    ticker: str, date: str, days_back: int = 7, max_articles: int = 5
+) -> list[dict]:
+    """Fetch up to `max_articles` recent news for a ticker."""
+    date_obj = datetime.strptime(date, '%Y-%m-%d')
+    start = (date_obj - timedelta(days=days_back)).strftime('%Y-%m-%d')
+    query = f'{ticker} stock news'
+    articles = fetch_news_data(query, start, date, max_pages=2)
+    return articles[:max_articles] if articles else []
+
+
+def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) -> dict:
+    """Fetch data, run AI model, evaluate, and return results."""
+    # Price data
+    prices = fetch_price_data(
         ticker=ticker, start_date='2024-12-01', end_date=date, resolution='D'
     )
-    closes = [hist[d]['close'] for d in sorted(hist)]
+    closes = [prices[d]['close'] for d in sorted(prices)]
+    print(f'{ticker} @ {date} — Latest close: ${closes[-1]:.2f}')
 
-    # 2. Get actions from AI model
-    model = AIStockAnalysisModel()  # assumes OPENAI_API_KEY is set
-    actions = model.act(
-        ticker=ticker, price_history=closes, date=date, quantity=quantity
+    # News data (optional)
+    news = fetch_news_for_ticker(ticker, date) if include_news else []
+    if include_news:
+        print(f'Fetched {len(news)} news articles.')
+        for idx, art in enumerate(news[:3], 1):
+            print(f"  {idx}. {art['title']}")
+
+    # AI analysis
+    model = AIStockAnalysisModel()
+    actions = (
+        model.act(
+            ticker=ticker,
+            price_history=closes,
+            date=date,
+            quantity=quantity,
+            news_data=news or None,
+        )
+        or []
     )
 
-    if not actions:
-        print(f'No actions recommended for {ticker} on {date}.')
-        return
+    print(actions)
 
-    # 3. Evaluate the actions
-    profit = eval(actions)
+    # Evaluation
+    profit = eval(actions) if actions else 0.0
+    print(f'Profit: ${profit:.2f}\n')
 
-    # 4. Display results
-    for action in actions:
-        print(
-            f"Action: {action['action'].upper()} {action['quantity']}×{ticker} on {date}"
-        )
-        if 'confidence' in action:
-            print(f"  Confidence: {action['confidence']:.2f}")
-        if 'reasoning' in action:
-            print(f"  Reasoning: {action['reasoning']}")
-
-    print(f'Total Profit: ${profit:.2f}')
-
-    return {'actions': actions, 'profit': profit}
+    return {
+        'actions': actions,
+        'profit': profit,
+        'news_count': len(news),
+    }
 
 
 if __name__ == '__main__':
-    result = run_one_trade('AAPL', '2025-01-01', 10)
-    print(f'\nFinal result: {result}')
+    # Single example
+    run_trade('AAPL', '2025-01-01', 10)
