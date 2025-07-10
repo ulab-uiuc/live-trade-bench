@@ -1,56 +1,43 @@
-import argparse
-
-from trading_bench.bench import SimBench
-from trading_bench.model_wrapper import RuleBasedModel
-from trading_bench.utils import setup_logging
+from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
+from trading_bench.evaluator import eval
+from trading_bench.model_wrapper import AIStockAnalysisModel
 
 
-def main() -> None:
-    setup_logging()
-    parser = argparse.ArgumentParser(
-        description='Run the simulated trading bench with Finnhub data crawler'
+def run_one_trade(ticker: str, date: str, quantity: int):
+    # 1. Get historical closes up to 'date'
+    hist = fetch_price_data(
+        ticker=ticker, start_date='2024-12-01', end_date=date, resolution='D'
     )
-    parser.add_argument('--ticker', default='AAPL', help='Stock ticker symbol')
-    parser.add_argument(
-        '--start_date', default='2025-01-01', help='Start date (YYYY-MM-DD)'
-    )
-    parser.add_argument(
-        '--end_date', default='2025-06-01', help='End date (YYYY-MM-DD)'
-    )
-    parser.add_argument(
-        '--data_dir', default='./data', help='Root directory where data is stored'
-    )
-    parser.add_argument(
-        '--eval_delay', type=int, default=5, help='Evaluation delay in data points'
-    )
-    parser.add_argument(
-        '--resolution',
-        choices=['1', '5', '15', '30', '60', 'D', 'W', 'M'],
-        default='D',
-        help="Finnhub data resolution (e.g., '1','5','15','30','60','D','W','M')",
+    closes = [hist[d]['close'] for d in sorted(hist)]
+
+    # 2. Get actions from AI model
+    model = AIStockAnalysisModel()  # assumes OPENAI_API_KEY is set
+    actions = model.act(
+        ticker=ticker, price_history=closes, date=date, quantity=quantity
     )
 
-    args = parser.parse_args()
+    if not actions:
+        print(f'No actions recommended for {ticker} on {date}.')
+        return
 
-    model = RuleBasedModel()
-    bench = SimBench(
-        ticker=args.ticker,
-        start_date=args.start_date,
-        end_date=args.end_date,
-        data_dir=args.data_dir,
-        model=model,
-        eval_delay=args.eval_delay,
-        resolution=args.resolution,
-    )
-    summary = bench.run()
+    # 3. Evaluate the actions
+    profit = eval(actions)
 
-    print('Performance Summary:')
-    for key, value in summary.items():
-        if isinstance(value, float):
-            print(f'{key}: {value:.4f}')
-        else:
-            print(f'{key}: {value}')
+    # 4. Display results
+    for action in actions:
+        print(
+            f"Action: {action['action'].upper()} {action['quantity']}×{ticker} on {date}"
+        )
+        if 'confidence' in action:
+            print(f"  Confidence: {action['confidence']:.2f}")
+        if 'reasoning' in action:
+            print(f"  Reasoning: {action['reasoning']}")
+
+    print(f'Total Profit: ${profit:.2f}')
+
+    return {'actions': actions, 'profit': profit}
 
 
 if __name__ == '__main__':
-    main()
+    result = run_one_trade('AAPL', '2025-01-01', 10)
+    print(f'\nFinal result: {result}')

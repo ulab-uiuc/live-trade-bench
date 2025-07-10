@@ -9,8 +9,12 @@ import random
 import time
 
 import yfinance as yf
-from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_exponential)
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 
 def _download_price_data(ticker: str, start_date: str, end_date: str, interval: str):
