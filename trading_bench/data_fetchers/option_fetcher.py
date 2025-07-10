@@ -11,8 +11,12 @@ import time
 from datetime import datetime
 
 import yfinance as yf
-from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_exponential)
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 
 def fetch_option_chain(ticker: str, expiration_date: str = None) -> dict:
@@ -372,7 +376,7 @@ def calculate_implied_volatility(
     # Initial guess for volatility
     sigma = 0.3
 
-    for i in range(max_iterations):
+    for _i in range(max_iterations):
         price = black_scholes_price(
             underlying_price, strike, time_to_expiry, risk_free_rate, sigma, option_type
         )

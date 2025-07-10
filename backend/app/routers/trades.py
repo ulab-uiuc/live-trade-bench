@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
 
+from fastapi import APIRouter, HTTPException, Query
+
 from app.data import get_trades_data
 from app.schemas import Trade, TradingSummary
-from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(prefix='/api/trades', tags=['trades'])
 
@@ -29,7 +30,7 @@ async def get_trades(
         trades.sort(key=lambda x: x.timestamp, reverse=True)
 
         # Apply pagination
-        total_trades = len(trades)
+        len(trades)
         trades = trades[offset : offset + limit]
 
         return trades
@@ -125,8 +126,8 @@ async def get_trading_stats():
             'profit_factor': round(profit_factor, 2),
             'total_wins': total_wins,
             'total_losses': total_losses,
-            'symbols_traded': list(set(t.symbol for t in trades)),
-            'models_used': list(set(t.model for t in trades)),
+            'symbols_traded': list({t.symbol for t in trades}),
+            'models_used': list({t.model for t in trades}),
         }
     except Exception as e:
         raise HTTPException(

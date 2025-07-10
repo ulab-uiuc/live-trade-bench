@@ -280,7 +280,7 @@ def get_available_dates(category: str) -> list[str]:
         except Exception:
             continue
 
-    return sorted(list(dates))
+    return sorted(dates)
 
 
 def get_reddit_statistics(category: str, date: str) -> dict:
@@ -313,7 +313,7 @@ def get_reddit_statistics(category: str, date: str) -> dict:
 
     total_upvotes = sum(post['upvotes'] for post in posts)
     total_comments = sum(post['num_comments'] for post in posts)
-    subreddits = list(set(post['subreddit'] for post in posts))
+    subreddits = list({post['subreddit'] for post in posts})
 
     # Find top post
     top_post = max(posts, key=lambda x: x['upvotes'])

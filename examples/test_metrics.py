@@ -92,8 +92,10 @@ def test_metrics() -> None:
         print(f"    Exit Price: ${trade['exit_price']:.2f}")
         print(f"    Return: {trade['return_pct']:.2%}")
         print(f"    Trade Duration: {trade['trade_duration']}")
-        print(f"    High During Trade: ${trade['high_during_trade']:.2f}")
-        print(f"    Low During Trade: ${trade['low_during_trade']:.2f}")
+        high = trade['high_during_trade']
+        low = trade['low_during_trade']
+        print(f"    High During Trade: ${high:.2f}" if high is not None else "    High During Trade: N/A")
+        print(f"    Low During Trade: ${low:.2f}" if low is not None else "    Low During Trade: N/A")
         print()
 
     # Get equity curve

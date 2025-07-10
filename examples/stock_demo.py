@@ -27,7 +27,7 @@ def main():
         print()
 
         # Display first few days of data
-        for i, (date, data) in enumerate(list(price_data.items())[:5]):
+        for _i, (date, data) in enumerate(list(price_data.items())[:5]):
             print(f'Date: {date}')
             print(f"  Open:  ${data['open']:.2f}")
             print(f"  High:  ${data['high']:.2f}")
@@ -60,7 +60,7 @@ def demonstrate_retry():
     print('This should demonstrate the retry logic...')
 
     try:
-        price_data = fetch_price_data(ticker, start_date, end_date)
+        fetch_price_data(ticker, start_date, end_date)
         print('Unexpected success!')
     except Exception as e:
         print(f'Expected error after retries: {e}')

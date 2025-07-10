@@ -1,6 +1,7 @@
-from app.routers import models, news, trades
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.routers import models, news, trades
 
 app = FastAPI(
     title='Live Trade Bench API',
