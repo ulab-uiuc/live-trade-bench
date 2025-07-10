@@ -72,6 +72,52 @@ def get_models_data() -> list[TradingModel]:
     return models
 
 
+def get_real_models_data() -> list[TradingModel]:
+    """Get real LLM model performance data from actual trading predictions."""
+    # These are the different LLM models that can be used in trading_bench.model_wrapper
+    # Each model corresponds to different LLM providers and models
+    # Performance gets calculated from their actual predictions vs market outcomes
+    llm_models = [
+        TradingModel(
+            id='claude-3.5-sonnet',
+            name='Claude 3.5 Sonnet',
+            performance=0.0,  # % of correct predictions
+            accuracy=0.0,     # Same as performance
+            trades=0,         # Number of predictions made via run_trade()
+            profit=0.0,       # Total profit from eval() results
+            status=ModelStatus.INACTIVE,  # ACTIVE when making predictions
+        ),
+        TradingModel(
+            id='gpt-4',
+            name='GPT-4',
+            performance=0.0,
+            accuracy=0.0,
+            trades=0,
+            profit=0.0,
+            status=ModelStatus.INACTIVE,
+        ),
+        TradingModel(
+            id='gemini-1.5-pro',
+            name='Gemini 1.5 Pro', 
+            performance=0.0,
+            accuracy=0.0,
+            trades=0,
+            profit=0.0,
+            status=ModelStatus.INACTIVE,
+        ),
+        TradingModel(
+            id='claude-4-haiku',
+            name='Claude 4 Haiku',
+            performance=0.0,
+            accuracy=0.0,
+            trades=0,
+            profit=0.0,
+            status=ModelStatus.INACTIVE,
+        ),
+    ]
+    return llm_models
+
+
 def get_trades_data() -> list[Trade]:
     """Get trading history data."""
     # Return empty list since SAMPLE_TRADES is commented out

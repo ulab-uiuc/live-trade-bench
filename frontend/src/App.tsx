@@ -33,18 +33,41 @@ interface Trade {
   totalValue: number;
 }
 
+interface Model {
+  id: string;
+  name: string;
+  category: 'polymarket' | 'stock' | 'option';
+  performance: number;
+  accuracy: number;
+  trades: number;
+  profit: number;
+  status: 'active' | 'inactive' | 'training';
+  market_type?: string;
+  ticker?: string;
+  strategy?: string;
+}
+
 function App() {
   const [newsData, setNewsData] = useState<NewsItem[]>([]);
   const [tradesData, setTradesData] = useState<Trade[]>([]);
+  const [modelsData, setModelsData] = useState<Model[]>([]);
   const [newsLastRefresh, setNewsLastRefresh] = useState<Date>(new Date());
   const [tradesLastRefresh, setTradesLastRefresh] = useState<Date>(new Date());
+  const [modelsLastRefresh, setModelsLastRefresh] = useState<Date>(new Date());
 
   return (
     <Router>
       <div className="App">
         <Navigation />
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={
+            <Dashboard 
+              modelsData={modelsData}
+              setModelsData={setModelsData}
+              modelsLastRefresh={modelsLastRefresh}
+              setModelsLastRefresh={setModelsLastRefresh}
+            />
+          } />
           <Route path="/news" element={
             <News
               newsData={newsData}
