@@ -7,7 +7,7 @@ class Signal:
     entry_time: datetime
     entry_price: float
     eval_time: datetime
-    ticker: str = "AAPL"
+    ticker: str = 'AAPL'
     quantity: int = 1
 
 

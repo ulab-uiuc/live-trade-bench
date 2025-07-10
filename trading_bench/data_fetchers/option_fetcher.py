@@ -11,8 +11,12 @@ import time
 from datetime import datetime
 
 import yfinance as yf
-from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_exponential)
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 
 def fetch_option_chain(ticker: str, expiration_date: str = None) -> dict:
