@@ -77,7 +77,7 @@ class AIStockAnalysisModel(BaseModel):
 
         self.client = openai.OpenAI(api_key=api_key)
         self.model_name = model_name
-
+        
     def _format_stock_data(
         self, price_history: list[float], news_data: list[dict] = None
     ) -> str:
