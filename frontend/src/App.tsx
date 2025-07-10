@@ -46,7 +46,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/news" element={
-            <News 
+            <News
               newsData={newsData}
               setNewsData={setNewsData}
               lastRefresh={newsLastRefresh}
@@ -55,7 +55,7 @@ function App() {
           } />
           <Route path="/social" element={<SocialMedia />} />
           <Route path="/trading-history" element={
-            <TradingHistoryPage 
+            <TradingHistoryPage
               tradesData={tradesData}
               setTradesData={setTradesData}
               lastRefresh={tradesLastRefresh}

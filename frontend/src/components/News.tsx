@@ -55,9 +55,9 @@ const News: React.FC<NewsProps> = ({ newsData, setNewsData, lastRefresh, setLast
 
   useEffect(() => {
     // Only fetch if we don't have data or if it's been more than an hour
-    const shouldFetch = newsData.length === 0 || 
+    const shouldFetch = newsData.length === 0 ||
       (Date.now() - lastRefresh.getTime()) > 60 * 60 * 1000;
-    
+
     if (shouldFetch) {
       fetchNews();
     }

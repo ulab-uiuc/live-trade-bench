@@ -65,18 +65,18 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
 
   useEffect(() => {
     // Only fetch if we don't have data or if it's been more than an hour
-    const shouldFetch = tradesData.length === 0 || 
+    const shouldFetch = tradesData.length === 0 ||
       (Date.now() - lastRefresh.getTime()) > 60 * 60 * 1000;
-    
+
     if (shouldFetch) {
       fetchTradingHistory();
     }
-    
+
     // Set up hourly refresh interval
     const interval = setInterval(() => {
       fetchTradingHistory();
     }, 60 * 60 * 1000); // Refresh every hour
-    
+
     return () => clearInterval(interval);
   }, []);
 

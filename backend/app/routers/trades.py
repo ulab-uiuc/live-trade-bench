@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
 
-
 from fastapi import APIRouter, HTTPException, Query
 
-from app.data import get_trades_data, get_real_trades_data
+from app.data import get_real_trades_data, get_trades_data
 from app.schemas import Trade, TradingSummary
 
 router = APIRouter(prefix='/api/trades', tags=['trades'])
@@ -216,8 +215,10 @@ async def get_trades_by_model(model_name: str):
 
 @router.get('/real', response_model=list[Trade])
 async def get_real_trades(
-    ticker: str = Query(default="NVDA", description="Stock ticker symbol"),
-    days: int = Query(default=7, ge=1, le=30, description="Number of days of trading data")
+    ticker: str = Query(default='NVDA', description='Stock ticker symbol'),
+    days: int = Query(
+        default=7, ge=1, le=30, description='Number of days of trading data'
+    ),
 ):
     """Get real trading data by fetching stock prices."""
     try:
