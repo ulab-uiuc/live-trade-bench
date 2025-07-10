@@ -28,6 +28,7 @@ jobs:
         run: |
           curl -sSL https://install.python-poetry.org | python3
           poetry install --all-extras
+          poetry run python -m spacy download en_core_web_sm
       - name: Test with pytest
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

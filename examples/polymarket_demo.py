@@ -4,18 +4,25 @@ Polymarket prediction market evaluator demonstration script
 Shows how to use the Polymarket evaluator to assess prediction market trading strategies
 """
 
-import os
-import sys
+from trading_bench.data_fetchers.polymarket_fetcher import (
+    fetch_polymarket_market_details, fetch_polymarket_market_stats,
+    fetch_polymarket_markets, fetch_polymarket_orderbook,
+    fetch_polymarket_trades, fetch_polymarket_trending_markets,
+    search_polymarket_markets)
+
+
+def main():
+    """Demonstrate Polymarket data fetching functionality."""
+
+    print('Polymarket Data Fetching Demo')
+    print('=' * 60)
 
 # Add trading_bench to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from trading_bench.evaluators.polymarket_evaluator import (
-    PolymarketEvaluator,
-    analyze_market_efficiency,
-    calculate_kelly_criterion,
-    eval_polymarket,
-)
+    PolymarketEvaluator, analyze_market_efficiency, calculate_kelly_criterion,
+    eval_polymarket)
 
 
 def demonstrate_basic_evaluation():
