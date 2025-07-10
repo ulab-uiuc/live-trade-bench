@@ -15,12 +15,12 @@ from trading_bench.data_fetcher import fetch_price_data as fetch_price_unified
 from trading_bench.data_fetcher import (
     fetch_reddit_posts_by_ticker as fetch_reddit_unified,
 )
-from trading_bench.data_fetchers.news_fetcher import fetch_news_data
-from trading_bench.data_fetchers.polymarket_fetcher import (
+from trading_bench.fetchers.news_fetcher import fetch_news_data
+from trading_bench.fetchers.polymarket_fetcher import (
     fetch_polymarket_trending_markets,
 )
-from trading_bench.data_fetchers.reddit_fetcher import fetch_reddit_posts_by_ticker
-from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
+from trading_bench.fetchers.reddit_fetcher import fetch_reddit_posts_by_ticker
+from trading_bench.fetchers.stock_fetcher import fetch_price_data
 
 
 def demonstrate_modular_imports():
@@ -120,7 +120,7 @@ def demonstrate_module_specific_features():
 
     try:
         # Option fetcher specific features
-        from trading_bench.data_fetchers.option_fetcher import calculate_option_greeks
+        from trading_bench.fetchers.option_fetcher import calculate_option_greeks
 
         print('1. Option Fetcher - Greeks Calculation:')
         greeks = calculate_option_greeks(
@@ -143,7 +143,7 @@ def demonstrate_module_specific_features():
         print()
 
         # Polymarket fetcher specific features
-        from trading_bench.data_fetchers.polymarket_fetcher import (
+        from trading_bench.fetchers.polymarket_fetcher import (
             search_polymarket_markets,
         )
 
@@ -153,7 +153,7 @@ def demonstrate_module_specific_features():
         print()
 
         # Reddit fetcher specific features
-        from trading_bench.data_fetchers.reddit_fetcher import get_available_categories
+        from trading_bench.fetchers.reddit_fetcher import get_available_categories
 
         print('4. Reddit Fetcher - Category Discovery:')
         try:

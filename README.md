@@ -1,296 +1,90 @@
 # Live Trade Bench
 
-[![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3109/)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
-<a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
-[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
-[![bear-ified](https://raw.githubusercontent.com/beartype/beartype-assets/main/badge/bear-ified.svg)](https://beartype.readthedocs.io)
-[![Github Action](https://github.com/lwaekfjlk/python-project-template/actions/workflows/pytest.yml/badge.svg?branch=main)]()
+A comprehensive trading evaluation and data fetching platform for financial markets analysis.
 
-> [!NOTE]
-> This repo is continuously updating with more tools. Any contribution is welcome.
+## Overview
 
-## ✨ Motivation
+Live Trade Bench provides tools for fetching financial data from multiple sources and evaluating trading strategies across different markets including stocks, options, prediction markets, and social sentiment.
 
-To ensure high standards in engineering projects, we offer a standardized template specifically designed for open-source Python research projects. This template is an excellent choice if you:
+## Features
 
-1. Want to facilitate seamless collaboration and extension of your project by other researchers.
-2. Aim to bridge communication gaps among collaborators effectively.
-3. Seek to make rapid iterations with assurance that small code modifications won’t disrupt the overall project.
-4. Wish to reduce the frequency of frustrating runtime errors during experiments.
+### Data Fetchers
 
-## 🔨 Continuous Integration (CI) Workflow
+- **Stock Data**: Historical price data via Yahoo Finance
+- **Options Data**: Option chains, Greeks, and implied volatility
+- **News Data**: Financial news articles and sentiment
+- **Polymarket Data**: Prediction market data and outcomes
+- **Reddit Data**: Social sentiment from trading-related subreddits
 
-Here's a clearer and more straightforward guideline of the steps for working with your codebase. If working in a small group or working on a simple project, some of the steps can be skipped.
+### Evaluators
 
-1. **Create Issue**
+- **Polymarket Evaluator**: Prediction market trading strategy evaluation
+- **Kelly Criterion**: Optimal bet sizing calculations
+- **Market Efficiency Analysis**: Arbitrage opportunity detection
 
-   Before starting, open a new issue in the repository detailing what you plan to implement. Assign the issue to yourself.
+### Web Interface
 
-2. **Sync Repo**
+- **Backend API**: FastAPI-based REST API for data and evaluations
+- **Frontend**: React-based dashboard for trading analysis
+- **Real-time Data**: Live market data and trading history
 
-   Update your local repository to match the latest version of the remote repository.
+## Quick Start
 
-3. **Create Branch**
+### Installation
 
-   Create a new branch for your task. Name it appropriately based on the type of task, such as `feature/feature-name`, `bug/bug-name`, or `exp/exp-name`.
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-4. **Implement Code**
-
-   Work on your task and make necessary changes to the codebase.
-
-5. **Test Locally**
-
-   Run tests using tools like mypy, pytest, and pre-commit. Ensure all tests pass before proceeding.
-
-6. **Change Commit**
-
-   Add and commit your changes to the branch, then push the branch to the repository.
-
-7. **Create PR**
-
-   Open a Pull Request (PR) for the branch you've pushed.
-
-8. **Link PR to Issue**
-
-   In your PR, include "Closes #ISSUE_NUM" to link it to the original issue.
-
-9. **Pass Continuous Integration**
-
-   Ensure all GitHub Actions checks pass. If they fail, revise your code based on the errors reported.
-
-10. **Review PR Checklist**
-
-    Verify that all items in the PR checklist are completed, such as updating documentation or adding package requirements.
-
-11. **Ask for Code Review**
-
-    Invite a colleague to review your PR. One approved, Use the "Squash and Merge" option to merge your PR, ensuring a clean commit history.
-
-12. **Troubleshooting**
-
-    If you break down the commit history or main branch, contact the repository owner for assistance with `rebase` or other needed actions.
-
-## 💼 Template Structure
-
-The current project template supports the final package release of our codebase.
-
-```
-Template/
-│
-├── .github/                  # Contains GitHub related files like workflows
-├── docs/                     # Documentation for the project
-├── trading_bench/            # Main package directory
-│   ├── data_fetchers/        # Modular data fetching components
-│   │   ├── stock_fetcher.py  # Stock price data
-│   │   ├── option_fetcher.py # Option data
-│   │   ├── news_fetcher.py   # News data
-│   │   ├── polymarket_fetcher.py # Prediction market data
-│   │   └── reddit_fetcher.py # Reddit posts and comments data
-│   └── ...                   # Other modules
-├── examples/                 # Example scripts and demos
-├── tests/                    # Test scripts and resources
-│
-├── .gitignore                # Specifies untracked files to ignore
-├── .pre-commit-config.yaml   # Configurations for pre-commit hooks
-├── poetry.lock               # Lock file generated by poetry for dependencies
-├── pyproject.toml            # Project metadata and tool configurations
+# Or using poetry
+poetry install
 ```
 
-## 📊 Data Fetching Features
-
-The project includes comprehensive data fetching capabilities organized into specialized modules:
-
-### Stock Data (`stock_fetcher.py`)
-
-- **Functions**:
-  - `fetch_price_data()` - Get historical OHLCV data
-- **Source**: Yahoo Finance via yfinance
-- **Data**: OHLCV price data
-- **Features**:
-  - Automatic retry logic with exponential backoff
-  - Rate limiting protection
-  - Multiple resolution support (1m, 5m, 15m, 30m, 60m, 1d, 1wk, 1mo)
-- **Usage**: Fetch historical stock price data for trading
-
-### Option Data (`option_fetcher.py`)
-
-- **Functions**:
-  - `fetch_option_chain()` - Get option chain for a ticker
-  - `fetch_option_data()` - Get filtered option data
-  - `fetch_option_expirations()` - Get available expiration dates
-  - `fetch_option_historical_data()` - Get historical option prices
-  - `calculate_option_greeks()` - Calculate option Greeks
-  - `get_atm_options()` - Get at-the-money options
-  - `calculate_implied_volatility()` - Calculate implied volatility
-  - `get_option_chain_summary()` - Get option chain statistics
-- **Source**: Yahoo Finance via yfinance
-- **Data**: Option chains, strike prices, bid/ask, volume, Greeks
-- **Features**:
-  - Strike price filtering
-  - Option type filtering (calls/puts)
-  - Greeks calculation using Black-Scholes model
-  - Implied volatility calculation
-  - ATM option identification
-  - Option chain statistics
-- **Usage**: Fetch and analyze option data for derivatives trading
-
-### News Data (`news_fetcher.py`)
-
-- **Function**: `fetch_news_data()`
-- **Source**: Google News scraping
-- **Data**: News articles with title, snippet, date, source, and link
-- **Features**:
-  - Rate limiting protection with exponential backoff
-  - Automatic retry logic
-  - Date range filtering
-  - Pagination support
-- **Usage**: Fetch news articles related to specific queries and date ranges
-
-### Polymarket Data (`polymarket_fetcher.py`)
-
-- **Functions**:
-  - `fetch_polymarket_markets()` - Get available prediction markets
-  - `fetch_polymarket_market_details()` - Get detailed market information
-  - `fetch_polymarket_orderbook()` - Get order book data
-  - `fetch_polymarket_trades()` - Get recent trades
-  - `fetch_polymarket_market_stats()` - Get market statistics
-  - `search_polymarket_markets()` - Search markets by query
-  - `fetch_polymarket_trending_markets()` - Get trending markets
-- **Source**: Polymarket API
-- **Data**: Prediction markets, outcomes, prices, volume, order books
-- **Features**:
-  - Category filtering (politics, sports, crypto, etc.)
-  - Market search functionality
-  - Real-time price and volume data
-  - Order book depth analysis
-  - Market statistics and analytics
-- **Usage**: Fetch prediction market data for alternative data analysis
-
-### Reddit Data (`reddit_fetcher.py`)
-
-- **Functions**:
-  - `fetch_top_from_category()` - Get top posts from a category
-  - `fetch_reddit_posts_by_ticker()` - Get posts mentioning specific ticker
-  - `fetch_reddit_sentiment_data()` - Get posts for sentiment analysis
-  - `get_available_categories()` - List available categories
-  - `get_available_dates()` - List available dates for a category
-  - `get_reddit_statistics()` - Get statistics about posts
-- **Source**: Local JSONL files organized by categories and subreddits
-- **Data**: Reddit posts with title, content, upvotes, comments, subreddit
-- **Features**:
-  - Company name mapping for ticker symbols
-  - Date-based filtering
-  - Category-based organization
-  - Engagement scoring
-  - Sentiment analysis preparation
-  - Statistical analysis
-- **Usage**: Fetch Reddit posts for social sentiment analysis
-
-### Usage Examples
+### Basic Usage
 
 ```python
-# Import from specific modules
-from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
-from trading_bench.data_fetchers.option_fetcher import fetch_option_chain
-from trading_bench.data_fetchers.news_fetcher import fetch_news_data
-from trading_bench.data_fetchers.polymarket_fetcher import fetch_polymarket_markets
-from trading_bench.data_fetchers.reddit_fetcher import fetch_reddit_posts_by_ticker
-
-# Or use the unified interface (backward compatibility)
-from trading_bench.data_fetcher import fetch_price_data, fetch_option_chain
-
 # Fetch stock data
-price_data = fetch_price_data("AAPL", "2024-01-01", "2024-01-31")
+from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
+data = fetch_price_data("AAPL", period="1mo")
 
-# Fetch option data
-option_chain = fetch_option_chain("AAPL", "2024-01-19")
-
-# Fetch news data
-news_data = fetch_news_data("AAPL stock", "2024-01-01", "2024-01-31")
-
-# Fetch Polymarket data
-markets = fetch_polymarket_markets(category="politics", limit=10)
-
-# Fetch Reddit posts mentioning AAPL
-reddit_posts = fetch_reddit_posts_by_ticker("AAPL", "2024-01-15", max_limit=10)
+# Evaluate Polymarket trades
+from trading_bench.evaluators.polymarket_evaluator import eval_polymarket
+actions = [{"market_id": "test", "outcome": "yes", "action": "buy", "price": 0.6, "quantity": 100}]
+result = eval_polymarket(actions)
 ```
 
-## ❓ Issue & Pull Request
+### Run Web Interface
 
-An issue typically describes a new feature (`feature`), fixing an old bug (`bug`), launching a group of experiments (`exp`), or refactoring part of the code (`refactor`). Using different issue templates for different issues.
+```bash
+# Start backend
+cd backend && python run.py
 
-A PR typically implements the content mentioned in one issue.
+# Start frontend (in another terminal)
+cd frontend && npm start
+```
 
-Notice about the development:
+### Examples
 
-1. When creating an issue, assign the responsible member for fixing that if possible
-2. When creating a PR, make sure you uses `feature/feature-name`, `bug/bug-name`, `exp/exp-name` for its branch
-3. When finishing one PR, make sure all the github action is passed and all the checks are done.
-4. When merging one PR, make sure using `squash and merge` instead of `merge a pull request`.
-5. Avoid making any direct commit to the `main` branch and try to avoid any `--force` push to any branch unless you are pretty sure about that.
+Check the `examples/` directory for demonstration scripts:
 
-## 👷 Type Checking
+- `stock_demo.py` - Stock data fetching
+- `option_demo.py` - Option chain analysis
+- `polymarket_demo.py` - Prediction market evaluation
+- `reddit_demo.py` - Social sentiment analysis
 
-- Tools
+## Project Structure
 
-  - static type checking (`mypy`)
+```
+live-trade-bench/
+├── trading_bench/          # Core library
+│   ├── data_fetchers/      # Data source connectors
+│   └── evaluators/         # Trading strategy evaluators
+├── backend/                # API server
+├── frontend/               # Web dashboard
+├── examples/               # Demo scripts
+└── tests/                  # Test suite
+```
 
-  - dynamic type checking (`beartype`)
+## License
 
-- Guidelines
-  - Run `mypy --strict ./` under the root of the current repo to test the static type.
-
-## 🏅️ Unit Testing
-
-- Tools
-
-  - testing code components based on testing function (`pytest`)
-
-- Guidelines
-  - Run `pytest` under the root of the current repo to check unit test results.
-
-## 🧐 Code Spell Checking
-
-- Tools
-
-  - code spell checking (`codespell`)
-
-- Guidelines
-  - Commonly need to ignore part of the files in the repository like `/data`.
-
-## 🪝 Pre-commit Hook
-
-- Tools
-
-  - code formatting (`prettier`)
-
-  - import package sorting (`isort`)
-
-  - ipynb output clear (`nbstripout`)
-
-  - code bug checking (`ruff`)
-
-- Guidelines
-
-  - Run `python -m pip install pre-commit` to install `pre-commit`
-
-  - Run `pre-commit install` to allow hooking pre-commit with any `git commit` commands.
-
-## 🧑‍💼 Dependency Management
-
-- Tools
-
-  - We utilize `poetry` to support the dependency requirements. Dependency for different usage of the repo can be defined separately in `pyproject.toml`.
-
-- Guidelines
-
-  - Run `pip install poetry` to finish the installation of poetry.
-
-  - Create `conda environment` with a specified Python version
-
-  - Run `poetry install` to install required dependencies.
-
-## ❤️ Contribution
-
-I welcome all kinds of contributions, e.g. adding more tools, better practices, and discussion on trade-offs.
+MIT License - see LICENSE file for details.

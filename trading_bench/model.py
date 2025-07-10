@@ -23,20 +23,30 @@ class BaseModel:
 class AIStockAnalysisModel(BaseModel):
     """AI-powered stock analysis model that uses LLM for trend prediction with news integration."""
 
-    def __init__(self, api_key: str = None, model_name: str = 'gpt-4'):
+    def __init__(
+        self, api_key: str = None, model_name: str = 'gpt-4', base_url: str = None
+    ):
         """
-        Initialize AI model with API credentials.
+        Initialize AI model with API credentials and optional base URL.
 
         Args:
             api_key: OpenAI API key (if None, will try to get from environment)
             model_name: LLM model to use for predictions
+            base_url: Custom base URL for OpenAI API (e.g., 'https://api.openai.com/v1', 'https://your-proxy.com/v1')
         """
         if api_key is None:
             import os
 
             api_key = os.getenv('OPENAI_API_KEY')
 
-        self.client = openai.OpenAI(api_key=api_key)
+        # Initialize OpenAI client with custom base URL if provided
+        if base_url:
+            self.client = openai.OpenAI(api_key=api_key, base_url=base_url)
+            self.base_url = base_url
+        else:
+            self.client = openai.OpenAI(api_key=api_key)
+            self.base_url = 'https://api.openai.com/v1'  # Default
+
         self.model_name = model_name
 
     def _format_stock_data(
@@ -200,6 +210,7 @@ class AIStockAnalysisModel(BaseModel):
         prediction['data_points'] = len(price_history)
         prediction['latest_price'] = price_history[-1] if price_history else 0
         prediction['news_articles_count'] = len(news_data) if news_data else 0
+        prediction['api_endpoint'] = self.base_url
 
         actions = []
         action_type = prediction.get('action', 'hold')
@@ -219,6 +230,7 @@ class AIStockAnalysisModel(BaseModel):
                     'news_sentiment': prediction.get('news_sentiment', 'neutral'),
                     'news_impact': prediction.get('news_impact', 'low'),
                     'news_articles_count': prediction.get('news_articles_count', 0),
+                    'api_endpoint': prediction.get('api_endpoint', 'default'),
                 }
             )
 

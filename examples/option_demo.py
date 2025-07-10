@@ -5,7 +5,7 @@ Example script demonstrating how to use the option data fetching functionality.
 
 from datetime import datetime
 
-from trading_bench.data_fetchers.option_fetcher import (
+from trading_bench.fetchers.option_fetcher import (
     calculate_option_greeks,
     fetch_option_chain,
     fetch_option_data,

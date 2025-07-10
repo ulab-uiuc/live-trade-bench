@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-
 from fastapi import APIRouter, HTTPException, Query
 
 from app.data import get_news_data, get_real_news_data
@@ -47,8 +46,10 @@ async def get_news(
 
 @router.get('/real', response_model=list[NewsItem])
 async def get_real_news(
-    query: str = Query(default="stock market", description="Search query for news"),
-    days: int = Query(default=7, ge=1, le=30, description="Number of days to look back")
+    query: str = Query(default='stock market', description='Search query for news'),
+    days: int = Query(
+        default=7, ge=1, le=30, description='Number of days to look back'
+    ),
 ):
     """Get real news data from Google News."""
     try:
