@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from app.data import get_news_data
+from app.data import get_news_data, get_real_news_data
 from app.schemas import NewsCategory, NewsImpact, NewsItem
 from fastapi import APIRouter, HTTPException, Query
 
@@ -43,20 +43,18 @@ async def get_news(
         raise HTTPException(status_code=500, detail=f'Error fetching news: {str(e)}')
 
 
-@router.get('/{news_id}', response_model=NewsItem)
-async def get_news_item(news_id: str):
-    """Get a specific news item by ID."""
+@router.get('/real', response_model=list[NewsItem])
+async def get_real_news(
+    query: str = Query(default="stock market", description="Search query for news"),
+    days: int = Query(default=7, ge=1, le=30, description="Number of days to look back")
+):
+    """Get real news data from Google News."""
     try:
-        news = get_news_data()
-        news_item = next((n for n in news if n.id == news_id), None)
-        if not news_item:
-            raise HTTPException(status_code=404, detail='News item not found')
-        return news_item
-    except HTTPException:
-        raise
+        news = get_real_news_data(query=query, days=days)
+        return news
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f'Error fetching news item: {str(e)}'
+            status_code=500, detail=f'Error fetching real news: {str(e)}'
         )
 
 
@@ -184,6 +182,23 @@ async def get_news_stats():
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f'Error fetching news stats: {str(e)}'
+        )
+
+
+@router.get('/{news_id}', response_model=NewsItem)
+async def get_news_item(news_id: str):
+    """Get a specific news item by ID."""
+    try:
+        news = get_news_data()
+        news_item = next((n for n in news if n.id == news_id), None)
+        if not news_item:
+            raise HTTPException(status_code=404, detail='News item not found')
+        return news_item
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f'Error fetching news item: {str(e)}'
         )
 
 
