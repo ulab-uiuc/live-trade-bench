@@ -1,18 +1,13 @@
 import json
-from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any
 
 import openai
 
 
-class BaseModel(ABC):
-    @abstractmethod
-    def should_buy(self, price_history: list[float]) -> bool:
-        """Given recent price history, return True if the model signals a buy action."""
-        pass
+class BaseModel:
+    """Base model for trading analysis."""
 
-    @abstractmethod
     def act(
         self,
         ticker: str,
@@ -22,41 +17,7 @@ class BaseModel(ABC):
         news_data: list[dict] = None,
     ) -> list[dict]:
         """Return list of actions in the format expected by evaluator."""
-        pass
-
-
-class RuleBasedModel(BaseModel):
-    """A simple rule-based model that buys when the latest price is below the historical average."""
-
-    def should_buy(self, price_history: list[float]) -> bool:
-        if not price_history:
-            return False
-        avg_price = sum(price_history) / len(price_history)
-        return price_history[-1] < avg_price
-
-    def act(
-        self,
-        ticker: str,
-        price_history: list[float],
-        date: str,
-        quantity: int = 1,
-        news_data: list[dict] = None,
-    ) -> list[dict]:
-        """Return actions based on rule-based logic."""
-        actions = []
-
-        if self.should_buy(price_history):
-            actions.append(
-                {
-                    'ticker': ticker,
-                    'action': 'buy',
-                    'timestamp': date,
-                    'quantity': quantity,
-                    'price': price_history[-1] if price_history else None,
-                }
-            )
-
-        return actions
+        raise NotImplementedError('Subclasses must implement act method')
 
 
 class AIStockAnalysisModel(BaseModel):
@@ -77,7 +38,7 @@ class AIStockAnalysisModel(BaseModel):
 
         self.client = openai.OpenAI(api_key=api_key)
         self.model_name = model_name
-        
+
     def _format_stock_data(
         self, price_history: list[float], news_data: list[dict] = None
     ) -> str:
@@ -209,55 +170,6 @@ class AIStockAnalysisModel(BaseModel):
                 'news_impact': 'low',
             }
 
-    def should_buy(self, price_history: list[float]) -> bool:
-        """
-        Determine if model signals a buy action based on AI prediction.
-
-        Args:
-            price_history: List of recent stock prices
-
-        Returns:
-            bool: True if AI predicts bullish trend, False otherwise
-        """
-        prediction = self.get_trend_prediction(price_history)
-        return prediction.get('action') == 'buy'
-
-    def get_trend_prediction(
-        self, price_history: list[float], news_data: list[dict] = None
-    ) -> dict[str, Any]:
-        """
-        Get detailed trend prediction from AI model with news integration.
-
-        Args:
-            price_history: List of recent stock prices
-            news_data: List of news articles (optional)
-
-        Returns:
-            dict: Prediction with confidence and reasoning
-        """
-        if not price_history:
-            return {
-                'prediction': 'NEUTRAL',
-                'confidence': 0.0,
-                'reasoning': 'No price data available',
-                'action': 'hold',
-                'quantity': 0,
-                'news_sentiment': 'neutral',
-                'news_impact': 'low',
-            }
-
-        # Format data and call LLM
-        prompt = self._format_stock_data(price_history, news_data)
-        result = self._call_llm_api(prompt)
-
-        # Add metadata
-        result['timestamp'] = datetime.now().isoformat()
-        result['data_points'] = len(price_history)
-        result['latest_price'] = price_history[-1]
-        result['news_articles_count'] = len(news_data) if news_data else 0
-
-        return result
-
     def act(
         self,
         ticker: str,
@@ -279,9 +191,17 @@ class AIStockAnalysisModel(BaseModel):
         Returns:
             List of actions in evaluator format
         """
-        prediction = self.get_trend_prediction(price_history, news_data)
-        actions = []
+        # Format data and call LLM
+        prompt = self._format_stock_data(price_history, news_data)
+        prediction = self._call_llm_api(prompt)
 
+        # Add metadata
+        prediction['timestamp'] = datetime.now().isoformat()
+        prediction['data_points'] = len(price_history)
+        prediction['latest_price'] = price_history[-1] if price_history else 0
+        prediction['news_articles_count'] = len(news_data) if news_data else 0
+
+        actions = []
         action_type = prediction.get('action', 'hold')
         ai_quantity = prediction.get('quantity', 1)
         final_quantity = quantity if quantity is not None else ai_quantity
