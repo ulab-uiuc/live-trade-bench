@@ -9,6 +9,7 @@ Live Trade Bench provides tools for fetching financial data from multiple source
 ## Features
 
 ### Data Fetchers
+
 - **Stock Data**: Historical price data via Yahoo Finance
 - **Options Data**: Option chains, Greeks, and implied volatility
 - **News Data**: Financial news articles and sentiment
@@ -16,11 +17,13 @@ Live Trade Bench provides tools for fetching financial data from multiple source
 - **Reddit Data**: Social sentiment from trading-related subreddits
 
 ### Evaluators
+
 - **Polymarket Evaluator**: Prediction market trading strategy evaluation
 - **Kelly Criterion**: Optimal bet sizing calculations
 - **Market Efficiency Analysis**: Arbitrage opportunity detection
 
 ### Web Interface
+
 - **Backend API**: FastAPI-based REST API for data and evaluations
 - **Frontend**: React-based dashboard for trading analysis
 - **Real-time Data**: Live market data and trading history
@@ -63,6 +66,7 @@ cd frontend && npm start
 ### Examples
 
 Check the `examples/` directory for demonstration scripts:
+
 - `stock_demo.py` - Stock data fetching
 - `option_demo.py` - Option chain analysis
 - `polymarket_demo.py` - Prediction market evaluation

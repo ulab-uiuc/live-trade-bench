@@ -23,7 +23,9 @@ class BaseModel:
 class AIStockAnalysisModel(BaseModel):
     """AI-powered stock analysis model that uses LLM for trend prediction with news integration."""
 
-    def __init__(self, api_key: str = None, model_name: str = 'gpt-4', base_url: str = None):
+    def __init__(
+        self, api_key: str = None, model_name: str = 'gpt-4', base_url: str = None
+    ):
         """
         Initialize AI model with API credentials and optional base URL.
 
@@ -34,6 +36,7 @@ class AIStockAnalysisModel(BaseModel):
         """
         if api_key is None:
             import os
+
             api_key = os.getenv('OPENAI_API_KEY')
 
         # Initialize OpenAI client with custom base URL if provided
@@ -42,8 +45,8 @@ class AIStockAnalysisModel(BaseModel):
             self.base_url = base_url
         else:
             self.client = openai.OpenAI(api_key=api_key)
-            self.base_url = "https://api.openai.com/v1"  # Default
-            
+            self.base_url = 'https://api.openai.com/v1'  # Default
+
         self.model_name = model_name
 
     def _format_stock_data(

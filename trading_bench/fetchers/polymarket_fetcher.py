@@ -27,7 +27,7 @@ def _get_mock_markets() -> list:
         }
         for i in range(1, 21)
     ]
-    
+
     # Add some variety to mock data
     categories = ['politics', 'sports', 'crypto', 'entertainment', 'tech']
     titles = [
@@ -35,13 +35,13 @@ def _get_mock_markets() -> list:
         'Will the Super Bowl have over 60 points scored?',
         'Will Ethereum reach $5000 by year end?',
         'Will the next Marvel movie gross over $1B?',
-        'Will Apple announce a new product category this year?'
+        'Will Apple announce a new product category this year?',
     ]
-    
+
     for i, market in enumerate(mock_markets[:5]):
         market['category'] = categories[i]
         market['title'] = f'Mock Market: {titles[i]}'
-    
+
     return mock_markets
 
 
@@ -73,70 +73,86 @@ def fetch_polymarket_markets(category: str = None, limit: int = 50) -> list:
         }
 
         response = requests.get(url, headers=headers, timeout=10)
-        
+
         if response.status_code == 200:
             try:
                 markets_data = response.json()
-                
+
                 # Ensure we're working with a list
                 if not isinstance(markets_data, list):
                     if isinstance(markets_data, dict) and 'data' in markets_data:
                         markets_data = markets_data['data']
                     else:
-                        raise ValueError("Unexpected API response format")
-                
+                        raise ValueError('Unexpected API response format')
+
                 # Filter by category if specified
                 if category:
                     markets_data = [
-                        market for market in markets_data
-                        if isinstance(market, dict) and 
-                        category.lower() in str(market.get('category', '')).lower()
+                        market
+                        for market in markets_data
+                        if isinstance(market, dict)
+                        and category.lower() in str(market.get('category', '')).lower()
                     ]
-                
+
                 # Limit results
                 if len(markets_data) > limit:
                     markets_data = markets_data[:limit]
-                
+
                 # Extract relevant information
                 markets = []
                 for market in markets_data:
                     if isinstance(market, dict):
-                        markets.append({
-                            'id': market.get('id', f'unknown_{random.randint(1000, 9999)}'),
-                            'title': market.get('title', market.get('question', 'Unknown Market')),
-                            'category': market.get('category', 'uncategorized'),
-                            'description': market.get('description', ''),
-                            'end_date': market.get('endDate', market.get('end_date')),
-                            'status': market.get('status', 'active'),
-                            'total_volume': float(market.get('totalVolume', market.get('volume', 0))),
-                            'total_liquidity': float(market.get('totalLiquidity', market.get('liquidity', 0))),
-                        })
-                
+                        markets.append(
+                            {
+                                'id': market.get(
+                                    'id', f'unknown_{random.randint(1000, 9999)}'
+                                ),
+                                'title': market.get(
+                                    'title', market.get('question', 'Unknown Market')
+                                ),
+                                'category': market.get('category', 'uncategorized'),
+                                'description': market.get('description', ''),
+                                'end_date': market.get(
+                                    'endDate', market.get('end_date')
+                                ),
+                                'status': market.get('status', 'active'),
+                                'total_volume': float(
+                                    market.get('totalVolume', market.get('volume', 0))
+                                ),
+                                'total_liquidity': float(
+                                    market.get(
+                                        'totalLiquidity', market.get('liquidity', 0)
+                                    )
+                                ),
+                            }
+                        )
+
                 if markets:
                     return markets
                 else:
-                    raise ValueError("No valid markets found in API response")
-                    
+                    raise ValueError('No valid markets found in API response')
+
             except (ValueError, KeyError, TypeError) as parse_error:
-                print(f"API response parsing error: {parse_error}")
-                raise ValueError("Failed to parse API response")
+                print(f'API response parsing error: {parse_error}')
+                raise ValueError('Failed to parse API response')
         else:
-            raise ValueError(f"API returned status code: {response.status_code}")
+            raise ValueError(f'API returned status code: {response.status_code}')
 
     except Exception as api_error:
-        print(f"API fetch failed: {api_error}")
-        print("Using mock data as fallback...")
-        
+        print(f'API fetch failed: {api_error}')
+        print('Using mock data as fallback...')
+
         # Fall back to mock data
         mock_markets = _get_mock_markets()
-        
+
         # Apply category filter to mock data
         if category:
             mock_markets = [
-                market for market in mock_markets
+                market
+                for market in mock_markets
                 if category.lower() in market['category'].lower()
             ]
-        
+
         # Apply limit
         return mock_markets[:limit]
 
@@ -165,50 +181,85 @@ def fetch_polymarket_market_details(market_id: str) -> dict:
         }
 
         response = requests.get(url, headers=headers, timeout=10)
-        
+
         if response.status_code == 200:
             market_data = response.json()
-            
+
             if isinstance(market_data, dict):
                 # Extract outcomes and their current prices
                 outcomes = []
                 outcomes_data = market_data.get('outcomes', [])
-                
+
                 for outcome in outcomes_data:
                     if isinstance(outcome, dict):
-                        outcomes.append({
-                            'id': outcome.get('id', f'outcome_{random.randint(100, 999)}'),
-                            'name': outcome.get('name', outcome.get('title', 'Unknown Outcome')),
-                            'current_price': float(outcome.get('currentPrice', outcome.get('price', random.uniform(0.3, 0.7)))),
-                            'volume_24h': float(outcome.get('volume24h', outcome.get('volume', random.uniform(1000, 50000)))),
-                            'liquidity': float(outcome.get('liquidity', random.uniform(500, 25000))),
-                            'probability': float(outcome.get('probability', outcome.get('currentPrice', random.uniform(30, 70)))),
-                        })
+                        outcomes.append(
+                            {
+                                'id': outcome.get(
+                                    'id', f'outcome_{random.randint(100, 999)}'
+                                ),
+                                'name': outcome.get(
+                                    'name', outcome.get('title', 'Unknown Outcome')
+                                ),
+                                'current_price': float(
+                                    outcome.get(
+                                        'currentPrice',
+                                        outcome.get('price', random.uniform(0.3, 0.7)),
+                                    )
+                                ),
+                                'volume_24h': float(
+                                    outcome.get(
+                                        'volume24h',
+                                        outcome.get(
+                                            'volume', random.uniform(1000, 50000)
+                                        ),
+                                    )
+                                ),
+                                'liquidity': float(
+                                    outcome.get('liquidity', random.uniform(500, 25000))
+                                ),
+                                'probability': float(
+                                    outcome.get(
+                                        'probability',
+                                        outcome.get(
+                                            'currentPrice', random.uniform(30, 70)
+                                        ),
+                                    )
+                                ),
+                            }
+                        )
 
                 return {
                     'id': market_data.get('id', market_id),
-                    'title': market_data.get('title', market_data.get('question', 'Unknown Market')),
+                    'title': market_data.get(
+                        'title', market_data.get('question', 'Unknown Market')
+                    ),
                     'description': market_data.get('description', ''),
                     'category': market_data.get('category', 'uncategorized'),
                     'status': market_data.get('status', 'active'),
                     'end_date': market_data.get('endDate', market_data.get('end_date')),
-                    'total_volume': float(market_data.get('totalVolume', market_data.get('volume', 0))),
-                    'total_liquidity': float(market_data.get('totalLiquidity', market_data.get('liquidity', 0))),
+                    'total_volume': float(
+                        market_data.get('totalVolume', market_data.get('volume', 0))
+                    ),
+                    'total_liquidity': float(
+                        market_data.get(
+                            'totalLiquidity', market_data.get('liquidity', 0)
+                        )
+                    ),
                     'outcomes': outcomes,
                 }
             else:
-                raise ValueError("Invalid market data format")
+                raise ValueError('Invalid market data format')
         else:
-            raise ValueError(f"API returned status code: {response.status_code}")
+            raise ValueError(f'API returned status code: {response.status_code}')
 
     except Exception as e:
-        print(f"Market details API failed: {e}")
-        print("Using mock market details...")
-        
+        print(f'Market details API failed: {e}')
+        print('Using mock market details...')
+
         # Return mock market details
         return {
             'id': market_id,
-            'title': f'Mock Market: Will Bitcoin reach $100K by end of 2024?',
+            'title': 'Mock Market: Will Bitcoin reach $100K by end of 2024?',
             'description': 'This is a mock prediction market for testing purposes.',
             'category': 'crypto',
             'status': 'active',
@@ -231,7 +282,7 @@ def fetch_polymarket_market_details(market_id: str) -> dict:
                     'volume_24h': random.uniform(3000, 30000),
                     'liquidity': random.uniform(1500, 15000),
                     'probability': random.uniform(35, 55),
-                }
+                },
             ],
         }
 
@@ -263,27 +314,29 @@ def fetch_polymarket_orderbook(market_id: str, outcome_id: str = None) -> dict:
         }
 
         response = requests.get(url, headers=headers, timeout=10)
-        
+
         if response.status_code == 200:
             orderbook_data = response.json()
-            
+
             if isinstance(orderbook_data, dict):
                 return {
                     'market_id': market_id,
                     'outcome_id': outcome_id,
                     'bids': orderbook_data.get('bids', []),
                     'asks': orderbook_data.get('asks', []),
-                    'timestamp': orderbook_data.get('timestamp', datetime.now().isoformat()),
+                    'timestamp': orderbook_data.get(
+                        'timestamp', datetime.now().isoformat()
+                    ),
                 }
             else:
-                raise ValueError("Invalid orderbook data format")
+                raise ValueError('Invalid orderbook data format')
         else:
-            raise ValueError(f"API returned status code: {response.status_code}")
+            raise ValueError(f'API returned status code: {response.status_code}')
 
     except Exception as e:
-        print(f"Orderbook API failed: {e}")
-        print("Using mock orderbook data...")
-        
+        print(f'Orderbook API failed: {e}')
+        print('Using mock orderbook data...')
+
         # Generate mock orderbook
         bids = [
             {'price': random.uniform(0.4, 0.6), 'size': random.uniform(100, 5000)}
@@ -293,7 +346,7 @@ def fetch_polymarket_orderbook(market_id: str, outcome_id: str = None) -> dict:
             {'price': random.uniform(0.45, 0.65), 'size': random.uniform(100, 5000)}
             for _ in range(random.randint(3, 8))
         ]
-        
+
         return {
             'market_id': market_id,
             'outcome_id': outcome_id,
@@ -328,49 +381,65 @@ def fetch_polymarket_trades(market_id: str, limit: int = 100) -> list:
         }
 
         response = requests.get(url, headers=headers, timeout=10)
-        
+
         if response.status_code == 200:
             trades_data = response.json()
-            
+
             if isinstance(trades_data, list):
                 trades = []
                 for trade in trades_data:
                     if isinstance(trade, dict):
-                        trades.append({
-                            'id': trade.get('id', f'trade_{random.randint(1000, 9999)}'),
-                            'outcome_id': trade.get('outcomeId', trade.get('outcome_id')),
-                            'price': float(trade.get('price', random.uniform(0.3, 0.7))),
-                            'size': float(trade.get('size', random.uniform(100, 5000))),
-                            'side': trade.get('side', random.choice(['buy', 'sell'])),
-                            'timestamp': trade.get('timestamp', datetime.now().isoformat()),
-                            'maker': trade.get('maker', 'unknown'),
-                            'taker': trade.get('taker', 'unknown'),
-                        })
+                        trades.append(
+                            {
+                                'id': trade.get(
+                                    'id', f'trade_{random.randint(1000, 9999)}'
+                                ),
+                                'outcome_id': trade.get(
+                                    'outcomeId', trade.get('outcome_id')
+                                ),
+                                'price': float(
+                                    trade.get('price', random.uniform(0.3, 0.7))
+                                ),
+                                'size': float(
+                                    trade.get('size', random.uniform(100, 5000))
+                                ),
+                                'side': trade.get(
+                                    'side', random.choice(['buy', 'sell'])
+                                ),
+                                'timestamp': trade.get(
+                                    'timestamp', datetime.now().isoformat()
+                                ),
+                                'maker': trade.get('maker', 'unknown'),
+                                'taker': trade.get('taker', 'unknown'),
+                            }
+                        )
                 return trades
             else:
-                raise ValueError("Invalid trades data format")
+                raise ValueError('Invalid trades data format')
         else:
-            raise ValueError(f"API returned status code: {response.status_code}")
+            raise ValueError(f'API returned status code: {response.status_code}')
 
     except Exception as e:
-        print(f"Trades API failed: {e}")
-        print("Using mock trades data...")
-        
+        print(f'Trades API failed: {e}')
+        print('Using mock trades data...')
+
         # Generate mock trades
         trades = []
         for i in range(min(limit, 20)):
             trade_time = datetime.now() - timedelta(minutes=random.randint(1, 1440))
-            trades.append({
-                'id': f'mock_trade_{i}',
-                'outcome_id': f'outcome_{random.randint(1, 2)}',
-                'price': random.uniform(0.3, 0.7),
-                'size': random.uniform(100, 5000),
-                'side': random.choice(['buy', 'sell']),
-                'timestamp': trade_time.isoformat(),
-                'maker': f'user_{random.randint(1000, 9999)}',
-                'taker': f'user_{random.randint(1000, 9999)}',
-            })
-        
+            trades.append(
+                {
+                    'id': f'mock_trade_{i}',
+                    'outcome_id': f'outcome_{random.randint(1, 2)}',
+                    'price': random.uniform(0.3, 0.7),
+                    'size': random.uniform(100, 5000),
+                    'side': random.choice(['buy', 'sell']),
+                    'timestamp': trade_time.isoformat(),
+                    'maker': f'user_{random.randint(1000, 9999)}',
+                    'taker': f'user_{random.randint(1000, 9999)}',
+                }
+            )
+
         return trades
 
 
@@ -391,9 +460,11 @@ def fetch_polymarket_market_stats(market_id: str) -> dict:
 
         # Calculate basic statistics
         total_volume_24h = sum(float(trade['size']) for trade in recent_trades)
-        
+
         if recent_trades:
-            weighted_sum = sum(float(trade['price']) * float(trade['size']) for trade in recent_trades)
+            weighted_sum = sum(
+                float(trade['price']) * float(trade['size']) for trade in recent_trades
+            )
             total_size = sum(float(trade['size']) for trade in recent_trades)
             avg_price = weighted_sum / total_size if total_size > 0 else 0
         else:
@@ -404,7 +475,9 @@ def fetch_polymarket_market_stats(market_id: str) -> dict:
             latest_price = float(recent_trades[0]['price'])
             oldest_price = float(recent_trades[-1]['price'])
             price_change = latest_price - oldest_price
-            price_change_pct = (price_change / oldest_price * 100) if oldest_price > 0 else 0
+            price_change_pct = (
+                (price_change / oldest_price * 100) if oldest_price > 0 else 0
+            )
         else:
             price_change = 0
             price_change_pct = 0
@@ -423,7 +496,7 @@ def fetch_polymarket_market_stats(market_id: str) -> dict:
         }
 
     except Exception as e:
-        print(f"Market stats calculation failed: {e}")
+        print(f'Market stats calculation failed: {e}')
         # Return basic mock stats
         return {
             'market_id': market_id,
@@ -439,7 +512,9 @@ def fetch_polymarket_market_stats(market_id: str) -> dict:
         }
 
 
-def search_polymarket_markets(query: str, category: str = None, limit: int = 50) -> list:
+def search_polymarket_markets(
+    query: str, category: str = None, limit: int = 50
+) -> list:
     """
     Searches for markets based on a query string.
     Args:
@@ -465,32 +540,36 @@ def search_polymarket_markets(query: str, category: str = None, limit: int = 50)
                 description = str(market.get('description', '')).lower()
                 category_name = str(market.get('category', '')).lower()
 
-                if (query_lower in title or 
-                    query_lower in description or 
-                    query_lower in category_name):
+                if (
+                    query_lower in title
+                    or query_lower in description
+                    or query_lower in category_name
+                ):
                     matching_markets.append(market)
 
         return matching_markets[:limit]
 
     except Exception as e:
-        print(f"Search failed: {e}")
+        print(f'Search failed: {e}')
         # Return filtered mock data
         mock_markets = _get_mock_markets()
         query_lower = query.lower()
-        
+
         matching_markets = [
-            market for market in mock_markets
-            if query_lower in market['title'].lower() or 
-               query_lower in market['description'].lower() or
-               query_lower in market['category'].lower()
+            market
+            for market in mock_markets
+            if query_lower in market['title'].lower()
+            or query_lower in market['description'].lower()
+            or query_lower in market['category'].lower()
         ]
-        
+
         if category:
             matching_markets = [
-                market for market in matching_markets
+                market
+                for market in matching_markets
                 if category.lower() in market['category'].lower()
             ]
-        
+
         return matching_markets[:limit]
 
 
@@ -510,21 +589,19 @@ def fetch_polymarket_trending_markets(limit: int = 10) -> list:
 
         # Sort by total volume (proxy for trending)
         trending_markets = sorted(
-            all_markets, 
-            key=lambda x: float(x.get('total_volume', 0)) if isinstance(x, dict) else 0, 
-            reverse=True
+            all_markets,
+            key=lambda x: float(x.get('total_volume', 0)) if isinstance(x, dict) else 0,
+            reverse=True,
         )
 
         return trending_markets[:limit]
 
     except Exception as e:
-        print(f"Trending markets fetch failed: {e}")
+        print(f'Trending markets fetch failed: {e}')
         # Return mock trending markets
         mock_markets = _get_mock_markets()
         # Sort by volume for mock trending
         trending_markets = sorted(
-            mock_markets, 
-            key=lambda x: x['total_volume'], 
-            reverse=True
+            mock_markets, key=lambda x: x['total_volume'], reverse=True
         )
         return trending_markets[:limit]
