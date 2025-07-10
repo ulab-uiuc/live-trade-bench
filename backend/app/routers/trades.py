@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.data import get_trades_data
+from app.data import get_real_trades_data, get_trades_data
 from app.schemas import Trade, TradingSummary
 
 router = APIRouter(prefix='/api/trades', tags=['trades'])
@@ -210,4 +210,21 @@ async def get_trades_by_model(model_name: str):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f'Error fetching model trades: {str(e)}'
+        )
+
+
+@router.get('/real', response_model=list[Trade])
+async def get_real_trades(
+    ticker: str = Query(default='NVDA', description='Stock ticker symbol'),
+    days: int = Query(
+        default=7, ge=1, le=30, description='Number of days of trading data'
+    ),
+):
+    """Get real trading data by fetching stock prices."""
+    try:
+        real_trades = get_real_trades_data(ticker=ticker, days=days)
+        return real_trades
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f'Error fetching real trades: {str(e)}'
         )

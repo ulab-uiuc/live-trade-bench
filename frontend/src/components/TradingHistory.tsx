@@ -22,8 +22,8 @@ const TradingHistory: React.FC<TradingHistoryProps> = ({ lastRefresh }) => {
   const fetchTradingHistory = async () => {
     setLoading(true);
     try {
-      // Fetch from backend API
-      const response = await fetch('http://localhost:8000/api/trades/');
+      // Fetch real trading data instead of sample data
+      const response = await fetch('http://localhost:8000/api/trades/real?ticker=NVDA&days=7');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

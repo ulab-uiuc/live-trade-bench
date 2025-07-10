@@ -15,10 +15,15 @@ interface Trade {
   totalValue: number;
 }
 
-const TradingHistoryPage: React.FC = () => {
-  const [trades, setTrades] = useState<Trade[]>([]);
+interface TradingHistoryProps {
+  tradesData: Trade[];
+  setTradesData: (trades: Trade[]) => void;
+  lastRefresh: Date;
+  setLastRefresh: (date: Date) => void;
+}
+
+const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTradesData, lastRefresh, setLastRefresh }) => {
   const [loading, setLoading] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock' | 'option'>('all');
   const [selectedType, setSelectedType] = useState<'all' | 'buy' | 'sell'>('all');
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'completed' | 'pending' | 'cancelled' | 'failed'>('all');
@@ -26,8 +31,8 @@ const TradingHistoryPage: React.FC = () => {
   const fetchTradingHistory = async () => {
     setLoading(true);
     try {
-      // Fetch from backend API
-      const response = await fetch('http://localhost:8000/api/trades/');
+      // Fetch real trading data instead of sample data
+      const response = await fetch('http://localhost:8000/api/trades/real?ticker=NVDA&days=7');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -49,7 +54,7 @@ const TradingHistoryPage: React.FC = () => {
         totalValue: trade.amount * trade.price
       }));
 
-      setTrades(transformedTrades);
+      setTradesData(transformedTrades);
       setLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching trading history:', error);
@@ -59,7 +64,20 @@ const TradingHistoryPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTradingHistory();
+    // Only fetch if we don't have data or if it's been more than an hour
+    const shouldFetch = tradesData.length === 0 ||
+      (Date.now() - lastRefresh.getTime()) > 60 * 60 * 1000;
+
+    if (shouldFetch) {
+      fetchTradingHistory();
+    }
+
+    // Set up hourly refresh interval
+    const interval = setInterval(() => {
+      fetchTradingHistory();
+    }, 60 * 60 * 1000); // Refresh every hour
+
+    return () => clearInterval(interval);
   }, []);
 
   const formatTime = (date: Date) => {
@@ -97,7 +115,7 @@ const TradingHistoryPage: React.FC = () => {
     }
   };
 
-  const filteredTrades = trades.filter(trade => {
+  const filteredTrades = tradesData.filter(trade => {
     const categoryMatch = selectedCategory === 'all' || trade.category === selectedCategory;
     const typeMatch = selectedType === 'all' || trade.type === selectedType;
     const statusMatch = selectedStatus === 'all' || trade.status === selectedStatus;
@@ -113,16 +131,16 @@ const TradingHistoryPage: React.FC = () => {
   const sellTrades = sortedTrades.filter(t => t.type === 'sell').length;
 
   const categoryStats = {
-    polymarket: trades.filter(t => t.category === 'polymarket').length,
-    stock: trades.filter(t => t.category === 'stock').length,
-    option: trades.filter(t => t.category === 'option').length,
-    total: trades.length
+    polymarket: tradesData.filter(t => t.category === 'polymarket').length,
+    stock: tradesData.filter(t => t.category === 'stock').length,
+    option: tradesData.filter(t => t.category === 'option').length,
+    total: tradesData.length
   };
 
   const typeStats = {
-    buy: trades.filter(t => t.type === 'buy').length,
-    sell: trades.filter(t => t.type === 'sell').length,
-    total: trades.length
+    buy: tradesData.filter(t => t.type === 'buy').length,
+    sell: tradesData.filter(t => t.type === 'sell').length,
+    total: tradesData.length
   };
 
   return (

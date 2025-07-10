@@ -1,5 +1,4 @@
 import random
-from datetime import datetime, timedelta
 
 from app.schemas import (
     ModelStatus,
@@ -60,174 +59,6 @@ SAMPLE_MODELS: list[TradingModel] = [
     ),
 ]
 
-# Sample trading history data
-SAMPLE_TRADES: list[Trade] = [
-    Trade(
-        id='1',
-        timestamp=datetime.now() - timedelta(minutes=5),
-        symbol='AAPL',
-        type=TradeType.SELL,
-        amount=100,
-        price=185.50,
-        profit=150.75,
-        model='LSTM Deep Learning',
-    ),
-    Trade(
-        id='2',
-        timestamp=datetime.now() - timedelta(minutes=15),
-        symbol='GOOGL',
-        type=TradeType.BUY,
-        amount=25,
-        price=2750.25,
-        profit=-45.30,
-        model='Random Forest',
-    ),
-    Trade(
-        id='3',
-        timestamp=datetime.now() - timedelta(minutes=30),
-        symbol='MSFT',
-        type=TradeType.SELL,
-        amount=75,
-        price=335.80,
-        profit=89.25,
-        model='Neural Network',
-    ),
-    Trade(
-        id='4',
-        timestamp=datetime.now() - timedelta(minutes=45),
-        symbol='TSLA',
-        type=TradeType.BUY,
-        amount=50,
-        price=245.60,
-        profit=220.50,
-        model='XGBoost',
-    ),
-    Trade(
-        id='5',
-        timestamp=datetime.now() - timedelta(minutes=60),
-        symbol='AMZN',
-        type=TradeType.SELL,
-        amount=30,
-        price=3380.75,
-        profit=-125.80,
-        model='LSTM Deep Learning',
-    ),
-    Trade(
-        id='6',
-        timestamp=datetime.now() - timedelta(minutes=90),
-        symbol='NVDA',
-        type=TradeType.BUY,
-        amount=40,
-        price=890.25,
-        profit=345.60,
-        model='Neural Network',
-    ),
-    Trade(
-        id='7',
-        timestamp=datetime.now() - timedelta(minutes=120),
-        symbol='META',
-        type=TradeType.SELL,
-        amount=60,
-        price=485.30,
-        profit=-78.95,
-        model='Random Forest',
-    ),
-    Trade(
-        id='8',
-        timestamp=datetime.now() - timedelta(minutes=150),
-        symbol='NFLX',
-        type=TradeType.BUY,
-        amount=35,
-        price=625.40,
-        profit=156.75,
-        model='XGBoost',
-    ),
-]
-
-# Sample news data
-SAMPLE_NEWS: list[NewsItem] = [
-    NewsItem(
-        id='1',
-        title='Federal Reserve Signals Potential Interest Rate Changes',
-        summary='Fed officials hint at possible rate adjustments in response to inflation data, potentially impacting market volatility and trading strategies.',
-        source='Financial Times',
-        published_at=datetime.now() - timedelta(minutes=30),
-        impact=NewsImpact.HIGH,
-        category=NewsCategory.ECONOMIC,
-        url='https://example.com/news/1',
-    ),
-    NewsItem(
-        id='2',
-        title='Tech Stocks Rally on AI Breakthrough Announcements',
-        summary='Major technology companies announce significant AI advancements, driving sector-wide gains and increased algorithmic trading activity.',
-        source='Reuters',
-        published_at=datetime.now() - timedelta(hours=1),
-        impact=NewsImpact.HIGH,
-        category=NewsCategory.TECH,
-        url='https://example.com/news/2',
-    ),
-    NewsItem(
-        id='3',
-        title='Oil Prices Surge Following Geopolitical Tensions',
-        summary='Energy commodities see significant price movements amid international developments, affecting related equity positions.',
-        source='Bloomberg',
-        published_at=datetime.now() - timedelta(hours=1, minutes=30),
-        impact=NewsImpact.MEDIUM,
-        category=NewsCategory.MARKET,
-        url='https://example.com/news/3',
-    ),
-    NewsItem(
-        id='4',
-        title='Quarterly Earnings Beat Expectations for Major Banks',
-        summary='Financial sector shows strong performance in latest earnings reports, with several institutions exceeding analyst projections.',
-        source='Wall Street Journal',
-        published_at=datetime.now() - timedelta(hours=2),
-        impact=NewsImpact.MEDIUM,
-        category=NewsCategory.COMPANY,
-        url='https://example.com/news/4',
-    ),
-    NewsItem(
-        id='5',
-        title='Consumer Confidence Index Reaches New High',
-        summary='Latest economic indicators show improved consumer sentiment, potentially signaling increased spending and market optimism.',
-        source='MarketWatch',
-        published_at=datetime.now() - timedelta(hours=3),
-        impact=NewsImpact.MEDIUM,
-        category=NewsCategory.ECONOMIC,
-        url='https://example.com/news/5',
-    ),
-    NewsItem(
-        id='6',
-        title='Cryptocurrency Market Experiences Volatility',
-        summary='Digital assets show mixed performance as regulatory news and institutional adoption continue to influence trading patterns.',
-        source='CoinDesk',
-        published_at=datetime.now() - timedelta(hours=4),
-        impact=NewsImpact.LOW,
-        category=NewsCategory.MARKET,
-        url='https://example.com/news/6',
-    ),
-    NewsItem(
-        id='7',
-        title='Supply Chain Disruptions Affect Manufacturing Stocks',
-        summary='Industrial companies report challenges in logistics and materials, leading to adjusted forecasts and trading algorithm adaptations.',
-        source='Financial Times',
-        published_at=datetime.now() - timedelta(hours=5),
-        impact=NewsImpact.MEDIUM,
-        category=NewsCategory.COMPANY,
-        url='https://example.com/news/7',
-    ),
-    NewsItem(
-        id='8',
-        title='Green Energy Investments Reach Record Levels',
-        summary='Renewable energy sector attracts significant capital inflows, with new projects and partnerships driving stock performance.',
-        source='Reuters',
-        published_at=datetime.now() - timedelta(hours=6),
-        impact=NewsImpact.LOW,
-        category=NewsCategory.MARKET,
-        url='https://example.com/news/8',
-    ),
-]
-
 
 def get_models_data() -> list[TradingModel]:
     """Get all trading models with some random variation in performance."""
@@ -243,9 +74,200 @@ def get_models_data() -> list[TradingModel]:
 
 def get_trades_data() -> list[Trade]:
     """Get trading history data."""
-    return SAMPLE_TRADES
+    # Return empty list since SAMPLE_TRADES is commented out
+    return []
+
+
+def get_real_trades_data(ticker: str = 'NVDA', days: int = 7) -> list[Trade]:
+    """Get real trading data by fetching stock prices."""
+    import os
+    import sys
+    from datetime import datetime, timedelta
+
+    # Add trading_bench to path
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    sys.path.insert(0, project_root)
+
+    try:
+        from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
+
+        # Calculate date range
+        end_date = datetime.now() - timedelta(days=1)  # Yesterday
+        start_date = end_date - timedelta(days=days)
+
+        # Fetch real stock data
+        price_data = fetch_price_data(
+            ticker=ticker,
+            start_date=start_date.strftime('%Y-%m-%d'),
+            end_date=(end_date + timedelta(days=1)).strftime('%Y-%m-%d'),
+            resolution='D',
+        )
+        if not price_data:
+            print('No price data available for the specified ticker and date range.')
+            return []
+
+        # Convert price data to trade records
+        trades = []
+        dates = sorted(price_data.keys())
+
+        for i, date_str in enumerate(dates):
+            if i < len(dates) - 1:  # Need next day for profit calculation
+                data = price_data[date_str]
+                next_data = price_data[dates[i + 1]]
+
+                # Simple trading logic: buy if price went up next day
+                trade_type = (
+                    TradeType.BUY
+                    if next_data['close'] > data['close']
+                    else TradeType.SELL
+                )
+
+                # Calculate profit (simplified)
+                if trade_type == TradeType.BUY:
+                    profit = (
+                        next_data['close'] - data['close']
+                    ) * 100  # Assume 100 shares
+                else:
+                    profit = (
+                        data['close'] - next_data['close']
+                    ) * 100  # Profit from selling
+
+                trade = Trade(
+                    id=str(i + 1),
+                    timestamp=datetime.fromisoformat(date_str),
+                    symbol=ticker.upper(),
+                    type=trade_type,
+                    amount=100,  # Fixed 100 shares
+                    price=data['close'],
+                    profit=profit,
+                    model='Real Data Model',
+                )
+                trades.append(trade)
+
+        return trades
+
+    except Exception as e:
+        print(f'Error fetching real trades: {e}')
+        return []
 
 
 def get_news_data() -> list[NewsItem]:
     """Get news data."""
-    return SAMPLE_NEWS
+    return []
+
+
+def get_real_news_data(query: str = 'stock market', days: int = 7) -> list[NewsItem]:
+    """Get real news data from Google News."""
+    import os
+    import sys
+    from datetime import datetime, timedelta
+
+    # Add trading_bench to path
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    sys.path.insert(0, project_root)
+
+    try:
+        from trading_bench.data_fetchers.news_fetcher import fetch_news_data
+
+        # Calculate date range
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+
+        # Fetch real news data
+        raw_news = fetch_news_data(
+            query=query,
+            start_date=start_date.strftime('%Y-%m-%d'),
+            end_date=end_date.strftime('%Y-%m-%d'),
+            max_pages=3,
+        )
+
+        # Convert to NewsItem format
+        news_items = []
+        for i, article in enumerate(raw_news[:20]):  # Limit to 20 articles
+            try:
+                # Parse date or use current time
+                try:
+                    # Try to parse various date formats
+                    if 'ago' in article.get('date', ''):
+                        published_at = datetime.now() - timedelta(hours=1)
+                    else:
+                        published_at = datetime.now()
+                except:
+                    published_at = datetime.now()
+
+                # Determine impact based on keywords
+                title_lower = article.get('title', '').lower()
+                snippet_lower = article.get('snippet', '').lower()
+
+                if any(
+                    word in title_lower or word in snippet_lower
+                    for word in [
+                        'crash',
+                        'surge',
+                        'breaking',
+                        'major',
+                        'federal',
+                        'rate',
+                    ]
+                ):
+                    impact = NewsImpact.HIGH
+                elif any(
+                    word in title_lower or word in snippet_lower
+                    for word in ['rises', 'falls', 'earnings', 'report']
+                ):
+                    impact = NewsImpact.MEDIUM
+                else:
+                    impact = NewsImpact.LOW
+
+                # Determine category based on keywords
+                if any(
+                    word in title_lower or word in snippet_lower
+                    for word in ['fed', 'federal', 'rate', 'inflation', 'economy']
+                ):
+                    category = NewsCategory.ECONOMIC
+                elif any(
+                    word in title_lower or word in snippet_lower
+                    for word in [
+                        'tech',
+                        'ai',
+                        'software',
+                        'apple',
+                        'google',
+                        'microsoft',
+                    ]
+                ):
+                    category = NewsCategory.TECH
+                elif any(
+                    word in title_lower or word in snippet_lower
+                    for word in ['earnings', 'company', 'ceo', 'revenue']
+                ):
+                    category = NewsCategory.COMPANY
+                else:
+                    category = NewsCategory.MARKET
+
+                news_item = NewsItem(
+                    id=str(i + 1),
+                    title=article.get('title', 'No title'),
+                    summary=article.get('snippet', 'No summary'),
+                    source=article.get('source', 'Unknown'),
+                    published_at=published_at,
+                    impact=impact,
+                    category=category,
+                    url=article.get('link', '#'),
+                )
+                news_items.append(news_item)
+
+            except Exception as e:
+                print(f'Error processing article {i}: {e}')
+                continue
+
+        return news_items
+
+    except Exception as e:
+        print(f'Error fetching real news: {e}')
+        # Fallback to sample data
+        return []

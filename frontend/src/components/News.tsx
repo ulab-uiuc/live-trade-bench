@@ -11,16 +11,21 @@ interface NewsItem {
   url: string;
 }
 
-const News: React.FC = () => {
-  const [news, setNews] = useState<NewsItem[]>([]);
+interface NewsProps {
+  newsData: NewsItem[];
+  setNewsData: (news: NewsItem[]) => void;
+  lastRefresh: Date;
+  setLastRefresh: (date: Date) => void;
+}
+
+const News: React.FC<NewsProps> = ({ newsData, setNewsData, lastRefresh, setLastRefresh }) => {
   const [loading, setLoading] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const fetchNews = async () => {
     setLoading(true);
     try {
-      // Fetch from backend API
-      const response = await fetch('http://localhost:8000/api/news/');
+      // Fetch real news data instead of sample data
+      const response = await fetch('http://localhost:8000/api/news/real?query=stock%20market&days=7');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -38,20 +43,27 @@ const News: React.FC = () => {
         url: article.url
       }));
 
-      setNews(transformedNews);
+      setNewsData(transformedNews);
       setLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching news:', error);
+      // Keep existing news data on error, don't clear it
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchNews();
+    // Only fetch if we don't have data or if it's been more than an hour
+    const shouldFetch = newsData.length === 0 ||
+      (Date.now() - lastRefresh.getTime()) > 60 * 60 * 1000;
 
-    // Auto-refresh every 24 hours (daily)
-    const interval = setInterval(fetchNews, 24 * 60 * 60 * 1000);
+    if (shouldFetch) {
+      fetchNews();
+    }
+
+    // Auto-refresh every hour
+    const interval = setInterval(fetchNews, 60 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
@@ -99,7 +111,7 @@ const News: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gap: '1rem' }}>
-        {news.map(item => (
+        {newsData.map(item => (
           <div key={item.id} className="news-item">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
               <h3>{item.title}</h3>
