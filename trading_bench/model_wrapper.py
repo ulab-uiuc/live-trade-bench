@@ -14,7 +14,12 @@ class BaseModel(ABC):
 
     @abstractmethod
     def act(
-        self, ticker: str, price_history: list[float], date: str, quantity: int = 1
+        self,
+        ticker: str,
+        price_history: list[float],
+        date: str,
+        quantity: int = 1,
+        news_data: list[dict] = None,
     ) -> list[dict]:
         """Return list of actions in the format expected by evaluator."""
         pass
@@ -30,7 +35,12 @@ class RuleBasedModel(BaseModel):
         return price_history[-1] < avg_price
 
     def act(
-        self, ticker: str, price_history: list[float], date: str, quantity: int = 1
+        self,
+        ticker: str,
+        price_history: list[float],
+        date: str,
+        quantity: int = 1,
+        news_data: list[dict] = None,
     ) -> list[dict]:
         """Return actions based on rule-based logic."""
         actions = []
@@ -50,7 +60,7 @@ class RuleBasedModel(BaseModel):
 
 
 class AIStockAnalysisModel(BaseModel):
-    """AI-powered stock analysis model that uses LLM for trend prediction."""
+    """AI-powered stock analysis model that uses LLM for trend prediction with news integration."""
 
     def __init__(self, api_key: str = None, model_name: str = 'gpt-4'):
         """
@@ -68,8 +78,10 @@ class AIStockAnalysisModel(BaseModel):
         self.client = openai.OpenAI(api_key=api_key)
         self.model_name = model_name
 
-    def _format_stock_data(self, price_history: list[float]) -> str:
-        """Format stock price data into LLM prompt."""
+    def _format_stock_data(
+        self, price_history: list[float], news_data: list[dict] = None
+    ) -> str:
+        """Format stock price data and news into LLM prompt."""
         if not price_history:
             return 'No price data available'
 
@@ -112,8 +124,30 @@ class AIStockAnalysisModel(BaseModel):
 
         Recent Price History (last 10 days):
         {price_history[-10:]}
+        """
 
-        Based on this technical analysis, predict the next day's trend.
+        # Add news data if available
+        if news_data and len(news_data) > 0:
+            prompt += f"""
+
+        Recent News Headlines ({len(news_data)} articles):
+        """
+            for i, article in enumerate(news_data, 1):
+                prompt += f"""
+        {i}. {article['title']} ({article.get('source', 'Unknown')})
+           Date: {article.get('date', 'Unknown')}
+           Snippet: {article.get('snippet', '')[:200]}...
+        """
+        else:
+            prompt += """
+
+        Recent News: No recent news data provided
+        """
+
+        prompt += """
+
+        Based on this technical analysis AND news sentiment, predict the next day's trend.
+        Consider how the news might impact stock price movement.
         """
 
         return prompt
@@ -126,28 +160,39 @@ class AIStockAnalysisModel(BaseModel):
                 messages=[
                     {
                         'role': 'system',
-                        'content': """You are a stock market technical analyst. Analyze the provided stock data and predict the next day's trend.
+                        'content': """You are a stock market technical analyst with expertise in both technical analysis and news sentiment analysis.
+
+                        Analyze the provided stock data AND news headlines to predict the next day's trend.
+
+                        Consider:
+                        1. Technical indicators (price, moving averages, volatility)
+                        2. News sentiment (positive, negative, neutral)
+                        3. News impact on stock price (high, medium, low)
 
                         Respond with a JSON object containing:
                         - prediction: "BULLISH", "BEARISH", or "NEUTRAL"
                         - confidence: float between 0.0 and 1.0
-                        - reasoning: brief explanation of your analysis
+                        - reasoning: brief explanation combining technical and news analysis
                         - action: "buy", "sell", or "hold"
                         - quantity: recommended quantity (1-10)
+                        - news_sentiment: "positive", "negative", or "neutral"
+                        - news_impact: "high", "medium", or "low"
 
                         Example response:
                         {
                             "prediction": "BULLISH",
                             "confidence": 0.75,
-                            "reasoning": "Price is above 20-day MA with strong momentum",
+                            "reasoning": "Price above 20-day MA with positive earnings news",
                             "action": "buy",
-                            "quantity": 5
+                            "quantity": 5,
+                            "news_sentiment": "positive",
+                            "news_impact": "high"
                         }""",
                     },
                     {'role': 'user', 'content': prompt},
                 ],
                 temperature=0.1,
-                max_tokens=200,
+                max_tokens=300,
             )
 
             content = response.choices[0].message.content
@@ -160,6 +205,8 @@ class AIStockAnalysisModel(BaseModel):
                 'reasoning': f'API Error: {str(e)}',
                 'action': 'hold',
                 'quantity': 0,
+                'news_sentiment': 'neutral',
+                'news_impact': 'low',
             }
 
     def should_buy(self, price_history: list[float]) -> bool:
@@ -175,12 +222,15 @@ class AIStockAnalysisModel(BaseModel):
         prediction = self.get_trend_prediction(price_history)
         return prediction.get('action') == 'buy'
 
-    def get_trend_prediction(self, price_history: list[float]) -> dict[str, Any]:
+    def get_trend_prediction(
+        self, price_history: list[float], news_data: list[dict] = None
+    ) -> dict[str, Any]:
         """
-        Get detailed trend prediction from AI model.
+        Get detailed trend prediction from AI model with news integration.
 
         Args:
             price_history: List of recent stock prices
+            news_data: List of news articles (optional)
 
         Returns:
             dict: Prediction with confidence and reasoning
@@ -192,35 +242,44 @@ class AIStockAnalysisModel(BaseModel):
                 'reasoning': 'No price data available',
                 'action': 'hold',
                 'quantity': 0,
+                'news_sentiment': 'neutral',
+                'news_impact': 'low',
             }
 
         # Format data and call LLM
-        prompt = self._format_stock_data(price_history)
+        prompt = self._format_stock_data(price_history, news_data)
         result = self._call_llm_api(prompt)
 
         # Add metadata
         result['timestamp'] = datetime.now().isoformat()
         result['data_points'] = len(price_history)
         result['latest_price'] = price_history[-1]
+        result['news_articles_count'] = len(news_data) if news_data else 0
 
         return result
 
     def act(
-        self, ticker: str, price_history: list[float], date: str, quantity: int = None
+        self,
+        ticker: str,
+        price_history: list[float],
+        date: str,
+        quantity: int = None,
+        news_data: list[dict] = None,
     ) -> list[dict]:
         """
-        Get actions directly from AI model in evaluator format.
+        Get actions directly from AI model in evaluator format with news integration.
 
         Args:
             ticker: Stock ticker symbol
             price_history: List of recent stock prices
             date: Date for the action
             quantity: Override quantity (if None, uses AI recommendation)
+            news_data: List of news articles (optional)
 
         Returns:
             List of actions in evaluator format
         """
-        prediction = self.get_trend_prediction(price_history)
+        prediction = self.get_trend_prediction(price_history, news_data)
         actions = []
 
         action_type = prediction.get('action', 'hold')
@@ -237,6 +296,9 @@ class AIStockAnalysisModel(BaseModel):
                     'price': price_history[-1] if price_history else None,
                     'confidence': prediction.get('confidence', 0.0),
                     'reasoning': prediction.get('reasoning', 'AI recommendation'),
+                    'news_sentiment': prediction.get('news_sentiment', 'neutral'),
+                    'news_impact': prediction.get('news_impact', 'low'),
+                    'news_articles_count': prediction.get('news_articles_count', 0),
                 }
             )
 
