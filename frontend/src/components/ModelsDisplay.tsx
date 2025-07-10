@@ -16,19 +16,26 @@ interface Model {
 }
 
 interface ModelsDisplayProps {
+  modelsData: Model[];
+  setModelsData: (models: Model[]) => void;
   lastRefresh: Date;
+  setLastRefresh: (date: Date) => void;
 }
 
-const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
-  const [models, setModels] = useState<Model[]>([]);
+const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ 
+  modelsData, 
+  setModelsData, 
+  lastRefresh, 
+  setLastRefresh 
+}) => {
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock' | 'option'>('all');
 
   const fetchModels = async () => {
     setLoading(true);
     try {
-      // Fetch from backend API
-      const response = await fetch('http://localhost:8000/api/models/');
+      // Fetch real LLM models data
+      const response = await fetch('http://localhost:8000/api/models/real');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -38,7 +45,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
       const transformedModels: Model[] = data.map((model: any) => ({
         id: model.id,
         name: model.name,
-        category: model.category || 'stock', // Default to stock if not specified
+        category: model.category || 'stock', // Default to stock, but can expand to options, etc.
         performance: model.performance,
         accuracy: model.accuracy,
         trades: model.trades,
@@ -49,17 +56,30 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
         strategy: model.strategy
       }));
 
-      setModels(transformedModels);
+      setModelsData(transformedModels);
+      setLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching models:', error);
+      // Keep existing models data on error, don't clear it
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchModels();
-  }, [lastRefresh]);
+    // Only fetch if we don't have data or if it's been more than a day
+    const shouldFetch = modelsData.length === 0 || 
+      (Date.now() - lastRefresh.getTime()) > 24 * 60 * 60 * 1000;
+    
+    if (shouldFetch) {
+      fetchModels();
+    }
+
+    // Auto-refresh every day
+    const interval = setInterval(fetchModels, 24 * 60 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -89,14 +109,14 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ lastRefresh }) => {
   };
 
   const filteredModels = selectedCategory === 'all'
-    ? models
-    : models.filter(model => model.category === selectedCategory);
+    ? modelsData
+    : modelsData.filter(model => model.category === selectedCategory);
 
   const categoryStats = {
-    polymarket: models.filter(m => m.category === 'polymarket').length,
-    stock: models.filter(m => m.category === 'stock').length,
-    option: models.filter(m => m.category === 'option').length,
-    total: models.length
+    polymarket: modelsData.filter(m => m.category === 'polymarket').length,
+    stock: modelsData.filter(m => m.category === 'stock').length,
+    option: modelsData.filter(m => m.category === 'option').length,
+    total: modelsData.length
   };
 
   return (

@@ -2,7 +2,33 @@ import React, { useState, useEffect } from 'react';
 import ModelsDisplay from './ModelsDisplay';
 import SystemLog from './SystemLog';
 
-const Dashboard: React.FC = () => {
+interface Model {
+  id: string;
+  name: string;
+  category: 'polymarket' | 'stock' | 'option';
+  performance: number;
+  accuracy: number;
+  trades: number;
+  profit: number;
+  status: 'active' | 'inactive' | 'training';
+  market_type?: string;
+  ticker?: string;
+  strategy?: string;
+}
+
+interface DashboardProps {
+  modelsData: Model[];
+  setModelsData: (models: Model[]) => void;
+  modelsLastRefresh: Date;
+  setModelsLastRefresh: (date: Date) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ 
+  modelsData, 
+  setModelsData, 
+  modelsLastRefresh, 
+  setModelsLastRefresh 
+}) => {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -16,7 +42,12 @@ const Dashboard: React.FC = () => {
   return (
     <div className="dashboard">
       <div className="models-section">
-        <ModelsDisplay lastRefresh={lastRefresh} />
+        <ModelsDisplay 
+          modelsData={modelsData}
+          setModelsData={setModelsData}
+          lastRefresh={modelsLastRefresh}
+          setLastRefresh={setModelsLastRefresh}
+        />
       </div>
       <div className="system-log-section">
         <SystemLog lastRefresh={lastRefresh} />

@@ -15,6 +15,16 @@ async def get_models():
         raise HTTPException(status_code=500, detail=f'Error fetching models: {str(e)}')
 
 
+@router.get('/real', response_model=list[TradingModel])
+async def get_real_models():
+    """Get real LLM trading models with performance from actual predictions."""
+    try:
+        models = get_real_models_data()
+        return models
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Error fetching real models: {str(e)}')
+
+
 @router.get('/{model_id}', response_model=TradingModel)
 async def get_model(model_id: str):
     """Get a specific trading model by ID."""

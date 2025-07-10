@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 
-from trading_bench.data_fetchers.news_fetcher import fetch_news_data
-from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
-from trading_bench.evaluator import eval
-from trading_bench.model_wrapper import AIStockAnalysisModel
+from trading_bench.evaluators.stock_evaluator import eval
+from trading_bench.fetchers.news_fetcher import fetch_news_data
+from trading_bench.fetchers.stock_fetcher import fetch_price_data
+from trading_bench.model import AIStockAnalysisModel
 
 
 def fetch_news_for_ticker(

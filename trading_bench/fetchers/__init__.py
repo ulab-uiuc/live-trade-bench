@@ -6,8 +6,8 @@ This module contains specialized data fetchers for different data sources:
 - news_fetcher: News data from Google News
 """
 
-from trading_bench.data_fetchers.news_fetcher import fetch_news_data
-from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
+from trading_bench.fetchers.news_fetcher import fetch_news_data
+from trading_bench.fetchers.stock_fetcher import fetch_price_data
 
 __all__ = [
     'fetch_price_data',
