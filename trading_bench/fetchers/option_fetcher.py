@@ -193,6 +193,7 @@ def fetch_option_historical_data(
             end=end_date,
             interval='1d',
             progress=False,
+            auto_adjust=True,
         )
 
         if df.empty:

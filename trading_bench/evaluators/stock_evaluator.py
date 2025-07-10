@@ -33,9 +33,6 @@ def eval(actions: str | dict | list[dict]) -> float:
     total_benefits = 0.0
     positions = {}  # Track positions: ticker -> {quantity, avg_price, timestamps}
 
-    # Get latest date to fetch current prices
-    latest_date = datetime.now().strftime('%Y-%m-%d')
-
     for action in actions:
         ticker = action['ticker']
         action_type = action['action'].lower()
@@ -88,38 +85,28 @@ def eval(actions: str | dict | list[dict]) -> float:
                 print(f'Warning: Not enough shares to sell {quantity} of {ticker}')
 
     # Calculate unrealized gains/losses for remaining positions
+    latest_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
     for ticker, position in positions.items():
         if position['quantity'] > 0:
-            # Get latest price
             try:
-                latest_price_data = fetch_price_data(
+                # Fetch recent 7-day data
+                end_date = datetime.now()
+                start_date = end_date - timedelta(days=7)
+                recent_data = fetch_price_data(
                     ticker=ticker,
-                    start_date=latest_date,
-                    end_date=latest_date,
+                    start_date=start_date.strftime('%Y-%m-%d'),
+                    end_date=end_date.strftime('%Y-%m-%d'),
                     resolution='D',
                 )
 
-                if latest_price_data and latest_date in latest_price_data:
-                    latest_price = latest_price_data[latest_date]['close']
+                if recent_data:
+                    # Pick the latest available date
+                    recent_dates = sorted(recent_data.keys(), reverse=True)
+                    latest_date = recent_dates[0]
+                    latest_price = recent_data[latest_date]['close']
                 else:
-                    # Try to get most recent available price
-                    end_date = datetime.now()
-                    start_date = end_date - timedelta(days=7)  # Look back 7 days
-
-                    recent_data = fetch_price_data(
-                        ticker=ticker,
-                        start_date=start_date.strftime('%Y-%m-%d'),
-                        end_date=end_date.strftime('%Y-%m-%d'),
-                        resolution='D',
-                    )
-
-                    if recent_data:
-                        # Get the most recent price
-                        recent_dates = sorted(recent_data.keys(), reverse=True)
-                        latest_price = recent_data[recent_dates[0]]['close']
-                    else:
-                        print(f'Warning: Could not fetch latest price for {ticker}')
-                        continue
+                    print(f'Warning: Could not fetch recent price for {ticker}')
+                    continue
 
                 # Calculate unrealized profit/loss
                 avg_price = position['avg_price']
