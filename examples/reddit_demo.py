@@ -3,7 +3,7 @@
 Example script demonstrating how to use the Reddit data fetching functionality.
 """
 
-from trading_bench.data_fetchers.reddit_fetcher import (
+from trading_bench.fetchers.reddit_fetcher import (
     fetch_reddit_posts_by_ticker,
     fetch_reddit_sentiment_data,
     fetch_top_from_category,

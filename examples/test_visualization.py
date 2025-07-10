@@ -5,7 +5,7 @@ Demonstrate chart generation capabilities
 """
 
 from trading_bench.bench import SimBench
-from trading_bench.model_wrapper import RuleBasedModel
+from trading_bench.model import RuleBasedModel
 from trading_bench.utils import setup_logging
 
 

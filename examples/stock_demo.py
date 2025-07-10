@@ -12,8 +12,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
-from trading_bench.model_wrapper import AIStockAnalysisModel
+from trading_bench.fetchers.stock_fetcher import fetch_price_data
+from trading_bench.model import AIStockAnalysisModel
 
 
 def main():

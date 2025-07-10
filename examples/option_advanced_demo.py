@@ -5,7 +5,7 @@ Advanced example script demonstrating the new option data fetching functionality
 
 from datetime import datetime, timedelta
 
-from trading_bench.data_fetchers.option_fetcher import (
+from trading_bench.fetchers.option_fetcher import (
     calculate_implied_volatility,
     calculate_option_greeks,
     fetch_option_chain,

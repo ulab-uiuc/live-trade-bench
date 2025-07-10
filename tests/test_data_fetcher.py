@@ -4,12 +4,12 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from trading_bench.data_fetchers.news_fetcher import (
+from trading_bench.fetchers.news_fetcher import (
     fetch_news_data,
     is_rate_limited,
     make_request,
 )
-from trading_bench.data_fetchers.polymarket_fetcher import (
+from trading_bench.fetchers.polymarket_fetcher import (
     fetch_polymarket_market_details,
     fetch_polymarket_market_stats,
     fetch_polymarket_markets,
@@ -17,7 +17,7 @@ from trading_bench.data_fetchers.polymarket_fetcher import (
     fetch_polymarket_trending_markets,
     search_polymarket_markets,
 )
-from trading_bench.data_fetchers.stock_fetcher import (
+from trading_bench.fetchers.stock_fetcher import (
     _download_price_data,
     calculate_option_greeks,
     fetch_option_chain,
@@ -40,7 +40,7 @@ def test_is_rate_limited():
     assert is_rate_limited(mock_response) is False
 
 
-@patch('trading_bench.data_fetchers.news_fetcher.requests.get')
+@patch('trading_bench.fetchers.news_fetcher.requests.get')
 def test_make_request(mock_get):
     """Test request making with retry logic."""
     # Mock successful response
@@ -57,7 +57,7 @@ def test_make_request(mock_get):
     mock_get.assert_called_once_with(url, headers=headers)
 
 
-@patch('trading_bench.data_fetchers.news_fetcher.make_request')
+@patch('trading_bench.fetchers.news_fetcher.make_request')
 def test_fetch_news_data_basic(mock_make_request):
     """Test basic news data fetching functionality."""
     # Mock HTML response
@@ -93,7 +93,7 @@ def test_fetch_news_data_date_conversion():
     pass
 
 
-@patch('trading_bench.data_fetchers.news_fetcher.make_request')
+@patch('trading_bench.fetchers.news_fetcher.make_request')
 def test_fetch_news_data_no_results(mock_make_request):
     """Test news data fetching when no results are found."""
     # Mock empty response
@@ -107,7 +107,7 @@ def test_fetch_news_data_no_results(mock_make_request):
 
 
 # Price data fetching tests
-@patch('trading_bench.data_fetchers.stock_fetcher.yf.download')
+@patch('trading_bench.fetchers.stock_fetcher.yf.download')
 def test_download_price_data_success(mock_download):
     """Test successful price data download."""
     import pandas as pd
@@ -133,7 +133,7 @@ def test_download_price_data_success(mock_download):
     mock_download.assert_called_once()
 
 
-@patch('trading_bench.data_fetchers.stock_fetcher.yf.download')
+@patch('trading_bench.fetchers.stock_fetcher.yf.download')
 def test_download_price_data_empty_result(mock_download):
     """Test price data download with empty result."""
     import pandas as pd
@@ -145,7 +145,7 @@ def test_download_price_data_empty_result(mock_download):
         _download_price_data('INVALID', '2024-01-01', '2024-01-31', '1d')
 
 
-@patch('trading_bench.data_fetchers.stock_fetcher._download_price_data')
+@patch('trading_bench.fetchers.stock_fetcher._download_price_data')
 def test_fetch_price_data_success(mock_download):
     """Test successful price data fetching with retry logic."""
     import pandas as pd
@@ -174,7 +174,7 @@ def test_fetch_price_data_success(mock_download):
     assert result['2024-01-15']['close'] == 102.0
 
 
-@patch('trading_bench.data_fetchers.stock_fetcher._download_price_data')
+@patch('trading_bench.fetchers.stock_fetcher._download_price_data')
 def test_fetch_price_data_retry_on_failure(mock_download):
     """Test that price data fetching retries on failure."""
     # Mock download to fail twice, then succeed
@@ -202,7 +202,7 @@ def test_fetch_price_data_retry_on_failure(mock_download):
 
 
 # Option data fetching tests
-@patch('trading_bench.data_fetchers.stock_fetcher.yf.Ticker')
+@patch('trading_bench.fetchers.stock_fetcher.yf.Ticker')
 def test_fetch_option_expirations_success(mock_ticker):
     """Test successful option expirations fetching."""
     # Mock ticker object
@@ -216,7 +216,7 @@ def test_fetch_option_expirations_success(mock_ticker):
     mock_ticker.assert_called_once_with('AAPL')
 
 
-@patch('trading_bench.data_fetchers.stock_fetcher.yf.Ticker')
+@patch('trading_bench.fetchers.stock_fetcher.yf.Ticker')
 def test_fetch_option_expirations_no_options(mock_ticker):
     """Test option expirations fetching when no options available."""
     # Mock ticker object with no options
@@ -228,7 +228,7 @@ def test_fetch_option_expirations_no_options(mock_ticker):
         fetch_option_expirations('INVALID')
 
 
-@patch('trading_bench.data_fetchers.stock_fetcher.yf.Ticker')
+@patch('trading_bench.fetchers.stock_fetcher.yf.Ticker')
 def test_fetch_option_chain_success(mock_ticker):
     """Test successful option chain fetching."""
     import pandas as pd
@@ -272,7 +272,7 @@ def test_fetch_option_chain_success(mock_ticker):
     assert result['available_expirations'] == ['2024-01-19', '2024-02-16']
 
 
-@patch('trading_bench.data_fetchers.stock_fetcher.yf.Ticker')
+@patch('trading_bench.fetchers.stock_fetcher.yf.Ticker')
 def test_fetch_option_data_with_filters(mock_ticker):
     """Test option data fetching with strike filters."""
     import pandas as pd
@@ -316,7 +316,7 @@ def test_fetch_option_data_with_filters(mock_ticker):
     assert len(result['puts']) == 0  # Only calls requested
 
 
-@patch('trading_bench.data_fetchers.stock_fetcher.yf.download')
+@patch('trading_bench.fetchers.stock_fetcher.yf.download')
 def test_fetch_option_historical_data_success(mock_download):
     """Test successful historical option data fetching."""
     import pandas as pd
@@ -390,7 +390,7 @@ def test_calculate_option_greeks():
 
 
 # Polymarket data fetching tests
-@patch('trading_bench.data_fetchers.polymarket_fetcher.requests.get')
+@patch('trading_bench.fetchers.polymarket_fetcher.requests.get')
 def test_fetch_polymarket_markets_success(mock_get):
     """Test successful Polymarket markets fetching."""
     # Mock response
@@ -428,7 +428,7 @@ def test_fetch_polymarket_markets_success(mock_get):
     mock_get.assert_called_once()
 
 
-@patch('trading_bench.data_fetchers.polymarket_fetcher.requests.get')
+@patch('trading_bench.fetchers.polymarket_fetcher.requests.get')
 def test_fetch_polymarket_market_details_success(mock_get):
     """Test successful Polymarket market details fetching."""
     # Mock response
@@ -473,7 +473,7 @@ def test_fetch_polymarket_market_details_success(mock_get):
     assert result['outcomes'][0]['currentPrice'] == 0.6
 
 
-@patch('trading_bench.data_fetchers.polymarket_fetcher.requests.get')
+@patch('trading_bench.fetchers.polymarket_fetcher.requests.get')
 def test_fetch_polymarket_trades_success(mock_get):
     """Test successful Polymarket trades fetching."""
     # Mock response
@@ -511,8 +511,8 @@ def test_fetch_polymarket_trades_success(mock_get):
     assert result[1]['side'] == 'sell'
 
 
-@patch('trading_bench.data_fetchers.polymarket_fetcher.fetch_polymarket_market_details')
-@patch('trading_bench.data_fetchers.polymarket_fetcher.fetch_polymarket_trades')
+@patch('trading_bench.fetchers.polymarket_fetcher.fetch_polymarket_market_details')
+@patch('trading_bench.fetchers.polymarket_fetcher.fetch_polymarket_trades')
 def test_fetch_polymarket_market_stats_success(mock_trades, mock_details):
     """Test successful Polymarket market stats fetching."""
     # Mock market details
@@ -561,7 +561,7 @@ def test_search_polymarket_markets():
     ]
 
     with patch(
-        'trading_bench.data_fetchers.polymarket_fetcher.fetch_polymarket_markets',
+        'trading_bench.fetchers.polymarket_fetcher.fetch_polymarket_markets',
         return_value=mock_markets,
     ):
         # Test search for election
@@ -585,7 +585,7 @@ def test_fetch_polymarket_trending_markets():
     ]
 
     with patch(
-        'trading_bench.data_fetchers.polymarket_fetcher.fetch_polymarket_markets',
+        'trading_bench.fetchers.polymarket_fetcher.fetch_polymarket_markets',
         return_value=mock_markets,
     ):
         result = fetch_polymarket_trending_markets(limit=2)

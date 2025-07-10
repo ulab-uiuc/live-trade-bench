@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timedelta
 
-from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
+from trading_bench.fetchers.stock_fetcher import fetch_price_data
 
 
 def eval(actions: str | dict | list[dict]) -> float:
