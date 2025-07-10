@@ -21,11 +21,8 @@ def main():
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from trading_bench.evaluators.polymarket_evaluator import (
-    PolymarketEvaluator,
-    analyze_market_efficiency,
-    calculate_kelly_criterion,
-    eval_polymarket,
-)
+    PolymarketEvaluator, analyze_market_efficiency, calculate_kelly_criterion,
+    eval_polymarket)
 
 
 def demonstrate_basic_evaluation():
