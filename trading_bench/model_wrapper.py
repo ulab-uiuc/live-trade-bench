@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import json
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 import openai
 from datetime import datetime
 
@@ -9,6 +9,11 @@ class BaseModel(ABC):
     @abstractmethod
     def should_buy(self, price_history: list[float]) -> bool:
         """Given recent price history, return True if the model signals a buy action."""
+        pass
+    
+    @abstractmethod
+    def act(self, ticker: str, price_history: list[float], date: str, quantity: int = 1) -> List[Dict]:
+        """Return list of actions in the format expected by evaluator."""
         pass
 
 
@@ -20,19 +25,38 @@ class RuleBasedModel(BaseModel):
             return False
         avg_price = sum(price_history) / len(price_history)
         return price_history[-1] < avg_price
+    
+    def act(self, ticker: str, price_history: list[float], date: str, quantity: int = 1) -> List[Dict]:
+        """Return actions based on rule-based logic."""
+        actions = []
+        
+        if self.should_buy(price_history):
+            actions.append({
+                "ticker": ticker,
+                "action": "buy",
+                "timestamp": date,
+                "quantity": quantity,
+                "price": price_history[-1] if price_history else None
+            })
+        
+        return actions
 
 
 class AIStockAnalysisModel(BaseModel):
     """AI-powered stock analysis model that uses LLM for trend prediction."""
     
-    def __init__(self, api_key: str, model_name: str = "gpt-4"):
+    def __init__(self, api_key: str = None, model_name: str = "gpt-4"):
         """
         Initialize AI model with API credentials.
         
         Args:
-            api_key: OpenAI API key
+            api_key: OpenAI API key (if None, will try to get from environment)
             model_name: LLM model to use for predictions
         """
+        if api_key is None:
+            import os
+            api_key = os.getenv("OPENAI_API_KEY")
+        
         self.client = openai.OpenAI(api_key=api_key)
         self.model_name = model_name
         
@@ -100,12 +124,16 @@ class AIStockAnalysisModel(BaseModel):
                         - prediction: "BULLISH", "BEARISH", or "NEUTRAL"
                         - confidence: float between 0.0 and 1.0
                         - reasoning: brief explanation of your analysis
+                        - action: "buy", "sell", or "hold"
+                        - quantity: recommended quantity (1-10)
                         
                         Example response:
                         {
                             "prediction": "BULLISH",
                             "confidence": 0.75,
-                            "reasoning": "Price is above 20-day MA with strong momentum"
+                            "reasoning": "Price is above 20-day MA with strong momentum",
+                            "action": "buy",
+                            "quantity": 5
                         }"""
                     },
                     {
@@ -124,7 +152,9 @@ class AIStockAnalysisModel(BaseModel):
             return {
                 "prediction": "NEUTRAL",
                 "confidence": 0.0,
-                "reasoning": f"API Error: {str(e)}"
+                "reasoning": f"API Error: {str(e)}",
+                "action": "hold",
+                "quantity": 0
             }
     
     def should_buy(self, price_history: list[float]) -> bool:
@@ -138,7 +168,7 @@ class AIStockAnalysisModel(BaseModel):
             bool: True if AI predicts bullish trend, False otherwise
         """
         prediction = self.get_trend_prediction(price_history)
-        return prediction.get("prediction") == "BULLISH"
+        return prediction.get("action") == "buy"
     
     def get_trend_prediction(self, price_history: list[float]) -> Dict[str, Any]:
         """
@@ -154,7 +184,9 @@ class AIStockAnalysisModel(BaseModel):
             return {
                 "prediction": "NEUTRAL",
                 "confidence": 0.0,
-                "reasoning": "No price data available"
+                "reasoning": "No price data available",
+                "action": "hold",
+                "quantity": 0
             }
             
         # Format data and call LLM
@@ -167,3 +199,36 @@ class AIStockAnalysisModel(BaseModel):
         result["latest_price"] = price_history[-1]
         
         return result
+    
+    def act(self, ticker: str, price_history: list[float], date: str, quantity: int = None) -> List[Dict]:
+        """
+        Get actions directly from AI model in evaluator format.
+        
+        Args:
+            ticker: Stock ticker symbol
+            price_history: List of recent stock prices
+            date: Date for the action
+            quantity: Override quantity (if None, uses AI recommendation)
+            
+        Returns:
+            List of actions in evaluator format
+        """
+        prediction = self.get_trend_prediction(price_history)
+        actions = []
+        
+        action_type = prediction.get("action", "hold")
+        ai_quantity = prediction.get("quantity", 1)
+        final_quantity = quantity if quantity is not None else ai_quantity
+        
+        if action_type in ["buy", "sell"] and final_quantity > 0:
+            actions.append({
+                "ticker": ticker,
+                "action": action_type,
+                "timestamp": date,
+                "quantity": final_quantity,
+                "price": price_history[-1] if price_history else None,
+                "confidence": prediction.get("confidence", 0.0),
+                "reasoning": prediction.get("reasoning", "AI recommendation")
+            })
+        
+        return actions
