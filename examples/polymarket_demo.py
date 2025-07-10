@@ -4,14 +4,10 @@ Example script demonstrating how to use the Polymarket data fetching functionali
 """
 
 from trading_bench.data_fetchers.polymarket_fetcher import (
-    fetch_polymarket_market_details,
-    fetch_polymarket_market_stats,
-    fetch_polymarket_markets,
-    fetch_polymarket_orderbook,
-    fetch_polymarket_trades,
-    fetch_polymarket_trending_markets,
-    search_polymarket_markets,
-)
+    fetch_polymarket_market_details, fetch_polymarket_market_stats,
+    fetch_polymarket_markets, fetch_polymarket_orderbook,
+    fetch_polymarket_trades, fetch_polymarket_trending_markets,
+    search_polymarket_markets)
 
 
 def main():

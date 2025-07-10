@@ -6,14 +6,9 @@ Advanced example script demonstrating the new option data fetching functionality
 from datetime import datetime, timedelta
 
 from trading_bench.data_fetchers.option_fetcher import (
-    calculate_implied_volatility,
-    calculate_option_greeks,
-    fetch_option_chain,
-    fetch_option_expirations,
-    fetch_option_historical_data,
-    get_atm_options,
-    get_option_chain_summary,
-)
+    calculate_implied_volatility, calculate_option_greeks, fetch_option_chain,
+    fetch_option_expirations, fetch_option_historical_data, get_atm_options,
+    get_option_chain_summary)
 
 
 def main():
