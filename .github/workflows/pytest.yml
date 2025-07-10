@@ -19,19 +19,19 @@ jobs:
         python-version: ["3.10"]
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        curl -sSL https://install.python-poetry.org | python3
-        poetry install --all-extras
-        poetry run python -m spacy download en_core_web_sm
-    - name: Test with pytest
-      env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        TOGETHERAI_API_KEY: ${{ secrets.TOGETHERAI_API_KEY }}
-      run: |
-        poetry run pytest
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          curl -sSL https://install.python-poetry.org | python3
+          poetry install --all-extras
+          poetry run python -m spacy download en_core_web_sm
+      - name: Test with pytest
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TOGETHERAI_API_KEY: ${{ secrets.TOGETHERAI_API_KEY }}
+        run: |
+          poetry run pytest
