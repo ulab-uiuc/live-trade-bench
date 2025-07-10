@@ -3,6 +3,7 @@ import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
+from collections import deque
 
 # Add the project root to the path
 project_root = Path(__file__).parent.parent
@@ -12,6 +13,7 @@ from trading_bench.bench import SimBench
 from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
 from trading_bench.evaluator import ReturnEvaluator
 from trading_bench.model_wrapper import AIStockAnalysisModel, RuleBasedModel
+from trading_bench.signal import Signal
 from trading_bench.utils import setup_logging
 
 
@@ -67,6 +69,7 @@ def ai_stock_evaluation_demo():
     AI Stock Evaluation Demo:
     1. Use yesterday's data to make AI prediction
     2. Use today's data to evaluate if prediction was correct
+    3. Use evaluator for trade analysis
     """
     print("\n" + "=" * 60)
     print("AI Stock Evaluation Demo")
@@ -84,20 +87,18 @@ def ai_stock_evaluation_demo():
     
     # Configuration
     ticker = "NVDA"
-    # Use dates that avoid weekends and holidays (July 4th is Independence Day)
-    yesterday = datetime(2025, 7, 2)  # Analysis date (Wednesday)
-    today = datetime(2025, 7, 3)      # Evaluation date (Thursday)
+    yesterday = datetime(2025, 7, 2)
+    today = datetime(2025, 7, 3)
     
     print(f"\nTicker: {ticker}")
-    print(f"Analysis Date (Yesterday): {yesterday.strftime('%Y-%m-%d')}")
-    print(f"Evaluation Date (Today): {today.strftime('%Y-%m-%d')}")
+    print(f"Analysis Date: {yesterday.strftime('%Y-%m-%d')}")
+    print(f"Evaluation Date: {today.strftime('%Y-%m-%d')}")
     print("-" * 50)
     
     try:
-        # Step 1: Get yesterday's data for prediction
-        print("1. Fetching historical data for yesterday's analysis...")
+        # Step 1: Get historical data
+        print("1. Fetching historical data...")
         
-        # Get data up to yesterday for prediction
         historical_data = fetch_price_data(
             ticker=ticker,
             start_date=(yesterday - timedelta(days=30)).strftime('%Y-%m-%d'),
@@ -109,16 +110,15 @@ def ai_stock_evaluation_demo():
             print("❌ No historical data available")
             return
         
-        # Convert to price list for model
         dates = sorted(historical_data.keys())
         prices = [historical_data[date]["close"] for date in dates]
         yesterday_price = prices[-1]
         
-        print(f"✓ Fetched {len(prices)} days of historical data")
-        print(f"✓ Yesterday's closing price: ${yesterday_price:.2f}")
+        print(f"✓ Fetched {len(prices)} days of data")
+        print(f"✓ Yesterday's price: ${yesterday_price:.2f}")
         
-        # Step 2: Make prediction using yesterday's data
-        print("\n2. Making AI prediction based on yesterday's data...")
+        # Step 2: Make prediction
+        print("\n2. Making prediction...")
         
         if isinstance(model, AIStockAnalysisModel):
             prediction_result = model.get_trend_prediction(prices)
@@ -126,21 +126,20 @@ def ai_stock_evaluation_demo():
             
             print(f"🤖 AI Prediction: {prediction_result['prediction']}")
             print(f"🤖 Confidence: {prediction_result['confidence']:.2f}")
-            print(f"🤖 Reasoning: {prediction_result['reasoning']}")
             print(f"📊 Buy Signal: {'YES' if should_buy else 'NO'}")
             
         else:
             should_buy = model.should_buy(prices)
             print(f"📊 Rule-based Buy Signal: {'YES' if should_buy else 'NO'}")
         
-        # Step 3: Get today's data for evaluation
-        print("\n3. Fetching today's data for evaluation...")
-        day_after = today + timedelta(days=1)
+        # Step 3: Get today's data
+        print("\n3. Fetching today's data...")
+        
         try:
             today_data = fetch_price_data(
                 ticker=ticker,
                 start_date=today.strftime('%Y-%m-%d'),
-                end_date=day_after.strftime('%Y-%m-%d'),
+                end_date=(today + timedelta(days=1)).strftime('%Y-%m-%d'),
                 resolution='D'
             )
             
@@ -149,94 +148,57 @@ def ai_stock_evaluation_demo():
                 today_price = today_data[today_dates[0]]["close"]
                 print(f"✓ Today's price: ${today_price:.2f}")
             else:
-                # If today's data not available, use yesterday as "today"
-                print("ℹ️  Today's data not available yet, using yesterday as evaluation")
+                print("ℹ️  Using yesterday's data for evaluation")
                 today_price = yesterday_price
                 yesterday_price = prices[-2] if len(prices) > 1 else yesterday_price
                 
         except Exception as e:
-            print(f"ℹ️  Using yesterday's data for evaluation: {e}")
+            print(f"ℹ️  Using yesterday's data: {e}")
             today_price = yesterday_price
             yesterday_price = prices[-2] if len(prices) > 1 else yesterday_price
         
-        # Step 4: Evaluate prediction accuracy
-        print("\n4. Evaluating prediction accuracy...")
+        # Step 4: Use evaluator
+        print("\n4. Using evaluator for trade analysis...")
         
-        price_change = today_price - yesterday_price
-        price_change_percent = (price_change / yesterday_price) * 100 if yesterday_price > 0 else 0
+        # Create signal
+        signal = Signal(
+            entry_time=yesterday,
+            entry_price=yesterday_price,
+            eval_time=today,
+            ticker=ticker
+        )
         
-        print(f"📈 Price Change: ${price_change:.2f} ({price_change_percent:.2f}%)")
+        # Create price history
+        price_history = deque()
+        for date_str, data in historical_data.items():
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+            price_history.append((date_obj, data["close"]))
         
-        # Determine actual movement
-        if price_change_percent > 1.0:
-            actual_movement = "BULLISH"
-            stock_went_up = True
-        elif price_change_percent < -1.0:
-            actual_movement = "BEARISH"
-            stock_went_up = False
-        else:
-            actual_movement = "NEUTRAL"
-            stock_went_up = abs(price_change_percent) < 1.0
+        if today_price != yesterday_price:
+            price_history.append((today, today_price))
         
-        print(f"📊 Actual Movement: {actual_movement}")
-        
-        # Calculate accuracy
-        if isinstance(model, AIStockAnalysisModel):
-            predicted_movement = prediction_result['prediction']
-            prediction_correct = (
-                (predicted_movement == "BULLISH" and stock_went_up) or
-                (predicted_movement == "BEARISH" and not stock_went_up) or
-                (predicted_movement == "NEUTRAL" and abs(price_change_percent) < 1.0)
-            )
-        else:
-            # For rule-based model, check if buy signal was correct
-            prediction_correct = (should_buy and stock_went_up) or (not should_buy and not stock_went_up)
-        
-        # Step 5: Use evaluator for additional metrics
-        print("\n5. Using trading bench evaluator...")
-        
+        # Use evaluator
         evaluator = ReturnEvaluator()
+        trade_record = evaluator.evaluate(signal, price_history)
         
-        # Calculate return if we followed the prediction
-        if should_buy and price_change > 0:
-            trade_return = price_change_percent / 100
-            trade_outcome = "✅ PROFIT"
-        elif should_buy and price_change < 0:
-            trade_return = price_change_percent / 100  # Negative
-            trade_outcome = "❌ LOSS"
-        elif not should_buy and price_change > 0:
-            trade_return = 0  # Missed opportunity
-            trade_outcome = "😐 MISSED OPPORTUNITY"
-        else:
-            trade_return = 0  # Correctly avoided loss
-            trade_outcome = "✅ CORRECTLY AVOIDED"
+        print(f"📊 Evaluator Results:")
+        print(f"   Return: {trade_record.return_pct:.4f} ({trade_record.return_pct*100:.2f}%)")
+        print(f"   Duration: {trade_record.trade_duration} days")
+        print(f"   High: ${trade_record.high_during_trade:.2f}")
+        print(f"   Low: ${trade_record.low_during_trade:.2f}")
         
-        print(f"💰 Trade Outcome: {trade_outcome}")
-        print(f"💱 Potential Return: {trade_return:.4f} ({trade_return*100:.2f}%)")
-        
-        # Step 6: Final Results
+        # Step 5: Final results
         print("\n" + "=" * 60)
         print("EVALUATION RESULTS")
         print("=" * 60)
         print(f"Ticker: {ticker}")
-        print(f"Yesterday's Price: ${yesterday_price:.2f}")
-        print(f"Today's Price: ${today_price:.2f}")
-        print(f"Price Change: {price_change_percent:.2f}%")
-        print(f"Prediction Correct: {'YES' if prediction_correct else 'NO'}")
-        print(f"Trade Outcome: {trade_outcome}")
-        
-        # Overall result
-        if prediction_correct and trade_return > 0:
-            result = "🟢 EXCELLENT"
-        elif prediction_correct:
-            result = "🟡 GOOD"
-        else:
-            result = "🔴 NEEDS IMPROVEMENT"
-            
-        print(f"Overall Score: {result}")
+        print(f"Yesterday: ${yesterday_price:.2f}")
+        print(f"Today: ${today_price:.2f}")
+        print(f"Price Change: {((today_price - yesterday_price) / yesterday_price * 100):.2f}%")
+        print(f"Evaluator Return: {trade_record.return_pct*100:.2f}%")
         
     except Exception as e:
-        print(f"❌ Error in evaluation: {e}")
+        print(f"❌ Error: {e}")
 
 
 if __name__ == '__main__':
