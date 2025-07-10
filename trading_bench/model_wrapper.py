@@ -7,7 +7,7 @@ import openai
 
 class BaseModel:
     """Base model for trading analysis."""
-    
+
     def act(
         self,
         ticker: str,
@@ -17,7 +17,7 @@ class BaseModel:
         news_data: list[dict] = None,
     ) -> list[dict]:
         """Return list of actions in the format expected by evaluator."""
-        raise NotImplementedError("Subclasses must implement act method")
+        raise NotImplementedError('Subclasses must implement act method')
 
 
 class AIStockAnalysisModel(BaseModel):
@@ -72,17 +72,17 @@ class AIStockAnalysisModel(BaseModel):
 
         prompt = f"""
         Stock Analysis Data:
-        
+
         Current Price: ${latest_price:.2f}
         Price Change: ${price_change:.2f} ({price_change_pct:.2f}%)
-        
+
         Moving Averages:
         - 5-day MA: ${ma_5:.2f}
         - 10-day MA: ${ma_10:.2f}
         - 20-day MA: ${ma_20:.2f}
-        
+
         Volatility: {volatility:.2f}
-        
+
         Recent Price History (last 10 days):
         {price_history[-10:]}
         """
@@ -90,7 +90,7 @@ class AIStockAnalysisModel(BaseModel):
         # Add news data if available
         if news_data and len(news_data) > 0:
             prompt += f"""
-        
+
         Recent News Headlines ({len(news_data)} articles):
         """
             for i, article in enumerate(news_data, 1):
@@ -101,12 +101,12 @@ class AIStockAnalysisModel(BaseModel):
         """
         else:
             prompt += """
-        
+
         Recent News: No recent news data provided
         """
 
         prompt += """
-        
+
         Based on this technical analysis AND news sentiment, predict the next day's trend.
         Consider how the news might impact stock price movement.
         """
@@ -121,15 +121,15 @@ class AIStockAnalysisModel(BaseModel):
                 messages=[
                     {
                         'role': 'system',
-                        'content': """You are a stock market technical analyst with expertise in both technical analysis and news sentiment analysis. 
-                        
+                        'content': """You are a stock market technical analyst with expertise in both technical analysis and news sentiment analysis.
+
                         Analyze the provided stock data AND news headlines to predict the next day's trend.
-                        
+
                         Consider:
                         1. Technical indicators (price, moving averages, volatility)
                         2. News sentiment (positive, negative, neutral)
                         3. News impact on stock price (high, medium, low)
-                        
+
                         Respond with a JSON object containing:
                         - prediction: "BULLISH", "BEARISH", or "NEUTRAL"
                         - confidence: float between 0.0 and 1.0
@@ -138,7 +138,7 @@ class AIStockAnalysisModel(BaseModel):
                         - quantity: recommended quantity (1-10)
                         - news_sentiment: "positive", "negative", or "neutral"
                         - news_impact: "high", "medium", or "low"
-                        
+
                         Example response:
                         {
                             "prediction": "BULLISH",
@@ -194,7 +194,7 @@ class AIStockAnalysisModel(BaseModel):
         # Format data and call LLM
         prompt = self._format_stock_data(price_history, news_data)
         prediction = self._call_llm_api(prompt)
-        
+
         # Add metadata
         prediction['timestamp'] = datetime.now().isoformat()
         prediction['data_points'] = len(price_history)

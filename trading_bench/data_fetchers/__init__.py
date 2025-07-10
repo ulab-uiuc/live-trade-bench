@@ -2,7 +2,7 @@
 Data fetchers module for trading bench.
 
 This module contains specialized data fetchers for different data sources:
-- stock_fetcher: Stock price data from Yahoo Finance  
+- stock_fetcher: Stock price data from Yahoo Finance
 - news_fetcher: News data from Google News
 """
 
