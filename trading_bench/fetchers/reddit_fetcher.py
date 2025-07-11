@@ -15,44 +15,44 @@ from trading_bench.fetchers.base_fetcher import BaseFetcher
 
 # Company name mapping for ticker symbols
 TICKER_TO_COMPANY = {
-    'AAPL': 'Apple',
-    'MSFT': 'Microsoft',
-    'GOOGL': 'Google',
-    'AMZN': 'Amazon',
-    'TSLA': 'Tesla',
-    'NVDA': 'Nvidia',
-    'TSM': 'Taiwan Semiconductor Manufacturing Company OR TSMC',
-    'JPM': 'JPMorgan Chase OR JP Morgan',
-    'JNJ': 'Johnson & Johnson OR JNJ',
-    'V': 'Visa',
-    'WMT': 'Walmart',
-    'META': 'Meta OR Facebook',
-    'AMD': 'AMD',
-    'INTC': 'Intel',
-    'QCOM': 'Qualcomm',
-    'BABA': 'Alibaba',
-    'ADBE': 'Adobe',
-    'NFLX': 'Netflix',
-    'CRM': 'Salesforce',
-    'PYPL': 'PayPal',
-    'PLTR': 'Palantir',
-    'MU': 'Micron',
-    'SQ': 'Block OR Square',
-    'ZM': 'Zoom',
-    'CSCO': 'Cisco',
-    'SHOP': 'Shopify',
-    'ORCL': 'Oracle',
-    'X': 'Twitter OR X',
-    'SPOT': 'Spotify',
-    'AVGO': 'Broadcom',
-    'ASML': 'ASML ',
-    'TWLO': 'Twilio',
-    'SNAP': 'Snap Inc.',
-    'TEAM': 'Atlassian',
-    'SQSP': 'Squarespace',
-    'UBER': 'Uber',
-    'ROKU': 'Roku',
-    'PINS': 'Pinterest',
+    "AAPL": "Apple",
+    "MSFT": "Microsoft",
+    "GOOGL": "Google",
+    "AMZN": "Amazon",
+    "TSLA": "Tesla",
+    "NVDA": "Nvidia",
+    "TSM": "Taiwan Semiconductor Manufacturing Company OR TSMC",
+    "JPM": "JPMorgan Chase OR JP Morgan",
+    "JNJ": "Johnson & Johnson OR JNJ",
+    "V": "Visa",
+    "WMT": "Walmart",
+    "META": "Meta OR Facebook",
+    "AMD": "AMD",
+    "INTC": "Intel",
+    "QCOM": "Qualcomm",
+    "BABA": "Alibaba",
+    "ADBE": "Adobe",
+    "NFLX": "Netflix",
+    "CRM": "Salesforce",
+    "PYPL": "PayPal",
+    "PLTR": "Palantir",
+    "MU": "Micron",
+    "SQ": "Block OR Square",
+    "ZM": "Zoom",
+    "CSCO": "Cisco",
+    "SHOP": "Shopify",
+    "ORCL": "Oracle",
+    "X": "Twitter OR X",
+    "SPOT": "Spotify",
+    "AVGO": "Broadcom",
+    "ASML": "ASML ",
+    "TWLO": "Twilio",
+    "SNAP": "Snap Inc.",
+    "TEAM": "Atlassian",
+    "SQSP": "Squarespace",
+    "UBER": "Uber",
+    "ROKU": "Roku",
+    "PINS": "Pinterest",
 }
 
 
@@ -66,11 +66,11 @@ class RedditFetcher(BaseFetcher):
     def fetch_top_from_category(
         self,
         category: Annotated[
-            str, 'Category to fetch top post from. Collection of subreddits.'
+            str, "Category to fetch top post from. Collection of subreddits."
         ],
-        date: Annotated[str, 'Date to fetch top posts from.'],
-        max_limit: Annotated[int, 'Maximum number of posts to fetch.'],
-        query: Annotated[str, 'Optional query to search for in the subreddit.'] = None,
+        date: Annotated[str, "Date to fetch top posts from."],
+        max_limit: Annotated[int, "Maximum number of posts to fetch."],
+        query: Annotated[str, "Optional query to search for in the subreddit."] = None,
     ) -> list[dict]:
         """
         Fetches top Reddit posts from a specific category and date.
@@ -88,7 +88,7 @@ class RedditFetcher(BaseFetcher):
             ValueError: If max_limit is less than the number of files in the category.
             FileNotFoundError: If the data path or category directory doesn't exist.
         """
-        base_path = 'reddit_data'
+        base_path = "reddit_data"
 
         # Validate data path exists
         if not os.path.exists(base_path):
@@ -101,15 +101,15 @@ class RedditFetcher(BaseFetcher):
         all_content = []
 
         # Get list of JSONL files in the category
-        jsonl_files = [f for f in os.listdir(category_path) if f.endswith('.jsonl')]
+        jsonl_files = [f for f in os.listdir(category_path) if f.endswith(".jsonl")]
 
         if not jsonl_files:
             raise ValueError(f"No JSONL files found in category '{category}'")
 
         if max_limit < len(jsonl_files):
             raise ValueError(
-                'REDDIT FETCHING ERROR: max limit is less than the number of files in the category. '
-                'Will not be able to fetch any posts'
+                "REDDIT FETCHING ERROR: max limit is less than the number of files in the category. "
+                "Will not be able to fetch any posts"
             )
 
         limit_per_subreddit = max_limit // len(jsonl_files)
@@ -120,7 +120,7 @@ class RedditFetcher(BaseFetcher):
             file_path = os.path.join(category_path, data_file)
 
             try:
-                with open(file_path, 'rb') as f:
+                with open(file_path, "rb") as f:
                     for line in f:
                         # Skip empty lines
                         if not line.strip():
@@ -133,19 +133,19 @@ class RedditFetcher(BaseFetcher):
 
                         # Select only lines that are from the date
                         post_date = datetime.utcfromtimestamp(
-                            parsed_line['created_utc']
-                        ).strftime('%Y-%m-%d')
+                            parsed_line["created_utc"]
+                        ).strftime("%Y-%m-%d")
 
                         if post_date != date:
                             continue
 
                         # If is company_news, check that the title or the content has the company's name (query) mentioned
-                        if 'company' in category and query:
+                        if "company" in category and query:
                             search_terms = []
                             if query in TICKER_TO_COMPANY:
-                                if 'OR' in TICKER_TO_COMPANY[query]:
+                                if "OR" in TICKER_TO_COMPANY[query]:
                                     search_terms = TICKER_TO_COMPANY[query].split(
-                                        ' OR '
+                                        " OR "
                                     )
                                 else:
                                     search_terms = [TICKER_TO_COMPANY[query]]
@@ -155,9 +155,9 @@ class RedditFetcher(BaseFetcher):
                             found = False
                             for term in search_terms:
                                 if re.search(
-                                    term, parsed_line['title'], re.IGNORECASE
+                                    term, parsed_line["title"], re.IGNORECASE
                                 ) or re.search(
-                                    term, parsed_line['selftext'], re.IGNORECASE
+                                    term, parsed_line["selftext"], re.IGNORECASE
                                 ):
                                     found = True
                                     break
@@ -166,26 +166,26 @@ class RedditFetcher(BaseFetcher):
                                 continue
 
                         post = {
-                            'title': parsed_line['title'],
-                            'content': parsed_line['selftext'],
-                            'url': parsed_line['url'],
-                            'upvotes': parsed_line['ups'],
-                            'posted_date': post_date,
-                            'subreddit': data_file.replace('.jsonl', ''),
-                            'score': parsed_line.get('score', 0),
-                            'num_comments': parsed_line.get('num_comments', 0),
-                            'author': parsed_line.get('author', ''),
-                            'created_utc': parsed_line['created_utc'],
+                            "title": parsed_line["title"],
+                            "content": parsed_line["selftext"],
+                            "url": parsed_line["url"],
+                            "upvotes": parsed_line["ups"],
+                            "posted_date": post_date,
+                            "subreddit": data_file.replace(".jsonl", ""),
+                            "score": parsed_line.get("score", 0),
+                            "num_comments": parsed_line.get("num_comments", 0),
+                            "author": parsed_line.get("author", ""),
+                            "created_utc": parsed_line["created_utc"],
                         }
 
                         all_content_curr_subreddit.append(post)
 
             except Exception as e:
-                print(f'Error reading file {data_file}: {e}')
+                print(f"Error reading file {data_file}: {e}")
                 continue
 
             # Sort by upvotes in descending order
-            all_content_curr_subreddit.sort(key=lambda x: x['upvotes'], reverse=True)
+            all_content_curr_subreddit.sort(key=lambda x: x["upvotes"], reverse=True)
 
             all_content.extend(all_content_curr_subreddit[:limit_per_subreddit])
 
@@ -206,7 +206,7 @@ class RedditFetcher(BaseFetcher):
             List of dictionaries containing post data.
         """
         return self.fetch_top_from_category(
-            category='company_news', date=date, max_limit=max_limit, query=ticker
+            category="company_news", date=date, max_limit=max_limit, query=ticker
         )
 
     def fetch_sentiment_data(
@@ -229,8 +229,8 @@ class RedditFetcher(BaseFetcher):
 
         # Add sentiment analysis fields
         for post in posts:
-            post['text_for_sentiment'] = f"{post['title']} {post['content']}"
-            post['engagement_score'] = post['upvotes'] + (post['num_comments'] * 2)
+            post["text_for_sentiment"] = f"{post['title']} {post['content']}"
+            post["engagement_score"] = post["upvotes"] + (post["num_comments"] * 2)
 
         return posts
 
@@ -241,7 +241,7 @@ class RedditFetcher(BaseFetcher):
         Returns:
             List of available category names.
         """
-        data_path = 'reddit_data'
+        data_path = "reddit_data"
         if not os.path.exists(data_path):
             return []
 
@@ -261,7 +261,7 @@ class RedditFetcher(BaseFetcher):
         Returns:
             List of available dates in YYYY-MM-DD format.
         """
-        data_path = 'reddit_data'
+        data_path = "reddit_data"
         category_path = os.path.join(data_path, category)
         if not os.path.exists(category_path):
             return []
@@ -269,13 +269,13 @@ class RedditFetcher(BaseFetcher):
         dates = set()
 
         for data_file in os.listdir(category_path):
-            if not data_file.endswith('.jsonl'):
+            if not data_file.endswith(".jsonl"):
                 continue
 
             file_path = os.path.join(category_path, data_file)
 
             try:
-                with open(file_path, 'rb') as f:
+                with open(file_path, "rb") as f:
                     for line in f:
                         if not line.strip():
                             continue
@@ -283,8 +283,8 @@ class RedditFetcher(BaseFetcher):
                         try:
                             parsed_line = json.loads(line)
                             post_date = datetime.utcfromtimestamp(
-                                parsed_line['created_utc']
-                            ).strftime('%Y-%m-%d')
+                                parsed_line["created_utc"]
+                            ).strftime("%Y-%m-%d")
                             dates.add(post_date)
                         except (json.JSONDecodeError, KeyError):
                             continue
@@ -313,34 +313,34 @@ class RedditFetcher(BaseFetcher):
 
         if not posts:
             return {
-                'total_posts': 0,
-                'total_upvotes': 0,
-                'total_comments': 0,
-                'avg_upvotes': 0,
-                'avg_comments': 0,
-                'top_post': None,
-                'subreddits': [],
+                "total_posts": 0,
+                "total_upvotes": 0,
+                "total_comments": 0,
+                "avg_upvotes": 0,
+                "avg_comments": 0,
+                "top_post": None,
+                "subreddits": [],
             }
 
-        total_upvotes = sum(post['upvotes'] for post in posts)
-        total_comments = sum(post['num_comments'] for post in posts)
-        subreddits = list(set(post['subreddit'] for post in posts))
+        total_upvotes = sum(post["upvotes"] for post in posts)
+        total_comments = sum(post["num_comments"] for post in posts)
+        subreddits = list(set(post["subreddit"] for post in posts))
 
         # Find top post
-        top_post = max(posts, key=lambda x: x['upvotes'])
+        top_post = max(posts, key=lambda x: x["upvotes"])
 
         return {
-            'total_posts': len(posts),
-            'total_upvotes': total_upvotes,
-            'total_comments': total_comments,
-            'avg_upvotes': total_upvotes / len(posts),
-            'avg_comments': total_comments / len(posts),
-            'top_post': {
-                'title': top_post['title'],
-                'upvotes': top_post['upvotes'],
-                'subreddit': top_post['subreddit'],
+            "total_posts": len(posts),
+            "total_upvotes": total_upvotes,
+            "total_comments": total_comments,
+            "avg_upvotes": total_upvotes / len(posts),
+            "avg_comments": total_comments / len(posts),
+            "top_post": {
+                "title": top_post["title"],
+                "upvotes": top_post["upvotes"],
+                "subreddit": top_post["subreddit"],
             },
-            'subreddits': subreddits,
+            "subreddits": subreddits,
         }
 
     def fetch(self):
@@ -350,11 +350,11 @@ class RedditFetcher(BaseFetcher):
 # Backward compatibility functions
 def fetch_top_from_category(
     category: Annotated[
-        str, 'Category to fetch top post from. Collection of subreddits.'
+        str, "Category to fetch top post from. Collection of subreddits."
     ],
-    date: Annotated[str, 'Date to fetch top posts from.'],
-    max_limit: Annotated[int, 'Maximum number of posts to fetch.'],
-    query: Annotated[str, 'Optional query to search for in the subreddit.'] = None,
+    date: Annotated[str, "Date to fetch top posts from."],
+    max_limit: Annotated[int, "Maximum number of posts to fetch."],
+    query: Annotated[str, "Optional query to search for in the subreddit."] = None,
 ) -> list[dict]:
     """Backward compatibility function."""
     fetcher = RedditFetcher()

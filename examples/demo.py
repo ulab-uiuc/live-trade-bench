@@ -21,9 +21,9 @@ def fetch_news_for_ticker(
     Returns:
         list[dict]: List of news article dictionaries, each containing title, link, snippet, date, and source.
     """
-    date_obj = datetime.strptime(date, '%Y-%m-%d')
-    start = (date_obj - timedelta(days=days_back)).strftime('%Y-%m-%d')
-    query = f'{ticker} stock news'
+    date_obj = datetime.strptime(date, "%Y-%m-%d")
+    start = (date_obj - timedelta(days=days_back)).strftime("%Y-%m-%d")
+    query = f"{ticker} stock news"
     articles = fetch_news_data(query, start, date, max_pages=2)
     return articles[:max_articles] if articles else []
 
@@ -45,30 +45,30 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
     """
     # Fetch historical price data
     prices = fetch_stock_data(
-        ticker=ticker, start_date='2024-12-01', end_date=date, resolution='D'
+        ticker=ticker, start_date="2024-12-01", end_date=date, resolution="D"
     )
-    closes = [prices[d]['close'] for d in sorted(prices)]
+    closes = [prices[d]["close"] for d in sorted(prices)]
     print(
-        f'[1/4] Price Data Loaded: {ticker} up to {date}. Latest closing price: ${closes[-1]:.2f}'
+        f"[1/4] Price Data Loaded: {ticker} up to {date}. Latest closing price: ${closes[-1]:.2f}"
     )
 
     # Fetch news data (optional)
     news = fetch_news_for_ticker(ticker, date) if include_news else []
     if include_news:
         print(
-            f'[2/4] News Data Loaded: {len(news)} recent articles found for {ticker}.'
+            f"[2/4] News Data Loaded: {len(news)} recent articles found for {ticker}."
         )
         for idx, art in enumerate(news[:3], 1):
             print(
                 f"    News {idx}: '{art['title']}' (Source: {art.get('source', 'Unknown')}, Date: {art.get('date', 'Unknown')})"
             )
         if len(news) > 3:
-            print(f'    ...and {len(news) - 3} more articles.')
+            print(f"    ...and {len(news) - 3} more articles.")
     else:
-        print('[2/4] News Data Skipped: News integration is disabled.')
+        print("[2/4] News Data Skipped: News integration is disabled.")
 
     # AI analysis
-    print('[3/4] Running AI Stock Analysis Model to generate trading actions...')
+    print("[3/4] Running AI Stock Analysis Model to generate trading actions...")
     model = AIStockAnalysisModel()
     actions = (
         model.act(
@@ -81,35 +81,35 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
         or []
     )
     if actions:
-        print(f'      AI Model Output: {len(actions)} action(s) generated.')
+        print(f"      AI Model Output: {len(actions)} action(s) generated.")
         for i, act in enumerate(actions, 1):
             print(
                 f"      Action {i}: {act['action'].upper()} {act['quantity']} shares at ${act.get('price', 0):.2f} (Confidence: {act.get('confidence', 0):.2f})"
             )
             print(f"      Reasoning: {act.get('reasoning', '')}")
-            if 'news_sentiment' in act:
+            if "news_sentiment" in act:
                 print(
                     f"      News Sentiment: {act['news_sentiment']} (Impact: {act.get('news_impact', 'n/a')})"
                 )
     else:
-        print('      AI Model Output: No actionable trade signals generated.')
+        print("      AI Model Output: No actionable trade signals generated.")
 
     # Evaluation
-    print('[4/4] Evaluating trading actions for profit/loss...')
+    print("[4/4] Evaluating trading actions for profit/loss...")
     profit = eval(actions) if actions else 0.0
-    print(f'    Evaluation Result: Total profit/loss = ${profit:.2f}\n')
+    print(f"    Evaluation Result: Total profit/loss = ${profit:.2f}\n")
 
     return {
-        'actions': actions,
-        'profit': profit,
-        'news_count': len(news),
+        "actions": actions,
+        "profit": profit,
+        "news_count": len(news),
     }
 
 
-if __name__ == '__main__':
-    print('=== Live Trading Bench: Single Stock Example ===')
-    result = run_trade('AAPL', '2025-01-01', 10)
-    print('Live Backtest completed. Summary:')
+if __name__ == "__main__":
+    print("=== Live Trading Bench: Single Stock Example ===")
+    result = run_trade("AAPL", "2025-01-01", 10)
+    print("Live Backtest completed. Summary:")
     print(f"  Actions taken: {len(result['actions'])}")
     print(f"  Total profit/loss: ${result['profit']:.2f}")
     print(f"  News articles used: {result['news_count']}")

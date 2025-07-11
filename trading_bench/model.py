@@ -17,14 +17,14 @@ class BaseModel:
         news_data: list[dict] = None,
     ) -> list[dict]:
         """Return list of actions in the format expected by evaluator."""
-        raise NotImplementedError('Subclasses must implement act method')
+        raise NotImplementedError("Subclasses must implement act method")
 
 
 class AIStockAnalysisModel(BaseModel):
     """AI-powered stock analysis model that uses LLM for trend prediction with news integration."""
 
     def __init__(
-        self, api_key: str = None, model_name: str = 'gpt-4', base_url: str = None
+        self, api_key: str = None, model_name: str = "gpt-4", base_url: str = None
     ):
         """
         Initialize AI model with API credentials and optional base URL.
@@ -37,7 +37,7 @@ class AIStockAnalysisModel(BaseModel):
         if api_key is None:
             import os
 
-            api_key = os.getenv('OPENAI_API_KEY')
+            api_key = os.getenv("OPENAI_API_KEY")
 
         # Initialize OpenAI client with custom base URL if provided
         if base_url:
@@ -45,7 +45,7 @@ class AIStockAnalysisModel(BaseModel):
             self.base_url = base_url
         else:
             self.client = openai.OpenAI(api_key=api_key)
-            self.base_url = 'https://api.openai.com/v1'  # Default
+            self.base_url = "https://api.openai.com/v1"  # Default
 
         self.model_name = model_name
 
@@ -54,7 +54,7 @@ class AIStockAnalysisModel(BaseModel):
     ) -> str:
         """Format stock price data and news into LLM prompt."""
         if not price_history:
-            return 'No price data available'
+            return "No price data available"
 
         # Calculate basic indicators
         latest_price = price_history[-1]
@@ -130,8 +130,8 @@ class AIStockAnalysisModel(BaseModel):
                 model=self.model_name,
                 messages=[
                     {
-                        'role': 'system',
-                        'content': """You are a stock market technical analyst with expertise in both technical analysis and news sentiment analysis.
+                        "role": "system",
+                        "content": """You are a stock market technical analyst with expertise in both technical analysis and news sentiment analysis.
 
                         Analyze the provided stock data AND news headlines to predict the next day's trend.
 
@@ -160,7 +160,7 @@ class AIStockAnalysisModel(BaseModel):
                             "news_impact": "high"
                         }""",
                     },
-                    {'role': 'user', 'content': prompt},
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.1,
                 max_tokens=300,
@@ -171,13 +171,13 @@ class AIStockAnalysisModel(BaseModel):
 
         except Exception as e:
             return {
-                'prediction': 'NEUTRAL',
-                'confidence': 0.0,
-                'reasoning': f'API Error: {str(e)}',
-                'action': 'hold',
-                'quantity': 0,
-                'news_sentiment': 'neutral',
-                'news_impact': 'low',
+                "prediction": "NEUTRAL",
+                "confidence": 0.0,
+                "reasoning": f"API Error: {str(e)}",
+                "action": "hold",
+                "quantity": 0,
+                "news_sentiment": "neutral",
+                "news_impact": "low",
             }
 
     def act(
@@ -206,31 +206,31 @@ class AIStockAnalysisModel(BaseModel):
         prediction = self._call_llm_api(prompt)
 
         # Add metadata
-        prediction['timestamp'] = datetime.now().isoformat()
-        prediction['data_points'] = len(price_history)
-        prediction['latest_price'] = price_history[-1] if price_history else 0
-        prediction['news_articles_count'] = len(news_data) if news_data else 0
-        prediction['api_endpoint'] = self.base_url
+        prediction["timestamp"] = datetime.now().isoformat()
+        prediction["data_points"] = len(price_history)
+        prediction["latest_price"] = price_history[-1] if price_history else 0
+        prediction["news_articles_count"] = len(news_data) if news_data else 0
+        prediction["api_endpoint"] = self.base_url
 
         actions = []
-        action_type = prediction.get('action', 'hold')
-        ai_quantity = prediction.get('quantity', 1)
+        action_type = prediction.get("action", "hold")
+        ai_quantity = prediction.get("quantity", 1)
         final_quantity = quantity if quantity is not None else ai_quantity
 
-        if action_type in ['buy', 'sell'] and final_quantity > 0:
+        if action_type in ["buy", "sell"] and final_quantity > 0:
             actions.append(
                 {
-                    'ticker': ticker,
-                    'action': action_type,
-                    'timestamp': date,
-                    'quantity': final_quantity,
-                    'price': price_history[-1] if price_history else None,
-                    'confidence': prediction.get('confidence', 0.0),
-                    'reasoning': prediction.get('reasoning', 'AI recommendation'),
-                    'news_sentiment': prediction.get('news_sentiment', 'neutral'),
-                    'news_impact': prediction.get('news_impact', 'low'),
-                    'news_articles_count': prediction.get('news_articles_count', 0),
-                    'api_endpoint': prediction.get('api_endpoint', 'default'),
+                    "ticker": ticker,
+                    "action": action_type,
+                    "timestamp": date,
+                    "quantity": final_quantity,
+                    "price": price_history[-1] if price_history else None,
+                    "confidence": prediction.get("confidence", 0.0),
+                    "reasoning": prediction.get("reasoning", "AI recommendation"),
+                    "news_sentiment": prediction.get("news_sentiment", "neutral"),
+                    "news_impact": prediction.get("news_impact", "low"),
+                    "news_articles_count": prediction.get("news_articles_count", 0),
+                    "api_endpoint": prediction.get("api_endpoint", "default"),
                 }
             )
 

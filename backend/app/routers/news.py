@@ -1,14 +1,13 @@
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, HTTPException, Query
-
 from app.data import get_news_data, get_real_news_data
 from app.schemas import NewsCategory, NewsImpact, NewsItem
+from fastapi import APIRouter, HTTPException, Query
 
-router = APIRouter(prefix='/api/news', tags=['news'])
+router = APIRouter(prefix="/api/news", tags=["news"])
 
 
-@router.get('/', response_model=list[NewsItem])
+@router.get("/", response_model=list[NewsItem])
 async def get_news(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -41,14 +40,14 @@ async def get_news(
 
         return news
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f'Error fetching news: {str(e)}')
+        raise HTTPException(status_code=500, detail=f"Error fetching news: {str(e)}")
 
 
-@router.get('/real', response_model=list[NewsItem])
+@router.get("/real", response_model=list[NewsItem])
 async def get_real_news(
-    query: str = Query(default='stock market', description='Search query for news'),
+    query: str = Query(default="stock market", description="Search query for news"),
     days: int = Query(
-        default=7, ge=1, le=30, description='Number of days to look back'
+        default=7, ge=1, le=30, description="Number of days to look back"
     ),
 ):
     """Get real news data from Google News."""
@@ -57,11 +56,11 @@ async def get_real_news(
         return news
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f'Error fetching real news: {str(e)}'
+            status_code=500, detail=f"Error fetching real news: {str(e)}"
         )
 
 
-@router.get('/category/{category}')
+@router.get("/category/{category}")
 async def get_news_by_category(
     category: NewsCategory, limit: int = Query(default=20, ge=1, le=100)
 ):
@@ -77,17 +76,17 @@ async def get_news_by_category(
         category_news = category_news[:limit]
 
         return {
-            'category': category.value,
-            'count': len(category_news),
-            'news': category_news,
+            "category": category.value,
+            "count": len(category_news),
+            "news": category_news,
         }
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f'Error fetching category news: {str(e)}'
+            status_code=500, detail=f"Error fetching category news: {str(e)}"
         )
 
 
-@router.get('/impact/{impact}')
+@router.get("/impact/{impact}")
 async def get_news_by_impact(
     impact: NewsImpact, limit: int = Query(default=20, ge=1, le=100)
 ):
@@ -102,14 +101,14 @@ async def get_news_by_impact(
         # Apply limit
         impact_news = impact_news[:limit]
 
-        return {'impact': impact.value, 'count': len(impact_news), 'news': impact_news}
+        return {"impact": impact.value, "count": len(impact_news), "news": impact_news}
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f'Error fetching impact news: {str(e)}'
+            status_code=500, detail=f"Error fetching impact news: {str(e)}"
         )
 
 
-@router.get('/search/{query}')
+@router.get("/search/{query}")
 async def search_news(query: str, limit: int = Query(default=20, ge=1, le=100)):
     """Search news articles by title or summary."""
     try:
@@ -129,12 +128,12 @@ async def search_news(query: str, limit: int = Query(default=20, ge=1, le=100)):
         # Apply limit
         matching_news = matching_news[:limit]
 
-        return {'query': query, 'count': len(matching_news), 'news': matching_news}
+        return {"query": query, "count": len(matching_news), "news": matching_news}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f'Error searching news: {str(e)}')
+        raise HTTPException(status_code=500, detail=f"Error searching news: {str(e)}")
 
 
-@router.get('/stats/summary')
+@router.get("/stats/summary")
 async def get_news_stats():
     """Get news statistics summary."""
     try:
@@ -142,11 +141,11 @@ async def get_news_stats():
 
         if not news:
             return {
-                'total_articles': 0,
-                'categories': {},
-                'impact_levels': {},
-                'sources': {},
-                'latest_article': None,
+                "total_articles": 0,
+                "categories": {},
+                "impact_levels": {},
+                "sources": {},
+                "latest_article": None,
             }
 
         # Count by category
@@ -171,41 +170,41 @@ async def get_news_stats():
         latest_article = max(news, key=lambda x: x.published_at)
 
         return {
-            'total_articles': len(news),
-            'categories': categories,
-            'impact_levels': impact_levels,
-            'sources': sources,
-            'latest_article': {
-                'id': latest_article.id,
-                'title': latest_article.title,
-                'published_at': latest_article.published_at,
-                'source': latest_article.source,
+            "total_articles": len(news),
+            "categories": categories,
+            "impact_levels": impact_levels,
+            "sources": sources,
+            "latest_article": {
+                "id": latest_article.id,
+                "title": latest_article.title,
+                "published_at": latest_article.published_at,
+                "source": latest_article.source,
             },
         }
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f'Error fetching news stats: {str(e)}'
+            status_code=500, detail=f"Error fetching news stats: {str(e)}"
         )
 
 
-@router.get('/{news_id}', response_model=NewsItem)
+@router.get("/{news_id}", response_model=NewsItem)
 async def get_news_item(news_id: str):
     """Get a specific news item by ID."""
     try:
         news = get_news_data()
         news_item = next((n for n in news if n.id == news_id), None)
         if not news_item:
-            raise HTTPException(status_code=404, detail='News item not found')
+            raise HTTPException(status_code=404, detail="News item not found")
         return news_item
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f'Error fetching news item: {str(e)}'
+            status_code=500, detail=f"Error fetching news item: {str(e)}"
         )
 
 
-@router.get('/trending/topics')
+@router.get("/trending/topics")
 async def get_trending_topics():
     """Get trending topics based on high-impact recent news."""
     try:
@@ -225,20 +224,20 @@ async def get_trending_topics():
             words = item.title.lower().split()
             # Filter out common words
             common_words = {
-                'the',
-                'and',
-                'or',
-                'but',
-                'in',
-                'on',
-                'at',
-                'to',
-                'for',
-                'of',
-                'with',
-                'by',
-                'a',
-                'an',
+                "the",
+                "and",
+                "or",
+                "but",
+                "in",
+                "on",
+                "at",
+                "to",
+                "for",
+                "of",
+                "with",
+                "by",
+                "a",
+                "an",
             }
             meaningful_words = [
                 w for w in words if w not in common_words and len(w) > 3
@@ -256,13 +255,13 @@ async def get_trending_topics():
         )[:10]
 
         return {
-            'trending_topics': [
-                {'topic': topic, 'mentions': count} for topic, count in trending_topics
+            "trending_topics": [
+                {"topic": topic, "mentions": count} for topic, count in trending_topics
             ],
-            'high_impact_articles': len(high_impact_news),
-            'time_range': 'last_24_hours',
+            "high_impact_articles": len(high_impact_news),
+            "time_range": "last_24_hours",
         }
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f'Error fetching trending topics: {str(e)}'
+            status_code=500, detail=f"Error fetching trending topics: {str(e)}"
         )

@@ -41,13 +41,13 @@ class StockFetcher(BaseFetcher):
 
         if df.empty:
             raise RuntimeError(
-                f'No data returned for {ticker} {start_date}→{end_date} @ {interval}'
+                f"No data returned for {ticker} {start_date}→{end_date} @ {interval}"
             )
 
         return df
 
     def fetch(
-        self, ticker: str, start_date: str, end_date: str, resolution: str = 'D'
+        self, ticker: str, start_date: str, end_date: str, resolution: str = "D"
     ) -> dict:
         """
         Fetches historical OHLCV price data for a ticker via yfinance and returns it as formatted JSON.
@@ -61,16 +61,16 @@ class StockFetcher(BaseFetcher):
         """
         # map your resolution codes to yfinance intervals
         interval_map = {
-            '1': '1m',
-            '5': '5m',
-            '15': '15m',
-            '30': '30m',
-            '60': '60m',
-            'D': '1d',
-            'W': '1wk',
-            'M': '1mo',
+            "1": "1m",
+            "5": "5m",
+            "15": "15m",
+            "30": "30m",
+            "60": "60m",
+            "D": "1d",
+            "W": "1wk",
+            "M": "1mo",
         }
-        interval = interval_map.get(resolution.upper(), '1d')
+        interval = interval_map.get(resolution.upper(), "1d")
 
         # download data with retry logic
         df = self.execute_with_retry(
@@ -81,13 +81,13 @@ class StockFetcher(BaseFetcher):
         data = {}
         for idx, row in df.iterrows():
             # idx is a pandas.Timestamp
-            date_str = idx.strftime('%Y-%m-%d')
+            date_str = idx.strftime("%Y-%m-%d")
             data[date_str] = {
-                'open': float(row['Open'].iloc[0]),
-                'high': float(row['High'].iloc[0]),
-                'low': float(row['Low'].iloc[0]),
-                'close': float(row['Close'].iloc[0]),
-                'volume': int(row['Volume'].iloc[0]),
+                "open": float(row["Open"].iloc[0]),
+                "high": float(row["High"].iloc[0]),
+                "low": float(row["Low"].iloc[0]),
+                "close": float(row["Close"].iloc[0]),
+                "volume": int(row["Volume"].iloc[0]),
             }
 
         return data
@@ -95,7 +95,7 @@ class StockFetcher(BaseFetcher):
 
 # Backward compatibility functions
 def fetch_stock_data(
-    ticker: str, start_date: str, end_date: str, resolution: str = 'D'
+    ticker: str, start_date: str, end_date: str, resolution: str = "D"
 ) -> dict:
     """
     Fetches historical OHLCV price data for a ticker via yfinance and returns it as formatted JSON.

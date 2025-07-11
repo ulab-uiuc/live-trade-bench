@@ -42,12 +42,12 @@ class BaseFetcher(ABC):
         self.min_delay = min_delay
         self.max_delay = max_delay
         self.default_headers = {
-            'User-Agent': (
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                'AppleWebKit/537.36 (KHTML, like Gecko) '
-                'Chrome/101.0.4951.54 Safari/537.36'
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/101.0.4951.54 Safari/537.36"
             ),
-            'Accept': 'application/json',
+            "Accept": "application/json",
         }
 
     def _rate_limit_delay(self) -> None:
@@ -105,7 +105,7 @@ class BaseFetcher(ABC):
         """
         return func(*args, **kwargs)
 
-    def validate_response(self, response: requests.Response, context: str = '') -> None:
+    def validate_response(self, response: requests.Response, context: str = "") -> None:
         """
         Validate that a response is successful.
 
@@ -118,10 +118,10 @@ class BaseFetcher(ABC):
         """
         if not response.ok:
             raise RuntimeError(
-                f'{context} failed with status {response.status_code}: {response.text}'
+                f"{context} failed with status {response.status_code}: {response.text}"
             )
 
-    def safe_json_parse(self, response: requests.Response, context: str = '') -> Any:
+    def safe_json_parse(self, response: requests.Response, context: str = "") -> Any:
         """
         Safely parse JSON response.
 
@@ -138,7 +138,7 @@ class BaseFetcher(ABC):
         try:
             return response.json()
         except Exception as e:
-            raise RuntimeError(f'{context} JSON parsing failed: {e}')
+            raise RuntimeError(f"{context} JSON parsing failed: {e}")
 
     @abstractmethod
     def fetch(self, *args, **kwargs) -> Any:
