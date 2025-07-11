@@ -9,7 +9,7 @@ import json
 import os
 import re
 from datetime import datetime
-from typing import Annotated, Dict, List
+from typing import Annotated
 
 from trading_bench.fetchers.base_fetcher import BaseFetcher
 
@@ -71,7 +71,7 @@ class RedditFetcher(BaseFetcher):
         date: Annotated[str, 'Date to fetch top posts from.'],
         max_limit: Annotated[int, 'Maximum number of posts to fetch.'],
         query: Annotated[str, 'Optional query to search for in the subreddit.'] = None,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Fetches top Reddit posts from a specific category and date.
 
@@ -144,7 +144,9 @@ class RedditFetcher(BaseFetcher):
                             search_terms = []
                             if query in TICKER_TO_COMPANY:
                                 if 'OR' in TICKER_TO_COMPANY[query]:
-                                    search_terms = TICKER_TO_COMPANY[query].split(' OR ')
+                                    search_terms = TICKER_TO_COMPANY[query].split(
+                                        ' OR '
+                                    )
                                 else:
                                     search_terms = [TICKER_TO_COMPANY[query]]
 
@@ -191,7 +193,7 @@ class RedditFetcher(BaseFetcher):
 
     def fetch_posts_by_ticker(
         self, ticker: str, date: str, max_limit: int = 50
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Fetches Reddit posts specifically mentioning a given ticker symbol.
 
@@ -209,7 +211,7 @@ class RedditFetcher(BaseFetcher):
 
     def fetch_sentiment_data(
         self, category: str, date: str, max_limit: int = 100
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Fetches Reddit posts for sentiment analysis.
 
@@ -221,7 +223,9 @@ class RedditFetcher(BaseFetcher):
         Returns:
             List of dictionaries containing post data with sentiment-relevant fields.
         """
-        posts = self.fetch_top_from_category(category=category, date=date, max_limit=max_limit)
+        posts = self.fetch_top_from_category(
+            category=category, date=date, max_limit=max_limit
+        )
 
         # Add sentiment analysis fields
         for post in posts:
@@ -230,7 +234,7 @@ class RedditFetcher(BaseFetcher):
 
         return posts
 
-    def get_available_categories(self) -> List[str]:
+    def get_available_categories(self) -> list[str]:
         """
         Get list of available categories in the Reddit data.
 
@@ -242,10 +246,12 @@ class RedditFetcher(BaseFetcher):
             return []
 
         return [
-            d for d in os.listdir(data_path) if os.path.isdir(os.path.join(data_path, d))
+            d
+            for d in os.listdir(data_path)
+            if os.path.isdir(os.path.join(data_path, d))
         ]
 
-    def get_available_dates(self, category: str) -> List[str]:
+    def get_available_dates(self, category: str) -> list[str]:
         """
         Get list of available dates for a specific category.
 
@@ -288,7 +294,7 @@ class RedditFetcher(BaseFetcher):
 
         return sorted(list(dates))
 
-    def get_statistics(self, category: str, date: str) -> Dict:
+    def get_statistics(self, category: str, date: str) -> dict:
         """
         Get statistics about Reddit posts for a category and date.
 
@@ -336,7 +342,7 @@ class RedditFetcher(BaseFetcher):
             },
             'subreddits': subreddits,
         }
-    
+
     def fetch(self):
         pass
 
@@ -349,7 +355,7 @@ def fetch_top_from_category(
     date: Annotated[str, 'Date to fetch top posts from.'],
     max_limit: Annotated[int, 'Maximum number of posts to fetch.'],
     query: Annotated[str, 'Optional query to search for in the subreddit.'] = None,
-) -> List[Dict]:
+) -> list[dict]:
     """Backward compatibility function."""
     fetcher = RedditFetcher()
     return fetcher.fetch_top_from_category(category, date, max_limit, query)
@@ -357,7 +363,7 @@ def fetch_top_from_category(
 
 def fetch_reddit_posts_by_ticker(
     ticker: str, date: str, max_limit: int = 50
-) -> List[Dict]:
+) -> list[dict]:
     """Backward compatibility function."""
     fetcher = RedditFetcher()
     return fetcher.fetch_posts_by_ticker(ticker, date, max_limit)
@@ -365,25 +371,25 @@ def fetch_reddit_posts_by_ticker(
 
 def fetch_reddit_sentiment_data(
     category: str, date: str, max_limit: int = 100
-) -> List[Dict]:
+) -> list[dict]:
     """Backward compatibility function."""
     fetcher = RedditFetcher()
     return fetcher.fetch_sentiment_data(category, date, max_limit)
 
 
-def get_available_categories() -> List[str]:
+def get_available_categories() -> list[str]:
     """Backward compatibility function."""
     fetcher = RedditFetcher()
     return fetcher.get_available_categories()
 
 
-def get_available_dates(category: str) -> List[str]:
+def get_available_dates(category: str) -> list[str]:
     """Backward compatibility function."""
     fetcher = RedditFetcher()
     return fetcher.get_available_dates(category)
 
 
-def get_reddit_statistics(category: str, date: str) -> Dict:
+def get_reddit_statistics(category: str, date: str) -> dict:
     """Backward compatibility function."""
     fetcher = RedditFetcher()
     return fetcher.get_statistics(category, date)

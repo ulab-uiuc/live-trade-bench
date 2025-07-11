@@ -5,10 +5,6 @@ This module provides functions to fetch stock price data from Yahoo Finance
 using yfinance library.
 """
 
-import random
-import time
-from typing import Dict
-
 import yfinance as yf
 
 from trading_bench.fetchers.base_fetcher import BaseFetcher
@@ -52,7 +48,7 @@ class StockFetcher(BaseFetcher):
 
     def fetch(
         self, ticker: str, start_date: str, end_date: str, resolution: str = 'D'
-    ) -> Dict:
+    ) -> dict:
         """
         Fetches historical OHLCV price data for a ticker via yfinance and returns it as formatted JSON.
         Args:
@@ -100,7 +96,7 @@ class StockFetcher(BaseFetcher):
 # Backward compatibility functions
 def fetch_stock_data(
     ticker: str, start_date: str, end_date: str, resolution: str = 'D'
-) -> Dict:
+) -> dict:
     """
     Fetches historical OHLCV price data for a ticker via yfinance and returns it as formatted JSON.
     Args:

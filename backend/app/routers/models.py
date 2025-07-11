@@ -1,6 +1,7 @@
+from fastapi import APIRouter, HTTPException
+
 from app.data import SAMPLE_MODELS, get_models_data
 from app.schemas import APIResponse, TradingModel
-from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix='/api/models', tags=['models'])
 
@@ -22,7 +23,9 @@ async def get_real_models():
         models = get_real_models_data()
         return models
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f'Error fetching real models: {str(e)}')
+        raise HTTPException(
+            status_code=500, detail=f'Error fetching real models: {str(e)}'
+        )
 
 
 @router.get('/{model_id}', response_model=TradingModel)

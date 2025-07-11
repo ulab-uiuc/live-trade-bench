@@ -13,15 +13,10 @@ This module contains specialized data fetchers for different data sources:
 from trading_bench.fetchers.base_fetcher import BaseFetcher
 
 # Import fetcher classes
-from trading_bench.fetchers.news_fetcher import NewsFetcher
-from trading_bench.fetchers.option_fetcher import OptionFetcher
-from trading_bench.fetchers.polymarket_fetcher import PolymarketFetcher
-from trading_bench.fetchers.reddit_fetcher import RedditFetcher
-from trading_bench.fetchers.stock_fetcher import StockFetcher
-
 # Import backward compatibility functions
-from trading_bench.fetchers.news_fetcher import fetch_news_data
+from trading_bench.fetchers.news_fetcher import NewsFetcher, fetch_news_data
 from trading_bench.fetchers.option_fetcher import (
+    OptionFetcher,
     calculate_implied_volatility,
     calculate_option_greeks,
     fetch_option_chain,
@@ -32,6 +27,7 @@ from trading_bench.fetchers.option_fetcher import (
     get_option_chain_summary,
 )
 from trading_bench.fetchers.polymarket_fetcher import (
+    PolymarketFetcher,
     fetch_polymarket_market_details,
     fetch_polymarket_market_stats,
     fetch_polymarket_markets,
@@ -41,6 +37,7 @@ from trading_bench.fetchers.polymarket_fetcher import (
     search_polymarket_markets,
 )
 from trading_bench.fetchers.reddit_fetcher import (
+    RedditFetcher,
     fetch_reddit_posts_by_ticker,
     fetch_reddit_sentiment_data,
     fetch_top_from_category,
@@ -48,19 +45,17 @@ from trading_bench.fetchers.reddit_fetcher import (
     get_available_dates,
     get_reddit_statistics,
 )
-from trading_bench.fetchers.stock_fetcher import fetch_stock_data
+from trading_bench.fetchers.stock_fetcher import StockFetcher, fetch_stock_data
 
 __all__ = [
     # Base class
     'BaseFetcher',
-    
     # Fetcher classes
     'StockFetcher',
     'NewsFetcher',
     'OptionFetcher',
     'PolymarketFetcher',
     'RedditFetcher',
-    
     # Backward compatibility functions
     'fetch_stock_data',
     'fetch_news_data',

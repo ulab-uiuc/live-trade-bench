@@ -61,7 +61,7 @@ function App() {
         <Navigation />
         <Routes>
           <Route path="/" element={
-            <Dashboard 
+            <Dashboard
               modelsData={modelsData}
               setModelsData={setModelsData}
               modelsLastRefresh={modelsLastRefresh}

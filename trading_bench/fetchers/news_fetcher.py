@@ -5,12 +5,8 @@ This module provides functions to fetch news data from Google News
 using web scraping techniques.
 """
 
-import random
-import time
 from datetime import datetime
-from typing import List
 
-import requests
 from bs4 import BeautifulSoup
 
 from trading_bench.fetchers.base_fetcher import BaseFetcher
@@ -25,7 +21,7 @@ class NewsFetcher(BaseFetcher):
 
     def fetch(
         self, query: str, start_date: str, end_date: str, max_pages: int = 10
-    ) -> List[dict]:
+    ) -> list[dict]:
         """
         Fetches news data for a given query and date range via Google News scraping.
         Args:
@@ -101,7 +97,7 @@ class NewsFetcher(BaseFetcher):
 # Backward compatibility functions
 def fetch_news_data(
     query: str, start_date: str, end_date: str, max_pages: int = 10
-) -> List[dict]:
+) -> list[dict]:
     """
     Fetches news data for a given query and date range via Google News scraping.
     Args:

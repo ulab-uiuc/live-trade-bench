@@ -1,7 +1,14 @@
 import random
 
-from app.schemas import (ModelStatus, NewsCategory, NewsImpact, NewsItem,
-                         Trade, TradeType, TradingModel)
+from app.schemas import (
+    ModelStatus,
+    NewsCategory,
+    NewsImpact,
+    NewsItem,
+    Trade,
+    TradeType,
+    TradingModel,
+)
 
 # Sample trading models data
 SAMPLE_MODELS: list[TradingModel] = [
@@ -75,9 +82,9 @@ def get_real_models_data() -> list[TradingModel]:
             id='claude-3.5-sonnet',
             name='Claude 3.5 Sonnet',
             performance=0.0,  # % of correct predictions
-            accuracy=0.0,     # Same as performance
-            trades=0,         # Number of predictions made via run_trade()
-            profit=0.0,       # Total profit from eval() results
+            accuracy=0.0,  # Same as performance
+            trades=0,  # Number of predictions made via run_trade()
+            profit=0.0,  # Total profit from eval() results
             status=ModelStatus.INACTIVE,  # ACTIVE when making predictions
         ),
         TradingModel(
@@ -91,7 +98,7 @@ def get_real_models_data() -> list[TradingModel]:
         ),
         TradingModel(
             id='gemini-1.5-pro',
-            name='Gemini 1.5 Pro', 
+            name='Gemini 1.5 Pro',
             performance=0.0,
             accuracy=0.0,
             trades=0,

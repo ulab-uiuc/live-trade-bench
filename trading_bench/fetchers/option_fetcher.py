@@ -6,10 +6,7 @@ using yfinance library, including option chains, Greeks calculations,
 and historical option data.
 """
 
-import random
-import time
 from datetime import datetime
-from typing import Dict, List, Optional
 
 import yfinance as yf
 
@@ -22,13 +19,15 @@ class OptionFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 1.0, max_delay: float = 3.0):
         """Initialize the option fetcher."""
         super().__init__(min_delay, max_delay)
-    
+
     def fetch(self, *args, **kwargs):
-        raise NotImplementedError("OptionFetcher does not have a general fetch method. Please use specialized methods such as fetch_option_chain or fetch_option_data.")
+        raise NotImplementedError(
+            'OptionFetcher does not have a general fetch method. Please use specialized methods such as fetch_option_chain or fetch_option_data.'
+        )
 
     def fetch_option_chain(
-        self, ticker: str, expiration_date: Optional[str] = None
-    ) -> Dict:
+        self, ticker: str, expiration_date: str | None = None
+    ) -> dict:
         """
         Fetches option chain data for a given ticker and expiration date.
         Args:
@@ -81,9 +80,9 @@ class OptionFetcher(BaseFetcher):
         ticker: str,
         expiration_date: str,
         option_type: str = 'both',
-        min_strike: Optional[float] = None,
-        max_strike: Optional[float] = None,
-    ) -> Dict:
+        min_strike: float | None = None,
+        max_strike: float | None = None,
+    ) -> dict:
         """
         Fetches detailed option data for a given ticker and expiration.
         Args:
@@ -130,7 +129,7 @@ class OptionFetcher(BaseFetcher):
         except Exception as e:
             raise RuntimeError(f'Failed to fetch option data for {ticker}: {e}')
 
-    def fetch_option_expirations(self, ticker: str) -> List[str]:
+    def fetch_option_expirations(self, ticker: str) -> list[str]:
         """
         Fetches all available option expiration dates for a ticker.
         Args:
@@ -158,7 +157,7 @@ class OptionFetcher(BaseFetcher):
         option_type: str,
         start_date: str,
         end_date: str,
-    ) -> Dict:
+    ) -> dict:
         """
         Fetches historical price data for a specific option.
         Args:
@@ -226,7 +225,7 @@ class OptionFetcher(BaseFetcher):
         risk_free_rate: float,
         volatility: float,
         option_type: str,
-    ) -> Dict:
+    ) -> dict:
         """
         Calculate option Greeks using Black-Scholes model.
         Args:
@@ -274,11 +273,17 @@ class OptionFetcher(BaseFetcher):
             else -K * T * math.exp(-r * T) * norm.cdf(-d2)
         )
 
-        return {'delta': delta, 'gamma': gamma, 'theta': theta, 'vega': vega, 'rho': rho}
+        return {
+            'delta': delta,
+            'gamma': gamma,
+            'theta': theta,
+            'vega': vega,
+            'rho': rho,
+        }
 
     def get_atm_options(
         self, ticker: str, expiration_date: str, strike_range: float = 0.1
-    ) -> Dict:
+    ) -> dict:
         """
         Get at-the-money options for a given ticker and expiration.
         Args:
@@ -369,7 +374,12 @@ class OptionFetcher(BaseFetcher):
 
         for i in range(max_iterations):
             price = black_scholes_price(
-                underlying_price, strike, time_to_expiry, risk_free_rate, sigma, option_type
+                underlying_price,
+                strike,
+                time_to_expiry,
+                risk_free_rate,
+                sigma,
+                option_type,
             )
             vega = black_scholes_vega(
                 underlying_price, strike, time_to_expiry, risk_free_rate, sigma
@@ -388,8 +398,8 @@ class OptionFetcher(BaseFetcher):
         raise RuntimeError('Failed to converge on implied volatility')
 
     def get_option_chain_summary(
-        self, ticker: str, expiration_date: Optional[str] = None
-    ) -> Dict:
+        self, ticker: str, expiration_date: str | None = None
+    ) -> dict:
         """
         Get a summary of option chain data including key statistics.
         Args:
@@ -452,7 +462,7 @@ class OptionFetcher(BaseFetcher):
 
 
 # Backward compatibility functions
-def fetch_option_chain(ticker: str, expiration_date: Optional[str] = None) -> Dict:
+def fetch_option_chain(ticker: str, expiration_date: str | None = None) -> dict:
     """Backward compatibility function."""
     fetcher = OptionFetcher()
     return fetcher.fetch_option_chain(ticker, expiration_date)
@@ -462,9 +472,9 @@ def fetch_option_data(
     ticker: str,
     expiration_date: str,
     option_type: str = 'both',
-    min_strike: Optional[float] = None,
-    max_strike: Optional[float] = None,
-) -> Dict:
+    min_strike: float | None = None,
+    max_strike: float | None = None,
+) -> dict:
     """Backward compatibility function."""
     fetcher = OptionFetcher()
     return fetcher.fetch_option_data(
@@ -472,7 +482,7 @@ def fetch_option_data(
     )
 
 
-def fetch_option_expirations(ticker: str) -> List[str]:
+def fetch_option_expirations(ticker: str) -> list[str]:
     """Backward compatibility function."""
     fetcher = OptionFetcher()
     return fetcher.fetch_option_expirations(ticker)
@@ -485,7 +495,7 @@ def fetch_option_historical_data(
     option_type: str,
     start_date: str,
     end_date: str,
-) -> Dict:
+) -> dict:
     """Backward compatibility function."""
     fetcher = OptionFetcher()
     return fetcher.fetch_option_historical_data(
@@ -500,17 +510,22 @@ def calculate_option_greeks(
     risk_free_rate: float,
     volatility: float,
     option_type: str,
-) -> Dict:
+) -> dict:
     """Backward compatibility function."""
     fetcher = OptionFetcher()
     return fetcher.calculate_option_greeks(
-        underlying_price, strike, time_to_expiry, risk_free_rate, volatility, option_type
+        underlying_price,
+        strike,
+        time_to_expiry,
+        risk_free_rate,
+        volatility,
+        option_type,
     )
 
 
 def get_atm_options(
     ticker: str, expiration_date: str, strike_range: float = 0.1
-) -> Dict:
+) -> dict:
     """Backward compatibility function."""
     fetcher = OptionFetcher()
     return fetcher.get_atm_options(ticker, expiration_date, strike_range)
@@ -540,7 +555,7 @@ def calculate_implied_volatility(
     )
 
 
-def get_option_chain_summary(ticker: str, expiration_date: Optional[str] = None) -> Dict:
+def get_option_chain_summary(ticker: str, expiration_date: str | None = None) -> dict:
     """Backward compatibility function."""
     fetcher = OptionFetcher()
     return fetcher.get_option_chain_summary(ticker, expiration_date)

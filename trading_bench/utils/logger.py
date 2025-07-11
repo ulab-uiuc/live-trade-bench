@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+
 
 def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """
@@ -23,11 +23,11 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
 
         # Create formatter and add it to the handler
         formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
         ch.setFormatter(formatter)
 
         # Add the handler to the logger
         logger.addHandler(ch)
 
-    return logger 
+    return logger

@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
 
+from fastapi import APIRouter, HTTPException, Query
+
 from app.data import get_real_trades_data, get_trades_data
 from app.schemas import Trade, TradingSummary
-from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(prefix='/api/trades', tags=['trades'])
 

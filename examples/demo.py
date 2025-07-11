@@ -48,21 +48,27 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
         ticker=ticker, start_date='2024-12-01', end_date=date, resolution='D'
     )
     closes = [prices[d]['close'] for d in sorted(prices)]
-    print(f"[1/4] Price Data Loaded: {ticker} up to {date}. Latest closing price: ${closes[-1]:.2f}")
+    print(
+        f'[1/4] Price Data Loaded: {ticker} up to {date}. Latest closing price: ${closes[-1]:.2f}'
+    )
 
     # Fetch news data (optional)
     news = fetch_news_for_ticker(ticker, date) if include_news else []
     if include_news:
-        print(f"[2/4] News Data Loaded: {len(news)} recent articles found for {ticker}.")
+        print(
+            f'[2/4] News Data Loaded: {len(news)} recent articles found for {ticker}.'
+        )
         for idx, art in enumerate(news[:3], 1):
-            print(f"    News {idx}: '{art['title']}' (Source: {art.get('source', 'Unknown')}, Date: {art.get('date', 'Unknown')})")
+            print(
+                f"    News {idx}: '{art['title']}' (Source: {art.get('source', 'Unknown')}, Date: {art.get('date', 'Unknown')})"
+            )
         if len(news) > 3:
-            print(f"    ...and {len(news) - 3} more articles.")
+            print(f'    ...and {len(news) - 3} more articles.')
     else:
-        print("[2/4] News Data Skipped: News integration is disabled.")
+        print('[2/4] News Data Skipped: News integration is disabled.')
 
     # AI analysis
-    print("[3/4] Running AI Stock Analysis Model to generate trading actions...")
+    print('[3/4] Running AI Stock Analysis Model to generate trading actions...')
     model = AIStockAnalysisModel()
     actions = (
         model.act(
@@ -75,19 +81,23 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
         or []
     )
     if actions:
-        print(f"      AI Model Output: {len(actions)} action(s) generated.")
+        print(f'      AI Model Output: {len(actions)} action(s) generated.')
         for i, act in enumerate(actions, 1):
-            print(f"      Action {i}: {act['action'].upper()} {act['quantity']} shares at ${act.get('price', 0):.2f} (Confidence: {act.get('confidence', 0):.2f})")
+            print(
+                f"      Action {i}: {act['action'].upper()} {act['quantity']} shares at ${act.get('price', 0):.2f} (Confidence: {act.get('confidence', 0):.2f})"
+            )
             print(f"      Reasoning: {act.get('reasoning', '')}")
             if 'news_sentiment' in act:
-                print(f"      News Sentiment: {act['news_sentiment']} (Impact: {act.get('news_impact', 'n/a')})")
+                print(
+                    f"      News Sentiment: {act['news_sentiment']} (Impact: {act.get('news_impact', 'n/a')})"
+                )
     else:
-        print("      AI Model Output: No actionable trade signals generated.")
+        print('      AI Model Output: No actionable trade signals generated.')
 
     # Evaluation
-    print("[4/4] Evaluating trading actions for profit/loss...")
+    print('[4/4] Evaluating trading actions for profit/loss...')
     profit = eval(actions) if actions else 0.0
-    print(f"    Evaluation Result: Total profit/loss = ${profit:.2f}\n")
+    print(f'    Evaluation Result: Total profit/loss = ${profit:.2f}\n')
 
     return {
         'actions': actions,
@@ -97,9 +107,9 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
 
 
 if __name__ == '__main__':
-    print("=== Live Trading Bench: Single Stock Example ===")
+    print('=== Live Trading Bench: Single Stock Example ===')
     result = run_trade('AAPL', '2025-01-01', 10)
-    print("Live Backtest completed. Summary:")
+    print('Live Backtest completed. Summary:')
     print(f"  Actions taken: {len(result['actions'])}")
     print(f"  Total profit/loss: ${result['profit']:.2f}")
     print(f"  News articles used: {result['news_count']}")
