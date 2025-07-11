@@ -98,7 +98,7 @@ class StockFetcher(BaseFetcher):
 
 
 # Backward compatibility functions
-def fetch_price_data(
+def fetch_stock_data(
     ticker: str, start_date: str, end_date: str, resolution: str = 'D'
 ) -> Dict:
     """

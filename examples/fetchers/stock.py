@@ -1,6 +1,6 @@
 # Example usage: fetch last week's daily prices for Apple
 
-from trading_bench.fetchers.stock_fetcher import fetch_price_data
+from trading_bench.fetchers.stock_fetcher import fetch_stock_data
 from datetime import datetime, timedelta
 
 def main():
@@ -14,7 +14,7 @@ def main():
     print(f"\n📈 Fetching daily OHLCV data for {ticker} from {start_str} to {end_str}...\n")
 
     try:
-        price_data = fetch_price_data(
+        price_data = fetch_stock_data(
             ticker=ticker,
             start_date=start_str,
             end_date=end_str,

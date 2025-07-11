@@ -12,7 +12,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from trading_bench.fetchers.stock_fetcher import fetch_price_data
+from trading_bench.fetchers.stock_fetcher import fetch_stock_data
 from trading_bench.model import AIStockAnalysisModel
 
 
@@ -31,7 +31,7 @@ def main():
     print('-' * 50)
 
     try:
-        price_data = fetch_price_data(ticker, start_date, end_date, resolution)
+        price_data = fetch_stock_data(ticker, start_date, end_date, resolution)
 
         print(f'Successfully fetched {len(price_data)} days of price data:')
         print()
@@ -70,7 +70,7 @@ def demonstrate_retry():
     print('This should demonstrate the retry logic...')
 
     try:
-        price_data = fetch_price_data(ticker, start_date, end_date)
+        price_data = fetch_stock_data(ticker, start_date, end_date)
         print('Unexpected success!')
     except Exception as e:
         print(f'Expected error after retries: {e}')
@@ -102,7 +102,7 @@ def demonstrate_ai_analysis():
 
     try:
         # Fetch price data
-        price_data = fetch_price_data(ticker, start_date, end_date, 'D')
+        price_data = fetch_stock_data(ticker, start_date, end_date, 'D')
 
         # Convert to price history list
         dates = sorted(price_data.keys())

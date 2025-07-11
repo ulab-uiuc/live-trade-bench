@@ -130,14 +130,14 @@ def get_real_trades_data(ticker: str = 'NVDA', days: int = 7) -> list[Trade]:
     sys.path.insert(0, project_root)
 
     try:
-        from trading_bench.fetchers.stock_fetcher import fetch_price_data
+        from trading_bench.fetchers.stock_fetcher import fetch_stock_data
 
         # Calculate date range
         end_date = datetime.now() - timedelta(days=1)  # Yesterday
         start_date = end_date - timedelta(days=days)
 
         # Fetch real stock data
-        price_data = fetch_price_data(
+        price_data = fetch_stock_data(
             ticker=ticker,
             start_date=start_date.strftime('%Y-%m-%d'),
             end_date=(end_date + timedelta(days=1)).strftime('%Y-%m-%d'),

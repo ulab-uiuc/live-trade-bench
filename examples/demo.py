@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from trading_bench.evaluators.stock_evaluator import eval
 from trading_bench.fetchers.news_fetcher import fetch_news_data
-from trading_bench.fetchers.stock_fetcher import fetch_price_data
+from trading_bench.fetchers.stock_fetcher import fetch_stock_data
 from trading_bench.model import AIStockAnalysisModel
 
 
@@ -44,7 +44,7 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
         dict: Dictionary containing actions (list), profit (float), and news_count (int).
     """
     # Fetch historical price data
-    prices = fetch_price_data(
+    prices = fetch_stock_data(
         ticker=ticker, start_date='2024-12-01', end_date=date, resolution='D'
     )
     closes = [prices[d]['close'] for d in sorted(prices)]

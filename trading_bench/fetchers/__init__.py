@@ -48,7 +48,7 @@ from trading_bench.fetchers.reddit_fetcher import (
     get_available_dates,
     get_reddit_statistics,
 )
-from trading_bench.fetchers.stock_fetcher import fetch_price_data
+from trading_bench.fetchers.stock_fetcher import fetch_stock_data
 
 __all__ = [
     # Base class
@@ -62,7 +62,7 @@ __all__ = [
     'RedditFetcher',
     
     # Backward compatibility functions
-    'fetch_price_data',
+    'fetch_stock_data',
     'fetch_news_data',
     'fetch_option_chain',
     'fetch_option_data',

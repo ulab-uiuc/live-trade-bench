@@ -14,7 +14,7 @@ from trading_bench.data_fetchers.polymarket_fetcher import (
 from trading_bench.data_fetchers.stock_fetcher import (
     _download_price_data, calculate_option_greeks, fetch_option_chain,
     fetch_option_data, fetch_option_expirations, fetch_option_historical_data,
-    fetch_price_data)
+    fetch_stock_data)
 
 
 def test_is_rate_limited():
@@ -135,7 +135,7 @@ def test_download_price_data_empty_result(mock_download):
 
 
 @patch('trading_bench.fetchers.stock_fetcher._download_price_data')
-def test_fetch_price_data_success(mock_download):
+def test_fetch_stock_data_success(mock_download):
     """Test successful price data fetching with retry logic."""
     import pandas as pd
 
@@ -153,7 +153,7 @@ def test_fetch_price_data_success(mock_download):
 
     mock_download.return_value = mock_df
 
-    result = fetch_price_data('AAPL', '2024-01-01', '2024-01-31')
+    result = fetch_stock_data('AAPL', '2024-01-01', '2024-01-31')
 
     assert isinstance(result, dict)
     assert len(result) == 2
@@ -164,7 +164,7 @@ def test_fetch_price_data_success(mock_download):
 
 
 @patch('trading_bench.fetchers.stock_fetcher._download_price_data')
-def test_fetch_price_data_retry_on_failure(mock_download):
+def test_fetch_stock_data_retry_on_failure(mock_download):
     """Test that price data fetching retries on failure."""
     # Mock download to fail twice, then succeed
     mock_download.side_effect = [
@@ -182,7 +182,7 @@ def test_fetch_price_data_retry_on_failure(mock_download):
         ),
     ]
 
-    result = fetch_price_data('AAPL', '2024-01-01', '2024-01-31')
+    result = fetch_stock_data('AAPL', '2024-01-01', '2024-01-31')
 
     assert isinstance(result, dict)
     assert len(result) == 1

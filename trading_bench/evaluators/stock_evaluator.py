@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timedelta
 
-from trading_bench.fetchers.stock_fetcher import fetch_price_data
+from trading_bench.fetchers.stock_fetcher import fetch_stock_data
 
 
 def eval(actions: str | dict | list[dict]) -> float:
@@ -44,7 +44,7 @@ def eval(actions: str | dict | list[dict]) -> float:
             price = action['price']
         else:
             # Fetch price data for the action date
-            price_data = fetch_price_data(
+            price_data = fetch_stock_data(
                 ticker=ticker, start_date=timestamp, end_date=timestamp, resolution='D'
             )
             if price_data and timestamp in price_data:
@@ -92,7 +92,7 @@ def eval(actions: str | dict | list[dict]) -> float:
                 # Fetch recent 7-day data
                 end_date = datetime.now()
                 start_date = end_date - timedelta(days=7)
-                recent_data = fetch_price_data(
+                recent_data = fetch_stock_data(
                     ticker=ticker,
                     start_date=start_date.strftime('%Y-%m-%d'),
                     end_date=end_date.strftime('%Y-%m-%d'),
