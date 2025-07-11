@@ -12,31 +12,31 @@ def test_metrics() -> None:
     """Test the new quantitative metrics system"""
     setup_logging()
 
-    print('🚀 Starting quantitative metrics system test...')
+    print("🚀 Starting quantitative metrics system test...")
 
     # Create backtesting instance
     model = RuleBasedModel()
     bench = SimBench(
-        ticker='AAPL',
-        start_date='2025-01-01',
-        end_date='2025-06-01',
-        data_dir='./data',
+        ticker="AAPL",
+        start_date="2025-01-01",
+        end_date="2025-06-01",
+        data_dir="./data",
         model=model,
         eval_delay=5,
-        resolution='D',
+        resolution="D",
     )
 
     # Run backtesting
-    print('📊 Running backtesting...')
+    print("📊 Running backtesting...")
     summary = bench.run()
 
     # Print detailed metrics report
-    print('\n' + '=' * 60)
-    print('📈 Quantitative Backtesting Metrics Report')
-    print('=' * 60)
+    print("\n" + "=" * 60)
+    print("📈 Quantitative Backtesting Metrics Report")
+    print("=" * 60)
 
     # Basic statistical indicators
-    print('\n📊 Basic Statistical Indicators:')
+    print("\n📊 Basic Statistical Indicators:")
     print(f"  Total Trades: {summary['total_trades']}")
     print(f"  Winning Trades: {summary['winning_trades']}")
     print(f"  Losing Trades: {summary['losing_trades']}")
@@ -46,7 +46,7 @@ def test_metrics() -> None:
     print(f"  Min Single Trade Return: {summary['min_return']:.2%}")
 
     # Return metrics
-    print('\n💰 Return Metrics:')
+    print("\n💰 Return Metrics:")
     print(f"  Total Return: {summary['total_return']:.2%}")
     print(f"  Average Win: {summary['avg_win']:.2%}")
     print(f"  Average Loss: {summary['avg_loss']:.2%}")
@@ -54,7 +54,7 @@ def test_metrics() -> None:
     print(f"  Final Equity: {summary['final_equity']:.4f}")
 
     # Risk metrics
-    print('\n⚠️ Risk Metrics:')
+    print("\n⚠️ Risk Metrics:")
     print(f"  Volatility: {summary['volatility']:.2%}")
     print(f"  Max Drawdown: {summary['max_drawdown']:.2%}")
     print(f"  Sharpe Ratio: {summary['sharpe_ratio']:.4f}")
@@ -64,28 +64,28 @@ def test_metrics() -> None:
     print(f"  VaR(99%): {summary['var_99']:.2%}")
 
     # Trading statistics
-    print('\n📈 Trading Statistics:')
+    print("\n📈 Trading Statistics:")
     print(f"  Max Consecutive Wins: {summary['consecutive_wins']}")
     print(f"  Max Consecutive Losses: {summary['consecutive_losses']}")
     print(f"  Average Trade Duration: {summary['avg_trade_duration']:.1f} days")
 
     # Time metrics
-    print('\n⏰ Time Metrics:')
+    print("\n⏰ Time Metrics:")
     print(f"  Total Trading Days: {summary['total_days']}")
     print(f"  Average Trades per Day: {summary['avg_trades_per_day']:.2f}")
 
     # Advanced metrics
-    print('\n🔬 Advanced Metrics:')
+    print("\n🔬 Advanced Metrics:")
     print(f"  Average Equity Curve: {summary['avg_equity_curve']:.4f}")
     print(f"  Equity Curve Volatility: {summary['equity_curve_volatility']:.2%}")
 
-    print('\n' + '=' * 60)
+    print("\n" + "=" * 60)
 
     # Get detailed trade records
     trade_details = bench.logger.get_trade_details()
-    print('\n📋 Detailed Trade Records (First 5):')
+    print("\n📋 Detailed Trade Records (First 5):")
     for i, trade in enumerate(trade_details[:5]):
-        print(f'  Trade {i+1}:')
+        print(f"  Trade {i+1}:")
         print(f"    Entry Time: {trade['entry_time']}")
         print(f"    Entry Price: ${trade['entry_price']:.2f}")
         print(f"    Exit Time: {trade['exit_time']}")
@@ -98,14 +98,14 @@ def test_metrics() -> None:
 
     # Get equity curve
     equity_curve = bench.logger.get_equity_curve()
-    print('📈 Equity Curve Statistics:')
-    print(f'  Equity Curve Points: {len(equity_curve)}')
-    print(f'  Final Equity: {equity_curve[-1]:.4f}')
-    print(f'  Highest Equity: {max(equity_curve):.4f}')
-    print(f'  Lowest Equity: {min(equity_curve):.4f}')
+    print("📈 Equity Curve Statistics:")
+    print(f"  Equity Curve Points: {len(equity_curve)}")
+    print(f"  Final Equity: {equity_curve[-1]:.4f}")
+    print(f"  Highest Equity: {max(equity_curve):.4f}")
+    print(f"  Lowest Equity: {min(equity_curve):.4f}")
 
-    print('\n✅ Quantitative metrics system test completed!')
+    print("\n✅ Quantitative metrics system test completed!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_metrics()

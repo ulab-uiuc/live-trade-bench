@@ -44,8 +44,8 @@ poetry install
 
 ```python
 # Fetch stock data
-from trading_bench.data_fetchers.stock_fetcher import fetch_price_data
-data = fetch_price_data("AAPL", period="1mo")
+from trading_bench.data_fetchers.stock_fetcher import fetch_stock_data
+data = fetch_stock_data("AAPL", period="1mo")
 
 # Evaluate Polymarket trades
 from trading_bench.evaluators.polymarket_evaluator import eval_polymarket

@@ -22,11 +22,11 @@ interface ModelsDisplayProps {
   setLastRefresh: (date: Date) => void;
 }
 
-const ModelsDisplay: React.FC<ModelsDisplayProps> = ({ 
-  modelsData, 
-  setModelsData, 
-  lastRefresh, 
-  setLastRefresh 
+const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
+  modelsData,
+  setModelsData,
+  lastRefresh,
+  setLastRefresh
 }) => {
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock' | 'option'>('all');
@@ -68,9 +68,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
   useEffect(() => {
     // Only fetch if we don't have data or if it's been more than a day
-    const shouldFetch = modelsData.length === 0 || 
+    const shouldFetch = modelsData.length === 0 ||
       (Date.now() - lastRefresh.getTime()) > 24 * 60 * 60 * 1000;
-    
+
     if (shouldFetch) {
       fetchModels();
     }

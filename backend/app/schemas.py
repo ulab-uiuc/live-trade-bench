@@ -5,27 +5,27 @@ from pydantic import BaseModel
 
 
 class ModelStatus(str, Enum):
-    ACTIVE = 'active'
-    INACTIVE = 'inactive'
-    TRAINING = 'training'
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    TRAINING = "training"
 
 
 class TradeType(str, Enum):
-    BUY = 'buy'
-    SELL = 'sell'
+    BUY = "buy"
+    SELL = "sell"
 
 
 class NewsImpact(str, Enum):
-    HIGH = 'high'
-    MEDIUM = 'medium'
-    LOW = 'low'
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
 
 
 class NewsCategory(str, Enum):
-    MARKET = 'market'
-    ECONOMIC = 'economic'
-    COMPANY = 'company'
-    TECH = 'tech'
+    MARKET = "market"
+    ECONOMIC = "economic"
+    COMPANY = "company"
+    TECH = "tech"
 
 
 class TradingModel(BaseModel):

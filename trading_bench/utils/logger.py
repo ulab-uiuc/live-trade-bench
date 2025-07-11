@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+
 
 def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """
@@ -30,4 +30,4 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
         # Add the handler to the logger
         logger.addHandler(ch)
 
-    return logger 
+    return logger

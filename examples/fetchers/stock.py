@@ -1,7 +1,9 @@
 # Example usage: fetch last week's daily prices for Apple
 
-from trading_bench.fetchers.stock_fetcher import fetch_price_data
 from datetime import datetime, timedelta
+
+from trading_bench.fetchers.stock_fetcher import fetch_stock_data
+
 
 def main():
     ticker = "AAPL"
@@ -11,14 +13,13 @@ def main():
     start_str = start_date.strftime("%Y-%m-%d")
     end_str = end_date.strftime("%Y-%m-%d")
 
-    print(f"\n📈 Fetching daily OHLCV data for {ticker} from {start_str} to {end_str}...\n")
+    print(
+        f"\n📈 Fetching daily OHLCV data for {ticker} from {start_str} to {end_str}...\n"
+    )
 
     try:
-        price_data = fetch_price_data(
-            ticker=ticker,
-            start_date=start_str,
-            end_date=end_str,
-            resolution="D"
+        price_data = fetch_stock_data(
+            ticker=ticker, start_date=start_str, end_date=end_str, resolution="D"
         )
 
         if not price_data:
@@ -56,6 +57,7 @@ def main():
 
     except Exception as e:
         print(f"❌ Error fetching data: {e}")
+
 
 if __name__ == "__main__":
     main()

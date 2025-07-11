@@ -1,13 +1,20 @@
 import random
 
-from app.schemas import (ModelStatus, NewsCategory, NewsImpact, NewsItem,
-                         Trade, TradeType, TradingModel)
+from app.schemas import (
+    ModelStatus,
+    NewsCategory,
+    NewsImpact,
+    NewsItem,
+    Trade,
+    TradeType,
+    TradingModel,
+)
 
 # Sample trading models data
 SAMPLE_MODELS: list[TradingModel] = [
     TradingModel(
-        id='1',
-        name='LSTM Deep Learning Model',
+        id="1",
+        name="LSTM Deep Learning Model",
         performance=78.5,
         accuracy=82.3,
         trades=145,
@@ -15,8 +22,8 @@ SAMPLE_MODELS: list[TradingModel] = [
         status=ModelStatus.ACTIVE,
     ),
     TradingModel(
-        id='2',
-        name='Random Forest Classifier',
+        id="2",
+        name="Random Forest Classifier",
         performance=65.2,
         accuracy=71.8,
         trades=89,
@@ -24,8 +31,8 @@ SAMPLE_MODELS: list[TradingModel] = [
         status=ModelStatus.ACTIVE,
     ),
     TradingModel(
-        id='3',
-        name='XGBoost Regressor',
+        id="3",
+        name="XGBoost Regressor",
         performance=71.9,
         accuracy=76.4,
         trades=112,
@@ -33,8 +40,8 @@ SAMPLE_MODELS: list[TradingModel] = [
         status=ModelStatus.INACTIVE,
     ),
     TradingModel(
-        id='4',
-        name='Support Vector Machine',
+        id="4",
+        name="Support Vector Machine",
         performance=55.8,
         accuracy=62.1,
         trades=67,
@@ -42,8 +49,8 @@ SAMPLE_MODELS: list[TradingModel] = [
         status=ModelStatus.TRAINING,
     ),
     TradingModel(
-        id='5',
-        name='Neural Network Ensemble',
+        id="5",
+        name="Neural Network Ensemble",
         performance=83.2,
         accuracy=87.6,
         trades=203,
@@ -72,17 +79,17 @@ def get_real_models_data() -> list[TradingModel]:
     # Performance gets calculated from their actual predictions vs market outcomes
     llm_models = [
         TradingModel(
-            id='claude-3.5-sonnet',
-            name='Claude 3.5 Sonnet',
+            id="claude-3.5-sonnet",
+            name="Claude 3.5 Sonnet",
             performance=0.0,  # % of correct predictions
-            accuracy=0.0,     # Same as performance
-            trades=0,         # Number of predictions made via run_trade()
-            profit=0.0,       # Total profit from eval() results
+            accuracy=0.0,  # Same as performance
+            trades=0,  # Number of predictions made via run_trade()
+            profit=0.0,  # Total profit from eval() results
             status=ModelStatus.INACTIVE,  # ACTIVE when making predictions
         ),
         TradingModel(
-            id='gpt-4',
-            name='GPT-4',
+            id="gpt-4",
+            name="GPT-4",
             performance=0.0,
             accuracy=0.0,
             trades=0,
@@ -90,8 +97,8 @@ def get_real_models_data() -> list[TradingModel]:
             status=ModelStatus.INACTIVE,
         ),
         TradingModel(
-            id='gemini-1.5-pro',
-            name='Gemini 1.5 Pro', 
+            id="gemini-1.5-pro",
+            name="Gemini 1.5 Pro",
             performance=0.0,
             accuracy=0.0,
             trades=0,
@@ -99,8 +106,8 @@ def get_real_models_data() -> list[TradingModel]:
             status=ModelStatus.INACTIVE,
         ),
         TradingModel(
-            id='claude-4-haiku',
-            name='Claude 4 Haiku',
+            id="claude-4-haiku",
+            name="Claude 4 Haiku",
             performance=0.0,
             accuracy=0.0,
             trades=0,
@@ -117,7 +124,7 @@ def get_trades_data() -> list[Trade]:
     return []
 
 
-def get_real_trades_data(ticker: str = 'NVDA', days: int = 7) -> list[Trade]:
+def get_real_trades_data(ticker: str = "NVDA", days: int = 7) -> list[Trade]:
     """Get real trading data by fetching stock prices."""
     import os
     import sys
@@ -130,21 +137,21 @@ def get_real_trades_data(ticker: str = 'NVDA', days: int = 7) -> list[Trade]:
     sys.path.insert(0, project_root)
 
     try:
-        from trading_bench.fetchers.stock_fetcher import fetch_price_data
+        from trading_bench.fetchers.stock_fetcher import fetch_stock_data
 
         # Calculate date range
         end_date = datetime.now() - timedelta(days=1)  # Yesterday
         start_date = end_date - timedelta(days=days)
 
         # Fetch real stock data
-        price_data = fetch_price_data(
+        price_data = fetch_stock_data(
             ticker=ticker,
-            start_date=start_date.strftime('%Y-%m-%d'),
-            end_date=(end_date + timedelta(days=1)).strftime('%Y-%m-%d'),
-            resolution='D',
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=(end_date + timedelta(days=1)).strftime("%Y-%m-%d"),
+            resolution="D",
         )
         if not price_data:
-            print('No price data available for the specified ticker and date range.')
+            print("No price data available for the specified ticker and date range.")
             return []
 
         # Convert price data to trade records
@@ -159,18 +166,18 @@ def get_real_trades_data(ticker: str = 'NVDA', days: int = 7) -> list[Trade]:
                 # Simple trading logic: buy if price went up next day
                 trade_type = (
                     TradeType.BUY
-                    if next_data['close'] > data['close']
+                    if next_data["close"] > data["close"]
                     else TradeType.SELL
                 )
 
                 # Calculate profit (simplified)
                 if trade_type == TradeType.BUY:
                     profit = (
-                        next_data['close'] - data['close']
+                        next_data["close"] - data["close"]
                     ) * 100  # Assume 100 shares
                 else:
                     profit = (
-                        data['close'] - next_data['close']
+                        data["close"] - next_data["close"]
                     ) * 100  # Profit from selling
 
                 trade = Trade(
@@ -179,16 +186,16 @@ def get_real_trades_data(ticker: str = 'NVDA', days: int = 7) -> list[Trade]:
                     symbol=ticker.upper(),
                     type=trade_type,
                     amount=100,  # Fixed 100 shares
-                    price=data['close'],
+                    price=data["close"],
                     profit=profit,
-                    model='Real Data Model',
+                    model="Real Data Model",
                 )
                 trades.append(trade)
 
         return trades
 
     except Exception as e:
-        print(f'Error fetching real trades: {e}')
+        print(f"Error fetching real trades: {e}")
         return []
 
 
@@ -197,7 +204,7 @@ def get_news_data() -> list[NewsItem]:
     return []
 
 
-def get_real_news_data(query: str = 'stock market', days: int = 7) -> list[NewsItem]:
+def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsItem]:
     """Get real news data from Google News."""
     import os
     import sys
@@ -219,8 +226,8 @@ def get_real_news_data(query: str = 'stock market', days: int = 7) -> list[NewsI
         # Fetch real news data
         raw_news = fetch_news_data(
             query=query,
-            start_date=start_date.strftime('%Y-%m-%d'),
-            end_date=end_date.strftime('%Y-%m-%d'),
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
             max_pages=3,
         )
 
@@ -231,7 +238,7 @@ def get_real_news_data(query: str = 'stock market', days: int = 7) -> list[NewsI
                 # Parse date or use current time
                 try:
                     # Try to parse various date formats
-                    if 'ago' in article.get('date', ''):
+                    if "ago" in article.get("date", ""):
                         published_at = datetime.now() - timedelta(hours=1)
                     else:
                         published_at = datetime.now()
@@ -239,24 +246,24 @@ def get_real_news_data(query: str = 'stock market', days: int = 7) -> list[NewsI
                     published_at = datetime.now()
 
                 # Determine impact based on keywords
-                title_lower = article.get('title', '').lower()
-                snippet_lower = article.get('snippet', '').lower()
+                title_lower = article.get("title", "").lower()
+                snippet_lower = article.get("snippet", "").lower()
 
                 if any(
                     word in title_lower or word in snippet_lower
                     for word in [
-                        'crash',
-                        'surge',
-                        'breaking',
-                        'major',
-                        'federal',
-                        'rate',
+                        "crash",
+                        "surge",
+                        "breaking",
+                        "major",
+                        "federal",
+                        "rate",
                     ]
                 ):
                     impact = NewsImpact.HIGH
                 elif any(
                     word in title_lower or word in snippet_lower
-                    for word in ['rises', 'falls', 'earnings', 'report']
+                    for word in ["rises", "falls", "earnings", "report"]
                 ):
                     impact = NewsImpact.MEDIUM
                 else:
@@ -265,24 +272,24 @@ def get_real_news_data(query: str = 'stock market', days: int = 7) -> list[NewsI
                 # Determine category based on keywords
                 if any(
                     word in title_lower or word in snippet_lower
-                    for word in ['fed', 'federal', 'rate', 'inflation', 'economy']
+                    for word in ["fed", "federal", "rate", "inflation", "economy"]
                 ):
                     category = NewsCategory.ECONOMIC
                 elif any(
                     word in title_lower or word in snippet_lower
                     for word in [
-                        'tech',
-                        'ai',
-                        'software',
-                        'apple',
-                        'google',
-                        'microsoft',
+                        "tech",
+                        "ai",
+                        "software",
+                        "apple",
+                        "google",
+                        "microsoft",
                     ]
                 ):
                     category = NewsCategory.TECH
                 elif any(
                     word in title_lower or word in snippet_lower
-                    for word in ['earnings', 'company', 'ceo', 'revenue']
+                    for word in ["earnings", "company", "ceo", "revenue"]
                 ):
                     category = NewsCategory.COMPANY
                 else:
@@ -290,23 +297,23 @@ def get_real_news_data(query: str = 'stock market', days: int = 7) -> list[NewsI
 
                 news_item = NewsItem(
                     id=str(i + 1),
-                    title=article.get('title', 'No title'),
-                    summary=article.get('snippet', 'No summary'),
-                    source=article.get('source', 'Unknown'),
+                    title=article.get("title", "No title"),
+                    summary=article.get("snippet", "No summary"),
+                    source=article.get("source", "Unknown"),
                     published_at=published_at,
                     impact=impact,
                     category=category,
-                    url=article.get('link', '#'),
+                    url=article.get("link", "#"),
                 )
                 news_items.append(news_item)
 
             except Exception as e:
-                print(f'Error processing article {i}: {e}')
+                print(f"Error processing article {i}: {e}")
                 continue
 
         return news_items
 
     except Exception as e:
-        print(f'Error fetching real news: {e}')
+        print(f"Error fetching real news: {e}")
         # Fallback to sample data
         return []

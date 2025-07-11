@@ -4,10 +4,10 @@ from app.data import get_real_trades_data, get_trades_data
 from app.schemas import Trade, TradingSummary
 from fastapi import APIRouter, HTTPException, Query
 
-router = APIRouter(prefix='/api/trades', tags=['trades'])
+router = APIRouter(prefix="/api/trades", tags=["trades"])
 
 
-@router.get('/', response_model=list[Trade])
+@router.get("/", response_model=list[Trade])
 async def get_trades(
     limit: int = Query(default=50, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
@@ -34,10 +34,10 @@ async def get_trades(
 
         return trades
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f'Error fetching trades: {str(e)}')
+        raise HTTPException(status_code=500, detail=f"Error fetching trades: {str(e)}")
 
 
-@router.get('/summary', response_model=TradingSummary)
+@router.get("/summary", response_model=TradingSummary)
 async def get_trading_summary():
     """Get trading performance summary."""
     try:
@@ -75,11 +75,11 @@ async def get_trading_summary():
         )
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f'Error calculating summary: {str(e)}'
+            status_code=500, detail=f"Error calculating summary: {str(e)}"
         )
 
 
-@router.get('/stats')
+@router.get("/stats")
 async def get_trading_stats():
     """Get detailed trading statistics."""
     try:
@@ -87,14 +87,14 @@ async def get_trading_stats():
 
         if not trades:
             return {
-                'total_trades': 0,
-                'total_profit': 0.0,
-                'win_rate': 0.0,
-                'largest_win': 0.0,
-                'largest_loss': 0.0,
-                'average_win': 0.0,
-                'average_loss': 0.0,
-                'profit_factor': 0.0,
+                "total_trades": 0,
+                "total_profit": 0.0,
+                "win_rate": 0.0,
+                "largest_win": 0.0,
+                "largest_loss": 0.0,
+                "average_win": 0.0,
+                "average_loss": 0.0,
+                "profit_factor": 0.0,
             }
 
         profits = [t.profit for t in trades if t.profit > 0]
@@ -115,26 +115,26 @@ async def get_trading_stats():
         profit_factor = sum(profits) / total_loss_amount if profits else 0
 
         return {
-            'total_trades': len(trades),
-            'total_profit': round(total_profit, 2),
-            'win_rate': round(win_rate, 2),
-            'largest_win': round(largest_win, 2),
-            'largest_loss': round(largest_loss, 2),
-            'average_win': round(average_win, 2),
-            'average_loss': round(average_loss, 2),
-            'profit_factor': round(profit_factor, 2),
-            'total_wins': total_wins,
-            'total_losses': total_losses,
-            'symbols_traded': list(set(t.symbol for t in trades)),
-            'models_used': list(set(t.model for t in trades)),
+            "total_trades": len(trades),
+            "total_profit": round(total_profit, 2),
+            "win_rate": round(win_rate, 2),
+            "largest_win": round(largest_win, 2),
+            "largest_loss": round(largest_loss, 2),
+            "average_win": round(average_win, 2),
+            "average_loss": round(average_loss, 2),
+            "profit_factor": round(profit_factor, 2),
+            "total_wins": total_wins,
+            "total_losses": total_losses,
+            "symbols_traded": list(set(t.symbol for t in trades)),
+            "models_used": list(set(t.model for t in trades)),
         }
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f'Error calculating stats: {str(e)}'
+            status_code=500, detail=f"Error calculating stats: {str(e)}"
         )
 
 
-@router.get('/by-symbol/{symbol}')
+@router.get("/by-symbol/{symbol}")
 async def get_trades_by_symbol(symbol: str):
     """Get all trades for a specific symbol."""
     try:
@@ -143,7 +143,7 @@ async def get_trades_by_symbol(symbol: str):
 
         if not symbol_trades:
             raise HTTPException(
-                status_code=404, detail=f'No trades found for symbol {symbol}'
+                status_code=404, detail=f"No trades found for symbol {symbol}"
             )
 
         # Calculate symbol-specific metrics
@@ -153,14 +153,14 @@ async def get_trades_by_symbol(symbol: str):
         win_rate = (profitable_trades / total_trades) * 100 if total_trades > 0 else 0
 
         return {
-            'symbol': symbol.upper(),
-            'trades': symbol_trades,
-            'summary': {
-                'total_trades': total_trades,
-                'total_profit': round(total_profit, 2),
-                'profitable_trades': profitable_trades,
-                'win_rate': round(win_rate, 2),
-                'average_profit': round(total_profit / total_trades, 2)
+            "symbol": symbol.upper(),
+            "trades": symbol_trades,
+            "summary": {
+                "total_trades": total_trades,
+                "total_profit": round(total_profit, 2),
+                "profitable_trades": profitable_trades,
+                "win_rate": round(win_rate, 2),
+                "average_profit": round(total_profit / total_trades, 2)
                 if total_trades > 0
                 else 0,
             },
@@ -169,11 +169,11 @@ async def get_trades_by_symbol(symbol: str):
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f'Error fetching symbol trades: {str(e)}'
+            status_code=500, detail=f"Error fetching symbol trades: {str(e)}"
         )
 
 
-@router.get('/by-model/{model_name}')
+@router.get("/by-model/{model_name}")
 async def get_trades_by_model(model_name: str):
     """Get all trades for a specific model."""
     try:
@@ -182,7 +182,7 @@ async def get_trades_by_model(model_name: str):
 
         if not model_trades:
             raise HTTPException(
-                status_code=404, detail=f'No trades found for model {model_name}'
+                status_code=404, detail=f"No trades found for model {model_name}"
             )
 
         # Calculate model-specific metrics
@@ -192,14 +192,14 @@ async def get_trades_by_model(model_name: str):
         win_rate = (profitable_trades / total_trades) * 100 if total_trades > 0 else 0
 
         return {
-            'model': model_name,
-            'trades': model_trades,
-            'summary': {
-                'total_trades': total_trades,
-                'total_profit': round(total_profit, 2),
-                'profitable_trades': profitable_trades,
-                'win_rate': round(win_rate, 2),
-                'average_profit': round(total_profit / total_trades, 2)
+            "model": model_name,
+            "trades": model_trades,
+            "summary": {
+                "total_trades": total_trades,
+                "total_profit": round(total_profit, 2),
+                "profitable_trades": profitable_trades,
+                "win_rate": round(win_rate, 2),
+                "average_profit": round(total_profit / total_trades, 2)
                 if total_trades > 0
                 else 0,
             },
@@ -208,15 +208,15 @@ async def get_trades_by_model(model_name: str):
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f'Error fetching model trades: {str(e)}'
+            status_code=500, detail=f"Error fetching model trades: {str(e)}"
         )
 
 
-@router.get('/real', response_model=list[Trade])
+@router.get("/real", response_model=list[Trade])
 async def get_real_trades(
-    ticker: str = Query(default='NVDA', description='Stock ticker symbol'),
+    ticker: str = Query(default="NVDA", description="Stock ticker symbol"),
     days: int = Query(
-        default=7, ge=1, le=30, description='Number of days of trading data'
+        default=7, ge=1, le=30, description="Number of days of trading data"
     ),
 ):
     """Get real trading data by fetching stock prices."""
@@ -225,5 +225,5 @@ async def get_real_trades(
         return real_trades
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f'Error fetching real trades: {str(e)}'
+            status_code=500, detail=f"Error fetching real trades: {str(e)}"
         )

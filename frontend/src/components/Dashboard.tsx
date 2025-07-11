@@ -23,11 +23,11 @@ interface DashboardProps {
   setModelsLastRefresh: (date: Date) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ 
-  modelsData, 
-  setModelsData, 
-  modelsLastRefresh, 
-  setModelsLastRefresh 
+const Dashboard: React.FC<DashboardProps> = ({
+  modelsData,
+  setModelsData,
+  modelsLastRefresh,
+  setModelsLastRefresh
 }) => {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
@@ -42,7 +42,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="dashboard">
       <div className="models-section">
-        <ModelsDisplay 
+        <ModelsDisplay
           modelsData={modelsData}
           setModelsData={setModelsData}
           lastRefresh={modelsLastRefresh}
