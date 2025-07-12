@@ -23,8 +23,8 @@ from .polymarket_evaluator import (
 )
 
 # Stock evaluation
-from .stock_evaluator import ReturnEvaluator, StockEvaluator
-from .stock_evaluator import eval as eval_stock
+from .stock_evaluator import StockEvaluator
+from .stock_evaluator import eval_stock
 
 __all__ = [
     # Base classes
@@ -36,7 +36,6 @@ __all__ = [
     "parse_actions",
     # Stock evaluation
     "StockEvaluator",
-    "ReturnEvaluator",
     "eval_stock",
     # Polymarket evaluation
     "PolymarketEvaluator",
