@@ -9,44 +9,42 @@ This package provides evaluation capabilities for different types of trading str
 All evaluators inherit from BaseEvaluator and use typed Action classes for standardized interfaces.
 """
 
+from .action import PolymarketAction, StockAction, parse_actions
+
 # Base classes and utilities
 from .base import BaseEvaluator, PositionTracker
-from .utils import StockAction, PolymarketAction, parse_actions
+
+# Polymarket evaluation
+from .polymarket_evaluator import (
+    PolymarketEvaluator,
+    analyze_market_efficiency,
+    calculate_kelly_criterion,
+    eval_polymarket,
+)
 
 # Stock evaluation
-from .stock_evaluator import StockEvaluator, ReturnEvaluator, eval as eval_stock
-
-# Polymarket evaluation  
-from .polymarket_evaluator import (
-    PolymarketEvaluator, 
-    eval_polymarket,
-    calculate_kelly_criterion,
-    analyze_market_efficiency
-)
+from .stock_evaluator import ReturnEvaluator, StockEvaluator
+from .stock_evaluator import eval as eval_stock
 
 __all__ = [
     # Base classes
     "BaseEvaluator",
     "PositionTracker",
-    
     # Action classes
     "StockAction",
-    "PolymarketAction", 
+    "PolymarketAction",
     "parse_actions",
-    
     # Stock evaluation
-    "StockEvaluator", 
+    "StockEvaluator",
     "ReturnEvaluator",
     "eval_stock",
-    
     # Polymarket evaluation
     "PolymarketEvaluator",
     "eval_polymarket",
-    
     # Utility functions
     "calculate_kelly_criterion",
     "analyze_market_efficiency",
 ]
 
 # Version info
-__version__ = "2.0.0" 
+__version__ = "2.0.0"

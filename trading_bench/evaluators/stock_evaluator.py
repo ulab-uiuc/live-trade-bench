@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from ..fetchers.stock_fetcher import fetch_stock_data  # type: ignore
+from .action import StockAction, parse_actions
 from .base_evaluator import BaseEvaluator, PositionTracker
-from .utils import StockAction, parse_actions
 
 
 class StockEvaluator(BaseEvaluator):
@@ -97,7 +97,6 @@ class StockEvaluator(BaseEvaluator):
         return "stock"
 
 
-# one‑liner helper
-def eval(actions):  # type: ignore
+def eval_stock(actions):  # type: ignore
     """Legacy function for backward compatibility."""
     return StockEvaluator().evaluate(actions)["total_pnl"]

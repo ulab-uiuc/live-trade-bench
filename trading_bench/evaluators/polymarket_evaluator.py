@@ -7,8 +7,8 @@ import random
 from datetime import datetime, timedelta
 from typing import Any, Dict
 
+from .action import PolymarketAction, parse_actions
 from .base_evaluator import BaseEvaluator, PositionTracker
-from .utils import PolymarketAction, parse_actions
 
 
 class PolymarketEvaluator(BaseEvaluator):
@@ -81,9 +81,6 @@ class PolymarketEvaluator(BaseEvaluator):
     # --------------------------------------------------
     def get_evaluator_type(self) -> str:  # noqa: D401
         return "polymarket"
-
-
-# one‑liner helper
 
 
 def eval_polymarket(actions, market_outcomes=None):  # type: ignore
