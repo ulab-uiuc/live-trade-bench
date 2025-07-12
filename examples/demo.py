@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
-from trading_bench.evaluators import eval_stock as eval
+from trading_bench.evaluators import eval_stock
 from trading_bench.fetchers.news_fetcher import fetch_news_data
 from trading_bench.fetchers.stock_fetcher import fetch_stock_data
 from trading_bench.model import AIStockAnalysisModel
@@ -97,7 +97,7 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
 
     # Evaluation
     print("[4/4] Evaluating trading actions for profit/loss...")
-    profit = eval(actions) if actions else 0.0
+    profit = eval_stock(actions) if actions else 0.0
     print(f"    Evaluation Result: Total profit/loss = ${profit:.2f}\n")
 
     return {

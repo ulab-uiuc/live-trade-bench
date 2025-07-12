@@ -12,7 +12,7 @@ All evaluators inherit from BaseEvaluator and use typed Action classes for stand
 from .action import PolymarketAction, StockAction, parse_actions
 
 # Base classes and utilities
-from .base import BaseEvaluator, PositionTracker
+from .base_evaluator import BaseEvaluator, PositionTracker
 
 # Polymarket evaluation
 from .polymarket_evaluator import (
