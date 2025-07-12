@@ -207,7 +207,7 @@ def demonstrate_action_classes():
             timestamp="2024-01-10",
             price=0.3,
             quantity=500,
-            confidence=0.7
+            confidence=0.7,
         ),
         PolymarketAction(
             market_id="crypto_2024",
@@ -216,7 +216,7 @@ def demonstrate_action_classes():
             timestamp="2024-02-15",
             price=0.6,
             quantity=300,
-            confidence=0.8
+            confidence=0.8,
         ),
         PolymarketAction(
             market_id="ai_breakthrough",
@@ -225,13 +225,15 @@ def demonstrate_action_classes():
             timestamp="2024-01-20",
             price=0.8,
             quantity=100,
-            confidence=0.6
+            confidence=0.6,
         ),
     ]
 
     print("Created actions using PolymarketAction classes:")
     for i, action in enumerate(actions, 1):
-        print(f"  Action {i}: {action.action.upper()} {action.quantity} {action.outcome.upper()} @ ${action.price:.2f}")
+        print(
+            f"  Action {i}: {action.action.upper()} {action.quantity} {action.outcome.upper()} @ ${action.price:.2f}"
+        )
 
     # Market outcomes
     market_outcomes = {
@@ -243,7 +245,7 @@ def demonstrate_action_classes():
     evaluator = PolymarketEvaluator()
     result = evaluator.evaluate(actions, market_outcomes)
 
-    print(f"\n✨ Results using Action classes:")
+    print("\n✨ Results using Action classes:")
     print(f"  Total P&L: ${result['total_pnl']:.2f}")
     print(f"  Realized P&L: ${result['realized_pnl']:.2f}")
     print(f"  Unrealized P&L: ${result['unrealized_pnl']:.2f}")
