@@ -486,8 +486,6 @@ class PolymarketFetcher(BaseFetcher):
             raise ValueError(f"Unknown fetch mode: {mode}")
 
 
-# TODO: Should we decide to use fetch with parameters or separate functions?
-# Backward compatibility functions
 def fetch_polymarket_markets(
     category: str | None = None, limit: int = 50
 ) -> list[dict]:

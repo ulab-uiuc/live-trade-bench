@@ -93,7 +93,6 @@ class StockFetcher(BaseFetcher):
         return data
 
 
-# Backward compatibility functions
 def fetch_stock_data(
     ticker: str, start_date: str, end_date: str, resolution: str = "D"
 ) -> dict:

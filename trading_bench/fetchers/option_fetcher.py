@@ -461,7 +461,6 @@ class OptionFetcher(BaseFetcher):
             raise RuntimeError(f"Failed to get option chain summary for {ticker}: {e}")
 
 
-# Backward compatibility functions
 def fetch_option_chain(ticker: str, expiration_date: str | None = None) -> dict:
     """Backward compatibility function."""
     fetcher = OptionFetcher()

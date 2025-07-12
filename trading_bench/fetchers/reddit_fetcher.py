@@ -347,7 +347,6 @@ class RedditFetcher(BaseFetcher):
         pass
 
 
-# Backward compatibility functions
 def fetch_top_from_category(
     category: Annotated[
         str, "Category to fetch top post from. Collection of subreddits."

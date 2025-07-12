@@ -12,10 +12,14 @@ def main():
     print("=" * 60)
 
 
+import os
+
 # Add trading_bench to path
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from trading_bench.evaluators.polymarket_evaluator import (
+from trading_bench.evaluators import (
     PolymarketEvaluator,
     analyze_market_efficiency,
     calculate_kelly_criterion,

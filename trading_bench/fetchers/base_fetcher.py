@@ -8,7 +8,7 @@ containing common functionality like retry logic, rate limiting, and error handl
 import random
 import time
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Dict, Union
 
 import requests
 from tenacity import (
@@ -65,7 +65,7 @@ class BaseFetcher(ABC):
         stop=stop_after_attempt(5),
     )
     def make_request(
-        self, url: str, headers: dict[str, str] | None = None, **kwargs
+        self, url: str, headers: Union[Dict[str, str], None] = None, **kwargs
     ) -> requests.Response:
         """
         Make a request with retry logic for rate limiting.
