@@ -12,10 +12,15 @@ def main():
     print("=" * 60)
 
 
+import os
+
 # Add trading_bench to path
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from trading_bench.evaluators.polymarket_evaluator import (
+from trading_bench.evaluators import (
+    PolymarketAction,
     PolymarketEvaluator,
     analyze_market_efficiency,
     calculate_kelly_criterion,
@@ -185,15 +190,66 @@ def demonstrate_evaluator_class():
         print(f"  Returns: ${result['total_pnl']:.2f}")
         print(f"  Accuracy: {result['prediction_accuracy']:.1%}")
 
-    # Get historical performance metrics
-    performance = evaluator.get_performance_metrics()
-    print("\n📊 Historical Performance Summary:")
-    print(f"  Average returns: ${performance['average_pnl']:.2f}")
-    print(f"  Total evaluations: {performance['total_evaluations']}")
-    print(f"  Average accuracy: {performance['average_accuracy']:.1%}")
-    print(f"  Best performance: ${performance['best_performance']:.2f}")
-    print(f"  Worst performance: ${performance['worst_performance']:.2f}")
-    print(f"  Consistency score: {performance['consistency_score']:.2f}")
+    print("\n📊 Multiple evaluations completed successfully!")
+
+
+def demonstrate_action_classes():
+    """Demonstrate using PolymarketAction classes directly"""
+    print("\n🎯 Demo 2.5: Using PolymarketAction Classes")
+    print("=" * 60)
+
+    # Create actions using PolymarketAction classes
+    actions = [
+        PolymarketAction(
+            market_id="crypto_2024",
+            outcome="yes",
+            action="buy",
+            timestamp="2024-01-10",
+            price=0.3,
+            quantity=500,
+            confidence=0.7,
+        ),
+        PolymarketAction(
+            market_id="crypto_2024",
+            outcome="yes",
+            action="sell",
+            timestamp="2024-02-15",
+            price=0.6,
+            quantity=300,
+            confidence=0.8,
+        ),
+        PolymarketAction(
+            market_id="ai_breakthrough",
+            outcome="no",
+            action="buy",
+            timestamp="2024-01-20",
+            price=0.8,
+            quantity=100,
+            confidence=0.6,
+        ),
+    ]
+
+    print("Created actions using PolymarketAction classes:")
+    for i, action in enumerate(actions, 1):
+        print(
+            f"  Action {i}: {action.action.upper()} {action.quantity} {action.outcome.upper()} @ ${action.price:.2f}"
+        )
+
+    # Market outcomes
+    market_outcomes = {
+        "crypto_2024": {"result": "yes", "resolution_date": "2024-12-31"},
+        "ai_breakthrough": {"result": "no", "resolution_date": "2024-12-31"},
+    }
+
+    # Evaluate using the action classes
+    evaluator = PolymarketEvaluator()
+    result = evaluator.evaluate(actions, market_outcomes)
+
+    print("\n✨ Results using Action classes:")
+    print(f"  Total P&L: ${result['total_pnl']:.2f}")
+    print(f"  Realized P&L: ${result['realized_pnl']:.2f}")
+    print(f"  Unrealized P&L: ${result['unrealized_pnl']:.2f}")
+    print(f"  Prediction accuracy: {result['prediction_accuracy']:.1%}")
 
 
 def demonstrate_kelly_criterion():
@@ -470,6 +526,7 @@ def main():
         # Execute all demonstrations
         demonstrate_basic_evaluation()
         demonstrate_evaluator_class()
+        demonstrate_action_classes()
         demonstrate_kelly_criterion()
         demonstrate_market_efficiency()
         demonstrate_json_input()
