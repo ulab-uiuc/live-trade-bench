@@ -47,13 +47,38 @@ interface Model {
   strategy?: string;
 }
 
+interface SocialPost {
+  id: string;
+  platform: 'reddit' | 'twitter' | 'discord' | 'telegram';
+  author: string;
+  content: string;
+  title?: string;
+  postedAt: Date;
+  engagement: {
+    upvotes?: number;
+    downvotes?: number;
+    likes?: number;
+    retweets?: number;
+    comments?: number;
+    shares?: number;
+  };
+  sentiment: 'positive' | 'negative' | 'neutral';
+  category: 'market' | 'stock' | 'tech' | 'options' | 'polymarket';
+  ticker?: string;
+  url?: string;
+  subreddit?: string;
+  hashtags?: string[];
+}
+
 function App() {
   const [newsData, setNewsData] = useState<NewsItem[]>([]);
   const [tradesData, setTradesData] = useState<Trade[]>([]);
   const [modelsData, setModelsData] = useState<Model[]>([]);
+  const [socialData, setSocialData] = useState<SocialPost[]>([]);
   const [newsLastRefresh, setNewsLastRefresh] = useState<Date>(new Date());
   const [tradesLastRefresh, setTradesLastRefresh] = useState<Date>(new Date());
   const [modelsLastRefresh, setModelsLastRefresh] = useState<Date>(new Date());
+  const [socialLastRefresh, setSocialLastRefresh] = useState<Date>(new Date());
 
   return (
     <Router>
@@ -76,7 +101,14 @@ function App() {
               setLastRefresh={setNewsLastRefresh}
             />
           } />
-          <Route path="/social" element={<SocialMedia />} />
+          <Route path="/social" element={
+            <SocialMedia 
+              socialData={socialData}
+              setSocialData={setSocialData}
+              lastRefresh={socialLastRefresh}
+              setLastRefresh={setSocialLastRefresh}
+            />
+          } />
           <Route path="/trading-history" element={
             <TradingHistoryPage
               tradesData={tradesData}

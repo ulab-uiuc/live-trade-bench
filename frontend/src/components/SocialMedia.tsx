@@ -16,25 +16,35 @@ interface SocialPost {
     shares?: number;
   };
   sentiment: 'positive' | 'negative' | 'neutral';
-  category: 'market' | 'stock' | 'crypto' | 'options' | 'polymarket';
+  category: 'market' | 'stock' | 'tech' | 'options' | 'polymarket';
   ticker?: string;
   url?: string;
   subreddit?: string;
   hashtags?: string[];
 }
 
-const SocialMedia: React.FC = () => {
-  const [posts, setPosts] = useState<SocialPost[]>([]);
+interface SocialMediaProps {
+  socialData: SocialPost[];
+  setSocialData: (posts: SocialPost[]) => void;
+  lastRefresh: Date;
+  setLastRefresh: (date: Date) => void;
+}
+
+const SocialMedia: React.FC<SocialMediaProps> = ({ 
+  socialData, 
+  setSocialData, 
+  lastRefresh, 
+  setLastRefresh 
+}) => {
   const [loading, setLoading] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [selectedPlatform, setSelectedPlatform] = useState<'all' | 'reddit' | 'twitter' | 'discord' | 'telegram'>('all');
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'market' | 'stock' | 'crypto' | 'options' | 'polymarket'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'market' | 'stock' | 'tech' | 'options' | 'polymarket'>('all');
 
   const fetchSocialPosts = async () => {
     setLoading(true);
     try {
-      // Fetch from backend API
-      const response = await fetch('http://localhost:8000/api/social/');
+      // Fetch real social media data from Reddit - get 5 posts from each category
+      const response = await fetch('http://localhost:8000/api/social/real?category=all');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -50,34 +60,36 @@ const SocialMedia: React.FC = () => {
         postedAt: new Date(post.posted_at),
         engagement: {
           upvotes: post.upvotes,
-          downvotes: post.downvotes,
-          likes: post.likes,
-          retweets: post.retweets,
           comments: post.comments,
-          shares: post.shares
         },
         sentiment: post.sentiment,
         category: post.category,
         ticker: post.ticker,
         url: post.url,
         subreddit: post.subreddit,
-        hashtags: post.hashtags
       }));
 
-      setPosts(transformedPosts);
+      setSocialData(transformedPosts);
       setLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching social posts:', error);
+      // Keep existing social data on error, don't clear it
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchSocialPosts();
+    // Only fetch if we don't have data or if it's been more than a day
+    const shouldFetch = socialData.length === 0 || 
+      (Date.now() - lastRefresh.getTime()) > 24 * 60 * 60 * 1000;
+    
+    if (shouldFetch) {
+      fetchSocialPosts();
+    }
 
-    // Auto-refresh every 30 minutes
-    const interval = setInterval(fetchSocialPosts, 30 * 60 * 1000);
+    // Auto-refresh every day
+    const interval = setInterval(fetchSocialPosts, 24 * 60 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
@@ -115,7 +127,7 @@ const SocialMedia: React.FC = () => {
     switch (category) {
       case 'market': return '#007bff';
       case 'stock': return '#28a745';
-      case 'crypto': return '#ffc107';
+      case 'tech': return '#17a2b8';
       case 'options': return '#fd7e14';
       case 'polymarket': return '#6f42c1';
       default: return '#6c757d';
@@ -141,27 +153,27 @@ const SocialMedia: React.FC = () => {
            (engagement.shares || 0) - (engagement.downvotes || 0);
   };
 
-  const filteredPosts = posts.filter(post => {
+  const filteredPosts = socialData.filter(post => {
     const platformMatch = selectedPlatform === 'all' || post.platform === selectedPlatform;
     const categoryMatch = selectedCategory === 'all' || post.category === selectedCategory;
     return platformMatch && categoryMatch;
   });
 
   const platformStats = {
-    reddit: posts.filter(p => p.platform === 'reddit').length,
-    twitter: posts.filter(p => p.platform === 'twitter').length,
-    discord: posts.filter(p => p.platform === 'discord').length,
-    telegram: posts.filter(p => p.platform === 'telegram').length,
-    total: posts.length
+    reddit: socialData.filter(p => p.platform === 'reddit').length,
+    twitter: socialData.filter(p => p.platform === 'twitter').length,
+    discord: socialData.filter(p => p.platform === 'discord').length,
+    telegram: socialData.filter(p => p.platform === 'telegram').length,
+    total: socialData.length
   };
 
   const categoryStats = {
-    market: posts.filter(p => p.category === 'market').length,
-    stock: posts.filter(p => p.category === 'stock').length,
-    crypto: posts.filter(p => p.category === 'crypto').length,
-    options: posts.filter(p => p.category === 'options').length,
-    polymarket: posts.filter(p => p.category === 'polymarket').length,
-    total: posts.length
+    market: socialData.filter(p => p.category === 'market').length,
+    stock: socialData.filter(p => p.category === 'stock').length,
+    tech: socialData.filter(p => p.category === 'tech').length,
+    options: socialData.filter(p => p.category === 'options').length,
+    polymarket: socialData.filter(p => p.category === 'polymarket').length,
+    total: socialData.length
   };
 
   return (
@@ -298,18 +310,18 @@ const SocialMedia: React.FC = () => {
             📈 Stock ({categoryStats.stock})
           </button>
           <button
-            onClick={() => setSelectedCategory('crypto')}
+            onClick={() => setSelectedCategory('tech')}
             style={{
               padding: '8px 16px',
-              border: '1px solid #ffc107',
+              border: '1px solid #17a2b8',
               borderRadius: '20px',
-              background: selectedCategory === 'crypto' ? '#ffc107' : 'white',
-              color: selectedCategory === 'crypto' ? 'white' : '#ffc107',
+              background: selectedCategory === 'tech' ? '#17a2b8' : 'white',
+              color: selectedCategory === 'tech' ? 'white' : '#17a2b8',
               cursor: 'pointer',
               fontSize: '14px'
             }}
           >
-            ₿ Crypto ({categoryStats.crypto})
+            💻 Tech ({categoryStats.tech})
           </button>
           <button
             onClick={() => setSelectedCategory('options')}
