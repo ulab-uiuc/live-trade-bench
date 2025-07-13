@@ -23,7 +23,7 @@ uvicorn = "*"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.6.0"
-nbmake = "^1.5.0"
+nbmake = "^1.5.5"
 types-setuptools = "^69.0.0.0"
 ruff = "^0.12.3"
 commitizen = "^3.14.1"
