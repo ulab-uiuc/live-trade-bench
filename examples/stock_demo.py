@@ -8,12 +8,12 @@ import os
 import sys
 from pathlib import Path
 
+from trading_bench.fetchers.stock_fetcher import fetch_stock_data
+from trading_bench.model import AIStockAnalysisModel
+
 # Add the project root to the path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
-
-from trading_bench.fetchers.stock_fetcher import fetch_stock_data
-from trading_bench.model import AIStockAnalysisModel
 
 
 def main():
@@ -70,7 +70,7 @@ def demonstrate_retry():
     print("This should demonstrate the retry logic...")
 
     try:
-        price_data = fetch_stock_data(ticker, start_date, end_date)
+        fetch_stock_data(ticker, start_date, end_date)
         print("Unexpected success!")
     except Exception as e:
         print(f"Expected error after retries: {e}")
