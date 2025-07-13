@@ -323,7 +323,6 @@ class RedditFetcher(BaseFetcher):
         }
 
 
-# Backward compatibility functions
 def fetch_top_from_category(
     category: str,
     date: str,

@@ -1,8 +1,4 @@
-#!/usr/bin/env python3
-"""
-Example script demonstrating how to use the price data fetching functionality
-and AI stock analysis.
-"""
+# Example usage: fetch last week's daily prices for Apple
 
 import os
 import sys
@@ -17,9 +13,6 @@ sys.path.insert(0, str(project_root))
 
 
 def main():
-    """Demonstrate price data fetching functionality with retry logic."""
-
-    # Example: Fetch Apple stock price data for the last month
     ticker = "AAPL"
     start_date = "2024-01-01"
     end_date = "2024-01-31"
@@ -91,87 +84,54 @@ def demonstrate_ai_analysis():
         print("   To enable AI analysis, set: export OPENAI_API_KEY='your-key-here'")
         return
 
-    # Use NVDA for AI analysis
-    ticker = "NVDA"
-    start_date = "2024-01-01"
-    end_date = "2024-01-31"
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
 
-    print(f"Fetching {ticker} data for AI analysis...")
-    print(f"Date range: {start_date} to {end_date}")
-    print("-" * 50)
+    print(
+        f"\n📈 Fetching daily OHLCV data for {ticker} from {start_str} to {end_str}...\n"
+    )
 
     try:
-        # Fetch price data
-        price_data = fetch_stock_data(ticker, start_date, end_date, "D")
+        price_data = fetch_stock_data(
+            ticker=ticker, start_date=start_str, end_date=end_str, resolution="D"
+        )
 
-        # Convert to price history list
-        dates = sorted(price_data.keys())
-        prices = [price_data[date]["close"] for date in dates]
+        if not price_data:
+            print("⚠️ No data returned.")
+            return
 
-        print(f"✓ Fetched {len(prices)} days of data")
-        print(f"✓ Price range: ${min(prices):.2f} - ${max(prices):.2f}")
-        print()
+        # Sort dates ascending
+        sorted_dates = sorted(price_data.keys())
+        print(f"✅ Retrieved {len(sorted_dates)} records:\n")
 
-        # Initialize AI model
-        print("Initializing AI Stock Analysis Model...")
-        ai_model = AIStockAnalysisModel(api_key=api_key)
-        print("✓ AI model initialized successfully")
-        print()
+        for date in sorted_dates:
+            ohlcv = price_data[date]
 
-        # Get AI prediction
-        print("Getting AI prediction...")
-        prediction = ai_model.get_trend_prediction(prices)
+            def fmt(x):
+                if isinstance(x, (int, float)):
+                    return f"{x:<6.2f}"
+                return f"{str(x):<6}"
 
-        print("🤖 AI Prediction Results:")
-        print(f"   Prediction: {prediction['prediction']}")
-        print(f"   Confidence: {prediction['confidence']:.2f}")
-        print(f"   Reasoning: {prediction['reasoning']}")
-        print(f"   Latest Price: ${prediction['latest_price']:.2f}")
-        print()
+            open_price = fmt(ohlcv.get("open", "N/A"))
+            high_price = fmt(ohlcv.get("high", "N/A"))
+            low_price = fmt(ohlcv.get("low", "N/A"))
+            close_price = fmt(ohlcv.get("close", "N/A"))
+            volume = ohlcv.get("volume", "N/A")
 
-        # Test buy signal
-        should_buy = ai_model.should_buy(prices)
-        print(f"📊 Trading Signal: {'🟢 BUY' if should_buy else '🔴 HOLD/SELL'}")
-        print()
+            print(
+                f"{date:<10} | "
+                f"Open: {open_price} "
+                f"High: {high_price} "
+                f"Low: {low_price} "
+                f"Close: {close_price} "
+                f"Volume: {volume}"
+            )
 
-        # # Run backtesting evaluation
-        # print("Running backtesting evaluation...")
-        # bench = SimBench(
-        #     ticker=ticker,
-        #     start_date=start_date,
-        #     end_date=end_date,
-        #     data_dir="./data",
-        #     model=ai_model,
-        #     eval_delay=1,
-        #     resolution="D"
-        # )
-
-        # results = bench.run()
-
-        # print("📈 Backtesting Results:")
-        # print(f"   Total Return: {results.get('total_return', 0):.2%}")
-        # print(f"   Win Rate: {results.get('win_rate', 0):.2%}")
-        # print(f"   Total Trades: {results.get('total_trades', 0)}")
-        # print(f"   Sharpe Ratio: {results.get('sharpe_ratio', 0):.2f}")
-        # print()
-
-        # # Final performance score
-        # performance_score = results.get('win_rate', 0) * 100
-        # print(f"🎯 Final Performance Score: {performance_score:.1f}/100")
-
-        # if performance_score > 60:
-        #     print("🟢 EXCELLENT: AI model shows strong predictive capability!")
-        # elif performance_score > 50:
-        #     print("🟡 GOOD: AI model shows decent predictive capability")
-        # else:
-        #     print("🔴 NEEDS IMPROVEMENT: AI model needs refinement")
+        print("\n🎯 Data fetch complete.\n")
 
     except Exception as e:
-        print(f"❌ Error in AI analysis: {e}")
-        print("   Make sure your OpenAI API key is valid and you have credits")
+        print(f"❌ Error fetching data: {e}")
 
 
 if __name__ == "__main__":
     main()
-    demonstrate_retry()
-    demonstrate_ai_analysis()

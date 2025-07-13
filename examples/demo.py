@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
+from typing import Any, Dict, List
 
-from trading_bench.evaluators.stock_evaluator import eval
+from trading_bench.evaluators import eval_stock
 from trading_bench.fetchers.news_fetcher import fetch_news_data
 from trading_bench.fetchers.stock_fetcher import fetch_stock_data
 from trading_bench.model import AIStockAnalysisModel
@@ -8,7 +9,7 @@ from trading_bench.model import AIStockAnalysisModel
 
 def fetch_news_for_ticker(
     ticker: str, date: str, days_back: int = 7, max_articles: int = 5
-) -> list[dict]:
+) -> List[Dict[str, Any]]:
     """
     Fetch recent news articles for a given stock ticker within a date range.
 
@@ -19,7 +20,7 @@ def fetch_news_for_ticker(
         max_articles (int, optional): Maximum number of articles to return. Defaults to 5.
 
     Returns:
-        list[dict]: List of news article dictionaries, each containing title, link, snippet, date, and source.
+        List[Dict[str, Any]]: List of news article dictionaries, each containing title, link, snippet, date, and source.
     """
     date_obj = datetime.strptime(date, "%Y-%m-%d")
     start = (date_obj - timedelta(days=days_back)).strftime("%Y-%m-%d")
@@ -96,7 +97,7 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
 
     # Evaluation
     print("[4/4] Evaluating trading actions for profit/loss...")
-    profit = eval(actions) if actions else 0.0
+    profit = eval_stock(actions) if actions else 0.0
     print(f"    Evaluation Result: Total profit/loss = ${profit:.2f}\n")
 
     return {

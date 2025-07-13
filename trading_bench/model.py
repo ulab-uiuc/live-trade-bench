@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List
 
 import openai
 
@@ -11,11 +11,11 @@ class BaseModel:
     def act(
         self,
         ticker: str,
-        price_history: list[float],
+        price_history: List[float],
         date: str,
         quantity: int = 1,
-        news_data: list[dict] = None,
-    ) -> list[dict]:
+        news_data: List[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
         """Return list of actions in the format expected by evaluator."""
         raise NotImplementedError("Subclasses must implement act method")
 
@@ -50,7 +50,7 @@ class AIStockAnalysisModel(BaseModel):
         self.model_name = model_name
 
     def _format_stock_data(
-        self, price_history: list[float], news_data: list[dict] = None
+        self, price_history: List[float], news_data: List[Dict[str, Any]] = None
     ) -> str:
         """Format stock price data and news into LLM prompt."""
         if not price_history:
@@ -123,7 +123,7 @@ class AIStockAnalysisModel(BaseModel):
 
         return prompt
 
-    def _call_llm_api(self, prompt: str) -> dict[str, Any]:
+    def _call_llm_api(self, prompt: str) -> Dict[str, Any]:
         """Call LLM API for trend prediction."""
         try:
             response = self.client.chat.completions.create(
@@ -183,11 +183,11 @@ class AIStockAnalysisModel(BaseModel):
     def act(
         self,
         ticker: str,
-        price_history: list[float],
+        price_history: List[float],
         date: str,
         quantity: int = None,
-        news_data: list[dict] = None,
-    ) -> list[dict]:
+        news_data: List[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
         """
         Get actions directly from AI model in evaluator format with news integration.
 

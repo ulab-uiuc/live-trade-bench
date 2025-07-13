@@ -6,6 +6,7 @@ using web scraping techniques.
 """
 
 from datetime import datetime
+from typing import Any, Dict, List
 
 from bs4 import BeautifulSoup
 
@@ -21,7 +22,7 @@ class NewsFetcher(BaseFetcher):
 
     def fetch(
         self, query: str, start_date: str, end_date: str, max_pages: int = 10
-    ) -> list[dict]:
+    ) -> List[Dict[str, Any]]:
         """
         Fetches news data for a given query and date range via Google News scraping.
         Args:
@@ -94,10 +95,9 @@ class NewsFetcher(BaseFetcher):
         return news_results
 
 
-# Backward compatibility functions
 def fetch_news_data(
     query: str, start_date: str, end_date: str, max_pages: int = 10
-) -> list[dict]:
+) -> List[Dict[str, Any]]:
     """
     Fetches news data for a given query and date range via Google News scraping.
     Args:
