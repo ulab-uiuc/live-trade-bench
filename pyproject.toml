@@ -17,6 +17,9 @@ requests = "*"
 beautifulsoup4 = "*"
 tenacity = "*"
 scipy = "*"
+praw = "*"
+fastapi = "*"
+uvicorn = "*"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.6.0"

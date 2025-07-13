@@ -1,4 +1,4 @@
-from app.routers import models, news, trades
+from app.routers import models, news, social, trades
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,6 +21,7 @@ app.add_middleware(
 app.include_router(models.router)
 app.include_router(trades.router)
 app.include_router(news.router)
+app.include_router(social.router)
 
 
 @app.get("/")
@@ -33,6 +34,7 @@ async def root():
             "models": "/api/models",
             "trades": "/api/trades",
             "news": "/api/news",
+            "social": "/api/social",
             "docs": "/docs",
             "redoc": "/redoc",
         },

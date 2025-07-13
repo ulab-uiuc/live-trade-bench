@@ -2,14 +2,14 @@
 Reddit data fetcher for trading bench.
 
 This module provides functions to fetch Reddit posts and comments data
-from local JSONL files organized by categories and subreddits.
+from live Reddit API using PRAW (Python Reddit API Wrapper).
 """
 
-import json
 import os
-import re
 from datetime import datetime
-from typing import Annotated
+from typing import Optional
+
+import praw
 
 from trading_bench.fetchers.base_fetcher import BaseFetcher
 
@@ -55,141 +55,166 @@ TICKER_TO_COMPANY = {
     "PINS": "Pinterest",
 }
 
+# Subreddit mapping for categories
+CATEGORY_SUBREDDITS = {
+    "company_news": ["investing", "stocks", "SecurityAnalysis", "ValueInvesting"],
+    "options": ["options", "thetagang", "wallstreetbets"],
+    "market": ["StockMarket", "investing", "wallstreetbets", "SecurityAnalysis"],
+    "tech": ["technology", "stocks", "investing"],
+}
+
 
 class RedditFetcher(BaseFetcher):
-    """Fetcher for Reddit data from local JSONL files."""
+    """Fetcher for Reddit data from live Reddit API."""
 
-    def __init__(self, min_delay: float = 0.1, max_delay: float = 0.5):
-        """Initialize the Reddit fetcher with minimal delays for local file access."""
+    def __init__(self, min_delay: float = 1.0, max_delay: float = 3.0):
+        """Initialize the Reddit fetcher with API rate limiting delays."""
         super().__init__(min_delay, max_delay)
+        self.reddit = self._initialize_reddit_client()
+
+    def _initialize_reddit_client(self) -> praw.Reddit:
+        """Initialize Reddit API client with credentials."""
+        # Use environment variables if available, otherwise use hardcoded values
+        client_id = os.getenv("REDDIT_CLIENT_ID", "FnNW8J67RErQf9jjtCBUtw")
+        client_secret = os.getenv(
+            "REDDIT_CLIENT_SECRET", "2HgpIGHn7oSkmUMSHDoHgjICJMRyWg"
+        )
+        user_agent = os.getenv("REDDIT_USER_AGENT", "live trade bench/1.0")
+
+        return praw.Reddit(
+            client_id=client_id,
+            client_secret=client_secret,
+            user_agent=user_agent,
+        )
+
+    def fetch(
+        self,
+        category: str,
+        query: Optional[str] = None,
+        max_limit: int = 50,
+        time_filter: str = "day",
+    ) -> list[dict]:
+        """
+        Fetch Reddit posts from live API.
+
+        Args:
+            category: Category of subreddits to fetch from
+            query: Optional search query (ticker symbol or keyword)
+            max_limit: Maximum number of posts to fetch
+            time_filter: Reddit time filter ('hour', 'day', 'week', 'month', 'year', 'all')
+
+        Returns:
+            List of dictionaries containing post data
+        """
+        subreddits = CATEGORY_SUBREDDITS.get(category, ["investing"])
+        all_posts = []
+
+        for subreddit_name in subreddits:
+            try:
+                subreddit = self.reddit.subreddit(subreddit_name)
+                posts_per_sub = max(1, max_limit // len(subreddits))
+
+                if query:
+                    # Search for specific query in subreddit
+                    posts = subreddit.search(
+                        query, sort="hot", time_filter=time_filter, limit=posts_per_sub
+                    )
+                else:
+                    # Get hot posts from subreddit
+                    posts = subreddit.hot(limit=posts_per_sub)
+
+                post_count = 0
+                for post in posts:
+                    try:
+                        # Filter by query if provided (additional filtering beyond search)
+                        if query and not self._post_matches_query(post, query):
+                            continue
+
+                        post_data = {
+                            "title": post.title,
+                            "content": post.selftext,
+                            "url": post.url,
+                            "upvotes": post.ups,
+                            "posted_date": datetime.fromtimestamp(
+                                post.created_utc
+                            ).strftime("%Y-%m-%d"),
+                            "subreddit": post.subreddit.display_name,
+                            "score": post.score,
+                            "num_comments": post.num_comments,
+                            "author": str(post.author) if post.author else "deleted",
+                            "created_utc": post.created_utc,
+                            "id": post.id,
+                        }
+                        all_posts.append(post_data)
+                        post_count += 1
+
+                        if len(all_posts) >= max_limit:
+                            break
+                    except Exception as e:
+                        print(f"Error processing post from r/{subreddit_name}: {e}")
+                        continue
+
+                print(f"Fetched {post_count} posts from r/{subreddit_name}")
+
+                # Apply rate limiting delay
+                self._rate_limit_delay()
+
+            except Exception as e:
+                print(f"Error fetching from r/{subreddit_name}: {e}")
+                continue
+
+            if len(all_posts) >= max_limit:
+                break
+
+        return all_posts[:max_limit]
+
+    def _post_matches_query(self, post, query: str) -> bool:
+        """Check if post matches the query (ticker symbol)."""
+        if not query:
+            return True
+
+        # Check title and content for ticker symbol or company name
+        text = f"{post.title} {post.selftext}".lower()
+
+        # Check for exact ticker match
+        if query.upper() in text.upper():
+            return True
+
+        # Check for company name match
+        if query.upper() in TICKER_TO_COMPANY:
+            company_names = TICKER_TO_COMPANY[query.upper()]
+            if "OR" in company_names:
+                names = company_names.split(" OR ")
+            else:
+                names = [company_names]
+
+            for name in names:
+                if name.lower() in text:
+                    return True
+
+        return False
 
     def fetch_top_from_category(
         self,
-        category: Annotated[
-            str, "Category to fetch top post from. Collection of subreddits."
-        ],
-        date: Annotated[str, "Date to fetch top posts from."],
-        max_limit: Annotated[int, "Maximum number of posts to fetch."],
-        query: Annotated[str, "Optional query to search for in the subreddit."] = None,
+        category: str,
+        date: str,
+        max_limit: int,
+        query: Optional[str] = None,
     ) -> list[dict]:
         """
-        Fetches top Reddit posts from a specific category and date.
+        Fetches top Reddit posts from a specific category.
+        Note: date parameter is ignored for live API (gets recent posts).
 
         Args:
-            category: Category to fetch top post from. Collection of subreddits.
-            date: Date to fetch top posts from in YYYY-MM-DD format.
-            max_limit: Maximum number of posts to fetch.
-            query: Optional ticker symbol to search for in company news.
+            category: Category to fetch posts from
+            date: Date (ignored for live API)
+            max_limit: Maximum number of posts to fetch
+            query: Optional ticker symbol to search for
 
         Returns:
-            List of dictionaries containing post data with title, content, url, upvotes, and posted_date.
-
-        Raises:
-            ValueError: If max_limit is less than the number of files in the category.
-            FileNotFoundError: If the data path or category directory doesn't exist.
+            List of dictionaries containing post data
         """
-        base_path = "reddit_data"
-
-        # Validate data path exists
-        if not os.path.exists(base_path):
-            raise FileNotFoundError(f"Data path '{base_path}' does not exist")
-
-        category_path = os.path.join(base_path, category)
-        if not os.path.exists(category_path):
-            raise FileNotFoundError(f"Category path '{category_path}' does not exist")
-
-        all_content = []
-
-        # Get list of JSONL files in the category
-        jsonl_files = [f for f in os.listdir(category_path) if f.endswith(".jsonl")]
-
-        if not jsonl_files:
-            raise ValueError(f"No JSONL files found in category '{category}'")
-
-        if max_limit < len(jsonl_files):
-            raise ValueError(
-                "REDDIT FETCHING ERROR: max limit is less than the number of files in the category. "
-                "Will not be able to fetch any posts"
-            )
-
-        limit_per_subreddit = max_limit // len(jsonl_files)
-
-        for data_file in jsonl_files:
-            all_content_curr_subreddit = []
-
-            file_path = os.path.join(category_path, data_file)
-
-            try:
-                with open(file_path, "rb") as f:
-                    for line in f:
-                        # Skip empty lines
-                        if not line.strip():
-                            continue
-
-                        try:
-                            parsed_line = json.loads(line)
-                        except json.JSONDecodeError:
-                            continue
-
-                        # Select only lines that are from the date
-                        post_date = datetime.utcfromtimestamp(
-                            parsed_line["created_utc"]
-                        ).strftime("%Y-%m-%d")
-
-                        if post_date != date:
-                            continue
-
-                        # If is company_news, check that the title or the content has the company's name (query) mentioned
-                        if "company" in category and query:
-                            search_terms = []
-                            if query in TICKER_TO_COMPANY:
-                                if "OR" in TICKER_TO_COMPANY[query]:
-                                    search_terms = TICKER_TO_COMPANY[query].split(
-                                        " OR "
-                                    )
-                                else:
-                                    search_terms = [TICKER_TO_COMPANY[query]]
-
-                            search_terms.append(query)
-
-                            found = False
-                            for term in search_terms:
-                                if re.search(
-                                    term, parsed_line["title"], re.IGNORECASE
-                                ) or re.search(
-                                    term, parsed_line["selftext"], re.IGNORECASE
-                                ):
-                                    found = True
-                                    break
-
-                            if not found:
-                                continue
-
-                        post = {
-                            "title": parsed_line["title"],
-                            "content": parsed_line["selftext"],
-                            "url": parsed_line["url"],
-                            "upvotes": parsed_line["ups"],
-                            "posted_date": post_date,
-                            "subreddit": data_file.replace(".jsonl", ""),
-                            "score": parsed_line.get("score", 0),
-                            "num_comments": parsed_line.get("num_comments", 0),
-                            "author": parsed_line.get("author", ""),
-                            "created_utc": parsed_line["created_utc"],
-                        }
-
-                        all_content_curr_subreddit.append(post)
-
-            except Exception as e:
-                print(f"Error reading file {data_file}: {e}")
-                continue
-
-            # Sort by upvotes in descending order
-            all_content_curr_subreddit.sort(key=lambda x: x["upvotes"], reverse=True)
-
-            all_content.extend(all_content_curr_subreddit[:limit_per_subreddit])
-
-        return all_content
+        return self.fetch(category=category, query=query, max_limit=max_limit)
 
     def fetch_posts_by_ticker(
         self, ticker: str, date: str, max_limit: int = 50
@@ -198,16 +223,14 @@ class RedditFetcher(BaseFetcher):
         Fetches Reddit posts specifically mentioning a given ticker symbol.
 
         Args:
-            ticker: Stock ticker symbol to search for.
-            date: Date to fetch posts from in YYYY-MM-DD format.
-            max_limit: Maximum number of posts to fetch.
+            ticker: Stock ticker symbol to search for
+            date: Date (ignored for live API)
+            max_limit: Maximum number of posts to fetch
 
         Returns:
-            List of dictionaries containing post data.
+            List of dictionaries containing post data
         """
-        return self.fetch_top_from_category(
-            category="company_news", date=date, max_limit=max_limit, query=ticker
-        )
+        return self.fetch(category="company_news", query=ticker, max_limit=max_limit)
 
     def fetch_sentiment_data(
         self, category: str, date: str, max_limit: int = 100
@@ -216,16 +239,14 @@ class RedditFetcher(BaseFetcher):
         Fetches Reddit posts for sentiment analysis.
 
         Args:
-            category: Category of subreddits to fetch from.
-            date: Date to fetch posts from in YYYY-MM-DD format.
-            max_limit: Maximum number of posts to fetch.
+            category: Category of subreddits to fetch from
+            date: Date (ignored for live API)
+            max_limit: Maximum number of posts to fetch
 
         Returns:
-            List of dictionaries containing post data with sentiment-relevant fields.
+            List of dictionaries containing post data with sentiment-relevant fields
         """
-        posts = self.fetch_top_from_category(
-            category=category, date=date, max_limit=max_limit
-        )
+        posts = self.fetch(category=category, max_limit=max_limit)
 
         # Add sentiment analysis fields
         for post in posts:
@@ -236,80 +257,38 @@ class RedditFetcher(BaseFetcher):
 
     def get_available_categories(self) -> list[str]:
         """
-        Get list of available categories in the Reddit data.
+        Get list of available categories.
 
         Returns:
-            List of available category names.
+            List of available category names
         """
-        data_path = "reddit_data"
-        if not os.path.exists(data_path):
-            return []
-
-        return [
-            d
-            for d in os.listdir(data_path)
-            if os.path.isdir(os.path.join(data_path, d))
-        ]
+        return list(CATEGORY_SUBREDDITS.keys())
 
     def get_available_dates(self, category: str) -> list[str]:
         """
         Get list of available dates for a specific category.
+        For live API, returns today's date.
 
         Args:
-            category: Category name.
+            category: Category name
 
         Returns:
-            List of available dates in YYYY-MM-DD format.
+            List containing today's date
         """
-        data_path = "reddit_data"
-        category_path = os.path.join(data_path, category)
-        if not os.path.exists(category_path):
-            return []
-
-        dates = set()
-
-        for data_file in os.listdir(category_path):
-            if not data_file.endswith(".jsonl"):
-                continue
-
-            file_path = os.path.join(category_path, data_file)
-
-            try:
-                with open(file_path, "rb") as f:
-                    for line in f:
-                        if not line.strip():
-                            continue
-
-                        try:
-                            parsed_line = json.loads(line)
-                            post_date = datetime.utcfromtimestamp(
-                                parsed_line["created_utc"]
-                            ).strftime("%Y-%m-%d")
-                            dates.add(post_date)
-                        except (json.JSONDecodeError, KeyError):
-                            continue
-
-            except Exception:
-                continue
-
-        return sorted(list(dates))
+        return [datetime.now().strftime("%Y-%m-%d")]
 
     def get_statistics(self, category: str, date: str) -> dict:
         """
-        Get statistics about Reddit posts for a category and date.
+        Get statistics about Reddit posts for a category.
 
         Args:
-            category: Category name.
-            date: Date in YYYY-MM-DD format.
+            category: Category name
+            date: Date (ignored for live API)
 
         Returns:
-            Dictionary containing statistics about the posts.
+            Dictionary containing statistics about the posts
         """
-        posts = self.fetch_top_from_category(
-            category=category,
-            date=date,
-            max_limit=1000,  # Get all posts for statistics
-        )
+        posts = self.fetch(category=category, max_limit=100)
 
         if not posts:
             return {
@@ -343,17 +322,12 @@ class RedditFetcher(BaseFetcher):
             "subreddits": subreddits,
         }
 
-    def fetch(self):
-        pass
-
 
 def fetch_top_from_category(
-    category: Annotated[
-        str, "Category to fetch top post from. Collection of subreddits."
-    ],
-    date: Annotated[str, "Date to fetch top posts from."],
-    max_limit: Annotated[int, "Maximum number of posts to fetch."],
-    query: Annotated[str, "Optional query to search for in the subreddit."] = None,
+    category: str,
+    date: str,
+    max_limit: int,
+    query: Optional[str] = None,
 ) -> list[dict]:
     """Backward compatibility function."""
     fetcher = RedditFetcher()

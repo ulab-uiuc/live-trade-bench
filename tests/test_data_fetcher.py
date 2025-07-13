@@ -2,6 +2,7 @@
 
 from unittest.mock import Mock, patch
 
+import pandas as pd
 import pytest
 
 from trading_bench.data_fetchers.news_fetcher import (

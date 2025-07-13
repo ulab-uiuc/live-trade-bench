@@ -1,4 +1,4 @@
-from app.data import SAMPLE_MODELS, get_models_data
+from app.data import SAMPLE_MODELS, get_models_data, get_real_models_data
 from app.schemas import APIResponse, TradingModel
 from fastapi import APIRouter, HTTPException
 
