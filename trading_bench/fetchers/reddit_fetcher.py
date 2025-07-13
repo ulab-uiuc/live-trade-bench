@@ -76,7 +76,9 @@ class RedditFetcher(BaseFetcher):
         """Initialize Reddit API client with credentials."""
         # Use environment variables if available, otherwise use hardcoded values
         client_id = os.getenv("REDDIT_CLIENT_ID", "FnNW8J67RErQf9jjtCBUtw")
-        client_secret = os.getenv("REDDIT_CLIENT_SECRET", "2HgpIGHn7oSkmUMSHDoHgjICJMRyWg")
+        client_secret = os.getenv(
+            "REDDIT_CLIENT_SECRET", "2HgpIGHn7oSkmUMSHDoHgjICJMRyWg"
+        )
         user_agent = os.getenv("REDDIT_USER_AGENT", "live trade bench/1.0")
 
         return praw.Reddit(

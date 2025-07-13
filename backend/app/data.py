@@ -242,7 +242,7 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
                         published_at = datetime.now() - timedelta(hours=1)
                     else:
                         published_at = datetime.now()
-                except:
+                except Exception:
                     published_at = datetime.now()
 
                 # Determine impact based on keywords
@@ -319,44 +319,49 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
         return []
 
 
-def get_real_social_data(category: str = "all", query: str = None, days: int = 7) -> list[dict]:
+def get_real_social_data(
+    category: str = "all", query: str = None, days: int = 7
+) -> list[dict]:
     """Get real social media data from Reddit across all categories."""
     import os
     import sys
-    from datetime import datetime, timedelta
-    
+    from datetime import datetime
+
     # Add trading_bench to path
     project_root = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
     sys.path.insert(0, project_root)
-    
+
     try:
-        from trading_bench.fetchers.reddit_fetcher import fetch_top_from_category, get_available_categories
-        
+        from trading_bench.fetchers.reddit_fetcher import (
+            fetch_top_from_category,
+            get_available_categories,
+        )
+
         # Get all available categories
         all_categories = get_available_categories()
         categories_to_fetch = [category] if category != "all" else all_categories
-        
+
         social_posts = []
-        
+
         # Fetch 5 posts from each category
         for cat in categories_to_fetch:
             try:
                 posts = fetch_top_from_category(
                     category=cat,
-                    date=datetime.now().strftime('%Y-%m-%d'),
+                    date=datetime.now().strftime("%Y-%m-%d"),
                     max_limit=5,
-                    query=query
+                    query=query,
                 )
                 # Add category info to each post
                 for post in posts:
-                    post['reddit_category'] = cat
+                    post["reddit_category"] = cat
                 social_posts.extend(posts)
             except Exception as e:
                 print(f"Error fetching Reddit data for category {cat}: {e}")
                 continue
-        
+
         # Convert to social media format
         social_items = []
         for i, post in enumerate(social_posts):
@@ -364,50 +369,66 @@ def get_real_social_data(category: str = "all", query: str = None, days: int = 7
                 # Determine sentiment based on keywords (simplified)
                 text = f"{post.get('title', '')} {post.get('content', '')}"
                 text_lower = text.lower()
-                
-                if any(word in text_lower for word in ['good', 'great', 'excellent', 'bullish', 'moon', 'rocket', '🚀']):
-                    sentiment = 'positive'
-                elif any(word in text_lower for word in ['bad', 'terrible', 'crash', 'bearish', 'dump', 'sell']):
-                    sentiment = 'negative'
+
+                if any(
+                    word in text_lower
+                    for word in [
+                        "good",
+                        "great",
+                        "excellent",
+                        "bullish",
+                        "moon",
+                        "rocket",
+                        "🚀",
+                    ]
+                ):
+                    sentiment = "positive"
+                elif any(
+                    word in text_lower
+                    for word in ["bad", "terrible", "crash", "bearish", "dump", "sell"]
+                ):
+                    sentiment = "negative"
                 else:
-                    sentiment = 'neutral'
-                
+                    sentiment = "neutral"
+
                 # Map Reddit category to frontend category
-                reddit_category = post.get('reddit_category', 'market')
-                
+                reddit_category = post.get("reddit_category", "market")
+
                 # Set the category based on which Reddit category this came from
-                if reddit_category == 'company_news':
-                    post_category = 'stock'
-                elif reddit_category == 'options':
-                    post_category = 'options'
-                elif reddit_category == 'tech':
-                    post_category = 'tech'
+                if reddit_category == "company_news":
+                    post_category = "stock"
+                elif reddit_category == "options":
+                    post_category = "options"
+                elif reddit_category == "tech":
+                    post_category = "tech"
                 else:
-                    post_category = 'market'
-                
+                    post_category = "market"
+
                 social_item = {
-                    'id': str(i + 1),
-                    'platform': 'reddit',
-                    'author': post.get('author', 'Unknown'),
-                    'content': post.get('content', post.get('title', 'No content')),
-                    'title': post.get('title', ''),
-                    'posted_at': datetime.utcfromtimestamp(post.get('created_utc', 0)).isoformat(),
-                    'upvotes': post.get('upvotes', 0),
-                    'comments': post.get('num_comments', 0),
-                    'sentiment': sentiment,
-                    'category': post_category,
-                    'ticker': query if query else None,
-                    'url': post.get('url', ''),
-                    'subreddit': post.get('subreddit', ''),
+                    "id": str(i + 1),
+                    "platform": "reddit",
+                    "author": post.get("author", "Unknown"),
+                    "content": post.get("content", post.get("title", "No content")),
+                    "title": post.get("title", ""),
+                    "posted_at": datetime.utcfromtimestamp(
+                        post.get("created_utc", 0)
+                    ).isoformat(),
+                    "upvotes": post.get("upvotes", 0),
+                    "comments": post.get("num_comments", 0),
+                    "sentiment": sentiment,
+                    "category": post_category,
+                    "ticker": query if query else None,
+                    "url": post.get("url", ""),
+                    "subreddit": post.get("subreddit", ""),
                 }
                 social_items.append(social_item)
-                
+
             except Exception as e:
                 print(f"Error processing social post {i}: {e}")
                 continue
-        
+
         return social_items
-        
+
     except Exception as e:
         print(f"Error fetching real social data: {e}")
         return []

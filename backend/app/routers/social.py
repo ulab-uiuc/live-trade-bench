@@ -1,6 +1,5 @@
-from fastapi import APIRouter, HTTPException, Query
-
 from app.data import get_real_social_data
+from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(prefix="/api/social", tags=["social"])
 
@@ -14,9 +13,16 @@ async def get_social_posts():
 
 @router.get("/real")
 async def get_real_social_posts(
-    category: str = Query(default="all", description="Reddit category to fetch from ('all' for all categories)"),
-    query: str = Query(default=None, description="Optional stock ticker or search query"),
-    days: int = Query(default=7, ge=1, le=30, description="Number of days to look back")
+    category: str = Query(
+        default="all",
+        description="Reddit category to fetch from ('all' for all categories)",
+    ),
+    query: str = Query(
+        default=None, description="Optional stock ticker or search query"
+    ),
+    days: int = Query(
+        default=7, ge=1, le=30, description="Number of days to look back"
+    ),
 ):
     """Get real social media data from Reddit. Fetches 5 posts from each category by default."""
     try:

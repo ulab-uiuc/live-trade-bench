@@ -102,7 +102,7 @@ function App() {
             />
           } />
           <Route path="/social" element={
-            <SocialMedia 
+            <SocialMedia
               socialData={socialData}
               setSocialData={setSocialData}
               lastRefresh={socialLastRefresh}

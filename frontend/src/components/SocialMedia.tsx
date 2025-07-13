@@ -30,11 +30,11 @@ interface SocialMediaProps {
   setLastRefresh: (date: Date) => void;
 }
 
-const SocialMedia: React.FC<SocialMediaProps> = ({ 
-  socialData, 
-  setSocialData, 
-  lastRefresh, 
-  setLastRefresh 
+const SocialMedia: React.FC<SocialMediaProps> = ({
+  socialData,
+  setSocialData,
+  lastRefresh,
+  setLastRefresh
 }) => {
   const [loading, setLoading] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<'all' | 'reddit' | 'twitter' | 'discord' | 'telegram'>('all');
@@ -81,9 +81,9 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
 
   useEffect(() => {
     // Only fetch if we don't have data or if it's been more than a day
-    const shouldFetch = socialData.length === 0 || 
+    const shouldFetch = socialData.length === 0 ||
       (Date.now() - lastRefresh.getTime()) > 24 * 60 * 60 * 1000;
-    
+
     if (shouldFetch) {
       fetchSocialPosts();
     }
