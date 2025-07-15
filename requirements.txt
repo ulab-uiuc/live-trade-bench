@@ -1,0 +1,16 @@
+python>=3.9,<3.12
+mypy
+beartype
+pydantic
+finnhub-python
+yfinance
+requests
+beautifulsoup4
+tenacity
+scipy
+praw
+fastapi
+uvicorn
+
+pytest
+pytest-asyncio 
