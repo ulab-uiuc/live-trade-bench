@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 from trading_bench.evaluators import eval_stock
 from trading_bench.fetchers.news_fetcher import fetch_news_data
 from trading_bench.fetchers.stock_fetcher import fetch_stock_data
-from trading_bench.model import AIStockAnalysisModel
+from trading_bench.model import AIStockAnalysisModel, PortfolioModel
 
 
 def fetch_news_for_ticker(
@@ -44,7 +44,7 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
     Returns:
         dict: Dictionary containing actions (list), profit (float), and news_count (int).
     """
-    # Fetch historical price data
+    # Single stock trading pipeline
     prices = fetch_stock_data(
         ticker=ticker, start_date="2024-12-01", end_date=date, resolution="D"
     )
@@ -52,8 +52,6 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
     print(
         f"[1/4] Price Data Loaded: {ticker} up to {date}. Latest closing price: ${closes[-1]:.2f}"
     )
-
-    # Fetch news data (optional)
     news = fetch_news_for_ticker(ticker, date) if include_news else []
     if include_news:
         print(
@@ -67,8 +65,6 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
             print(f"    ...and {len(news) - 3} more articles.")
     else:
         print("[2/4] News Data Skipped: News integration is disabled.")
-
-    # AI analysis
     print("[3/4] Running AI Stock Analysis Model to generate trading actions...")
     model = AIStockAnalysisModel()
     actions = (
@@ -94,12 +90,9 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
                 )
     else:
         print("      AI Model Output: No actionable trade signals generated.")
-
-    # Evaluation
     print("[4/4] Evaluating trading actions for profit/loss...")
     profit = eval_stock(actions) if actions else 0.0
     print(f"    Evaluation Result: Total profit/loss = ${profit:.2f}\n")
-
     return {
         "actions": actions,
         "profit": profit,
@@ -107,10 +100,45 @@ def run_trade(ticker: str, date: str, quantity: int, include_news: bool = True) 
     }
 
 
+def run_portfolio_demo(tickers: List[str], date: str, days_back: int = 7, max_articles: int = 5, total_capital: float = None):
+    """
+    Demo for PortfolioModel: fetch price/news for a stock pool, call PortfolioModel.act, and print the LLM's joint decision.
+    """
+    print("\n=== PortfolioModel: Joint LLM Decision for Stock Pool ===")
+    # Fetch price histories and news for all tickers
+    price_histories = {}
+    news_data = {}
+    for ticker in tickers:
+        prices = fetch_stock_data(
+            ticker=ticker, start_date=(datetime.strptime(date, "%Y-%m-%d") - timedelta(days=days_back+10)).strftime("%Y-%m-%d"), end_date=date, resolution="D"
+        )
+        closes = [prices[d]["close"] for d in sorted(prices)] if prices else []
+        price_histories[ticker] = closes
+        news_data[ticker] = fetch_news_for_ticker(ticker, date, days_back, max_articles)
+    # Call PortfolioModel
+    model = PortfolioModel()
+    actions = model.act(
+        tickers=tickers,
+        price_histories=price_histories,
+        news_data=news_data,
+        date=date,
+        total_capital=total_capital,
+    )
+    print("\nLLM Portfolio Decision:")
+    for act in actions:
+        print(f"  {act['ticker']}: {act['action'].upper()} | Weight: {act['weight']:.2f} | Confidence: {act['confidence']:.2f}")
+        print(f"    Reasoning: {act['reasoning']}")
+    return actions
+
+
 if __name__ == "__main__":
-    print("=== Live Trading Bench: Single Stock Example ===")
-    result = run_trade("AAPL", "2025-01-01", 10)
-    print("Live Backtest completed. Summary:")
-    print(f"  Actions taken: {len(result['actions'])}")
-    print(f"  Total profit/loss: ${result['profit']:.2f}")
-    print(f"  News articles used: {result['news_count']}")
+    # print("=== Live Trading Bench: Single Stock Example ===")
+    # result = run_trade("AAPL", "2025-01-01", 10)
+    # print("Live Backtest completed. Summary:")
+    # print(f"  Actions taken: {len(result['actions'])}")
+    # print(f"  Total profit/loss: ${result['profit']:.2f}")
+    # print(f"  News articles used: {result['news_count']}")
+
+    print("\n=== Live Trading Bench: Stock Pool Example (LLM Joint Decision) ===")
+    nasdaq_sample = ["AAPL", "MSFT", "GOOGL"]
+    run_portfolio_demo(nasdaq_sample, "2025-01-01", days_back=7, max_articles=3, total_capital=100000)

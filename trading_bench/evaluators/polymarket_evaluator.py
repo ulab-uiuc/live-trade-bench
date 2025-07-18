@@ -7,8 +7,8 @@ import random
 from datetime import datetime, timedelta
 from typing import Any, Dict
 
-from .action import PolymarketAction, parse_actions
-from .base_evaluator import BaseEvaluator, PositionTracker
+from trading_bench.evaluators.action import PolymarketAction, parse_actions
+from trading_bench.evaluators.base_evaluator import BaseEvaluator, PositionTracker
 
 
 class PolymarketEvaluator(BaseEvaluator):

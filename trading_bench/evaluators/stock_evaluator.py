@@ -6,9 +6,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
-from ..fetchers.stock_fetcher import fetch_stock_data  # type: ignore
-from .action import StockAction, parse_actions
-from .base_evaluator import BaseEvaluator, PositionTracker
+from trading_bench.fetchers.stock_fetcher import fetch_stock_data  # type: ignore
+from trading_bench.evaluators.action import StockAction, parse_actions
+from trading_bench.evaluators.base_evaluator import BaseEvaluator, PositionTracker
 
 
 class StockEvaluator(BaseEvaluator):
