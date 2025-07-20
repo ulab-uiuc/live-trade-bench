@@ -25,7 +25,7 @@ const News: React.FC<NewsProps> = ({ newsData, setNewsData, lastRefresh, setLast
     setLoading(true);
     try {
       // Fetch real news data instead of sample data
-      const response = await fetch('http://localhost:8000/api/news/real?query=stock%20market&days=7');
+      const response = await fetch('http://localhost:8000/api/news/?query=stock%20market&days=7');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -66,6 +66,7 @@ const News: React.FC<NewsProps> = ({ newsData, setNewsData, lastRefresh, setLast
     const interval = setInterval(fetchNews, 60 * 60 * 1000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getImpactColor = (impact: string) => {

@@ -44,7 +44,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
     setLoading(true);
     try {
       // Fetch real social media data from Reddit - get 5 posts from each category
-      const response = await fetch('http://localhost:8000/api/social/real?category=all');
+      const response = await fetch('http://localhost:8000/api/social/?category=all');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -92,6 +92,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
     const interval = setInterval(fetchSocialPosts, 24 * 60 * 60 * 1000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getPlatformColor = (platform: string) => {

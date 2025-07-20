@@ -15,12 +15,7 @@ from .action import PolymarketAction, StockAction, parse_actions
 from .base_evaluator import BaseEvaluator, PositionTracker
 
 # Polymarket evaluation
-from .polymarket_evaluator import (
-    PolymarketEvaluator,
-    analyze_market_efficiency,
-    calculate_kelly_criterion,
-    eval_polymarket,
-)
+from .polymarket_evaluator import PolymarketEvaluator, eval_polymarket
 
 # Stock evaluation
 from .stock_evaluator import StockEvaluator, eval_stock
@@ -39,9 +34,6 @@ __all__ = [
     # Polymarket evaluation
     "PolymarketEvaluator",
     "eval_polymarket",
-    # Utility functions
-    "calculate_kelly_criterion",
-    "analyze_market_efficiency",
 ]
 
 # Version info

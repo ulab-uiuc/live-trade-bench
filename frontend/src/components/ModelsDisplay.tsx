@@ -35,7 +35,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     setLoading(true);
     try {
       // Fetch real LLM models data
-      const response = await fetch('http://localhost:8000/api/models/real');
+      const response = await fetch('http://localhost:8000/api/models/');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -79,6 +79,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     const interval = setInterval(fetchModels, 24 * 60 * 60 * 1000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getStatusColor = (status: string) => {
