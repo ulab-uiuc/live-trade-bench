@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from app.data import get_real_trades_data, get_trades_data
+from app.data import get_real_trades_data
 from app.schemas import Trade, TradingSummary
 from fastapi import APIRouter, HTTPException, Query
 
@@ -9,14 +9,18 @@ router = APIRouter(prefix="/api/trades", tags=["trades"])
 
 @router.get("/", response_model=list[Trade])
 async def get_trades(
+    ticker: str = Query(default="NVDA", description="Stock ticker symbol"),
+    days: int = Query(
+        default=7, ge=1, le=30, description="Number of days of trading data"
+    ),
     limit: int = Query(default=50, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     symbol: str | None = Query(default=None),
     model: str | None = Query(default=None),
 ):
-    """Get trading history with optional filtering and pagination."""
+    """Get real trading history with optional filtering and pagination."""
     try:
-        trades = get_trades_data()
+        trades = get_real_trades_data(ticker=ticker, days=days)
 
         # Apply filters
         if symbol:
@@ -29,7 +33,7 @@ async def get_trades(
         trades.sort(key=lambda x: x.timestamp, reverse=True)
 
         # Apply pagination
-        total_trades = len(trades)
+        # total_trades = len(trades)
         trades = trades[offset : offset + limit]
 
         return trades
@@ -38,10 +42,15 @@ async def get_trades(
 
 
 @router.get("/summary", response_model=TradingSummary)
-async def get_trading_summary():
-    """Get trading performance summary."""
+async def get_trading_summary(
+    ticker: str = Query(default="NVDA", description="Stock ticker symbol"),
+    days: int = Query(
+        default=7, ge=1, le=30, description="Number of days of trading data"
+    ),
+):
+    """Get real trading performance summary."""
     try:
-        trades = get_trades_data()
+        trades = get_real_trades_data(ticker=ticker, days=days)
 
         if not trades:
             return TradingSummary(
@@ -80,10 +89,15 @@ async def get_trading_summary():
 
 
 @router.get("/stats")
-async def get_trading_stats():
-    """Get detailed trading statistics."""
+async def get_trading_stats(
+    ticker: str = Query(default="NVDA", description="Stock ticker symbol"),
+    days: int = Query(
+        default=7, ge=1, le=30, description="Number of days of trading data"
+    ),
+):
+    """Get detailed real trading statistics."""
     try:
-        trades = get_trades_data()
+        trades = get_real_trades_data(ticker=ticker, days=days)
 
         if not trades:
             return {
@@ -135,10 +149,15 @@ async def get_trading_stats():
 
 
 @router.get("/by-symbol/{symbol}")
-async def get_trades_by_symbol(symbol: str):
-    """Get all trades for a specific symbol."""
+async def get_trades_by_symbol(
+    symbol: str,
+    days: int = Query(
+        default=7, ge=1, le=30, description="Number of days of trading data"
+    ),
+):
+    """Get all real trades for a specific symbol."""
     try:
-        trades = get_trades_data()
+        trades = get_real_trades_data(ticker=symbol, days=days)
         symbol_trades = [t for t in trades if t.symbol.upper() == symbol.upper()]
 
         if not symbol_trades:
@@ -160,9 +179,9 @@ async def get_trades_by_symbol(symbol: str):
                 "total_profit": round(total_profit, 2),
                 "profitable_trades": profitable_trades,
                 "win_rate": round(win_rate, 2),
-                "average_profit": round(total_profit / total_trades, 2)
-                if total_trades > 0
-                else 0,
+                "average_profit": (
+                    round(total_profit / total_trades, 2) if total_trades > 0 else 0
+                ),
             },
         }
     except HTTPException:
@@ -174,10 +193,16 @@ async def get_trades_by_symbol(symbol: str):
 
 
 @router.get("/by-model/{model_name}")
-async def get_trades_by_model(model_name: str):
-    """Get all trades for a specific model."""
+async def get_trades_by_model(
+    model_name: str,
+    ticker: str = Query(default="NVDA", description="Stock ticker symbol"),
+    days: int = Query(
+        default=7, ge=1, le=30, description="Number of days of trading data"
+    ),
+):
+    """Get all real trades for a specific model."""
     try:
-        trades = get_trades_data()
+        trades = get_real_trades_data(ticker=ticker, days=days)
         model_trades = [t for t in trades if model_name.lower() in t.model.lower()]
 
         if not model_trades:
@@ -199,9 +224,9 @@ async def get_trades_by_model(model_name: str):
                 "total_profit": round(total_profit, 2),
                 "profitable_trades": profitable_trades,
                 "win_rate": round(win_rate, 2),
-                "average_profit": round(total_profit / total_trades, 2)
-                if total_trades > 0
-                else 0,
+                "average_profit": (
+                    round(total_profit / total_trades, 2) if total_trades > 0 else 0
+                ),
             },
         }
     except HTTPException:
