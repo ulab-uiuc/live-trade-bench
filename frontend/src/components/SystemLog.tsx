@@ -4,15 +4,28 @@ interface SystemAction {
   id: string;
   agentId: string;
   agentName: string;
-  agentType: 'data_collector' | 'trading_agent' | 'monitoring_agent' | 'risk_manager' | 'sentiment_analyzer' | 'market_analyzer';
-  action: string;
+  agentType: 'trading_agent';
+  action: 'BUY' | 'SELL' | 'HOLD';
   description: string;
-  status: 'success' | 'warning' | 'error' | 'info';
+  status: 'pending' | 'executed' | 'evaluated';
   timestamp: Date;
-  duration?: number; // in milliseconds
-  dataProcessed?: number; // number of records processed
-  targets?: string[]; // affected symbols, markets, etc.
-  metadata?: Record<string, any>; // additional context
+  targets?: string[]; // affected tickers
+  metadata?: {
+    ticker: string;
+    action_type: string;
+    quantity: number;
+    price: number;
+    reasoning: string;
+    portfolio_before: {
+      cash: number;
+      holdings: Record<string, number>;
+    };
+    portfolio_after: {
+      cash: number;
+      holdings: Record<string, number>;
+    };
+    total_cost: number;
+  };
 }
 
 interface SystemLogProps {
@@ -22,8 +35,8 @@ interface SystemLogProps {
 const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
   const [actions, setActions] = useState<SystemAction[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedAgentType, setSelectedAgentType] = useState<'all' | 'data_collector' | 'trading_agent' | 'monitoring_agent' | 'risk_manager' | 'sentiment_analyzer' | 'market_analyzer'>('all');
-  const [selectedStatus, setSelectedStatus] = useState<'all' | 'success' | 'warning' | 'error' | 'info'>('all');
+  const [selectedAgentType, setSelectedAgentType] = useState<'all' | 'trading_agent'>('all');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'executed' | 'evaluated'>('all');
 
   const fetchSystemLog = async () => {
     setLoading(true);
@@ -70,44 +83,50 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
 
   const getAgentTypeColor = (agentType: string) => {
     switch (agentType) {
-      case 'data_collector': return '#17a2b8';
       case 'trading_agent': return '#28a745';
-      case 'monitoring_agent': return '#ffc107';
-      case 'risk_manager': return '#dc3545';
-      case 'sentiment_analyzer': return '#6f42c1';
-      case 'market_analyzer': return '#fd7e14';
       default: return '#6c757d';
     }
   };
 
   const getAgentTypeIcon = (agentType: string) => {
     switch (agentType) {
-      case 'data_collector': return '📊';
       case 'trading_agent': return '🤖';
-      case 'monitoring_agent': return '👁️';
-      case 'risk_manager': return '🛡️';
-      case 'sentiment_analyzer': return '💭';
-      case 'market_analyzer': return '📈';
       default: return '⚙️';
+    }
+  };
+
+  const getActionIcon = (action: string) => {
+    switch (action) {
+      case 'BUY': return '📈';
+      case 'SELL': return '📉';
+      case 'HOLD': return '⏸️';
+      default: return '📝';
+    }
+  };
+
+  const getActionColor = (action: string) => {
+    switch (action) {
+      case 'BUY': return '#28a745';
+      case 'SELL': return '#dc3545';
+      case 'HOLD': return '#ffc107';
+      default: return '#6c757d';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'success': return '#28a745';
-      case 'warning': return '#ffc107';
-      case 'error': return '#dc3545';
-      case 'info': return '#17a2b8';
+      case 'pending': return '#ffc107';
+      case 'executed': return '#17a2b8';
+      case 'evaluated': return '#28a745';
       default: return '#6c757d';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'success': return '✅';
-      case 'warning': return '⚠️';
-      case 'error': return '❌';
-      case 'info': return 'ℹ️';
+      case 'pending': return '⏳';
+      case 'executed': return '✅';
+      case 'evaluated': return '📊';
       default: return '📝';
     }
   };
@@ -142,20 +161,21 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
     .slice(0, 20); // Show only the 20 most recent actions
 
   const agentTypeStats = {
-    data_collector: actions.filter(a => a.agentType === 'data_collector').length,
     trading_agent: actions.filter(a => a.agentType === 'trading_agent').length,
-    monitoring_agent: actions.filter(a => a.agentType === 'monitoring_agent').length,
-    risk_manager: actions.filter(a => a.agentType === 'risk_manager').length,
-    sentiment_analyzer: actions.filter(a => a.agentType === 'sentiment_analyzer').length,
-    market_analyzer: actions.filter(a => a.agentType === 'market_analyzer').length,
     total: actions.length
   };
 
   const statusStats = {
-    success: actions.filter(a => a.status === 'success').length,
-    warning: actions.filter(a => a.status === 'warning').length,
-    error: actions.filter(a => a.status === 'error').length,
-    info: actions.filter(a => a.status === 'info').length,
+    pending: actions.filter(a => a.status === 'pending').length,
+    executed: actions.filter(a => a.status === 'executed').length,
+    evaluated: actions.filter(a => a.status === 'evaluated').length,
+    total: actions.length
+  };
+
+  const actionStats = {
+    buy: actions.filter(a => a.action === 'BUY').length,
+    sell: actions.filter(a => a.action === 'SELL').length,
+    hold: actions.filter(a => a.action === 'HOLD').length,
     total: actions.length
   };
 
@@ -169,114 +189,9 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
         </span>
       </div>
 
-      {/* Agent Type Filter */}
-      <div style={{ marginBottom: '15px' }}>
-        <h3 style={{ marginBottom: '8px', fontSize: '0.9rem', color: '#333' }}>Agent Types</h3>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setSelectedAgentType('all')}
-            style={{
-              padding: '6px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '16px',
-              background: selectedAgentType === 'all' ? '#007bff' : 'white',
-              color: selectedAgentType === 'all' ? 'white' : '#333',
-              cursor: 'pointer',
-              fontSize: '12px'
-            }}
-          >
-            All ({agentTypeStats.total})
-          </button>
-          <button
-            onClick={() => setSelectedAgentType('data_collector')}
-            style={{
-              padding: '6px 12px',
-              border: '1px solid #17a2b8',
-              borderRadius: '16px',
-              background: selectedAgentType === 'data_collector' ? '#17a2b8' : 'white',
-              color: selectedAgentType === 'data_collector' ? 'white' : '#17a2b8',
-              cursor: 'pointer',
-              fontSize: '12px'
-            }}
-          >
-            📊 Data ({agentTypeStats.data_collector})
-          </button>
-          <button
-            onClick={() => setSelectedAgentType('trading_agent')}
-            style={{
-              padding: '6px 12px',
-              border: '1px solid #28a745',
-              borderRadius: '16px',
-              background: selectedAgentType === 'trading_agent' ? '#28a745' : 'white',
-              color: selectedAgentType === 'trading_agent' ? 'white' : '#28a745',
-              cursor: 'pointer',
-              fontSize: '12px'
-            }}
-          >
-            🤖 Trading ({agentTypeStats.trading_agent})
-          </button>
-          <button
-            onClick={() => setSelectedAgentType('monitoring_agent')}
-            style={{
-              padding: '6px 12px',
-              border: '1px solid #ffc107',
-              borderRadius: '16px',
-              background: selectedAgentType === 'monitoring_agent' ? '#ffc107' : 'white',
-              color: selectedAgentType === 'monitoring_agent' ? 'white' : '#ffc107',
-              cursor: 'pointer',
-              fontSize: '12px'
-            }}
-          >
-            👁️ Monitor ({agentTypeStats.monitoring_agent})
-          </button>
-          <button
-            onClick={() => setSelectedAgentType('risk_manager')}
-            style={{
-              padding: '6px 12px',
-              border: '1px solid #dc3545',
-              borderRadius: '16px',
-              background: selectedAgentType === 'risk_manager' ? '#dc3545' : 'white',
-              color: selectedAgentType === 'risk_manager' ? 'white' : '#dc3545',
-              cursor: 'pointer',
-              fontSize: '12px'
-            }}
-          >
-            🛡️ Risk ({agentTypeStats.risk_manager})
-          </button>
-          <button
-            onClick={() => setSelectedAgentType('sentiment_analyzer')}
-            style={{
-              padding: '6px 12px',
-              border: '1px solid #6f42c1',
-              borderRadius: '16px',
-              background: selectedAgentType === 'sentiment_analyzer' ? '#6f42c1' : 'white',
-              color: selectedAgentType === 'sentiment_analyzer' ? 'white' : '#6f42c1',
-              cursor: 'pointer',
-              fontSize: '12px'
-            }}
-          >
-            💭 Sentiment ({agentTypeStats.sentiment_analyzer})
-          </button>
-          <button
-            onClick={() => setSelectedAgentType('market_analyzer')}
-            style={{
-              padding: '6px 12px',
-              border: '1px solid #fd7e14',
-              borderRadius: '16px',
-              background: selectedAgentType === 'market_analyzer' ? '#fd7e14' : 'white',
-              color: selectedAgentType === 'market_analyzer' ? 'white' : '#fd7e14',
-              cursor: 'pointer',
-              fontSize: '12px'
-            }}
-          >
-            📈 Market ({agentTypeStats.market_analyzer})
-          </button>
-        </div>
-      </div>
-
       {/* Status Filter */}
       <div style={{ marginBottom: '15px' }}>
-        <h3 style={{ marginBottom: '8px', fontSize: '0.9rem', color: '#333' }}>Status</h3>
+        <h3 style={{ marginBottom: '8px', fontSize: '0.9rem', color: '#333' }}>Trading Action Status</h3>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
             onClick={() => setSelectedStatus('all')}
@@ -293,61 +208,84 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
             All ({statusStats.total})
           </button>
           <button
-            onClick={() => setSelectedStatus('success')}
-            style={{
-              padding: '6px 12px',
-              border: '1px solid #28a745',
-              borderRadius: '16px',
-              background: selectedStatus === 'success' ? '#28a745' : 'white',
-              color: selectedStatus === 'success' ? 'white' : '#28a745',
-              cursor: 'pointer',
-              fontSize: '12px'
-            }}
-          >
-            ✅ Success ({statusStats.success})
-          </button>
-          <button
-            onClick={() => setSelectedStatus('warning')}
+            onClick={() => setSelectedStatus('pending')}
             style={{
               padding: '6px 12px',
               border: '1px solid #ffc107',
               borderRadius: '16px',
-              background: selectedStatus === 'warning' ? '#ffc107' : 'white',
-              color: selectedStatus === 'warning' ? 'white' : '#ffc107',
+              background: selectedStatus === 'pending' ? '#ffc107' : 'white',
+              color: selectedStatus === 'pending' ? 'white' : '#ffc107',
               cursor: 'pointer',
               fontSize: '12px'
             }}
           >
-            ⚠️ Warning ({statusStats.warning})
+            ⏳ Pending ({statusStats.pending})
           </button>
           <button
-            onClick={() => setSelectedStatus('error')}
-            style={{
-              padding: '6px 12px',
-              border: '1px solid #dc3545',
-              borderRadius: '16px',
-              background: selectedStatus === 'error' ? '#dc3545' : 'white',
-              color: selectedStatus === 'error' ? 'white' : '#dc3545',
-              cursor: 'pointer',
-              fontSize: '12px'
-            }}
-          >
-            ❌ Error ({statusStats.error})
-          </button>
-          <button
-            onClick={() => setSelectedStatus('info')}
+            onClick={() => setSelectedStatus('executed')}
             style={{
               padding: '6px 12px',
               border: '1px solid #17a2b8',
               borderRadius: '16px',
-              background: selectedStatus === 'info' ? '#17a2b8' : 'white',
-              color: selectedStatus === 'info' ? 'white' : '#17a2b8',
+              background: selectedStatus === 'executed' ? '#17a2b8' : 'white',
+              color: selectedStatus === 'executed' ? 'white' : '#17a2b8',
               cursor: 'pointer',
               fontSize: '12px'
             }}
           >
-            ℹ️ Info ({statusStats.info})
+            ✅ Executed ({statusStats.executed})
           </button>
+          <button
+            onClick={() => setSelectedStatus('evaluated')}
+            style={{
+              padding: '6px 12px',
+              border: '1px solid #28a745',
+              borderRadius: '16px',
+              background: selectedStatus === 'evaluated' ? '#28a745' : 'white',
+              color: selectedStatus === 'evaluated' ? 'white' : '#28a745',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+          >
+            📊 Evaluated ({statusStats.evaluated})
+          </button>
+        </div>
+      </div>
+
+      {/* Action Summary */}
+      <div style={{ marginBottom: '15px' }}>
+        <h3 style={{ marginBottom: '8px', fontSize: '0.9rem', color: '#333' }}>Action Summary</h3>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{
+            padding: '4px 8px',
+            background: '#e8f5e8',
+            color: '#28a745',
+            borderRadius: '12px',
+            fontSize: '11px',
+            fontWeight: 'bold'
+          }}>
+            📈 {actionStats.buy} BUY
+          </span>
+          <span style={{
+            padding: '4px 8px',
+            background: '#ffeaea',
+            color: '#dc3545',
+            borderRadius: '12px',
+            fontSize: '11px',
+            fontWeight: 'bold'
+          }}>
+            📉 {actionStats.sell} SELL
+          </span>
+          <span style={{
+            padding: '4px 8px',
+            background: '#fff3cd',
+            color: '#ffc107',
+            borderRadius: '12px',
+            fontSize: '11px',
+            fontWeight: 'bold'
+          }}>
+            ⏸️ {actionStats.hold} HOLD
+          </span>
         </div>
       </div>
 
@@ -365,20 +303,21 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '16px' }}>{getAgentTypeIcon(action.agentType)}</span>
+                <span style={{ fontSize: '16px' }}>{getActionIcon(action.action)}</span>
                 <span style={{ fontSize: '16px' }}>{getStatusIcon(action.status)}</span>
                 <div>
                   <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
                     {action.agentName}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                    {action.action}
+                    {action.action} {action.targets ? action.targets[0] : ''}
                   </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <span
                   style={{
-                    backgroundColor: getAgentTypeColor(action.agentType),
+                    backgroundColor: getActionColor(action.action),
                     color: 'white',
                     padding: '2px 6px',
                     borderRadius: '4px',
@@ -387,7 +326,20 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
                     textTransform: 'uppercase'
                   }}
                 >
-                  {action.agentType.replace('_', ' ')}
+                  {action.action}
+                </span>
+                <span
+                  style={{
+                    backgroundColor: getStatusColor(action.status),
+                    color: 'white',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '0.7rem',
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  {action.status}
                 </span>
                 <span style={{ fontSize: '0.8rem', color: '#666' }}>
                   {formatTimeAgo(action.timestamp)}
@@ -401,22 +353,39 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: '#666' }}>
               <div style={{ display: 'flex', gap: '12px' }}>
-                {action.duration && (
-                  <span>⏱️ {formatDuration(action.duration)}</span>
-                )}
-                {action.dataProcessed && (
-                  <span>📊 {action.dataProcessed.toLocaleString()} records</span>
+                {action.metadata && (
+                  <>
+                    <span>💰 ${action.metadata.price.toFixed(2)}</span>
+                    <span>📊 {action.metadata.quantity} shares</span>
+                    {action.metadata.total_cost > 0 && (
+                      <span>💵 ${action.metadata.total_cost.toFixed(2)} total</span>
+                    )}
+                  </>
                 )}
                 {action.targets && action.targets.length > 0 && (
                   <span>🎯 {action.targets.join(', ')}</span>
                 )}
               </div>
               <div>
-                ID: {action.agentId}
+                Model: {action.agentId}
               </div>
             </div>
 
-            {action.metadata && Object.keys(action.metadata).length > 0 && (
+            {action.metadata?.reasoning && (
+              <div style={{
+                fontSize: '0.8rem',
+                color: '#555',
+                background: '#f8f9fa',
+                padding: '6px 8px',
+                borderRadius: '4px',
+                marginTop: '8px',
+                borderLeft: '3px solid #007bff'
+              }}>
+                <strong>Reasoning:</strong> {action.metadata.reasoning}
+              </div>
+            )}
+
+            {action.metadata && (action.metadata.portfolio_before || action.metadata.portfolio_after) && (
               <div style={{
                 fontSize: '0.75rem',
                 color: '#666',
@@ -426,10 +395,31 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
                 marginTop: '6px'
               }}>
                 <details>
-                  <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>Details</summary>
-                  <pre style={{ margin: '4px 0 0 0', fontSize: '0.7rem', whiteSpace: 'pre-wrap' }}>
-                    {JSON.stringify(action.metadata, null, 2)}
-                  </pre>
+                  <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>Portfolio Changes</summary>
+                  <div style={{ margin: '4px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    {action.metadata.portfolio_before && (
+                      <div>
+                        <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>Before:</div>
+                        <div>Cash: ${action.metadata.portfolio_before.cash.toFixed(2)}</div>
+                        <div>Holdings: {Object.keys(action.metadata.portfolio_before.holdings).length > 0
+                          ? Object.entries(action.metadata.portfolio_before.holdings)
+                            .map(([ticker, qty]) => `${ticker}: ${qty}`)
+                            .join(', ')
+                          : 'None'}</div>
+                      </div>
+                    )}
+                    {action.metadata.portfolio_after && (
+                      <div>
+                        <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>After:</div>
+                        <div>Cash: ${action.metadata.portfolio_after.cash.toFixed(2)}</div>
+                        <div>Holdings: {Object.keys(action.metadata.portfolio_after.holdings).length > 0
+                          ? Object.entries(action.metadata.portfolio_after.holdings)
+                            .map(([ticker, qty]) => `${ticker}: ${qty}`)
+                            .join(', ')
+                          : 'None'}</div>
+                      </div>
+                    )}
+                  </div>
                 </details>
               </div>
             )}
@@ -445,7 +435,11 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
           background: '#f8f9fa',
           borderRadius: '8px'
         }}>
-          <p>No system actions found for the selected filters.</p>
+          <p style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>No Trading Actions Yet</p>
+          <p style={{ fontSize: '14px' }}>Trading models haven't generated any BUY/SELL/HOLD decisions yet.</p>
+          <p style={{ fontSize: '12px', color: '#999', marginTop: '12px' }}>
+            Actions will appear here when models analyze market data and make trading decisions.
+          </p>
         </div>
       )}
     </div>

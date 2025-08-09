@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+
+import os
+import sys
+
+from trading_bench.evaluators.polymarket_evaluator import (
+    PolymarketEvaluator,
+    analyze_market_efficiency,
+    calculate_kelly_criterion,
+    eval_polymarket,
+)
+
 """
 Polymarket prediction market evaluator demonstration script
 Shows how to use the Polymarket evaluator to assess prediction market trading strategies
@@ -13,20 +24,12 @@ def main():
 
 
 import os
-
-# Add trading_bench to path
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-<<<<<<< HEAD
-from trading_bench.evaluators import (
-||||||| 8187782
-from trading_bench.evaluators.polymarket_evaluator import (
-=======
 from trading_bench.evaluators import (
     PolymarketAction,
->>>>>>> ce16017c508d783b9df241f101ad2be05478002e
     PolymarketEvaluator,
     analyze_market_efficiency,
     calculate_kelly_criterion,
