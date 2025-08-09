@@ -122,175 +122,111 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
   return (
     <div>
-      <div className="refresh-indicator">
-        <h2>Trading Models</h2>
-        {loading && <div className="spinner"></div>}
-        <span style={{ marginLeft: 'auto', fontSize: '0.875rem', color: '#666' }}>
-          Last updated: {lastRefresh.toLocaleTimeString()}
-        </span>
+      <div className="models-header">
+        <h2 className="models-title">Trading Models</h2>
+        <div className="refresh-indicator">
+          {loading && <div className="spinner"></div>}
+          <span>
+            Last updated: {lastRefresh.toLocaleTimeString()}
+          </span>
+        </div>
       </div>
 
       {/* Category Filter */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setSelectedCategory('all')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #ddd',
-              borderRadius: '20px',
-              background: selectedCategory === 'all' ? '#007bff' : 'white',
-              color: selectedCategory === 'all' ? 'white' : '#333',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            All ({categoryStats.total})
-          </button>
-          <button
-            onClick={() => setSelectedCategory('polymarket')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #8e44ad',
-              borderRadius: '20px',
-              background: selectedCategory === 'polymarket' ? '#8e44ad' : 'white',
-              color: selectedCategory === 'polymarket' ? 'white' : '#8e44ad',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            📊 Polymarket ({categoryStats.polymarket})
-          </button>
-          <button
-            onClick={() => setSelectedCategory('stock')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #3498db',
-              borderRadius: '20px',
-              background: selectedCategory === 'stock' ? '#3498db' : 'white',
-              color: selectedCategory === 'stock' ? 'white' : '#3498db',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            📈 Stock ({categoryStats.stock})
-          </button>
-          <button
-            onClick={() => setSelectedCategory('option')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #e67e22',
-              borderRadius: '20px',
-              background: selectedCategory === 'option' ? '#e67e22' : 'white',
-              color: selectedCategory === 'option' ? 'white' : '#e67e22',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            ⚡ Option ({categoryStats.option})
-          </button>
-        </div>
+      <div className="news-filters" style={{ marginBottom: '1.5rem' }}>
+        <button
+          onClick={() => setSelectedCategory('all')}
+          className={`filter-button ${selectedCategory === 'all' ? 'active' : ''}`}
+        >
+          All ({categoryStats.total})
+        </button>
+        <button
+          onClick={() => setSelectedCategory('polymarket')}
+          className={`filter-button ${selectedCategory === 'polymarket' ? 'active' : ''}`}
+        >
+          📊 Polymarket ({categoryStats.polymarket})
+        </button>
+        <button
+          onClick={() => setSelectedCategory('stock')}
+          className={`filter-button ${selectedCategory === 'stock' ? 'active' : ''}`}
+        >
+          📈 Stock ({categoryStats.stock})
+        </button>
+        <button
+          onClick={() => setSelectedCategory('option')}
+          className={`filter-button ${selectedCategory === 'option' ? 'active' : ''}`}
+        >
+          ⚡ Option ({categoryStats.option})
+        </button>
       </div>
 
-      {filteredModels.map(model => (
-        <div key={model.id} className="model-card" style={{
-          borderLeft: `4px solid ${getCategoryColor(model.category)}`,
-          marginBottom: '15px',
-          padding: '15px',
-          borderRadius: '8px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          background: 'white'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '20px' }}>{getCategoryIcon(model.category)}</span>
-              <h3 style={{ margin: 0, color: getCategoryColor(model.category) }}>{model.name}</h3>
+      <div className="models-grid">
+        {filteredModels.map(model => (
+          <div key={model.id} className="model-card">
+            <div className="model-header">
+              <h3 className="model-name">{model.name}</h3>
+              <span className={`model-category ${model.category}`}>
+                {getCategoryIcon(model.category)} {model.category}
+              </span>
             </div>
-            <span
-              style={{
-                color: getStatusColor(model.status),
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                fontSize: '0.875rem',
-                padding: '4px 8px',
-                borderRadius: '12px',
-                background: `${getStatusColor(model.status)}20`
-              }}
-            >
-              {model.status}
-            </span>
-          </div>
 
-          {/* Category-specific information */}
-          <div style={{ marginBottom: '10px', fontSize: '0.9rem', color: '#666' }}>
-            {model.category === 'polymarket' && model.market_type && (
-              <span style={{
-                background: '#8e44ad20',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                marginRight: '8px'
-              }}>
-                Market: {model.market_type}
-              </span>
-            )}
-            {model.category === 'stock' && model.ticker && (
-              <span style={{
-                background: '#3498db20',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                marginRight: '8px'
-              }}>
-                Ticker: {model.ticker}
-              </span>
-            )}
-            {model.category === 'option' && model.ticker && (
-              <span style={{
-                background: '#e67e2220',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                marginRight: '8px'
-              }}>
-                {model.ticker} {model.strategy && `- ${model.strategy}`}
-              </span>
-            )}
-          </div>
+            <div className="model-status">
+              <span className={`status-indicator ${model.status}`}></span>
+              <span className="status-text">{model.status}</span>
+            </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-            <div>
-              <p style={{ margin: '5px 0', fontSize: '0.9rem' }}>
-                <strong>Performance:</strong>
-                <span style={{ color: model.performance >= 0 ? '#28a745' : '#dc3545' }}>
+            {/* Category-specific information */}
+            <div style={{ marginBottom: '1rem' }}>
+              {model.category === 'polymarket' && model.market_type && (
+                <div className="metric-item">
+                  <span className="metric-label">Market Type</span>
+                  <span className="metric-value">{model.market_type}</span>
+                </div>
+              )}
+              {model.category === 'stock' && model.ticker && (
+                <div className="metric-item">
+                  <span className="metric-label">Ticker</span>
+                  <span className="metric-value">{model.ticker}</span>
+                </div>
+              )}
+              {model.category === 'option' && model.ticker && (
+                <div className="metric-item">
+                  <span className="metric-label">Option</span>
+                  <span className="metric-value">{model.ticker} {model.strategy && `- ${model.strategy}`}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="model-metrics">
+              <div className="metric-item">
+                <span className="metric-label">Performance</span>
+                <span className={`metric-value ${model.performance >= 0 ? 'positive' : 'negative'}`}>
                   {model.performance >= 0 ? '+' : ''}{model.performance.toFixed(1)}%
                 </span>
-              </p>
-              <p style={{ margin: '5px 0', fontSize: '0.9rem' }}>
-                <strong>Accuracy:</strong> {model.accuracy.toFixed(1)}%
-              </p>
-            </div>
-            <div>
-              <p style={{ margin: '5px 0', fontSize: '0.9rem' }}>
-                <strong>Total Trades:</strong> {model.trades}
-              </p>
-              <p style={{ margin: '5px 0', fontSize: '0.9rem' }}>
-                <strong>Profit/Loss:</strong>
-                <span className={model.profit >= 0 ? 'trade-amount profit' : 'trade-amount loss'}>
+              </div>
+              <div className="metric-item">
+                <span className="metric-label">Accuracy</span>
+                <span className="metric-value">{model.accuracy.toFixed(1)}%</span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-label">Total Trades</span>
+                <span className="metric-value">{model.trades}</span>
+              </div>
+              <div className="metric-item">
+                <span className="metric-label">Profit/Loss</span>
+                <span className={`metric-value ${model.profit >= 0 ? 'positive' : 'negative'}`}>
                   {model.profit >= 0 ? '+' : ''}${model.profit.toFixed(2)}
                 </span>
-              </p>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {filteredModels.length === 0 && !loading && (
-        <div style={{
-          textAlign: 'center',
-          padding: '40px',
-          color: '#666',
-          background: '#f8f9fa',
-          borderRadius: '8px'
-        }}>
-          <p>No models found for the selected category.</p>
+        <div className="empty-state">
+          <div className="empty-state-icon">📊</div>
+          <p className="empty-state-text">No models found for the selected category.</p>
         </div>
       )}
     </div>
