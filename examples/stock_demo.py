@@ -32,30 +32,31 @@ def main():
 
     # Define 10 popular companies
     top_stocks = [
-        "AAPL",   # Apple - Tech
-        "MSFT",   # Microsoft - Tech
+        "AAPL",  # Apple - Tech
+        "MSFT",  # Microsoft - Tech
         "GOOGL",  # Google - Tech
-        "AMZN",   # Amazon - E-commerce
-        "TSLA",   # Tesla - EV/Energy
-        "META",   # Meta - Social Media
-        "NVDA",   # NVIDIA - Semiconductors
-        "NFLX",   # Netflix - Streaming
-        "CRM",    # Salesforce - CRM
-        "UBER"    # Uber - Transportation
+        "AMZN",  # Amazon - E-commerce
+        "TSLA",  # Tesla - EV/Energy
+        "META",  # Meta - Social Media
+        "NVDA",  # NVIDIA - Semiconductors
+        "NFLX",  # Netflix - Streaming
+        "CRM",  # Salesforce - CRM
+        "UBER",  # Uber - Transportation
     ]
 
     print(f"\n📊 Trading Universe ({len(top_stocks)} stocks):")
-    print(f"   Tech: AAPL, MSFT, GOOGL, META, NVDA")
-    print(f"   Services: AMZN, NFLX, CRM, UBER")
-    print(f"   EV/Energy: TSLA")
+    print("   Tech: AAPL, MSFT, GOOGL, META, NVDA")
+    print("   Services: AMZN, NFLX, CRM, UBER")
+    print("   EV/Energy: TSLA")
 
     # Run the multi-stock system
     try:
-        print(f"\n🚀 Starting multi-stock AI trading...")
+        print("\n🚀 Starting multi-stock AI trading...")
         system.run(top_stocks, cycles=1000, interval=60.0)
     except Exception as e:
         print(f"❌ System error: {e}")
         import traceback
+
         traceback.print_exc()
 
     print("\n✅ Multi-Stock AI Trading Demo completed!")
