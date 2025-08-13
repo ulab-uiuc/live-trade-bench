@@ -47,7 +47,7 @@ class StockFetcher(BaseFetcher):
         return df
 
     def fetch(
-        self, ticker: str, start_date: str, end_date: str, resolution: str = "D"
+        self, ticker: str, start_date: str, end_date: str, resolution: str = "1"
     ) -> dict:
         """
         Fetches historical OHLCV price data for a ticker via yfinance and returns it as formatted JSON.
