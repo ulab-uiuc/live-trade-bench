@@ -99,7 +99,19 @@ class StockAccount(BaseAccount):
     transactions: List[StockTransaction] = field(default_factory=list)
 
     def _fetch_current_price(self, ticker: str) -> Optional[float]:
-        """Try to fetch current price, return None if failed"""
+        """Try to fetch current price using improved fetcher methods"""
+        try:
+            # Use the new current price method from fetcher
+            from ..fetchers.stock_fetcher import get_current_stock_price
+            
+            price = get_current_stock_price(ticker)
+            if price and price > 0:
+                return price
+                
+        except Exception as e:
+            print(f"⚠️ Real-time price fetch failed for {ticker}: {e}")
+
+        # Fallback to original method
         try:
             from ..fetchers.stock_fetcher import fetch_stock_data
 

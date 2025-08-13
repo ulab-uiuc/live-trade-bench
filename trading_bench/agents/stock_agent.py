@@ -246,18 +246,28 @@ class TradingSystem:
             return {}
 
     def _get_latest_price(self, ticker: str) -> Optional[float]:
-        """Get the latest price for a ticker"""
-        data = self._fetch_stock_data(ticker)
+        """Get the latest price for a ticker using improved fetcher"""
+        try:
+            # Use the new current price method from fetcher
+            from ..fetchers.stock_fetcher import get_current_stock_price
+            
+            price = get_current_stock_price(ticker)
+            if price and price > 0:
+                return price
+                
+        except Exception as e:
+            print(f"⚠️ Real-time price fetch failed for {ticker}: {e}")
 
+        # Fallback: Use historical data method
+        data = self._fetch_stock_data(ticker)
         if data:
-            # Get the most recent date
-            latest_date = max(data.keys())
-            latest_data = data[latest_date]
+            # Get the most recent date/time
+            latest_key = max(data.keys())
+            latest_data = data[latest_key]
             price = latest_data.get("close", latest_data.get("price", 0))
             if price > 0:
                 return price
 
-        # Fallback to default prices
         default_prices = {
             "AAPL": 180.0,
             "MSFT": 350.0,
