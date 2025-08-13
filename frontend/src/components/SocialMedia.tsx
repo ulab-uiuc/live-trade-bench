@@ -177,192 +177,142 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
     total: socialData.length
   };
 
+  const sortedPosts = filteredPosts.sort((a, b) => b.postedAt.getTime() - a.postedAt.getTime());
+
+  const sentimentStats = {
+    positive: socialData.filter(p => p.sentiment === 'positive').length,
+    negative: socialData.filter(p => p.sentiment === 'negative').length,
+    neutral: socialData.filter(p => p.sentiment === 'neutral').length,
+    total: socialData.length
+  };
+
+  const totalEngagement = socialData.reduce((sum, post) => sum + getTotalEngagement(post.engagement), 0);
+  const avgEngagement = socialData.length > 0 ? (totalEngagement / socialData.length) : 0;
+
   return (
     <div className="social-media-page">
       <div className="refresh-indicator">
-        <h1>Market Social Media</h1>
+        <h1>Social Media Sentiment</h1>
         {loading && <div className="spinner"></div>}
         <span style={{ marginLeft: 'auto', fontSize: '0.875rem', color: '#666' }}>
           Last updated: {lastRefresh.toLocaleTimeString()}
         </span>
       </div>
 
-      {/* Platform Filter */}
-      <div style={{ marginBottom: '20px' }}>
-        <h3 style={{ marginBottom: '10px', fontSize: '1rem', color: '#333' }}>Platforms</h3>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setSelectedPlatform('all')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #ddd',
-              borderRadius: '20px',
-              background: selectedPlatform === 'all' ? '#007bff' : 'white',
-              color: selectedPlatform === 'all' ? 'white' : '#333',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            All ({platformStats.total})
-          </button>
-          <button
-            onClick={() => setSelectedPlatform('reddit')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #ff4500',
-              borderRadius: '20px',
-              background: selectedPlatform === 'reddit' ? '#ff4500' : 'white',
-              color: selectedPlatform === 'reddit' ? 'white' : '#ff4500',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            🔴 Reddit ({platformStats.reddit})
-          </button>
-          <button
-            onClick={() => setSelectedPlatform('twitter')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #1da1f2',
-              borderRadius: '20px',
-              background: selectedPlatform === 'twitter' ? '#1da1f2' : 'white',
-              color: selectedPlatform === 'twitter' ? 'white' : '#1da1f2',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            🐦 Twitter ({platformStats.twitter})
-          </button>
-          <button
-            onClick={() => setSelectedPlatform('discord')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #7289da',
-              borderRadius: '20px',
-              background: selectedPlatform === 'discord' ? '#7289da' : 'white',
-              color: selectedPlatform === 'discord' ? 'white' : '#7289da',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            💬 Discord ({platformStats.discord})
-          </button>
-          <button
-            onClick={() => setSelectedPlatform('telegram')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #0088cc',
-              borderRadius: '20px',
-              background: selectedPlatform === 'telegram' ? '#0088cc' : 'white',
-              color: selectedPlatform === 'telegram' ? 'white' : '#0088cc',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            📱 Telegram ({platformStats.telegram})
-          </button>
+      {/* Summary Statistics */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '15px',
+        marginBottom: '20px'
+      }}>
+        <div style={{
+          background: '#f8f9fa',
+          padding: '15px',
+          borderRadius: '8px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#007bff' }}>
+            {socialData.length}
+          </div>
+          <div style={{ fontSize: '0.9rem', color: '#666' }}>Total Posts</div>
+        </div>
+        <div style={{
+          background: '#e8f5e8',
+          padding: '15px',
+          borderRadius: '8px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#28a745' }}>
+            {sentimentStats.positive}
+          </div>
+          <div style={{ fontSize: '0.9rem', color: '#666' }}>Positive</div>
+        </div>
+        <div style={{
+          background: '#ffe8e8',
+          padding: '15px',
+          borderRadius: '8px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
+            {sentimentStats.negative}
+          </div>
+          <div style={{ fontSize: '0.9rem', color: '#666' }}>Negative</div>
+        </div>
+        <div style={{
+          background: '#f0f0f0',
+          padding: '15px',
+          borderRadius: '8px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#6c757d' }}>
+            {sentimentStats.neutral}
+          </div>
+          <div style={{ fontSize: '0.9rem', color: '#666' }}>Neutral</div>
+        </div>
+        <div style={{
+          background: '#fff3cd',
+          padding: '15px',
+          borderRadius: '8px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ffc107' }}>
+            {avgEngagement.toFixed(1)}
+          </div>
+          <div style={{ fontSize: '0.9rem', color: '#666' }}>Avg Engagement</div>
         </div>
       </div>
 
-      {/* Category Filter */}
+      {/* Filters */}
       <div style={{ marginBottom: '20px' }}>
-        <h3 style={{ marginBottom: '10px', fontSize: '1rem', color: '#333' }}>Categories</h3>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setSelectedCategory('all')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #ddd',
-              borderRadius: '20px',
-              background: selectedCategory === 'all' ? '#007bff' : 'white',
-              color: selectedCategory === 'all' ? 'white' : '#333',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            All ({categoryStats.total})
-          </button>
-          <button
-            onClick={() => setSelectedCategory('market')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #007bff',
-              borderRadius: '20px',
-              background: selectedCategory === 'market' ? '#007bff' : 'white',
-              color: selectedCategory === 'market' ? 'white' : '#007bff',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            📊 Market ({categoryStats.market})
-          </button>
-          <button
-            onClick={() => setSelectedCategory('stock')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #28a745',
-              borderRadius: '20px',
-              background: selectedCategory === 'stock' ? '#28a745' : 'white',
-              color: selectedCategory === 'stock' ? 'white' : '#28a745',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            📈 Stock ({categoryStats.stock})
-          </button>
-          <button
-            onClick={() => setSelectedCategory('tech')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #17a2b8',
-              borderRadius: '20px',
-              background: selectedCategory === 'tech' ? '#17a2b8' : 'white',
-              color: selectedCategory === 'tech' ? 'white' : '#17a2b8',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            💻 Tech ({categoryStats.tech})
-          </button>
-          <button
-            onClick={() => setSelectedCategory('options')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #fd7e14',
-              borderRadius: '20px',
-              background: selectedCategory === 'options' ? '#fd7e14' : 'white',
-              color: selectedCategory === 'options' ? 'white' : '#fd7e14',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            ⚡ Options ({categoryStats.options})
-          </button>
-          <button
-            onClick={() => setSelectedCategory('polymarket')}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #6f42c1',
-              borderRadius: '20px',
-              background: selectedCategory === 'polymarket' ? '#6f42c1' : 'white',
-              color: selectedCategory === 'polymarket' ? 'white' : '#6f42c1',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            🎯 Polymarket ({categoryStats.polymarket})
-          </button>
+        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '15px' }}>
+          <div>
+            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block' }}>
+              Platform
+            </label>
+            <select
+              value={selectedPlatform}
+              onChange={(e) => setSelectedPlatform(e.target.value as any)}
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+            >
+              <option value="all">All Platforms ({platformStats.total})</option>
+              <option value="reddit">Reddit ({platformStats.reddit})</option>
+              <option value="twitter">Twitter ({platformStats.twitter})</option>
+              <option value="discord">Discord ({platformStats.discord})</option>
+              <option value="telegram">Telegram ({platformStats.telegram})</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block' }}>
+              Category
+            </label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value as any)}
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+            >
+              <option value="all">All Categories ({categoryStats.total})</option>
+              <option value="market">Market ({categoryStats.market})</option>
+              <option value="stock">Stock ({categoryStats.stock})</option>
+              <option value="tech">Tech ({categoryStats.tech})</option>
+              <option value="options">Options ({categoryStats.options})</option>
+              <option value="polymarket">Polymarket ({categoryStats.polymarket})</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gap: '1rem' }}>
-        {filteredPosts.map(post => (
+      {/* Posts List */}
+      <div style={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto' }}>
+        {sortedPosts.map(post => (
           <div key={post.id} className="social-post" style={{
             border: `1px solid #e9ecef`,
             borderRadius: '8px',
-            padding: '1rem',
+            padding: '15px',
+            marginBottom: '10px',
             background: 'white',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            borderLeft: `4px solid ${getPlatformColor(post.platform)}`
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -481,7 +431,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
         ))}
       </div>
 
-      {filteredPosts.length === 0 && !loading && (
+      {sortedPosts.length === 0 && !loading && (
         <div style={{
           textAlign: 'center',
           padding: '40px',
