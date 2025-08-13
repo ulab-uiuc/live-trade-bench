@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from trading_bench.agents.stock_agent import AIStockAnalysisModel
-from trading_bench.evaluators import eval_stock
+from trading_bench.accounts import eval_stock
 from trading_bench.fetchers.news_fetcher import fetch_news_data
 from trading_bench.fetchers.stock_fetcher import fetch_stock_data
 

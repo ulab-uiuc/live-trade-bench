@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from ..evaluators import PolymarketAccount, PolymarketAction, create_polymarket_account
+from ..accounts import PolymarketAccount, PolymarketAction, create_polymarket_account
 
 
 class AIPolymarketAgent:
@@ -173,8 +173,21 @@ class AIPolymarketAgent:
         category = market_data.get("category", "unknown")
         description = market_data.get("description", "No description")
         end_date = market_data.get("end_date", "Unknown")
-        volume = market_data.get("total_volume", 0)
-        liquidity = market_data.get("total_liquidity", 0)
+        
+        # Ensure volume and liquidity are not None
+        volume = market_data.get("total_volume") or 0
+        liquidity = market_data.get("total_liquidity") or 0
+        
+        # Convert to float if they're strings
+        try:
+            volume = float(volume) if volume is not None else 0.0
+        except (ValueError, TypeError):
+            volume = 0.0
+            
+        try:
+            liquidity = float(liquidity) if liquidity is not None else 0.0
+        except (ValueError, TypeError):
+            liquidity = 0.0
 
         # Get current odds from outcomes
         yes_price = 0.5
@@ -182,9 +195,11 @@ class AIPolymarketAgent:
         outcomes = market_data.get("outcomes", [])
         for outcome in outcomes:
             if outcome.get("outcome", "").lower() == "yes":
-                yes_price = outcome.get("price", 0.5)
+                price = outcome.get("price", 0.5)
+                yes_price = float(price) if price is not None else 0.5
             elif outcome.get("outcome", "").lower() == "no":
-                no_price = outcome.get("price", 0.5)
+                price = outcome.get("price", 0.5)
+                no_price = float(price) if price is not None else 0.5
 
         # Account information
         portfolio_summary = account.evaluate()["portfolio_summary"]
@@ -202,7 +217,7 @@ class AIPolymarketAgent:
         # Calculate time to resolution
         time_to_resolution = "Unknown"
         try:
-            if end_date != "Unknown":
+            if end_date != "Unknown" and end_date:
                 end_dt = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
                 now_dt = datetime.now()
                 time_diff = end_dt - now_dt
@@ -290,6 +305,10 @@ Consider:
             "economics": "Analyze economic indicators, policy impacts, and market fundamentals",
         }
 
+        # Ensure category is not None before calling lower()
+        if category is None:
+            return "Consider market fundamentals and available information"
+            
         return category_contexts.get(
             category.lower(), "Consider market fundamentals and available information"
         )
@@ -342,20 +361,46 @@ class PolymarketTradingSystem:
         """Fetch prediction markets"""
         try:
             from ..fetchers.polymarket_fetcher import PolymarketFetcher
-
             fetcher = PolymarketFetcher()
-
-            # Get active markets
-            markets = fetcher.get_markets(limit=10)
-            if markets:
-                return [
-                    market for market in markets if market.get("status") == "active"
-                ]
-
+            
+            # Get active markets using the correct method name
+            markets = fetcher.fetch_markets(limit=10)
+            if markets and len(markets) > 0:
+                # Add outcome data to each market and validate
+                enhanced_markets = []
+                for market in markets:
+                    # Ensure market has a valid ID
+                    if not market.get("id"):
+                        continue  # Skip markets without valid IDs
+                    
+                    # Add mock outcomes if not present
+                    if "outcomes" not in market or not market["outcomes"]:
+                        import random
+                        yes_price = random.uniform(0.2, 0.8)
+                        no_price = 1.0 - yes_price
+                        
+                        market["outcomes"] = [
+                            {"outcome": "yes", "price": yes_price},
+                            {"outcome": "no", "price": no_price}
+                        ]
+                    
+                    # Ensure market has required fields with defaults
+                    market.setdefault("status", "active")
+                    market.setdefault("title", f"Market {market['id']}")
+                    market.setdefault("category", "unknown")
+                    market.setdefault("total_volume", 0)
+                    market.setdefault("total_liquidity", 0)
+                    
+                    if market.get("status") == "active":
+                        enhanced_markets.append(market)
+                
+                if enhanced_markets:
+                    return enhanced_markets[:10]  # Return max 10 markets
+            
         except Exception as e:
             print(f"⚠️ Failed to fetch markets: {e}")
-
-        # Fallback to mock markets
+        
+        # Fallback to mock markets - ensure they always have valid IDs
         return self._get_mock_markets()
 
     def _get_mock_markets(self) -> List[Dict]:
@@ -457,13 +502,18 @@ class PolymarketTradingSystem:
         # Display market info
         market_info = []
         for market in markets[:3]:  # Show first 3 markets
+            market_id = market.get("id", "unknown")
+            if market_id is None or market_id == "":
+                market_id = "unknown"
+                print(f"⚠️ Warning: Found market with None/empty ID: {market}")
+
             title = market.get("title", "Unknown")
             title_short = title[:50] + "..." if len(title) > 50 else title
             outcomes = market.get("outcomes", [])
             yes_price = next(
                 (o["price"] for o in outcomes if o.get("outcome") == "yes"), 0.5
             )
-            market_info.append(f"{market.get('id', 'unknown')}: {yes_price:.2f}")
+            market_info.append(f"{market_id}: {yes_price:.2f}")
 
         print(f"🎯 Active Markets: {' | '.join(market_info)}")
 

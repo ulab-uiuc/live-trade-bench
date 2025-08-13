@@ -118,15 +118,15 @@ class PolymarketAccount(BaseAccount):
         """Try to fetch current price, return None if failed"""
         try:
             from ..fetchers.polymarket_fetcher import PolymarketFetcher
-
             fetcher = PolymarketFetcher()
-
-            # Get market data
-            market_data = fetcher.get_market_by_id(market_id)
+            
+            # Get market data using correct method name
+            market_data = fetcher.fetch_market_details(market_id)
             if market_data and "outcomes" in market_data:
                 for outcome_data in market_data["outcomes"]:
                     if outcome_data.get("outcome", "").lower() == outcome.lower():
-                        price = outcome_data.get("price")
+                        # Try different price field names
+                        price = outcome_data.get("price") or outcome_data.get("current_price")
                         if price is not None and 0 <= price <= 1:
                             return price
         except:

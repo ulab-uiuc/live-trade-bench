@@ -11,7 +11,7 @@ from .agents import (
     create_polymarket_trading_system,
     create_trading_system,
 )
-from .evaluators import (
+from .accounts import (
     BaseAccount,
     PolymarketAccount,
     PolymarketAction,
