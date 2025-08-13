@@ -123,7 +123,6 @@ class StockAccount(BaseAccount):
                     return current_price
         except:
             pass
-        
         return None
 
     def get_total_value(self) -> float:

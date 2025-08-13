@@ -268,7 +268,6 @@ class TradingSystem:
             if price > 0:
                 return price
 
-        # Final fallback: Default prices
         default_prices = {
             "AAPL": 180.0,
             "MSFT": 350.0,
