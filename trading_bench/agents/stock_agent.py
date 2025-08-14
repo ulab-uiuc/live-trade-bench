@@ -250,11 +250,11 @@ class TradingSystem:
         try:
             # Use the new current price method from fetcher
             from ..fetchers.stock_fetcher import get_current_stock_price
-            
+
             price = get_current_stock_price(ticker)
             if price and price > 0:
                 return price
-                
+
         except Exception as e:
             print(f"⚠️ Real-time price fetch failed for {ticker}: {e}")
 

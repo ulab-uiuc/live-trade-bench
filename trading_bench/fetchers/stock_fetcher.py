@@ -5,9 +5,10 @@ This module provides functions to fetch stock price data from Yahoo Finance
 using yfinance library.
 """
 
-import yfinance as yf
 from datetime import datetime, timedelta
 from typing import Optional
+
+import yfinance as yf
 
 from trading_bench.fetchers.base_fetcher import BaseFetcher
 
@@ -53,10 +54,10 @@ class StockFetcher(BaseFetcher):
     def get_current_price(self, ticker: str) -> Optional[float]:
         """
         Get current/latest price for a ticker using multiple methods
-        
+
         Args:
             ticker: Stock ticker symbol
-            
+
         Returns:
             Current price or None if failed
         """
@@ -64,41 +65,46 @@ class StockFetcher(BaseFetcher):
             # Method 1: Use Ticker.info for real-time price
             stock = yf.Ticker(ticker)
             info = stock.info
-            
+
             # Try different price fields
-            price_fields = ['currentPrice', 'regularMarketPrice', 'previousClose', 'open']
+            price_fields = [
+                "currentPrice",
+                "regularMarketPrice",
+                "previousClose",
+                "open",
+            ]
             for field in price_fields:
                 price = info.get(field)
                 if price and price > 0:
                     return float(price)
-                    
+
         except Exception as e:
             print(f"⚠️ Method 1 failed for {ticker}: {e}")
-            
+
         try:
             # Method 2: Get latest minute data
             stock = yf.Ticker(ticker)
             hist = stock.history(period="1d", interval="1m")
             if not hist.empty:
-                latest_price = hist['Close'].iloc[-1]
+                latest_price = hist["Close"].iloc[-1]
                 if latest_price > 0:
                     return float(latest_price)
-                    
+
         except Exception as e:
             print(f"⚠️ Method 2 failed for {ticker}: {e}")
-            
+
         try:
             # Method 3: Get latest daily data
             stock = yf.Ticker(ticker)
             hist = stock.history(period="5d")
             if not hist.empty:
-                latest_price = hist['Close'].iloc[-1]
+                latest_price = hist["Close"].iloc[-1]
                 if latest_price > 0:
                     return float(latest_price)
-                    
+
         except Exception as e:
             print(f"⚠️ Method 3 failed for {ticker}: {e}")
-            
+
         return None
 
     def fetch(
@@ -142,12 +148,14 @@ class StockFetcher(BaseFetcher):
         data = {}
         for idx, row in df.iterrows():
             # Handle both single ticker and multi-ticker scenarios
-            if hasattr(row, 'iloc'):
+            if hasattr(row, "iloc"):
                 # Multi-ticker format
                 open_price = float(row["Open"].iloc[0]) if not row["Open"].empty else 0
                 high_price = float(row["High"].iloc[0]) if not row["High"].empty else 0
                 low_price = float(row["Low"].iloc[0]) if not row["Low"].empty else 0
-                close_price = float(row["Close"].iloc[0]) if not row["Close"].empty else 0
+                close_price = (
+                    float(row["Close"].iloc[0]) if not row["Close"].empty else 0
+                )
                 volume = int(row["Volume"].iloc[0]) if not row["Volume"].empty else 0
             else:
                 # Single ticker format
@@ -164,7 +172,7 @@ class StockFetcher(BaseFetcher):
             else:
                 # For daily+ data, use date only
                 date_str = idx.strftime("%Y-%m-%d")
-                
+
             data[date_str] = {
                 "open": open_price,
                 "high": high_price,
@@ -196,10 +204,10 @@ def fetch_stock_data(
 def get_current_stock_price(ticker: str) -> Optional[float]:
     """
     Get current stock price using optimized yfinance methods
-    
+
     Args:
         ticker: Stock ticker symbol
-        
+
     Returns:
         Current price or None if failed
     """
