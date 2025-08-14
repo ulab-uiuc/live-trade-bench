@@ -39,14 +39,13 @@ def main():
     print("   • Technology: AI breakthroughs")
     print("   • Economics: Climate and policy targets")
 
-    # Run the prediction market system
+    # Run the prediction market system for a specified duration
     try:
         print("\n🚀 Starting prediction market trading...")
-        system.run(cycles=4, interval=2.0)
+        system.run(duration_minutes=5, interval=30)  # Run for 5 minutes with 30s intervals
     except Exception as e:
         print(f"❌ System error: {e}")
         import traceback
-
         traceback.print_exc()
 
     print("\n✅ Polymarket Trading Demo completed!")

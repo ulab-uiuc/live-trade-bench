@@ -32,14 +32,13 @@ def main():
     print("   • Risk management across positions")
     print("   • LLM-powered decision making")
 
-    # Run the multi-stock system
+    # Run the stock trading system for a specified duration
     try:
-        print("\n🚀 Starting multi-stock AI trading...")
-        system.run(cycles=1000, interval=60.0)
+        print("\n🚀 Starting stock trading...")
+        system.run(duration_minutes=5, interval=30)  # Run for 5 minutes with 30s intervals
     except Exception as e:
         print(f"❌ System error: {e}")
         import traceback
-
         traceback.print_exc()
 
     print("\n✅ Multi-Stock AI Trading Demo completed!")
