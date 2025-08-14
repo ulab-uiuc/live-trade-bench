@@ -7,30 +7,37 @@ const Navigation: React.FC = () => {
 
   return (
     <nav className="navigation">
-      <button
-        className={location.pathname === '/' ? 'active' : ''}
-        onClick={() => navigate('/')}
-      >
-        Dashboard
-      </button>
-      <button
-        className={location.pathname === '/news' ? 'active' : ''}
-        onClick={() => navigate('/news')}
-      >
-        News
-      </button>
-      <button
-        className={location.pathname === '/social' ? 'active' : ''}
-        onClick={() => navigate('/social')}
-      >
-        Social Media
-      </button>
-      <button
-        className={location.pathname === '/trading-history' ? 'active' : ''}
-        onClick={() => navigate('/trading-history')}
-      >
-        Trading History
-      </button>
+      <div className="navigation-container">
+        <div className="nav-logo">
+          Live Trade Bench
+        </div>
+        <div className="nav-links">
+          <button
+            className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
+            onClick={() => navigate('/')}
+          >
+            Dashboard
+          </button>
+          <button
+            className={`nav-link ${location.pathname === '/news' ? 'active' : ''}`}
+            onClick={() => navigate('/news')}
+          >
+            News
+          </button>
+          <button
+            className={`nav-link ${location.pathname === '/social' ? 'active' : ''}`}
+            onClick={() => navigate('/social')}
+          >
+            Social Media
+          </button>
+          <button
+            className={`nav-link ${location.pathname === '/trading-history' ? 'active' : ''}`}
+            onClick={() => navigate('/trading-history')}
+          >
+            Trading History
+          </button>
+        </div>
+      </div>
     </nav>
   );
 };
