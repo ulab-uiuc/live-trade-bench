@@ -2,7 +2,15 @@ import atexit
 import logging
 import time
 
-from app.routers import model_actions, models, news, social, system_logs, trades
+from app.routers import (
+    model_actions,
+    models,
+    news,
+    polymarket,
+    social,
+    system_logs,
+    trades,
+)
 from app.trading_system import start_trading_system, stop_trading_system
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -62,6 +70,7 @@ app.include_router(news.router)
 app.include_router(social.router)
 app.include_router(system_logs.router)
 app.include_router(model_actions.router)
+app.include_router(polymarket.router)
 
 
 @app.get("/")
@@ -77,6 +86,7 @@ async def root():
             "news": "/api/news",
             "social": "/api/social",
             "system-log": "/api/system-log",
+            "polymarket": "/api/polymarket",
             "docs": "/docs",
             "redoc": "/redoc",
         },

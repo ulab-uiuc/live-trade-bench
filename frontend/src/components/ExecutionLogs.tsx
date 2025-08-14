@@ -147,49 +147,49 @@ const ExecutionLogs: React.FC = () => {
             <div className="metric-card">
               <div className="metric-label">System Performance</div>
               <div className={`metric-value ${metrics.system_performance.system_return_pct >= 0 ? 'positive' : 'negative'}`}>
-                {metrics.system_performance.system_return_pct >= 0 ? '+' : ''}{metrics.system_performance.system_return_pct.toFixed(2)}%
+                {metrics.system_performance.system_return_pct >= 0 ? '+' : ''}{(metrics.system_performance.system_return_pct ?? 0).toFixed(2)}%
               </div>
             </div>
             <div className="metric-card">
               <div className="metric-label">Total Portfolio Value</div>
               <div className="metric-value">
-                ${metrics.system_performance.total_portfolio_value.toFixed(2)}
+                ${(metrics.system_performance.total_portfolio_value ?? 0).toFixed(2)}
               </div>
             </div>
             <div className="metric-card">
               <div className="metric-label">Uptime</div>
               <div className="metric-value">
-                {formatUptime(metrics.system_performance.uptime_seconds)}
+                {formatUptime(metrics.system_performance.uptime_seconds ?? 0)}
               </div>
             </div>
             <div className="metric-card">
               <div className="metric-label">Active Models</div>
               <div className="metric-value">
-                {metrics.active_models_count} / {metrics.total_models_count}
+                {metrics.active_models_count ?? 0} / {metrics.total_models_count ?? 0}
               </div>
             </div>
             <div className="metric-card">
               <div className="metric-label">Cycle Success Rate</div>
               <div className="metric-value">
-                {metrics.success_rate.cycles.toFixed(1)}%
+                {(metrics.success_rate.cycles ?? 0).toFixed(1)}%
               </div>
             </div>
             <div className="metric-card">
               <div className="metric-label">Action Success Rate</div>
               <div className="metric-value">
-                {metrics.success_rate.actions.toFixed(1)}%
+                {metrics.success_rate.actions ? metrics.success_rate.actions.toFixed(1) : '0.0'}%
               </div>
             </div>
             <div className="metric-card">
               <div className="metric-label">Avg Cycle Duration</div>
               <div className="metric-value">
-                {metrics.avg_cycle_duration.toFixed(1)}s
+                {metrics.avg_cycle_duration ? metrics.avg_cycle_duration.toFixed(1) : '0.0'}s
               </div>
             </div>
             <div className="metric-card">
               <div className="metric-label">Total Actions</div>
               <div className="metric-value">
-                {metrics.execution_stats.total_actions}
+                {metrics.execution_stats.total_actions ?? 0}
               </div>
             </div>
           </div>

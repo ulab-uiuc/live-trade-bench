@@ -38,19 +38,59 @@ async def trigger_trading_cycle():
 
 @router.get("/system-status")
 async def get_system_status():
-    """Get trading system status and configuration."""
+    """Get multi-asset trading system status and configuration."""
     try:
         trading_system = get_trading_system()
+
+        total_agents = len(trading_system.stock_system.agents) + len(
+            trading_system.polymarket_system.agents
+        )
+        active_agents = len(
+            [m for m, active in trading_system.active_stock_models.items() if active]
+        ) + len(
+            [
+                m
+                for m, active in trading_system.active_polymarket_models.items()
+                if active
+            ]
+        )
+
+        # Combine both stock and polymarket model activations for frontend compatibility
+        combined_active_models = {}
+        # Add stock models
+        for model_id, active in trading_system.active_stock_models.items():
+            combined_active_models[f"{model_id}_stock"] = active
+        # Add polymarket models
+        for model_id, active in trading_system.active_polymarket_models.items():
+            combined_active_models[f"{model_id}_polymarket"] = active
 
         return {
             "system_running": trading_system.system_running,
             "cycle_interval_minutes": trading_system.cycle_interval // 60,
-            "total_agents": len(trading_system.agents),
-            "active_agents": len(
-                [m for m, active in trading_system.active_models.items() if active]
+            "total_agents": total_agents,  # Frontend expects this
+            "active_agents": active_agents,  # Frontend expects this
+            "tickers": trading_system.stock_tickers,  # Frontend expects this
+            "initial_cash": trading_system.stock_initial_cash,  # Frontend expects this
+            # Additional detailed info
+            "total_stock_agents": len(trading_system.stock_system.agents),
+            "total_polymarket_agents": len(trading_system.polymarket_system.agents),
+            "active_stock_agents": len(
+                [
+                    m
+                    for m, active in trading_system.active_stock_models.items()
+                    if active
+                ]
             ),
-            "tickers": trading_system.tickers,
-            "initial_cash": trading_system.initial_cash,
+            "active_polymarket_agents": len(
+                [
+                    m
+                    for m, active in trading_system.active_polymarket_models.items()
+                    if active
+                ]
+            ),
+            "stock_tickers": trading_system.stock_tickers,
+            "stock_initial_cash": trading_system.stock_initial_cash,
+            "polymarket_initial_cash": trading_system.polymarket_initial_cash,
             "total_actions": len(trading_system.trading_history),
             "last_cycle_time": trading_system.last_cycle_time.isoformat()
             if trading_system.last_cycle_time
@@ -59,7 +99,9 @@ async def get_system_status():
             if trading_system.next_cycle_time
             else None,
             "execution_stats": trading_system.execution_stats,
-            "active_models": trading_system.active_models,
+            "active_models": combined_active_models,  # Frontend expects this
+            "active_stock_models": trading_system.active_stock_models,
+            "active_polymarket_models": trading_system.active_polymarket_models,
             "last_action": trading_system.trading_history[-1]
             if trading_system.trading_history
             else None,
@@ -188,12 +230,21 @@ async def get_model_performance(model_id: str):
 
 @router.post("/{model_id}/activate")
 async def activate_model(model_id: str):
-    """Activate a trading model."""
+    """Activate a trading model (handles both stock and polymarket)."""
     try:
         trading_system = get_trading_system()
 
-        if model_id not in trading_system.agents:
-            raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
+        # Extract base model ID and category from full model ID
+        base_model_id = model_id.replace("_stock", "").replace("_polymarket", "")
+
+        # Check if the base model exists
+        if (
+            base_model_id not in trading_system.stock_agents
+            and base_model_id not in trading_system.polymarket_agents
+        ):
+            raise HTTPException(
+                status_code=404, detail=f"Model {base_model_id} not found"
+            )
 
         success = trading_system.activate_model(model_id)
 
@@ -215,12 +266,21 @@ async def activate_model(model_id: str):
 
 @router.post("/{model_id}/deactivate")
 async def deactivate_model(model_id: str):
-    """Deactivate a trading model."""
+    """Deactivate a trading model (handles both stock and polymarket)."""
     try:
         trading_system = get_trading_system()
 
-        if model_id not in trading_system.agents:
-            raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
+        # Extract base model ID from full model ID
+        base_model_id = model_id.replace("_stock", "").replace("_polymarket", "")
+
+        # Check if the base model exists
+        if (
+            base_model_id not in trading_system.stock_agents
+            and base_model_id not in trading_system.polymarket_agents
+        ):
+            raise HTTPException(
+                status_code=404, detail=f"Model {base_model_id} not found"
+            )
 
         success = trading_system.deactivate_model(model_id)
 
@@ -239,4 +299,23 @@ async def deactivate_model(model_id: str):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error deactivating model: {str(e)}"
+        )
+
+
+@router.get("/{model_id}/portfolio")
+async def get_model_portfolio(model_id: str):
+    """Get portfolio data for a specific model (both stock and polymarket)."""
+    try:
+        trading_system = get_trading_system()
+
+        # Get portfolio data - the trading system handles model ID validation
+        portfolio_data = trading_system.get_portfolio(model_id)
+
+        return portfolio_data
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching portfolio: {str(e)}"
         )

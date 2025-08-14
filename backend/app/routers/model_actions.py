@@ -24,7 +24,10 @@ async def get_model_actions(
         trading_system = get_trading_system()
 
         # Check if trading system is properly initialized
-        if not trading_system.agents:
+        if (
+            not trading_system.stock_system.agents
+            and not trading_system.polymarket_system.agents
+        ):
             raise HTTPException(
                 status_code=503,
                 detail="Trading system not initialized - no agents available",
@@ -138,8 +141,27 @@ async def get_model_specific_actions(
     try:
         trading_system = get_trading_system()
 
-        # Check if model exists
-        if model_id not in trading_system.agents:
+        # Check if model exists in either stock or polymarket systems
+        base_model_id = model_id.replace("_stock", "").replace("_polymarket", "")
+        stock_agents = {
+            agent.name: agent for agent in trading_system.stock_system.agents
+        }
+        polymarket_agents = {
+            agent.name: agent for agent in trading_system.polymarket_system.agents
+        }
+
+        model_found = (
+            model_id.endswith("_stock")
+            and any(base_model_id in name for name in stock_agents.keys())
+            or model_id.endswith("_polymarket")
+            and any(base_model_id in name for name in polymarket_agents.keys())
+            or any(
+                base_model_id in name
+                for name in list(stock_agents.keys()) + list(polymarket_agents.keys())
+            )
+        )
+
+        if not model_found:
             raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
 
         # Get actions for this model

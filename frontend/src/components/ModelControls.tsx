@@ -14,9 +14,16 @@ interface SystemStatus {
     total_cycles: number;
     successful_cycles: number;
     failed_cycles: number;
-    total_actions: number;
-    successful_actions: number;
-    failed_actions: number;
+    total_stock_actions?: number;
+    total_polymarket_actions?: number;
+    successful_stock_actions?: number;
+    successful_polymarket_actions?: number;
+    failed_stock_actions?: number;
+    failed_polymarket_actions?: number;
+    // Backward compatibility
+    total_actions?: number;
+    successful_actions?: number;
+    failed_actions?: number;
   };
   active_models: { [key: string]: boolean };
   last_action?: any;
@@ -208,12 +215,20 @@ const ModelControls: React.FC<ModelControlsProps> = ({ models, onModelUpdate }) 
                 <span className="stat-value negative">{systemStatus.execution_stats.failed_cycles}</span>
               </div>
               <div className="stat-item">
-                <span className="stat-label">Successful Actions</span>
-                <span className="stat-value positive">{systemStatus.execution_stats.successful_actions}</span>
+                <span className="stat-label">Successful Stock</span>
+                <span className="stat-value positive">{systemStatus.execution_stats.successful_stock_actions || 0}</span>
               </div>
               <div className="stat-item">
-                <span className="stat-label">Failed Actions</span>
-                <span className="stat-value negative">{systemStatus.execution_stats.failed_actions}</span>
+                <span className="stat-label">Successful Polymarket</span>
+                <span className="stat-value positive">{systemStatus.execution_stats.successful_polymarket_actions || 0}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Failed Stock</span>
+                <span className="stat-value negative">{systemStatus.execution_stats.failed_stock_actions || 0}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Failed Polymarket</span>
+                <span className="stat-value negative">{systemStatus.execution_stats.failed_polymarket_actions || 0}</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">Success Rate</span>

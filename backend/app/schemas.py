@@ -10,6 +10,12 @@ class ModelStatus(str, Enum):
     TRAINING = "training"
 
 
+class ModelCategory(str, Enum):
+    STOCK = "stock"
+    POLYMARKET = "polymarket"
+    OPTION = "option"
+
+
 class TradeType(str, Enum):
     BUY = "buy"
     SELL = "sell"
@@ -43,11 +49,19 @@ class NewsCategory(str, Enum):
 class TradingModel(BaseModel):
     id: str
     name: str
+    category: ModelCategory
     performance: float
     accuracy: float
     trades: int
     profit: float
     status: ModelStatus
+    total_value: float | None = None
+    cash_balance: float | None = None
+    active_positions: int | None = None
+    is_activated: bool | None = None
+    recent_performance: dict | None = None
+    llm_available: bool | None = None
+    market_type: str | None = None
 
 
 class TradingModelCreate(BaseModel):

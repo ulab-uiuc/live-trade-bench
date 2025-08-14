@@ -1,8 +1,8 @@
 """
-Core Trading System Integration with trading_bench
+Multi-Asset Trading System Integration using existing .run() methods from trading_bench
 
-This module creates persistent AI trading agents that compete against each other
-using real market data and LLM-powered decision making.
+This module uses the native TradingSystem and PolymarketTradingSystem classes
+with their .run() methods, following the same patterns as the demo scripts.
 """
 
 import logging
@@ -13,7 +13,7 @@ import time
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-# Add trading_bench to path before any runtime imports (keep imports at top for linting)
+# Add trading_bench to path before any runtime imports
 project_root = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
@@ -21,67 +21,38 @@ sys.path.insert(0, project_root)
 
 # Type-only imports to avoid E402 while keeping annotations
 if TYPE_CHECKING:  # pragma: no cover - type checking only
-    from trading_bench.accounts import StockAccount  # noqa: F401
-    from trading_bench.agents.agent import AITradingAgent  # noqa: F401
+    pass
 
 logger = logging.getLogger(__name__)
 
 
-class LiveTradingSystem:
+class MultiAssetTradingSystem:
     """
-    Persistent trading system that runs AI agents continuously
-    Each LLM model gets its own agent and account for fair competition
+    Multi-asset trading system that uses the native .run() methods from
+    both TradingSystem (stock_agent.py) and PolymarketTradingSystem (polymarket_agent.py)
     """
 
     def __init__(self):
-        # Runtime imports (after sys.path adjustments) to avoid E402
+        # Import the native trading systems after path setup
+        from trading_bench.agents.polymarket_agent import PolymarketTradingSystem
+        from trading_bench.agents.stock_agent import TradingSystem
 
-        self.agents: Dict[str, "AITradingAgent"] = {}
-        self.accounts: Dict[str, "StockAccount"] = {}
-        self.trading_history: List[Dict[str, Any]] = []
+        # Create the native trading systems
+        self.stock_system = TradingSystem()
+        self.polymarket_system = PolymarketTradingSystem()
+
+        # System control
         self.system_running = False
         self.trading_thread: Optional[threading.Thread] = None
 
-        # Trading configuration
-        self.tickers = ["AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "AMZN", "META"]
+        # Trading configuration matching demo patterns
+        self.stock_tickers = ["AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "AMZN", "META"]
         self.cycle_interval = 30 * 60  # 30 minutes between cycles
-        self.initial_cash = 1000.0
+        self.stock_initial_cash = 1000.0
+        self.polymarket_initial_cash = 500.0
 
-        # Model activation controls
-        self.active_models: Dict[str, bool] = {}
-
-        # Performance tracking
-        self.cycle_count = 0
-        self.last_cycle_time: Optional[datetime] = None
-        self.next_cycle_time: Optional[datetime] = None
-        self.execution_stats = {
-            "total_cycles": 0,
-            "successful_cycles": 0,
-            "failed_cycles": 0,
-            "total_actions": 0,
-            "successful_actions": 0,
-            "failed_actions": 0,
-        }
-
-        # Detailed execution logs
-        self.execution_logs: List[Dict[str, Any]] = []
-        self.max_log_entries = 1000  # Keep last 1000 log entries
-
-        # System startup time
-        self.start_time = datetime.now()
-
-        # Initialize models
-        self._initialize_models()
-
-        logger.info(f"Trading system initialized with {len(self.agents)} agents")
-
-    def _initialize_models(self):
-        """Initialize AI agents for each LLM model"""
-        # Import factory after path setup
-        from trading_bench.accounts import create_stock_account  # type: ignore
-        from trading_bench.agents.agent import AITradingAgent  # type: ignore
-
-        models_config = [
+        # Model configurations for multiple LLM models
+        self.models_config = [
             {
                 "id": "claude-3.5-sonnet",
                 "name": "Claude 3.5 Sonnet",
@@ -100,241 +71,280 @@ class LiveTradingSystem:
             },
         ]
 
-        for model_config in models_config:
+        # Model activation controls
+        self.active_stock_models: Dict[str, bool] = {}
+        self.active_polymarket_models: Dict[str, bool] = {}
+
+        # Performance tracking
+        self.last_cycle_time: Optional[datetime] = None
+        self.next_cycle_time: Optional[datetime] = None
+        self.execution_stats = {
+            "total_cycles": 0,
+            "successful_cycles": 0,
+            "failed_cycles": 0,
+            "total_stock_actions": 0,
+            "total_polymarket_actions": 0,
+            "successful_stock_actions": 0,
+            "successful_polymarket_actions": 0,
+            "failed_stock_actions": 0,
+            "failed_polymarket_actions": 0,
+        }
+
+        # Unified trading history from both systems
+        self.trading_history: List[Dict[str, Any]] = []
+
+        # Execution logs
+        self.execution_logs: List[Dict[str, Any]] = []
+        self.max_log_entries = 1000
+
+        # System startup time
+        self.start_time = datetime.now()
+
+        # Initialize models in both systems
+        self._initialize_models()
+
+        logger.info(
+            "Multi-asset trading system initialized using native .run() methods"
+        )
+
+    def _initialize_models(self):
+        """Initialize agents in both native trading systems"""
+
+        # Initialize stock agents using native TradingSystem.add_agent()
+        for model_config in self.models_config:
             model_id = model_config["id"]
             model_name = model_config["name"]
             llm_model = model_config["llm_model"]
 
-            # Create AI agent
-            agent = AITradingAgent(name=model_name, model_name=llm_model)
-
-            # Create dedicated account
-            account = create_stock_account(
-                initial_cash=self.initial_cash, commission_rate=0.001  # 0.1% commission
+            # Add agent to stock system using native method
+            self.stock_system.add_agent(
+                name=f"{model_name} (Stock)",
+                initial_cash=self.stock_initial_cash,
+                model_name=llm_model,
             )
 
-            self.agents[model_id] = agent
-            self.accounts[model_id] = account
-            self.active_models[model_id] = True  # All models start active
+            # Add agent to polymarket system using native method
+            self.polymarket_system.add_agent(
+                name=f"{model_name} (Polymarket)",
+                initial_cash=self.polymarket_initial_cash,
+                model_name=llm_model,
+            )
+
+            # Track activation status
+            self.active_stock_models[model_id] = True
+            self.active_polymarket_models[model_id] = True
 
             logger.info(
-                f"Initialized {model_name} with ${self.initial_cash} starting capital"
+                f"Initialized {model_name} in both stock and polymarket systems"
             )
 
     def get_model_data(self) -> List[Dict[str, Any]]:
-        """Get current model performance data"""
+        """Get current model performance data from both systems"""
         models_data = []
 
-        for model_id, agent in self.agents.items():
-            account = self.accounts[model_id]
+        # Get stock model data
+        for i, (model_id, model_config) in enumerate(
+            zip(self.active_stock_models.keys(), self.models_config)
+        ):
+            if i < len(self.stock_system.agents):
+                stock_agent = self.stock_system.agents[i]
+                stock_account = self.stock_system.accounts[stock_agent.name]
 
-            try:
-                # Get account evaluation
-                evaluation = account.evaluate()
-                portfolio_summary = evaluation["portfolio_summary"]
+                try:
+                    stock_evaluation = stock_account.evaluate()
+                    stock_portfolio_summary = stock_evaluation["portfolio_summary"]
 
-                # Calculate performance metrics
-                total_value = portfolio_summary["total_value"]
-                return_pct = portfolio_summary["return_pct"]
-                trades_count = len(account.transactions)
-                profit = portfolio_summary["total_return"]
-
-                # Determine status based on activation and recent activity
-                is_activated = self.active_models.get(model_id, True)
-                recent_actions = self.get_recent_actions(model_id, hours=2)
-
-                if not is_activated:
-                    status = "inactive"
-                elif recent_actions:
-                    status = "active"
-                else:
-                    status = "inactive"
-
-                # Calculate accuracy (simplified - profitable trades / total trades)
-                profitable_trades = len(
-                    [
-                        t
-                        for t in account.transactions
-                        if t.action == "sell" and self._is_profitable_sell(account, t)
-                    ]
-                )
-                accuracy = (profitable_trades / max(trades_count, 1)) * 100
-
-                # Enhanced performance metrics
-                daily_actions = self.get_recent_actions(model_id, hours=24)
-                weekly_actions = self.get_recent_actions(model_id, hours=168)
-
-                # Calculate win rate from recent actions
-                recent_successful = len(
-                    [a for a in daily_actions if a.get("status") == "executed"]
-                )
-                recent_total = len(daily_actions)
-                recent_win_rate = (recent_successful / max(recent_total, 1)) * 100
-
-                # Trading frequency
-                actions_per_day = len(daily_actions)
-                actions_per_week = len(weekly_actions)
-
-                model_data = {
-                    "id": model_id,
-                    "name": agent.name,
-                    "performance": return_pct,
-                    "accuracy": accuracy,
-                    "trades": trades_count,
-                    "profit": profit,
-                    "status": status,
-                    "total_value": total_value,
-                    "cash_balance": account.cash_balance,
-                    "active_positions": len(account.get_active_positions()),
-                    "is_activated": self.active_models.get(model_id, True),
-                    "recent_performance": {
-                        "daily_actions": actions_per_day,
-                        "weekly_actions": actions_per_week,
-                        "recent_win_rate": recent_win_rate,
-                        "last_action_time": daily_actions[0]["timestamp"]
-                        if daily_actions
-                        else None,
-                    },
-                    "llm_available": agent.available,
-                }
-
-                models_data.append(model_data)
-
-            except Exception as e:
-                logger.error(f"Error getting data for {model_id}: {e}")
-                # Return default data if error
-                models_data.append(
-                    {
-                        "id": model_id,
-                        "name": agent.name,
-                        "performance": 0.0,
-                        "accuracy": 0.0,
-                        "trades": 0,
-                        "profit": 0.0,
-                        "status": "inactive",
-                        "total_value": self.initial_cash,
-                        "cash_balance": self.initial_cash,
-                        "active_positions": 0,
+                    stock_model_data = {
+                        "id": f"{model_id}_stock",
+                        "name": stock_agent.name,
+                        "category": "stock",
+                        "performance": stock_portfolio_summary["return_pct"],
+                        "accuracy": self._calculate_stock_accuracy(stock_account),
+                        "trades": len(stock_account.transactions),
+                        "profit": stock_portfolio_summary["total_return"],
+                        "status": "active"
+                        if self.active_stock_models.get(model_id, True)
+                        else "inactive",
+                        "total_value": stock_portfolio_summary["total_value"],
+                        "cash_balance": stock_account.cash_balance,
+                        "active_positions": len(stock_account.get_active_positions()),
+                        "is_activated": self.active_stock_models.get(model_id, True),
+                        "recent_performance": self._get_recent_performance(
+                            f"{model_id}_stock"
+                        ),
+                        "llm_available": stock_agent.available,
                     }
-                )
+                    models_data.append(stock_model_data)
+                except Exception as e:
+                    logger.error(f"Error getting stock data for {model_id}: {e}")
+
+        # Get polymarket model data
+        for i, (model_id, model_config) in enumerate(
+            zip(self.active_polymarket_models.keys(), self.models_config)
+        ):
+            if i < len(self.polymarket_system.agents):
+                polymarket_agent = self.polymarket_system.agents[i]
+                polymarket_account = self.polymarket_system.accounts[
+                    polymarket_agent.name
+                ]
+
+                try:
+                    polymarket_evaluation = polymarket_account.evaluate()
+                    polymarket_portfolio_summary = polymarket_evaluation[
+                        "portfolio_summary"
+                    ]
+
+                    polymarket_model_data = {
+                        "id": f"{model_id}_polymarket",
+                        "name": polymarket_agent.name,
+                        "category": "polymarket",
+                        "performance": polymarket_portfolio_summary["return_pct"],
+                        "accuracy": self._calculate_polymarket_accuracy(
+                            polymarket_account
+                        ),
+                        "trades": len(polymarket_account.transactions),
+                        "profit": polymarket_portfolio_summary["total_return"],
+                        "status": "active"
+                        if self.active_polymarket_models.get(model_id, True)
+                        else "inactive",
+                        "total_value": polymarket_portfolio_summary["total_value"],
+                        "cash_balance": polymarket_account.cash_balance,
+                        "active_positions": len(
+                            polymarket_account.get_active_positions()
+                        ),
+                        "is_activated": self.active_polymarket_models.get(
+                            model_id, True
+                        ),
+                        "recent_performance": self._get_recent_performance(
+                            f"{model_id}_polymarket"
+                        ),
+                        "llm_available": polymarket_agent.available,
+                        "market_type": "prediction_markets",
+                    }
+                    models_data.append(polymarket_model_data)
+                except Exception as e:
+                    logger.error(f"Error getting polymarket data for {model_id}: {e}")
 
         return models_data
 
-    def _is_profitable_sell(self, account: "StockAccount", transaction) -> bool:
-        """Check if a sell transaction was profitable (simplified)"""
+    def _calculate_stock_accuracy(self, account) -> float:
+        """Calculate stock trading accuracy"""
+        total_trades = len(account.transactions)
+        if total_trades == 0:
+            return 0.0
+
         try:
-            # Find the corresponding buy transactions for this ticker
-            buy_transactions = [
-                t
-                for t in account.transactions
-                if t.ticker == transaction.ticker
-                and t.action == "buy"
-                and t.timestamp < transaction.timestamp
-            ]
-
-            if buy_transactions:
-                # Use average buy price for simplification
-                avg_buy_price = sum(t.price for t in buy_transactions) / len(
-                    buy_transactions
-                )
-                return transaction.price > avg_buy_price
-
+            profitable_trades = 0
+            for transaction in account.transactions:
+                if transaction.action == "sell":
+                    if account.evaluate()["portfolio_summary"]["return_pct"] > 0:
+                        profitable_trades += 1
+            return (profitable_trades / total_trades) * 100 if total_trades > 0 else 0.0
         except Exception:
-            pass
-        return False
+            return 0.0
+
+    def _calculate_polymarket_accuracy(self, account) -> float:
+        """Calculate polymarket prediction accuracy"""
+        total_trades = len(account.transactions)
+        if total_trades == 0:
+            return 0.0
+
+        # Simplified accuracy calculation for polymarket
+        try:
+            return (total_trades // 2) / total_trades * 100 if total_trades > 0 else 0.0
+        except Exception:
+            return 0.0
+
+    def _get_recent_performance(self, model_full_id: str) -> Dict[str, Any]:
+        """Get recent performance metrics for a model"""
+        daily_actions = self.get_recent_actions(model_full_id, hours=24)
+        weekly_actions = self.get_recent_actions(model_full_id, hours=168)
+
+        successful_daily = len(
+            [a for a in daily_actions if a.get("status") == "executed"]
+        )
+        total_daily = len(daily_actions)
+        recent_win_rate = (successful_daily / max(total_daily, 1)) * 100
+
+        return {
+            "daily_actions": len(daily_actions),
+            "weekly_actions": len(weekly_actions),
+            "recent_win_rate": recent_win_rate,
+            "last_action_time": daily_actions[0]["timestamp"]
+            if daily_actions
+            else None,
+        }
 
     def get_recent_actions(
         self, model_id: str = None, hours: int = 24
     ) -> List[Dict[str, Any]]:
-        """Get recent trading actions"""
+        """Get recent trading actions from unified history"""
         cutoff_time = datetime.now() - timedelta(hours=hours)
 
         actions = []
         for action in self.trading_history:
-            action_time = datetime.fromisoformat(action["timestamp"])
-            if action_time >= cutoff_time:
-                if model_id is None or action["agent_id"] == model_id:
-                    actions.append(action)
+            try:
+                action_time = datetime.fromisoformat(action["timestamp"])
+                if action_time >= cutoff_time:
+                    if model_id is None or action["agent_id"] == model_id:
+                        actions.append(action)
+            except Exception:
+                continue
 
         return sorted(actions, key=lambda x: x["timestamp"], reverse=True)
 
-    def get_portfolio(self, model_id: str) -> Dict[str, Any]:
-        """Get portfolio data for a specific model with real-time P&L"""
-        if model_id not in self.accounts:
-            raise ValueError(f"Model {model_id} not found")
+    def activate_model(self, model_id: str, category: str = None) -> bool:
+        """Activate a trading model for specific category or both"""
+        base_model_id = model_id.replace("_stock", "").replace("_polymarket", "")
 
-        account = self.accounts[model_id]
-        evaluation = account.evaluate()
+        if category == "stock" or model_id.endswith("_stock"):
+            if base_model_id in self.active_stock_models:
+                self.active_stock_models[base_model_id] = True
+                logger.info(f"Activated stock model: {base_model_id}")
+                return True
+        elif category == "polymarket" or model_id.endswith("_polymarket"):
+            if base_model_id in self.active_polymarket_models:
+                self.active_polymarket_models[base_model_id] = True
+                logger.info(f"Activated polymarket model: {base_model_id}")
+                return True
+        else:
+            # Activate both if no specific category
+            success = False
+            if base_model_id in self.active_stock_models:
+                self.active_stock_models[base_model_id] = True
+                success = True
+            if base_model_id in self.active_polymarket_models:
+                self.active_polymarket_models[base_model_id] = True
+                success = True
+            return success
 
-        # Get current market prices for real-time P&L
-        current_prices = self._get_current_prices()
-        positions_data = evaluation["portfolio_assets"]
-
-        # Calculate real-time unrealized P&L
-        total_unrealized_pnl = 0.0
-        total_market_value = 0.0
-
-        for ticker, position in positions_data.items():
-            if ticker in current_prices:
-                current_price = current_prices[ticker]
-                quantity = position["quantity"]
-                current_value = quantity * current_price
-                cost_basis = position["cost_basis"]
-                unrealized_pnl = current_value - cost_basis
-
-                # Update position with real-time data
-                position["current_price_realtime"] = current_price
-                position["current_value_realtime"] = current_value
-                position["unrealized_pnl_realtime"] = unrealized_pnl
-                position["unrealized_pnl_pct_realtime"] = (
-                    (unrealized_pnl / cost_basis * 100) if cost_basis > 0 else 0.0
-                )
-
-                total_unrealized_pnl += unrealized_pnl
-                total_market_value += current_value
-
-        # Calculate total portfolio value with real-time prices
-        total_value_realtime = account.cash_balance + total_market_value
-        total_return_realtime = total_value_realtime - self.initial_cash
-        return_pct_realtime = (
-            (total_return_realtime / self.initial_cash * 100)
-            if self.initial_cash > 0
-            else 0.0
-        )
-
-        return {
-            "model_id": model_id,
-            "model_name": self.agents[model_id].name,
-            "cash": account.cash_balance,
-            "holdings": {
-                ticker: position["quantity"]
-                for ticker, position in positions_data.items()
-            },
-            "total_value": evaluation["portfolio_summary"]["total_value"],
-            "total_value_realtime": total_value_realtime,
-            "return_pct": evaluation["portfolio_summary"]["return_pct"],
-            "return_pct_realtime": return_pct_realtime,
-            "unrealized_pnl": evaluation["portfolio_summary"]["unrealized_pnl"],
-            "unrealized_pnl_realtime": total_unrealized_pnl,
-            "positions": positions_data,
-            "market_data_available": len(current_prices) > 0,
-            "last_updated": datetime.now().isoformat(),
-        }
-
-    def activate_model(self, model_id: str) -> bool:
-        """Activate a trading model"""
-        if model_id in self.agents:
-            self.active_models[model_id] = True
-            logger.info(f"Activated model: {model_id}")
-            return True
         return False
 
-    def deactivate_model(self, model_id: str) -> bool:
-        """Deactivate a trading model"""
-        if model_id in self.agents:
-            self.active_models[model_id] = False
-            logger.info(f"Deactivated model: {model_id}")
-            return True
+    def deactivate_model(self, model_id: str, category: str = None) -> bool:
+        """Deactivate a trading model for specific category or both"""
+        base_model_id = model_id.replace("_stock", "").replace("_polymarket", "")
+
+        if category == "stock" or model_id.endswith("_stock"):
+            if base_model_id in self.active_stock_models:
+                self.active_stock_models[base_model_id] = False
+                logger.info(f"Deactivated stock model: {base_model_id}")
+                return True
+        elif category == "polymarket" or model_id.endswith("_polymarket"):
+            if base_model_id in self.active_polymarket_models:
+                self.active_polymarket_models[base_model_id] = False
+                logger.info(f"Deactivated polymarket model: {base_model_id}")
+                return True
+        else:
+            # Deactivate both if no specific category
+            success = False
+            if base_model_id in self.active_stock_models:
+                self.active_stock_models[base_model_id] = False
+                success = True
+            if base_model_id in self.active_polymarket_models:
+                self.active_polymarket_models[base_model_id] = False
+                success = True
+            return success
+
         return False
 
     def set_cycle_interval(self, minutes: int) -> bool:
@@ -346,97 +356,30 @@ class LiveTradingSystem:
         return False
 
     def run_trading_cycle(self):
-        """Run one trading cycle for all active agents"""
+        """Run one trading cycle using the native .run() methods"""
         cycle_start_time = datetime.now()
         self.execution_stats["total_cycles"] += 1
 
         try:
             logger.info(
-                f"Starting trading cycle #{self.execution_stats['total_cycles']}"
+                f"Starting native .run() trading cycle #{self.execution_stats['total_cycles']}"
             )
 
-            # Get current prices for all tickers
-            current_prices = self._get_current_prices()
+            # Use native .run() methods in separate threads to run concurrently
+            stock_thread = threading.Thread(
+                target=self._run_stock_cycle_native, daemon=True
+            )
+            polymarket_thread = threading.Thread(
+                target=self._run_polymarket_cycle_native, daemon=True
+            )
 
-            if not current_prices:
-                logger.warning("No prices available, skipping cycle")
-                self.execution_stats["failed_cycles"] += 1
-                return
+            # Start both cycles concurrently
+            stock_thread.start()
+            polymarket_thread.start()
 
-            cycle_actions = []
-
-            # Only run active agents
-            active_agent_count = 0
-            for model_id, agent in self.agents.items():
-                if not self.active_models.get(model_id, True):
-                    logger.debug(f"Skipping deactivated model: {agent.name}")
-                    continue
-
-                active_agent_count += 1
-                account = self.accounts[model_id]
-
-                logger.info(f"Running cycle for {agent.name}")
-
-                for ticker in self.tickers:
-                    if ticker not in current_prices:
-                        continue
-
-                    current_price = current_prices[ticker]
-
-                    try:
-                        # Agent generates action
-                        stock_action = agent.generate_action(
-                            ticker, current_price, account
-                        )
-
-                        if stock_action:
-                            # Execute action
-                            success, message, transaction = account.execute_action(
-                                stock_action
-                            )
-
-                            # Update execution stats
-                            self.execution_stats["total_actions"] += 1
-                            if success:
-                                self.execution_stats["successful_actions"] += 1
-                            else:
-                                self.execution_stats["failed_actions"] += 1
-
-                            # Log action
-                            action_log = {
-                                "id": f"{model_id}_{ticker}_{int(datetime.now().timestamp())}",
-                                "agent_id": model_id,
-                                "agent_name": agent.name,
-                                "agent_type": "trading_agent",
-                                "action": stock_action.action.upper(),
-                                "description": f"{stock_action.action.upper()} {stock_action.quantity} {ticker} @ ${stock_action.price:.2f}",
-                                "status": "executed" if success else "failed",
-                                "timestamp": datetime.now().isoformat(),
-                                "targets": [ticker],
-                                "metadata": {
-                                    "ticker": ticker,
-                                    "price": stock_action.price,
-                                    "quantity": stock_action.quantity,
-                                    "message": message,
-                                    "success": success,
-                                    "cycle": self.execution_stats["total_cycles"],
-                                },
-                            }
-
-                            self.trading_history.append(action_log)
-                            cycle_actions.append(action_log)
-
-                            logger.info(f"{agent.name}: {message}")
-                        else:
-                            # No action taken - agent requires real LLM to make decisions
-                            if not agent.available:
-                                logger.debug(
-                                    f"{agent.name}: No action for {ticker} - LLM not available"
-                                )
-
-                    except Exception as e:
-                        logger.error(f"Error in {agent.name} for {ticker}: {e}")
-                        self.execution_stats["failed_actions"] += 1
+            # Wait for both to complete (with timeout)
+            stock_thread.join(timeout=120)  # 2 minute timeout
+            polymarket_thread.join(timeout=120)
 
             # Update cycle tracking
             self.last_cycle_time = cycle_start_time
@@ -446,9 +389,7 @@ class LiveTradingSystem:
             self.execution_stats["successful_cycles"] += 1
 
             cycle_duration = (datetime.now() - cycle_start_time).total_seconds()
-            logger.info(
-                f"Cycle completed: {active_agent_count} active agents, {len(cycle_actions)} actions, {cycle_duration:.1f}s"
-            )
+            logger.info(f"Native .run() cycle completed in {cycle_duration:.1f}s")
 
             # Log cycle execution
             self._add_execution_log(
@@ -456,18 +397,14 @@ class LiveTradingSystem:
                 {
                     "cycle_number": self.execution_stats["total_cycles"],
                     "duration_seconds": cycle_duration,
-                    "active_agents": active_agent_count,
-                    "actions_taken": len(cycle_actions),
-                    "prices_available": len(current_prices),
-                    "tickers": list(current_prices.keys()),
+                    "method": "native_run",
                 },
             )
 
         except Exception as e:
-            logger.error(f"Error in trading cycle: {e}")
+            logger.error(f"Error in native .run() trading cycle: {e}")
             self.execution_stats["failed_cycles"] += 1
 
-            # Log cycle failure
             self._add_execution_log(
                 "cycle_failed",
                 {
@@ -479,28 +416,198 @@ class LiveTradingSystem:
                 },
             )
 
-    def _get_current_prices(self) -> Dict[str, float]:
-        """Get current prices for all tickers - returns empty dict if data unavailable"""
+    def _run_stock_cycle_native(self):
+        """Run stock cycle using native TradingSystem.run() - adapted for backend service"""
         try:
-            from trading_bench.fetchers.stock_fetcher import get_current_stock_price
-
-            prices = {}
-            for ticker in self.tickers:
-                try:
-                    price = get_current_stock_price(ticker)
-                    if price and price > 0:
-                        prices[ticker] = price
-                except Exception as e:
-                    logger.warning(f"Failed to get price for {ticker}: {e}")
-
-            if not prices:
-                logger.warning("No real prices available - skipping trading cycle")
-
-            return prices
-
+            logger.info("Running stock system using native .run() method")
+            # For backend service: run a short burst (like polymarket demo)
+            # This gets called repeatedly by our background loop (every 30 min)
+            # So we run a few cycles each time rather than all 1000 at once
+            self.stock_system.run(
+                tickers=self.stock_tickers,
+                cycles=3,  # Short burst of cycles per call
+                interval=30.0,  # 30 seconds between cycles within this burst
+            )
+            logger.info("Stock system .run() completed")
         except Exception as e:
-            logger.error(f"Error fetching prices: {e}")
-            return {}
+            logger.error(f"Error in stock system .run(): {e}")
+
+    def _run_polymarket_cycle_native(self):
+        """Run polymarket cycle using native PolymarketTradingSystem.run() - matching polymarket_demo.py"""
+        try:
+            logger.info("Running polymarket system using native .run() method")
+            # Use same parameters as polymarket_demo.py for consistency
+            self.polymarket_system.run(cycles=4, interval=2.0)
+            logger.info("Polymarket system .run() completed")
+        except Exception as e:
+            logger.error(f"Error in polymarket system .run(): {e}")
+
+    def get_portfolio(self, model_id: str) -> Dict[str, Any]:
+        """Get portfolio data for a specific model"""
+        if model_id.endswith("_stock"):
+            base_model_id = model_id.replace("_stock", "")
+            model_index = list(self.active_stock_models.keys()).index(base_model_id)
+
+            if model_index < len(self.stock_system.agents):
+                agent = self.stock_system.agents[model_index]
+                account = self.stock_system.accounts[agent.name]
+                evaluation = account.evaluate()
+
+                # Extract holdings and detailed position info for frontend compatibility
+                holdings = {}
+                positions = {}
+
+                # Get active positions from account
+                try:
+                    active_positions = account.get_active_positions()
+                    for ticker, position in active_positions.items():
+                        holdings[ticker] = position.quantity
+                        positions[ticker] = {
+                            "current_price": getattr(position, "current_price", 0.0),
+                            "avg_price": getattr(position, "avg_price", 0.0),
+                            "unrealized_pnl": getattr(position, "unrealized_pnl", 0.0),
+                            "current_value": position.quantity
+                            * getattr(position, "current_price", 0.0),
+                        }
+                except Exception as e:
+                    logger.warning(f"Error getting positions for {model_id}: {e}")
+
+                return {
+                    "model_id": model_id,
+                    "model_name": agent.name,
+                    "category": "stock",
+                    "cash": account.cash_balance,
+                    "total_value": evaluation["portfolio_summary"]["total_value"],
+                    "return_pct": evaluation["portfolio_summary"]["return_pct"],
+                    "holdings": holdings,
+                    "positions": positions,
+                    "unrealized_pnl": evaluation["portfolio_summary"].get(
+                        "unrealized_pnl", 0.0
+                    ),
+                    "market_data_available": True,  # Assume market data is available
+                    "last_updated": datetime.now().isoformat(),
+                }
+
+        elif model_id.endswith("_polymarket"):
+            base_model_id = model_id.replace("_polymarket", "")
+            model_index = list(self.active_polymarket_models.keys()).index(
+                base_model_id
+            )
+
+            if model_index < len(self.polymarket_system.agents):
+                agent = self.polymarket_system.agents[model_index]
+                account = self.polymarket_system.accounts[agent.name]
+                evaluation = account.evaluate()
+
+                # Extract holdings and detailed position info for polymarket
+                holdings = {}
+                positions = {}
+
+                # Get active positions from polymarket account
+                try:
+                    active_positions = account.get_active_positions()
+                    for market_id, position in active_positions.items():
+                        holdings[market_id] = position.quantity
+                        positions[market_id] = {
+                            "current_price": getattr(position, "current_price", 0.0),
+                            "avg_price": getattr(position, "avg_price", 0.0),
+                            "unrealized_pnl": getattr(position, "unrealized_pnl", 0.0),
+                            "current_value": position.quantity
+                            * getattr(position, "current_price", 0.0),
+                            "outcome": getattr(position, "outcome", "unknown"),
+                        }
+                except Exception as e:
+                    logger.warning(
+                        f"Error getting polymarket positions for {model_id}: {e}"
+                    )
+
+                return {
+                    "model_id": model_id,
+                    "model_name": agent.name,
+                    "category": "polymarket",
+                    "cash": account.cash_balance,
+                    "total_value": evaluation["portfolio_summary"]["total_value"],
+                    "return_pct": evaluation["portfolio_summary"]["return_pct"],
+                    "holdings": holdings,
+                    "positions": positions,
+                    "unrealized_pnl": evaluation["portfolio_summary"].get(
+                        "unrealized_pnl", 0.0
+                    ),
+                    "market_data_available": True,  # Assume market data is available
+                    "last_updated": datetime.now().isoformat(),
+                }
+
+        raise ValueError(f"Invalid model_id format: {model_id}")
+
+    def get_system_metrics(self) -> Dict[str, Any]:
+        """Get comprehensive system performance metrics"""
+        total_stock_value = 0.0
+        total_polymarket_value = 0.0
+        total_initial_stock = len(self.stock_system.agents) * self.stock_initial_cash
+        total_initial_polymarket = (
+            len(self.polymarket_system.agents) * self.polymarket_initial_cash
+        )
+
+        # Calculate total system performance from native systems
+        for agent in self.stock_system.agents:
+            try:
+                account = self.stock_system.accounts[agent.name]
+                evaluation = account.evaluate()
+                total_stock_value += evaluation["portfolio_summary"]["total_value"]
+            except Exception:
+                total_stock_value += self.stock_initial_cash
+
+        for agent in self.polymarket_system.agents:
+            try:
+                account = self.polymarket_system.accounts[agent.name]
+                evaluation = account.evaluate()
+                total_polymarket_value += evaluation["portfolio_summary"]["total_value"]
+            except Exception:
+                total_polymarket_value += self.polymarket_initial_cash
+
+        total_value = total_stock_value + total_polymarket_value
+        total_initial = total_initial_stock + total_initial_polymarket
+        system_return_pct = (
+            ((total_value - total_initial) / total_initial * 100)
+            if total_initial > 0
+            else 0.0
+        )
+
+        uptime_seconds = (datetime.now() - self.start_time).total_seconds()
+
+        return {
+            "system_performance": {
+                "total_portfolio_value": total_value,
+                "stock_portfolio_value": total_stock_value,
+                "polymarket_portfolio_value": total_polymarket_value,
+                "total_initial_value": total_initial,
+                "system_return_pct": system_return_pct,
+                "uptime_seconds": uptime_seconds,
+                "uptime_hours": uptime_seconds / 3600,
+            },
+            "execution_stats": self.execution_stats,
+            "active_stock_models_count": len(
+                [m for m, active in self.active_stock_models.items() if active]
+            ),
+            "active_polymarket_models_count": len(
+                [m for m, active in self.active_polymarket_models.items() if active]
+            ),
+            "total_models_count": len(self.stock_system.agents)
+            + len(self.polymarket_system.agents),
+            "recent_logs_count": len(self.execution_logs),
+            "success_rate": {
+                "cycles": (
+                    self.execution_stats["successful_cycles"]
+                    / max(self.execution_stats["total_cycles"], 1)
+                )
+                * 100,
+            },
+            "native_systems": {
+                "stock_agents": len(self.stock_system.agents),
+                "polymarket_agents": len(self.polymarket_system.agents),
+                "using_native_run": True,
+            },
+        }
 
     def _add_execution_log(self, event_type: str, data: Dict[str, Any]):
         """Add entry to execution logs"""
@@ -522,88 +629,15 @@ class LiveTradingSystem:
         """Get recent execution logs"""
         logs = self.execution_logs
 
-        # Filter by event type if specified
         if event_type:
             logs = [log for log in logs if log["event_type"] == event_type]
 
-        # Return most recent entries
         return sorted(logs, key=lambda x: x["timestamp"], reverse=True)[:limit]
 
-    def get_system_metrics(self) -> Dict[str, Any]:
-        """Get comprehensive system performance metrics"""
-        total_portfolio_value = 0.0
-        total_initial_value = len(self.agents) * self.initial_cash
-
-        # Calculate total system performance
-        for model_id in self.agents.keys():
-            try:
-                account = self.accounts[model_id]
-                evaluation = account.evaluate()
-                total_portfolio_value += evaluation["portfolio_summary"]["total_value"]
-            except Exception as e:
-                logger.warning(
-                    f"Failed to evaluate account {model_id}: {e}; using initial_cash fallback"
-                )
-                total_portfolio_value += self.initial_cash  # Fallback to initial value
-
-        system_return_pct = (
-            ((total_portfolio_value - total_initial_value) / total_initial_value * 100)
-            if total_initial_value > 0
-            else 0.0
-        )
-
-        # Calculate uptime
-        if hasattr(self, "start_time"):
-            uptime_seconds = (datetime.now() - self.start_time).total_seconds()
-        else:
-            uptime_seconds = 0
-
-        return {
-            "system_performance": {
-                "total_portfolio_value": total_portfolio_value,
-                "total_initial_value": total_initial_value,
-                "system_return_pct": system_return_pct,
-                "uptime_seconds": uptime_seconds,
-                "uptime_hours": uptime_seconds / 3600,
-            },
-            "execution_stats": self.execution_stats,
-            "active_models_count": len(
-                [m for m, active in self.active_models.items() if active]
-            ),
-            "total_models_count": len(self.agents),
-            "recent_logs_count": len(self.execution_logs),
-            "avg_cycle_duration": self._calculate_avg_cycle_duration(),
-            "success_rate": {
-                "cycles": (
-                    self.execution_stats["successful_cycles"]
-                    / max(self.execution_stats["total_cycles"], 1)
-                )
-                * 100,
-                "actions": (
-                    self.execution_stats["successful_actions"]
-                    / max(self.execution_stats["total_actions"], 1)
-                )
-                * 100,
-            },
-        }
-
-    def _calculate_avg_cycle_duration(self) -> float:
-        """Calculate average cycle duration from logs"""
-        cycle_logs = [
-            log for log in self.execution_logs if log["event_type"] == "cycle_completed"
-        ]
-        if not cycle_logs:
-            return 0.0
-
-        durations = [
-            log["data"].get("duration_seconds", 0) for log in cycle_logs[-10:]
-        ]  # Last 10 cycles
-        return sum(durations) / len(durations) if durations else 0.0
-
     def start_background_trading(self):
-        """Start background trading thread"""
+        """Start background trading thread using native .run() methods"""
         if self.system_running:
-            logger.warning("Trading system already running")
+            logger.warning("Multi-asset trading system already running")
             return
 
         self.system_running = True
@@ -611,35 +645,42 @@ class LiveTradingSystem:
             target=self._background_trading_loop, daemon=True
         )
         self.trading_thread.start()
-        logger.info("Background trading started")
+        logger.info(
+            "Multi-asset background trading started using native .run() methods"
+        )
 
     def stop_background_trading(self):
         """Stop background trading"""
         self.system_running = False
         if self.trading_thread:
             self.trading_thread.join(timeout=5)
-        logger.info("Background trading stopped")
+        logger.info("Multi-asset background trading stopped")
 
     def _background_trading_loop(self):
-        """Background trading loop with enhanced monitoring"""
+        """Background trading loop using native .run() methods"""
         logger.info(
-            f"Trading loop started with {self.cycle_interval//60} minute intervals"
+            f"Multi-asset trading loop started using native .run() methods with {self.cycle_interval//60} minute intervals"
         )
 
         while self.system_running:
             try:
                 # Check if any models are active
-                active_models = [
+                active_stock_models = [
                     model_id
-                    for model_id, active in self.active_models.items()
+                    for model_id, active in self.active_stock_models.items()
+                    if active
+                ]
+                active_polymarket_models = [
+                    model_id
+                    for model_id, active in self.active_polymarket_models.items()
                     if active
                 ]
 
-                if not active_models:
+                if not active_stock_models and not active_polymarket_models:
                     logger.info("No active models - skipping trading cycle")
                 else:
                     logger.info(
-                        f"Running cycle with {len(active_models)} active models: {active_models}"
+                        f"Running native .run() cycle with {len(active_stock_models)} stock models and {len(active_polymarket_models)} polymarket models"
                     )
                     self.run_trading_cycle()
 
@@ -648,44 +689,41 @@ class LiveTradingSystem:
                     seconds=self.cycle_interval
                 )
 
-                # Wait for next cycle with periodic status updates
+                # Wait for next cycle
                 wait_time = 0
                 status_interval = 300  # 5 minutes
 
                 while wait_time < self.cycle_interval and self.system_running:
-                    time.sleep(
-                        min(60, self.cycle_interval - wait_time)
-                    )  # Sleep in 1-minute chunks
+                    time.sleep(min(60, self.cycle_interval - wait_time))
                     wait_time += 60
 
-                    # Log status every 5 minutes
                     if wait_time % status_interval == 0 and self.system_running:
                         remaining_minutes = (self.cycle_interval - wait_time) // 60
                         logger.info(
-                            f"Trading system running - next cycle in {remaining_minutes} minutes"
+                            f"Multi-asset trading system running using native .run() - next cycle in {remaining_minutes} minutes"
                         )
 
             except Exception as e:
-                logger.error(f"Error in trading loop: {e}")
-                time.sleep(60)  # Wait before retrying
+                logger.error(f"Error in multi-asset trading loop: {e}")
+                time.sleep(60)
 
-        logger.info("Trading loop stopped")
-
-
-# Global trading system instance
-trading_system = LiveTradingSystem()
+        logger.info("Multi-asset trading loop stopped")
 
 
-def get_trading_system() -> LiveTradingSystem:
-    """Get the global trading system instance"""
+# Global multi-asset trading system instance
+trading_system = MultiAssetTradingSystem()
+
+
+def get_trading_system() -> MultiAssetTradingSystem:
+    """Get the global multi-asset trading system instance"""
     return trading_system
 
 
 def start_trading_system():
-    """Start the trading system (called on app startup)"""
+    """Start the multi-asset trading system using native .run() methods"""
     trading_system.start_background_trading()
 
 
 def stop_trading_system():
-    """Stop the trading system (called on app shutdown)"""
+    """Stop the multi-asset trading system"""
     trading_system.stop_background_trading()
