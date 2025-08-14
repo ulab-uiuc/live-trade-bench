@@ -58,16 +58,23 @@ class MultiAssetTradingSystem:
                 "name": "Claude 3.5 Sonnet",
                 "llm_model": "claude-3-5-sonnet-20241022",
             },
-            {"id": "gpt-4", "name": "GPT-4", "llm_model": "gpt-4"},
+            {"id": "gpt-5", "name": "GPT-5", "llm_model": "gpt-5"},
+            {"id": "gpt-4o", "name": "GPT-4o", "llm_model": "gpt-4o"},
             {
-                "id": "gemini-1.5-pro",
-                "name": "Gemini 1.5 Pro",
-                "llm_model": "gemini-1.5-pro",
+                "id": "gemini-2.5-pro",
+                "name": "Gemini 2.5 Pro",
+                "llm_model": "gemini-2.5-pro",
             },
             {
-                "id": "claude-4-haiku",
-                "name": "Claude 4 Haiku",
-                "llm_model": "claude-3-haiku-20240307",
+                "id": "claude-4-sonnet",
+                "name": "Claude 4 Sonnet",
+                "llm_model": "claude-sonnet-4-20250514",
+            },
+            {"id": "grok-4", "name": "Grok 4", "llm_model": "grok-4-0709"},
+            {
+                "id": "deepseek-chat",
+                "name": "Deepseek V3 (Chat)",
+                "llm_model": "deepseek-chat",
             },
         ]
 
@@ -163,9 +170,11 @@ class MultiAssetTradingSystem:
                         "accuracy": self._calculate_stock_accuracy(stock_account),
                         "trades": len(stock_account.transactions),
                         "profit": stock_portfolio_summary["total_return"],
-                        "status": "active"
-                        if self.active_stock_models.get(model_id, True)
-                        else "inactive",
+                        "status": (
+                            "active"
+                            if self.active_stock_models.get(model_id, True)
+                            else "inactive"
+                        ),
                         "total_value": stock_portfolio_summary["total_value"],
                         "cash_balance": stock_account.cash_balance,
                         "active_positions": len(stock_account.get_active_positions()),
@@ -204,9 +213,11 @@ class MultiAssetTradingSystem:
                         ),
                         "trades": len(polymarket_account.transactions),
                         "profit": polymarket_portfolio_summary["total_return"],
-                        "status": "active"
-                        if self.active_polymarket_models.get(model_id, True)
-                        else "inactive",
+                        "status": (
+                            "active"
+                            if self.active_polymarket_models.get(model_id, True)
+                            else "inactive"
+                        ),
                         "total_value": polymarket_portfolio_summary["total_value"],
                         "cash_balance": polymarket_account.cash_balance,
                         "active_positions": len(
@@ -270,9 +281,9 @@ class MultiAssetTradingSystem:
             "daily_actions": len(daily_actions),
             "weekly_actions": len(weekly_actions),
             "recent_win_rate": recent_win_rate,
-            "last_action_time": daily_actions[0]["timestamp"]
-            if daily_actions
-            else None,
+            "last_action_time": (
+                daily_actions[0]["timestamp"] if daily_actions else None
+            ),
         }
 
     def get_recent_actions(
