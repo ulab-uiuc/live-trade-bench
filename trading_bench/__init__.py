@@ -2,15 +2,6 @@
 Trading Bench - AI Trading Simulation Package
 """
 
-from .agents import (
-    AIPolymarketAgent,
-    AITradingAgent,
-    PolymarketTradingSystem,
-    TradingSystem,
-    create_polymarket_agent,
-    create_polymarket_trading_system,
-    create_trading_system,
-)
 from .accounts import (
     BaseAccount,
     PolymarketAccount,
@@ -25,6 +16,15 @@ from .accounts import (
     create_stock_account,
     eval_account,
     eval_polymarket_account,
+)
+from .agents import (
+    AIPolymarketAgent,
+    AITradingAgent,
+    PolymarketTradingSystem,
+    TradingSystem,
+    create_polymarket_agent,
+    create_polymarket_trading_system,
+    create_trading_system,
 )
 
 __all__ = [

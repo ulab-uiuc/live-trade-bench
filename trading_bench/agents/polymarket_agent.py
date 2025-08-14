@@ -173,17 +173,17 @@ class AIPolymarketAgent:
         category = market_data.get("category", "unknown")
         description = market_data.get("description", "No description")
         end_date = market_data.get("end_date", "Unknown")
-        
+
         # Ensure volume and liquidity are not None
         volume = market_data.get("total_volume") or 0
         liquidity = market_data.get("total_liquidity") or 0
-        
+
         # Convert to float if they're strings
         try:
             volume = float(volume) if volume is not None else 0.0
         except (ValueError, TypeError):
             volume = 0.0
-            
+
         try:
             liquidity = float(liquidity) if liquidity is not None else 0.0
         except (ValueError, TypeError):
@@ -308,7 +308,7 @@ Consider:
         # Ensure category is not None before calling lower()
         if category is None:
             return "Consider market fundamentals and available information"
-            
+
         return category_contexts.get(
             category.lower(), "Consider market fundamentals and available information"
         )
@@ -361,8 +361,9 @@ class PolymarketTradingSystem:
         """Fetch prediction markets"""
         try:
             from ..fetchers.polymarket_fetcher import PolymarketFetcher
+
             fetcher = PolymarketFetcher()
-            
+
             # Get active markets using the correct method name
             markets = fetcher.fetch_markets(limit=10)
             if markets and len(markets) > 0:
@@ -372,34 +373,35 @@ class PolymarketTradingSystem:
                     # Ensure market has a valid ID
                     if not market.get("id"):
                         continue  # Skip markets without valid IDs
-                    
+
                     # Add mock outcomes if not present
                     if "outcomes" not in market or not market["outcomes"]:
                         import random
+
                         yes_price = random.uniform(0.2, 0.8)
                         no_price = 1.0 - yes_price
-                        
+
                         market["outcomes"] = [
                             {"outcome": "yes", "price": yes_price},
-                            {"outcome": "no", "price": no_price}
+                            {"outcome": "no", "price": no_price},
                         ]
-                    
+
                     # Ensure market has required fields with defaults
                     market.setdefault("status", "active")
                     market.setdefault("title", f"Market {market['id']}")
                     market.setdefault("category", "unknown")
                     market.setdefault("total_volume", 0)
                     market.setdefault("total_liquidity", 0)
-                    
+
                     if market.get("status") == "active":
                         enhanced_markets.append(market)
-                
+
                 if enhanced_markets:
                     return enhanced_markets[:10]  # Return max 10 markets
-            
+
         except Exception as e:
             print(f"⚠️ Failed to fetch markets: {e}")
-        
+
         # Fallback to mock markets - ensure they always have valid IDs
         return self._get_mock_markets()
 
