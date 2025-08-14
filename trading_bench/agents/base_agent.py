@@ -166,6 +166,11 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
         details_str = f": {details}" if details else ""
         print(f"💡 {self.name}: {action_type}{details_str}")
 
+    # --- presentation tweak ---
+    def _fmt_price(self, price: float) -> str:
+        return f"{price:.2f}"  # probability display
+
+
     @property
     def is_available(self) -> bool:
         return self.available

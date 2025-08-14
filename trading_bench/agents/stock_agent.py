@@ -115,13 +115,7 @@ class StockTradingSystem:
                 return out
         except Exception as e:
             print(f"⚠️ Price fetch error: {e}")
-
-        # Fallback
-        defaults = {
-            "AAPL": 180.0, "MSFT": 350.0, "GOOGL": 140.0, "AMZN": 150.0, "TSLA": 200.0,
-            "META": 300.0, "NVDA": 450.0, "JPM": 160.0, "JNJ": 170.0, "V": 250.0,
-        }
-        return {t: defaults.get(t, 150.0) for t in self.universe}
+            raise e
 
     def run_cycle(self) -> None:
         self.iteration += 1

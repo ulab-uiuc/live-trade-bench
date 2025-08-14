@@ -15,10 +15,6 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAction, PolymarketAccount, Dict[str
     def __init__(self, name: str, model_name: str = "gpt-4o-mini") -> None:
         super().__init__(name, model_name)
 
-    # --- presentation tweak ---
-    def _fmt_price(self, price: float) -> str:
-        return f"{price:.2f}"  # probability display
-
     # --- hooks ---
     def _extract_id_price(self, data: Dict[str, Any]) -> Tuple[str, float]:
         # New uniform keys:
