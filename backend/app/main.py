@@ -1,7 +1,17 @@
+import atexit
 import logging
 import time
 
-from app.routers import models, news, social, system_logs, trades
+from app.routers import (
+    model_actions,
+    models,
+    news,
+    polymarket,
+    social,
+    system_logs,
+    trades,
+)
+from app.trading_system import start_trading_system, stop_trading_system
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -59,6 +69,8 @@ app.include_router(trades.router)
 app.include_router(news.router)
 app.include_router(social.router)
 app.include_router(system_logs.router)
+app.include_router(model_actions.router)
+app.include_router(polymarket.router)
 
 
 @app.get("/")
@@ -69,10 +81,12 @@ async def root():
         "version": "1.0.0",
         "endpoints": {
             "models": "/api/models",
+            "model-actions": "/api/model-actions",
             "trades": "/api/trades",
             "news": "/api/news",
             "social": "/api/social",
             "system-log": "/api/system-log",
+            "polymarket": "/api/polymarket",
             "docs": "/docs",
             "redoc": "/redoc",
         },
@@ -83,6 +97,24 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "message": "API is running"}
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize trading system on startup."""
+    logger.info("Starting Live Trade Bench API with AI trading system")
+    start_trading_system()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown."""
+    logger.info("Shutting down trading system")
+    stop_trading_system()
+
+
+# Register cleanup on exit
+atexit.register(stop_trading_system)
 
 
 if __name__ == "__main__":

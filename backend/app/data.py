@@ -1,4 +1,5 @@
 from app.schemas import (
+    ModelCategory,
     ModelStatus,
     NewsCategory,
     NewsImpact,
@@ -8,54 +9,62 @@ from app.schemas import (
     TradingModel,
 )
 
-# Import trading actions management
-from app.trading_actions import get_trading_actions
+# Import trading system for real data
+from app.trading_system import get_trading_system
 
 
 def get_real_models_data() -> list[TradingModel]:
-    """Get real LLM model performance data from actual trading predictions."""
-    # These are the different LLM models that can be used in trading_bench.model_wrapper
-    # Each model corresponds to different LLM providers and models
-    # Performance gets calculated from their actual predictions vs market outcomes
-    llm_models = [
-        TradingModel(
-            id="claude-3.5-sonnet",
-            name="Claude 3.5 Sonnet",
-            performance=0.0,  # % of correct predictions
-            accuracy=0.0,  # Same as performance
-            trades=0,  # Number of predictions made via run_trade()
-            profit=0.0,  # Total profit from eval() results
-            status=ModelStatus.INACTIVE,  # ACTIVE when making predictions
-        ),
-        TradingModel(
-            id="gpt-4",
-            name="GPT-4",
-            performance=0.0,
-            accuracy=0.0,
-            trades=0,
-            profit=0.0,
-            status=ModelStatus.INACTIVE,
-        ),
-        TradingModel(
-            id="gemini-1.5-pro",
-            name="Gemini 1.5 Pro",
-            performance=0.0,
-            accuracy=0.0,
-            trades=0,
-            profit=0.0,
-            status=ModelStatus.INACTIVE,
-        ),
-        TradingModel(
-            id="claude-4-haiku",
-            name="Claude 4 Haiku",
-            performance=0.0,
-            accuracy=0.0,
-            trades=0,
-            profit=0.0,
-            status=ModelStatus.INACTIVE,
-        ),
-    ]
-    return llm_models
+    """Get real LLM model performance data from actual trading agents."""
+    try:
+        trading_system = get_trading_system()
+        models_data = trading_system.get_model_data()
+
+        # Convert to TradingModel schema
+        trading_models = []
+        for model_data in models_data:
+            # Map status
+            status = (
+                ModelStatus.ACTIVE
+                if model_data["status"] == "active"
+                else ModelStatus.INACTIVE
+            )
+
+            # Map category
+            category_str = model_data.get("category", "stock")
+            if category_str == "stock":
+                category = ModelCategory.STOCK
+            elif category_str == "polymarket":
+                category = ModelCategory.POLYMARKET
+            elif category_str == "option":
+                category = ModelCategory.OPTION
+            else:
+                category = ModelCategory.STOCK  # Default fallback
+
+            trading_model = TradingModel(
+                id=model_data["id"],
+                name=model_data["name"],
+                category=category,
+                performance=model_data["performance"],  # Return percentage
+                accuracy=model_data["accuracy"],  # Profitable trades percentage
+                trades=model_data["trades"],  # Number of transactions
+                profit=model_data["profit"],  # Total profit/loss
+                status=status,
+                total_value=model_data.get("total_value"),
+                cash_balance=model_data.get("cash_balance"),
+                active_positions=model_data.get("active_positions"),
+                is_activated=model_data.get("is_activated"),
+                recent_performance=model_data.get("recent_performance"),
+                llm_available=model_data.get("llm_available"),
+                market_type=model_data.get("market_type"),
+            )
+            trading_models.append(trading_model)
+
+        return trading_models
+
+    except Exception as e:
+        print(f"Error getting real models data: {e}")
+        # Return empty list - no fallback data
+        raise Exception(f"Trading system not available: {e}")
 
 
 def get_real_trades_data(ticker: str = "NVDA", days: int = 7) -> list[Trade]:
@@ -130,7 +139,7 @@ def get_real_trades_data(ticker: str = "NVDA", days: int = 7) -> list[Trade]:
 
     except Exception as e:
         print(f"Error fetching real trades: {e}")
-        return []
+        raise Exception(f"Unable to fetch trading data: {e}")
 
 
 def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsItem]:
@@ -244,7 +253,7 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
 
     except Exception as e:
         print(f"Error fetching real news: {e}")
-        return []
+        raise Exception(f"Unable to fetch news data: {e}")
 
 
 def get_real_social_data(
@@ -368,15 +377,124 @@ def get_real_social_data(
 
     except Exception as e:
         print(f"Error fetching real social data: {e}")
+        raise Exception(f"Unable to fetch social media data: {e}")
+
+
+def get_real_polymarket_data(limit: int = 10) -> list[dict]:
+    """Get real polymarket data from Polymarket API."""
+    import os
+    import sys
+    from datetime import datetime
+
+    # Add trading_bench to path
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    sys.path.insert(0, project_root)
+
+    try:
+        from trading_bench.fetchers.polymarket_fetcher import PolymarketFetcher
+
+        fetcher = PolymarketFetcher()
+        markets = fetcher.fetch_markets(limit=limit)
+
+        if not markets:
+            # Return empty list if no real data
+            return []
+
+        # Enhanced market data for frontend compatibility
+        enhanced_markets = []
+        for market in markets:
+            if not market.get("id"):
+                continue
+
+            # Ensure required fields exist
+            market.setdefault("status", "active")
+            market.setdefault("title", f"Market {market['id']}")
+            market.setdefault("category", "unknown")
+            market.setdefault("total_volume", 0)
+            market.setdefault("total_liquidity", 0)
+            market.setdefault("end_date", datetime.now().isoformat())
+
+            # Add outcomes if not present
+            if "outcomes" not in market or not market["outcomes"]:
+                import random
+
+                yes_price = random.uniform(0.2, 0.8)
+                no_price = 1.0 - yes_price
+                market["outcomes"] = [
+                    {"outcome": "yes", "price": yes_price},
+                    {"outcome": "no", "price": no_price},
+                ]
+
+            if market.get("status") == "active":
+                enhanced_markets.append(market)
+
+        return enhanced_markets
+
+    except Exception as e:
+        print(f"Error fetching real polymarket data: {e}")
+        # Return empty list instead of raising exception for optional data
         return []
 
 
-def get_real_system_log_data(
-    agent_type: str = None, status: str = None, limit: int = 100, hours: int = 24
-) -> list[dict]:
-    """Get trading actions from system logs - ONLY trading decisions, not data fetching."""
-    # Get trading actions using the new system - NO SAMPLE DATA
-    actions = get_trading_actions(
-        agent_type=agent_type, status=status, limit=limit, hours=hours
-    )
-    return actions
+def get_sample_polymarket_data() -> list[dict]:
+    """Get sample polymarket data for testing when real API is not available."""
+    import random
+    from datetime import datetime, timedelta
+
+    sample_markets = [
+        {
+            "id": "bitcoin_100k_2024",
+            "title": "Will Bitcoin reach $100,000 by end of 2024?",
+            "category": "crypto",
+            "description": "Bitcoin price prediction for end of 2024",
+            "end_date": (datetime.now() + timedelta(days=90)).isoformat(),
+            "status": "active",
+            "total_volume": random.uniform(80000, 800000),
+            "total_liquidity": random.uniform(30000, 150000),
+            "outcomes": [
+                {"outcome": "yes", "price": random.uniform(0.25, 0.45)},
+                {"outcome": "no", "price": random.uniform(0.55, 0.75)},
+            ],
+        },
+        {
+            "id": "us_election_2024",
+            "title": "Will Democrats win the 2024 US Presidential Election?",
+            "category": "politics",
+            "description": "2024 US Presidential Election outcome prediction",
+            "end_date": (datetime.now() + timedelta(days=60)).isoformat(),
+            "status": "active",
+            "total_volume": random.uniform(200000, 2000000),
+            "total_liquidity": random.uniform(100000, 500000),
+            "outcomes": [
+                {"outcome": "yes", "price": random.uniform(0.45, 0.55)},
+                {"outcome": "no", "price": random.uniform(0.45, 0.55)},
+            ],
+        },
+        {
+            "id": "agi_breakthrough_2025",
+            "title": "Will AGI be achieved by major tech company by 2025?",
+            "category": "tech",
+            "description": "Artificial General Intelligence breakthrough prediction",
+            "end_date": (datetime.now() + timedelta(days=365)).isoformat(),
+            "status": "active",
+            "total_volume": random.uniform(50000, 500000),
+            "total_liquidity": random.uniform(25000, 125000),
+            "outcomes": [
+                {"outcome": "yes", "price": random.uniform(0.15, 0.35)},
+                {"outcome": "no", "price": random.uniform(0.65, 0.85)},
+            ],
+        },
+    ]
+
+    # Normalize prices so they sum to ~1
+    for market in sample_markets:
+        outcomes = market["outcomes"]
+        if len(outcomes) == 2:
+            total_price = sum(o["price"] for o in outcomes)
+            if total_price > 0:
+                for outcome in outcomes:
+                    outcome["price"] = outcome["price"] / total_price
+
+    return sample_markets

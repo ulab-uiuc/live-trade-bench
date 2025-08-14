@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ModelsDisplay from './ModelsDisplay';
 import SystemLog from './SystemLog';
+import ModelControls from './ModelControls';
+import ExecutionLogs from './ExecutionLogs';
 
 interface Model {
   id: string;
@@ -39,18 +41,41 @@ const Dashboard: React.FC<DashboardProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  const handleModelUpdate = () => {
+    // Force refresh of models data when controls are used
+    setModelsLastRefresh(new Date());
+  };
+
   return (
     <div className="dashboard">
-      <div className="models-section">
-        <ModelsDisplay
-          modelsData={modelsData}
-          setModelsData={setModelsData}
-          lastRefresh={modelsLastRefresh}
-          setLastRefresh={setModelsLastRefresh}
-        />
-      </div>
-      <div className="system-log-section">
-        <SystemLog lastRefresh={lastRefresh} />
+      <div className="dashboard-grid">
+        <div className="models-section">
+          <ModelsDisplay
+            modelsData={modelsData}
+            setModelsData={setModelsData}
+            lastRefresh={modelsLastRefresh}
+            setLastRefresh={setModelsLastRefresh}
+          />
+        </div>
+
+        <div className="controls-section">
+          <ModelControls
+            models={modelsData.map(m => ({
+              id: m.id,
+              name: m.name,
+              status: m.status
+            }))}
+            onModelUpdate={handleModelUpdate}
+          />
+        </div>
+
+        <div className="system-log-section">
+          <SystemLog lastRefresh={lastRefresh} />
+        </div>
+
+        <div className="execution-logs-section">
+          <ExecutionLogs />
+        </div>
       </div>
     </div>
   );
