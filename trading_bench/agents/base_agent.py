@@ -1,9 +1,11 @@
 """
-Base Agent class for trading agents
+Merged Base LLM Agent for trading agents
+- Includes: LLM call + parse, price-change gating, short history, fallback path
+- Subclasses implement small domain hooks (id/price extraction, analysis text, action creation, fallback, prompt)
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
 
 from ..accounts import BaseAccount
 
@@ -14,13 +16,78 @@ DataType = TypeVar("DataType")
 
 
 class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
-    """Abstract base class for trading agents"""
+    """Unified base class for LLM-driven trading agents."""
+
+    # Shared tuning knobs
+    price_epsilon: float = 0.01  # ignore tiny price moves
+    max_history: int = 10  # rolling price history per id
 
     def __init__(self, name: str, model_name: str = "gpt-4o-mini"):
         self.name = name
         self.model_name = model_name
         self.available = True
+        self._history: Dict[str, List[float]] = {}
+        self._last_price: Dict[str, float] = {}
 
+    # -------------------- Public entry point --------------------
+    def generate_action(
+        self, data: DataType, account: AccountType
+    ) -> Optional[ActionType]:
+        """
+        Unified generate_action:
+          1) Extract id+price (domain-specific via hook)
+          2) Gate on price change
+          3) Prepare analysis text (hook) and call LLM with JSON-only system prompt (hook)
+          4) Parse -> create domain action (hook)
+          5) Fallback on errors/unavailable
+        """
+        _id, price = self._extract_id_price(data)
+
+        # Gate on negligible price changes
+        last = self._last_price.get(_id)
+        if last is not None and abs(price - last) < self.price_epsilon:
+            print(
+                f"💤 {self.name}: {_id} price unchanged at {self._fmt_price(price)}, no action"
+            )
+            return None
+
+        # Track price + history
+        self._last_price[_id] = price
+        h = self._history.setdefault(_id, [])
+        h.append(price)
+        if len(h) > self.max_history:
+            self._history[_id] = h[-self.max_history :]
+
+        print(
+            f"📈 {self.name}: {_id} price changed to {self._fmt_price(price)}, analyzing..."
+        )
+
+        # If LLM is unavailable, skip action
+        if not self.available:
+            return None
+
+        try:
+            analysis = self._prepare_analysis_data(_id, price, data, account)
+            messages = [
+                {"role": "system", "content": self._get_system_prompt(analysis)},
+                {"role": "user", "content": analysis},
+            ]
+            llm_response = self._call_llm(messages)
+            parsed = self._parse_llm_response(llm_response)
+            print(parsed)
+            if parsed:
+                action = self._create_action_from_response(parsed, _id, price)
+                if action:
+                    self._log_action("LLM decision", details=str(action))
+                return action
+
+            return None
+
+        except Exception as e:
+            self._log_error(f"LLM error for {_id}", str(e))
+            return None
+
+    # -------------------- LLM utilities --------------------
     def _call_llm(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         """
         Call LLM with error handling
@@ -53,7 +120,7 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
         Returns:
             Parsed decision dict or None if failed
         """
-        if not llm_response["success"]:
+        if not llm_response.get("success"):
             return None
 
         try:
@@ -64,80 +131,61 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
             print(f"⚠️ {self.name}: Failed to parse LLM response: {e}")
             return None
 
+    # -------------------- Hooks for subclasses --------------------
     @abstractmethod
-    def generate_action(
-        self, data: DataType, account: AccountType
-    ) -> Optional[ActionType]:
-        """
-        Generate trading action based on data and account state
-
-        Args:
-            data: Market/price data for analysis
-            account: Account to trade with
-
-        Returns:
-            Trading action or None
-        """
+    def _extract_id_price(self, data: DataType) -> Tuple[str, float]:
+        """Return a tuple (id, price) for gating/history/prints."""
         pass
 
     @abstractmethod
     def _prepare_analysis_data(self, data: DataType, account: AccountType) -> str:
-        """
-        Prepare analysis data for LLM
-
-        Args:
-            data: Market/price data
-            account: Account state
-
-        Returns:
-            Formatted analysis string for LLM
-        """
+        """Prepare analysis text for the LLM user message (you can use helpers like history_tail/prev_price)."""
         pass
 
     @abstractmethod
-    def _get_system_prompt(self) -> str:
-        """
-        Get system prompt for LLM
-
-        Returns:
-            System prompt string
-        """
+    def _create_action_from_response(
+        self, parsed: Dict[str, Any], _id: str, price: float
+    ) -> Optional[ActionType]:
+        """Turn parsed JSON dict into a domain action (StockAction / PolymarketAction / etc.)."""
         pass
 
-    def _log_error(self, error_msg: str, context: str = "") -> None:
-        """
-        Log error with consistent formatting
+    @abstractmethod
+    def _get_system_prompt(self, analysis: str) -> str:
+        """Build the system prompt for LLM."""
+        pass
 
-        Args:
-            error_msg: Error message
-            context: Additional context (e.g., ticker, market_id)
-        """
-        context_str = f" for {context}" if context else ""
+    # -------------------- Helpers available to subclasses --------------------
+    def history_tail(self, _id: str, k: int = 5) -> List[float]:
+        """Return the last k prices for id."""
+        return self._history.get(_id, [])[-k:]
+
+    def prev_price(self, _id: str) -> Optional[float]:
+        """Return the previous price if available."""
+        hist = self._history.get(_id, [])
+        return hist[-2] if len(hist) >= 2 else None
+
+    def _fmt_price(self, price: float) -> str:
+        """Format price for prints; override for probability-style markets."""
+        return f"${price:.2f}"
+
+    # -------------------- Logging & metadata --------------------
+    def _log_error(self, error_msg: str, context: str = "") -> None:
+        context_str = f" | {context}" if context else ""
         print(f"⚠️ {self.name}: {error_msg}{context_str}")
 
     def _log_action(self, action_type: str, details: str = "") -> None:
-        """
-        Log trading action with consistent formatting
-
-        Args:
-            action_type: Type of action taken
-            details: Additional details
-        """
         details_str = f": {details}" if details else ""
         print(f"💡 {self.name}: {action_type}{details_str}")
 
+    # --- presentation tweak ---
+    def _fmt_price(self, price: float) -> str:
+        return f"{price:.2f}"  # probability display
+
     @property
     def is_available(self) -> bool:
-        """Check if agent is available for trading"""
         return self.available
 
     def get_agent_info(self) -> Dict[str, Any]:
-        """
-        Get basic agent information
-
-        Returns:
-            Dict with agent details
-        """
         return {
             "name": self.name,
             "model_name": self.model_name,

@@ -1,302 +1,215 @@
-"""
-AI Trading Agent for live trading simulation
-"""
+from __future__ import annotations
 
 import time
-from datetime import datetime
-from typing import Dict, List, Optional
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
 from ..accounts import StockAccount, StockAction, create_stock_account
 from .base_agent import BaseAgent
 
 
-class LLMStockAgent(BaseAgent[StockAction, StockAccount, tuple]):
-    """AI-powered trading agent that uses LLM for trading decisions"""
+# ---------------------- Agent ----------------------
+class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
+    """Symmetric, slim stock agent using the shared base."""
 
-    def __init__(self, name: str, model_name: str = "gpt-4o-mini"):
+    def __init__(self, name: str, model_name: str = "gpt-4o-mini") -> None:
         super().__init__(name, model_name)
-        self.price_history: Dict[str, List[float]] = {}
 
-    def generate_action(
-        self, data: dict, account: StockAccount
-    ) -> Optional[StockAction]:
-        """Generate StockAction using LLM analysis"""
-        # Extract data from dictionary format
-        ticker = data["ticker"]
-        current_price = data["current_price"]
+    # --- hooks ---
+    def _extract_id_price(self, data: Dict[str, Any]) -> Tuple[str, float]:
+        # New uniform keys:
+        if "id" in data and "price" in data:
+            return data["id"], float(data["price"])
+        # Backward compat:
+        return data["ticker"], float(data["current_price"])
 
-        self._update_history(ticker, current_price)
+    def _prepare_analysis_data(
+        self, _id: str, price: float, data: Dict[str, Any], account: StockAccount
+    ) -> str:
+        hist = self.history_tail(_id, 5)
+        prev = self.prev_price(_id)
+        pct = 0.0 if prev is None else ((price - prev) / prev) * 100.0
+        trend = "increasing" if pct > 0 else ("decreasing" if pct < 0 else "stable")
 
-        if not self.available:
-            return None
-
-        try:
-            analysis_data = self._prepare_analysis_data(data, account)
-            messages = [
-                {"role": "system", "content": self._get_system_prompt()},
-                {"role": "user", "content": analysis_data},
-            ]
-
-            llm_response = self._call_llm(messages)
-            decision = self._parse_llm_response(llm_response)
-
-            if not decision:
-                return None
-
-            action_type = decision.get("action", "hold").lower()
-            quantity = decision.get("quantity", 1)
-
-            # Validate and adjust quantity
-            if action_type == "buy":
-                quantity = self._validate_buy(account, ticker, current_price, quantity)
-            elif action_type == "sell":
-                quantity = self._validate_sell(account, ticker, quantity)
-
-            if action_type in ["buy", "sell"] and quantity > 0:
-                return StockAction(
-                    ticker=ticker,
-                    action=action_type,
-                    timestamp=datetime.now().isoformat(),
-                    price=current_price,
-                    quantity=quantity,
-                )
-            return None
-
-        except Exception as e:
-            self._log_error(f"LLM error: {e}", ticker)
-            return None
-
-    def _update_history(self, ticker: str, price: float):
-        """Update price history for a ticker"""
-        if ticker not in self.price_history:
-            self.price_history[ticker] = []
-        self.price_history[ticker].append(price)
-        if len(self.price_history[ticker]) > 10:
-            self.price_history[ticker] = self.price_history[ticker][-10:]
-
-    def _validate_buy(
-        self, account: StockAccount, ticker: str, price: float, quantity: int
-    ) -> int:
-        """Validate and adjust buy quantity"""
-        can_afford, _ = account.can_afford(ticker, price, quantity)
-        if not can_afford:
-            max_affordable = int(account.cash_balance // price)
-            if max_affordable > 0:
-                self._log_action(
-                    f"Adjusted {ticker} to affordable quantity",
-                    f"{max_affordable} shares",
-                )
-                return max_affordable
-            else:
-                self._log_error("Insufficient funds", ticker)
-                return 0
-        return quantity
-
-    def _validate_sell(self, account: StockAccount, ticker: str, quantity: int) -> int:
-        """Validate and adjust sell quantity"""
-        can_sell, _ = account.can_sell(ticker, quantity)
-        if not can_sell:
-            positions = account.get_active_positions()
-            if ticker in positions and positions[ticker].quantity > 0:
-                available = positions[ticker].quantity
-                self._log_action(
-                    f"Selling all available shares of {ticker}", f"{available} shares"
-                )
-                return available
-            else:
-                self._log_error("No position to sell", ticker)
-                return 0
-        return quantity
-
-    def _prepare_analysis_data(self, data: dict, account: StockAccount) -> str:
-        """Prepare analysis data for LLM"""
-        ticker = data["ticker"]
-        current_price = data["current_price"]
-
-        # Get price history
-        history = self.price_history.get(ticker, [current_price])
-        if len(history) >= 2:
-            price_change = ((current_price - history[-2]) / history[-2]) * 100
-            trend = "increasing" if price_change > 0 else "decreasing"
-        else:
-            price_change = 0
-            trend = "stable"
-
-        # Get account info
-        positions = account.get_active_positions()
-        current_position = positions.get(ticker)
-        position_info = (
-            f"Currently holding {current_position.quantity} shares at avg ${current_position.avg_price:.2f}"
-            if current_position
-            else "No current position"
+        pos = account.get_active_positions().get(_id)
+        pos_txt = (
+            f"holding {pos.quantity} @ ${pos.avg_price:.2f}" if pos else "no position"
         )
 
-        return f"""
-Stock Analysis Request:
-- Ticker: {ticker}
-- Current Price: ${current_price:.2f}
-- Price Change: {price_change:+.2f}% ({trend})
-- Price History: {[f"${p:.2f}" for p in history[-5:]]}
-- Account Balance: ${account.cash_balance:.2f}
-- {position_info}
+        return (
+            f"Stock Analysis:\n"
+            f"- Ticker: {_id}\n"
+            f"- Current: ${price:.2f}\n"
+            f"- Change: {pct:+.2f}% ({trend})\n"
+            f"- History: {[f'${p:.2f}' for p in hist]}\n"
+            f"- Cash: ${account.cash_balance:.2f}\n"
+            f"- Position: {pos_txt}\n\n"
+            f"Decide buy/sell/hold with quantity (1-10) and reasoning."
+        )
 
-Please analyze and provide a trading decision (buy/sell/hold) with quantity and reasoning.
-"""
+    def _create_action_from_response(
+        self, parsed_response: Dict[str, Any], ticker: str, current_price: float
+    ) -> Optional[StockAction]:
+        action = (parsed_response.get("action") or "hold").lower()
+        if action == "hold":
+            return None
+        qty = int(parsed_response.get("quantity", 1))
+        if qty <= 0:
+            return None
+        return StockAction(
+            ticker=ticker,
+            action=action,
+            timestamp=datetime.now().isoformat(),
+            price=current_price,
+            quantity=qty,
+        )
 
-    def _get_system_prompt(self) -> str:
-        """Get the system prompt for stock trading decisions"""
-        return """You are a professional stock trader. Analyze the provided data and make trading decisions.
+    def _get_system_prompt(self, analysis_data: str) -> List[Dict[str, str]]:
+        sys = (
+            "You are a professional stock trading agent.\n"
+            "Return VALID JSON ONLY (no extra text).\n\n"
+            "Format:\n"
+            "{\n"
+            '  "action": "buy" | "sell" | "hold",\n'
+            '  "quantity": <int>,\n'
+            '  "confidence": <0.0-1.0>,\n'
+            '  "reasoning": "<brief>"\n'
+            "}\n\n"
+            "Rules: trade only if confidence>0.6, quantity 1-10, prefer smaller sizes."
+        )
+        return [
+            {"role": "system", "content": sys},
+            {"role": "user", "content": analysis_data},
+        ]
 
-Response format (JSON):
-{
-    "action": "buy|sell|hold",
-    "quantity": 1,
-    "confidence": 0.7,
-    "reasoning": "Brief explanation"
-}
 
-Guidelines:
-- Only buy/sell if you have high confidence
-- Consider price trends and account balance
-- Default to smaller quantities for risk management
-- Provide clear reasoning for decisions"""
-
-
+# ---------------------- System ----------------------
 class StockTradingSystem:
-    """Simplified trading system for AI agents"""
+    """Symmetric trading loop for stocks."""
 
-    def __init__(self):
-        self.agents: List[LLMStockAgent] = []
+    def __init__(self, universe_size: int = 10) -> None:
+        self.agents: Dict[str, LLMStockAgent] = {}
         self.accounts: Dict[str, StockAccount] = {}
+        self.universe: List[str] = []
         self.iteration = 0
-        self.start_time = datetime.now()
-        self.tickers: List[str] = []
+        self._initialize_universe(universe_size)
 
-        # Initialize: Fetch popular stocks
-        self._initialize_stocks()
-
-    def _initialize_stocks(self):
-        """Initialize by fetching popular/trending stocks"""
+    def _initialize_universe(self, limit: int) -> None:
         try:
             from ..fetchers.stock_fetcher import fetch_trending_stocks
 
-            stocks = fetch_trending_stocks(limit=10)
-            self.tickers = [stock["ticker"] for stock in stocks]
+            stocks = fetch_trending_stocks(limit=limit)
+            self.universe = [s["ticker"] for s in stocks]
             print(
-                f"📊 Initialized with {len(self.tickers)} trending stocks: {', '.join(self.tickers[:5])}..."
+                f"📊 Initialized {len(self.universe)} tickers: {', '.join(self.universe[:5])}..."
             )
         except Exception as e:
             raise ValueError(f"Failed to fetch trending stocks: {e}")
 
     def add_agent(
-        self, name: str, initial_cash: float = 1000.0, model_name: str = "gpt-4o-mini"
-    ):
-        """Add an AI trading agent"""
+        self, name: str, initial_cash: float = 1_000.0, model_name: str = "gpt-4o-mini"
+    ) -> None:
         agent = LLMStockAgent(name, model_name)
-        account = create_stock_account(initial_cash)
-        self.agents.append(agent)
-        self.accounts[name] = account
+        self.agents[name] = agent
+        self.accounts[name] = create_stock_account(initial_cash)
         print(f"✅ Added agent {name} with ${initial_cash:.2f}")
 
-    def fetch_current_prices(self, tickers: List[str]) -> Dict[str, float]:
-        """Iteratively fetch current prices for tickers"""
+    def _fetch_prices(self) -> Dict[str, float]:
         try:
             from ..fetchers.stock_fetcher import fetch_current_stock_price
 
-            prices = {}
-            for ticker in tickers:
-                price = fetch_current_stock_price(ticker)
-                if price is not None:
-                    prices[ticker] = price
-            if prices:
-                return prices
+            out: Dict[str, float] = {}
+            for t in self.universe:
+                p = fetch_current_stock_price(t)
+                if p is not None:
+                    out[t] = float(p)
+            if out:
+                return out
         except Exception as e:
             print(f"⚠️ Price fetch error: {e}")
+            raise e
 
-        # Fallback prices if no data fetched
-        defaults = {
-            "AAPL": 180.0,
-            "MSFT": 350.0,
-            "GOOGL": 140.0,
-            "AMZN": 150.0,
-            "TSLA": 200.0,
-            "META": 300.0,
-            "NVDA": 450.0,
-            "JPM": 160.0,
-            "JNJ": 170.0,
-            "V": 250.0,
-        }
-        return {t: defaults.get(t, 150.0) for t in tickers}
-
-    def run_cycle(self):
-        """Run one trading cycle using initialized tickers"""
+    def run_cycle(self) -> None:
         self.iteration += 1
-        print(f"\n🔄 Cycle #{self.iteration} - {datetime.now().strftime('%H:%M:%S')}")
-
-        # Fetch current prices for our initialized stocks
-        prices = self.fetch_current_prices(self.tickers)
-        if not prices:
-            print("❌ No price data available")
-            return
-
-        # Show current prices
-        price_info = [
-            f"{ticker}: ${price:.2f}" for ticker, price in list(prices.items())[:3]
-        ]
-        print(f"📈 Current Prices: {' | '.join(price_info)}...")
-
-        for agent in self.agents:
-            account = self.accounts[agent.name]
-            print(f"\n🤖 {agent.name}:")
-
-            actions = 0
-            for ticker in self.tickers:
-                if ticker in prices:
-                    # Create stock data for agent
-                    stock_data = {
-                        "ticker": ticker,
-                        "current_price": prices[ticker],
-                        "price_history": agent.price_history.get(ticker, []),
-                    }
-
-                    action = agent.generate_action(stock_data, account)
-                    if action:
-                        # Print the generated action
-                        print(
-                            f"  📊 {ticker}: {action.action.upper()} {action.quantity} shares (${action.quantity * prices[ticker]:.2f})"
-                        )
-                        if action.action != "hold":
-                            actions += 1
-
-                        # Execute the action
-                        if action.action != "hold":
-                            success, message, _ = account.execute_action(action)
-                            print(f"    {'✅' if success else '❌'} {message}")
-                    else:
-                        print(f"  📊 {ticker}: HOLD (no action generated)")
-
-                    # Update price history
-                    agent._update_history(ticker, prices[ticker])
-
-            print(
-                f"  💼 Balance: ${account.cash_balance:.2f} | Portfolio: ${account.evaluate()['portfolio_summary']['total_value']:.2f} | Actions: {actions}"
-            )
-
-    def run(self, cycles: int = 3, interval: float = 2.0):
-        """Run multiple trading cycles"""
-        print(f"\n🚀 Starting TradingSystem with {len(self.agents)} agents")
-        print(f"📊 Trading on {len(self.tickers)} stocks")
+        print(f"\n{'='*50}\n🔄 Stock Cycle {self.iteration}")
 
         try:
-            for cycle in range(cycles):
+            prices = self._fetch_prices()
+            if not prices:
+                print("❌ No price data; skipping.")
+                return
+
+            preview = " | ".join(f"{t}: ${p:.2f}" for t, p in list(prices.items())[:5])
+            print(f"📈 Prices: {preview}...")
+
+            for agent_name, agent in self.agents.items():
+                account = self.accounts[agent_name]
+                print(f"\n🤖 {agent.name}:")
+                for _id, price in prices.items():
+                    data = {"id": _id, "price": price}  # uniform shape
+                    action = agent.generate_action(data, account)
+                    if action:
+                        tag = f"{action.action.upper()} {action.quantity} {_id} @ ${action.price:.2f}"
+                        print(f"   📊 {tag}")
+                        ok, msg, _ = account.execute_action(action)
+                        print(f"   {'✅' if ok else '❌'} {msg}")
+
+                summary = account.evaluate()["portfolio_summary"]
+                print(f"   💰 Cash: ${account.cash_balance:.2f}")
+                print(f"   📈 Total Value: ${summary['total_value']:.2f}")
+
+        except Exception as e:
+            print(f"❌ Error in stock cycle: {e}")
+            import traceback
+
+            traceback.print_exc()
+
+    def run(self, duration_minutes: int = 10, interval: int = 60):
+        """
+        Run the trading system for a specified duration
+
+        Args:
+            duration_minutes: Total time to run the system in minutes
+            interval: Seconds to wait between cycles (default: 60)
+        """
+        print(f"🚀 Starting stock trading system for {duration_minutes} minutes...")
+        print(f"   Interval: {interval} seconds between cycles")
+        start_time = datetime.now()
+        end_time = start_time + timedelta(minutes=duration_minutes)
+
+        print(f"   Start: {start_time.strftime('%H:%M:%S')}")
+        print(f"   End:   {end_time.strftime('%H:%M:%S')}")
+
+        try:
+            while datetime.now() < end_time:
                 self.run_cycle()
-                if cycle < cycles - 1:
-                    print(f"⏳ Waiting {interval}s...")
-                    time.sleep(interval)
+
+                # Check if we should continue
+                remaining = end_time - datetime.now()
+                if remaining.total_seconds() <= 0:
+                    break
+
+                # Wait before next cycle (user-configurable interval)
+                print(
+                    f"⏱️  Waiting {interval}s... ({remaining.total_seconds()//60:.0f}m {remaining.total_seconds()%60:.0f}s remaining)"
+                )
+                time.sleep(interval)
+
         except KeyboardInterrupt:
-            print("\n⏹️ Trading stopped by user")
+            print("\n⏹️  Trading stopped by user")
+        except Exception as e:
+            print(f"\n❌ Trading system error: {e}")
+
+        elapsed = datetime.now() - start_time
+        print(
+            f"\n✅ Trading completed! Ran for {elapsed.total_seconds()/60:.1f} minutes"
+        )
 
 
+def create_stock_agent(name: str, model_name: str = "gpt-4o-mini") -> LLMStockAgent:
+    return LLMStockAgent(name, model_name)
+
+
+# Convenience
 def create_trading_system() -> StockTradingSystem:
-    """Create a new trading system"""
     return StockTradingSystem()
