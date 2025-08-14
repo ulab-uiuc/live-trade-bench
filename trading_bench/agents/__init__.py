@@ -1,23 +1,18 @@
 """
-Trading Bench Agents Package
+Agents Package - Trading agents and systems
 """
 
-from .polymarket_agent import (
-    AIPolymarketAgent,
-    PolymarketTradingSystem,
-    create_polymarket_agent,
-    create_polymarket_trading_system,
-)
-from .stock_agent import AITradingAgent, TradingSystem, create_trading_system
+from .base_agent import BaseAgent
+from .stock_agent import LLMStockAgent, StockTradingSystem, create_trading_system
+from .polymarket_agent import LLMPolyMarketAgent, PolymarketTradingSystem, create_polymarket_agent, create_polymarket_trading_system
 
 __all__ = [
-    # Stock trading agents
-    "AITradingAgent",
-    "TradingSystem",
+    "BaseAgent",
+    "LLMStockAgent", 
+    "StockTradingSystem",
     "create_trading_system",
-    # Prediction market agents
-    "AIPolymarketAgent",
-    "PolymarketTradingSystem",
+    "LLMPolyMarketAgent",
+    "PolymarketTradingSystem", 
     "create_polymarket_agent",
-    "create_polymarket_trading_system",
+    "create_polymarket_trading_system"
 ]

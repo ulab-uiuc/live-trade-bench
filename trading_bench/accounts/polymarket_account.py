@@ -129,8 +129,8 @@ class PolymarketAccount(BaseAccount):
                         price = outcome_data.get("price")
                         if price is not None and 0 <= price <= 1:
                             return price
-        except:
-            pass
+        except Exception as e:
+            raise ValueError(f"Failed to fetch current price for {market_id}: {e}")
         return None
 
     def get_total_value(self) -> float:
@@ -201,14 +201,91 @@ class PolymarketAccount(BaseAccount):
         if not isinstance(action, PolymarketAction):
             return False, "Invalid action: must be a PolymarketAction instance", None
 
-        return self.execute_trade(
-            market_id=action.market_id,
-            outcome=action.outcome,
-            action=action.action,
-            price=action.price,
-            quantity=action.quantity,
-            notes=notes or f"PolymarketAction from {action.timestamp}",
-        )
+        # Extract action details
+        market_id = action.market_id
+        outcome = action.outcome.lower()
+        trade_action = action.action.lower()
+        price = action.price
+        quantity = action.quantity
+        position_key = f"{market_id}_{outcome}"
+        commission = self.calculate_commission(price, quantity)
+
+        # Validate transaction
+        if trade_action == "buy":
+            can_afford, reason = self.can_afford(market_id, price, quantity)
+            if not can_afford:
+                return False, reason, None
+        elif trade_action == "sell":
+            can_sell, reason = self.can_sell(market_id, outcome, quantity)
+            if not can_sell:
+                return False, reason, None
+        else:
+            return False, f"Invalid action: {trade_action}", None
+
+        # Execute the transaction
+        if trade_action == "buy":
+            total_cost = (price * quantity) + commission
+            self.cash_balance -= total_cost
+
+            # Update or create position
+            if position_key in self.positions:
+                self.positions[position_key].update_buy(price, quantity)
+            else:
+                self.positions[position_key] = PolymarketPosition(
+                    market_id=market_id,
+                    outcome=outcome,
+                    quantity=quantity,
+                    avg_price=price,
+                )
+
+            # Record transaction
+            transaction = PolymarketTransaction(
+                market_id=market_id,
+                outcome=outcome,
+                action="buy",
+                quantity=quantity,
+                price=price,
+                timestamp=datetime.now().isoformat(),
+                commission=commission,
+                notes=notes or f"PolymarketAction from {action.timestamp}",
+            )
+            self.transactions.append(transaction)
+
+            return (
+                True,
+                f"Bought {quantity} {outcome} shares for {market_id} at ${price:.2f}",
+                transaction,
+            )
+
+        elif trade_action == "sell":
+            total_proceeds = (price * quantity) - commission
+            self.cash_balance += total_proceeds
+
+            # Update position
+            self.positions[position_key].update_sell(quantity)
+
+            # Remove position if quantity is zero
+            if self.positions[position_key].quantity <= 0:
+                del self.positions[position_key]
+
+            # Record transaction
+            transaction = PolymarketTransaction(
+                market_id=market_id,
+                outcome=outcome,
+                action="sell",
+                quantity=quantity,
+                price=price,
+                timestamp=datetime.now().isoformat(),
+                commission=commission,
+                notes=notes or f"PolymarketAction from {action.timestamp}",
+            )
+            self.transactions.append(transaction)
+
+            return (
+                True,
+                f"Sold {quantity} {outcome} shares for {market_id} at ${price:.2f}",
+                transaction,
+            )
 
     def execute_trade(
         self,

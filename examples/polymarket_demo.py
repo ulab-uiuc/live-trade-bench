@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
-Polymarket Trading Demo - AI-powered prediction market trading
+Polymarket AI Trading Demo
+
+This demo showcases AI-powered prediction market trading using LLM agents.
+Each agent analyzes market conditions and makes trading decisions.
 """
 
 import sys
 from pathlib import Path
 
+from trading_bench import PolymarketTradingSystem
+
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
-
-from trading_bench import PolymarketTradingSystem
 
 
 def main():
@@ -58,7 +61,7 @@ def main():
     print("   2. Set: export OPENAI_API_KEY=your_key")
     print("   3. Explore different prediction categories")
     print("\n🏗️ Architecture:")
-    print("   • AIPolymarketAgent: trading_bench/agents/polymarket_agent.py")
+    print("   • LLMPolyMarketAgent: trading_bench/agents/polymarket_agent.py")
     print("   • PolymarketAccount: trading_bench/evaluators/polymarket_account.py")
     print("   • Data Source: trading_bench/fetchers/polymarket_fetcher.py")
 

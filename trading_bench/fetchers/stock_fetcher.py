@@ -1,12 +1,13 @@
 """
 Stock data fetcher for trading bench.
 
-This module provides functions to fetch stock price data from Yahoo Finance
-using yfinance library.
+This module provides:
+1. StockFetcher class - Core fetcher class with methods
+2. fetch_trending_stocks() - Standalone function using the class
+3. fetch_current_stock_price() - Standalone function using the class
 """
 
-from datetime import datetime, timedelta
-from typing import Optional
+from typing import Dict, List, Optional
 
 import yfinance as yf
 
@@ -19,6 +20,83 @@ class StockFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 1.0, max_delay: float = 3.0):
         """Initialize the stock fetcher."""
         super().__init__(min_delay, max_delay)
+
+    def fetch(self, mode: str, **kwargs):
+        """
+        Unified fetch interface for StockFetcher.
+
+        Args:
+            mode: The type of data to fetch ('trending_stocks' or 'stock_price')
+            **kwargs: Arguments for the specific fetch method
+        """
+        if mode == "trending_stocks":
+            return self.get_trending_stocks(limit=kwargs.get("limit", 10))
+        elif mode == "stock_price":
+            if "ticker" not in kwargs:
+                raise ValueError("ticker is required for stock_price")
+            return self.get_current_stock_price(kwargs["ticker"])
+        else:
+            raise ValueError(f"Unknown fetch mode: {mode}")
+
+    def get_trending_stocks(self, limit: int = 10) -> List[Dict]:
+        """
+        Get trending/popular stock tickers.
+
+        Args:
+            limit: Maximum number of stocks to return
+
+        Returns:
+            List of dictionaries containing stock basic info
+        """
+        # Popular stocks for demo purposes
+        trending_stocks = [
+            {"ticker": "AAPL", "name": "Apple Inc.", "sector": "Technology"},
+            {"ticker": "MSFT", "name": "Microsoft Corporation", "sector": "Technology"},
+            {"ticker": "GOOGL", "name": "Alphabet Inc.", "sector": "Technology"},
+            {
+                "ticker": "AMZN",
+                "name": "Amazon.com Inc.",
+                "sector": "Consumer Discretionary",
+            },
+            {
+                "ticker": "TSLA",
+                "name": "Tesla Inc.",
+                "sector": "Consumer Discretionary",
+            },
+            {"ticker": "META", "name": "Meta Platforms Inc.", "sector": "Technology"},
+            {"ticker": "NVDA", "name": "NVIDIA Corporation", "sector": "Technology"},
+            {
+                "ticker": "JPM",
+                "name": "JPMorgan Chase & Co.",
+                "sector": "Financial Services",
+            },
+            {"ticker": "JNJ", "name": "Johnson & Johnson", "sector": "Healthcare"},
+            {"ticker": "V", "name": "Visa Inc.", "sector": "Financial Services"},
+            {
+                "ticker": "PG",
+                "name": "Procter & Gamble Co.",
+                "sector": "Consumer Staples",
+            },
+            {
+                "ticker": "UNH",
+                "name": "UnitedHealth Group Inc.",
+                "sector": "Healthcare",
+            },
+        ]
+
+        return trending_stocks[:limit]
+
+    def get_current_stock_price(self, ticker: str) -> Optional[float]:
+        """
+        Get current stock price for a specific ticker.
+
+        Args:
+            ticker: Stock ticker symbol
+
+        Returns:
+            Current stock price or None if failed
+        """
+        return self.get_current_price(ticker)
 
     def _download_price_data(
         self, ticker: str, start_date: str, end_date: str, interval: str
@@ -53,163 +131,116 @@ class StockFetcher(BaseFetcher):
 
     def get_current_price(self, ticker: str) -> Optional[float]:
         """
-        Get current/latest price for a ticker using multiple methods
-
+        Get the current stock price for a given ticker.
         Args:
-            ticker: Stock ticker symbol
-
+            ticker: Stock ticker symbol (e.g., 'AAPL', 'GOOGL').
         Returns:
-            Current price or None if failed
+            float: Current stock price, or None if unable to fetch.
         """
         try:
-            # Method 1: Use Ticker.info for real-time price
             stock = yf.Ticker(ticker)
-            info = stock.info
 
-            # Try different price fields
-            price_fields = [
-                "currentPrice",
-                "regularMarketPrice",
-                "previousClose",
-                "open",
-            ]
-            for field in price_fields:
-                price = info.get(field)
-                if price and price > 0:
-                    return float(price)
+            # Strategy 1: Try fast_info (fastest)
+            try:
+                fast_info = stock.fast_info
+                if hasattr(fast_info, "last_price") and fast_info.last_price:
+                    price = float(fast_info.last_price)
+                    if price > 0:
+                        return price
+            except Exception:
+                pass
 
-        except Exception as e:
-            print(f"⚠️ Method 1 failed for {ticker}: {e}")
+            # Strategy 2: Try info (more comprehensive)
+            try:
+                info = stock.info
+                price_fields = ["currentPrice", "regularMarketPrice", "previousClose"]
+                for field in price_fields:
+                    if field in info and info[field]:
+                        price = float(info[field])
+                        if price > 0:
+                            return price
+            except Exception:
+                pass
 
-        try:
-            # Method 2: Get latest minute data
-            stock = yf.Ticker(ticker)
-            hist = stock.history(period="1d", interval="1m")
-            if not hist.empty:
-                latest_price = hist["Close"].iloc[-1]
-                if latest_price > 0:
+            # Strategy 3: Try 1-day history (reliable but slower)
+            try:
+                history = stock.history(period="1d", interval="1m")
+                if not history.empty:
+                    # Get the latest close price
+                    latest_price = history["Close"].iloc[-1]
+                    if latest_price and latest_price > 0:
+                        return float(latest_price)
+            except Exception:
+                pass
+
+            # Strategy 4: Last resort - basic download
+            try:
+                data = yf.download(ticker, period="1d", interval="1m", progress=False)
+                if not data.empty:
+                    latest_price = data["Close"].iloc[-1]
                     return float(latest_price)
+            except Exception:
+                pass
+
+            print(f"⚠️ Could not fetch price for {ticker}")
+            return None
 
         except Exception as e:
-            print(f"⚠️ Method 2 failed for {ticker}: {e}")
+            print(f"⚠️ Error fetching price for {ticker}: {e}")
+            return None
 
-        try:
-            # Method 3: Get latest daily data
-            stock = yf.Ticker(ticker)
-            hist = stock.history(period="5d")
-            if not hist.empty:
-                latest_price = hist["Close"].iloc[-1]
-                if latest_price > 0:
-                    return float(latest_price)
-
-        except Exception as e:
-            print(f"⚠️ Method 3 failed for {ticker}: {e}")
-
-        return None
-
-    def fetch(
-        self, ticker: str, start_date: str, end_date: str, resolution: str = "1"
-    ) -> dict:
+    def fetch_stock_data(
+        self,
+        ticker: str,
+        start_date: str,
+        end_date: str,
+        interval: str = "1d",
+    ):
         """
-        Fetches historical OHLCV price data for a ticker via yfinance and returns it as formatted JSON.
+        Fetch historical stock data from Yahoo Finance.
         Args:
             ticker:     Stock ticker symbol.
-            start_date: YYYY-MM-DD
-            end_date:   YYYY-MM-DD
-            resolution: '1', '5', '15', '30', '60', 'D', 'W', 'M'
+            start_date: Start date in YYYY-MM-DD format.
+            end_date:   End date in YYYY-MM-DD format.
+            interval:   Data interval ('1d', '1h', '5m', etc.).
         Returns:
-            dict: Price data in JSON format with date keys and OHLCV values.
+            pandas.DataFrame: Historical stock price data.
         """
-        # map your resolution codes to yfinance intervals
-        interval_map = {
-            "1": "1m",
-            "5": "5m",
-            "15": "15m",
-            "30": "30m",
-            "60": "60m",
-            "D": "1d",
-            "W": "1wk",
-            "M": "1mo",
-        }
-        interval = interval_map.get(resolution.upper(), "1d")
-
-        # For real-time data, adjust end_date to include today
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-        if end_dt.date() <= datetime.now().date():
-            # Extend end_date to tomorrow to get today's data
-            end_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-
-        # download data with retry logic
-        df = self.execute_with_retry(
-            self._download_price_data, ticker, start_date, end_date, interval
-        )
-
-        # Build date-indexed dict
-        data = {}
-        for idx, row in df.iterrows():
-            # Handle both single ticker and multi-ticker scenarios
-            if hasattr(row, "iloc"):
-                # Multi-ticker format
-                open_price = float(row["Open"].iloc[0]) if not row["Open"].empty else 0
-                high_price = float(row["High"].iloc[0]) if not row["High"].empty else 0
-                low_price = float(row["Low"].iloc[0]) if not row["Low"].empty else 0
-                close_price = (
-                    float(row["Close"].iloc[0]) if not row["Close"].empty else 0
-                )
-                volume = int(row["Volume"].iloc[0]) if not row["Volume"].empty else 0
-            else:
-                # Single ticker format
-                open_price = float(row["Open"]) if row["Open"] > 0 else 0
-                high_price = float(row["High"]) if row["High"] > 0 else 0
-                low_price = float(row["Low"]) if row["Low"] > 0 else 0
-                close_price = float(row["Close"]) if row["Close"] > 0 else 0
-                volume = int(row["Volume"]) if row["Volume"] > 0 else 0
-
-            # idx is a pandas.Timestamp
-            if interval in ["1m", "5m", "15m", "30m", "60m"]:
-                # For intraday data, include time
-                date_str = idx.strftime("%Y-%m-%d %H:%M:%S")
-            else:
-                # For daily+ data, use date only
-                date_str = idx.strftime("%Y-%m-%d")
-
-            data[date_str] = {
-                "open": open_price,
-                "high": high_price,
-                "low": low_price,
-                "close": close_price,
-                "volume": volume,
-            }
-
-        return data
+        try:
+            self.sleep()  # Rate limiting
+            df = self._download_price_data(ticker, start_date, end_date, interval)
+            return df
+        except Exception as e:
+            print(f"Error fetching stock data for {ticker}: {e}")
+            raise
 
 
-def fetch_stock_data(
-    ticker: str, start_date: str, end_date: str, resolution: str = "D"
-) -> dict:
+# Standalone functions that use the class
+def fetch_trending_stocks(limit: int = 10) -> List[Dict]:
     """
-    Fetches historical OHLCV price data for a ticker via yfinance and returns it as formatted JSON.
+    Fetch trending/popular stocks.
+
     Args:
-        ticker:     Stock ticker symbol.
-        start_date: YYYY-MM-DD
-        end_date:   YYYY-MM-DD
-        resolution: '1', '5', '15', '30', '60', 'D', 'W', 'M'
+        limit: Maximum number of stocks to return (default: 10)
+
     Returns:
-        dict: Price data in JSON format with date keys and OHLCV values.
+        List of dictionaries containing stock basic info
     """
     fetcher = StockFetcher()
-    return fetcher.fetch(ticker, start_date, end_date, resolution)
+    stocks = fetcher.get_trending_stocks(limit=limit)
+    print(f"📊 Fetched {len(stocks)} trending stocks")
+    return stocks
 
 
-def get_current_stock_price(ticker: str) -> Optional[float]:
+def fetch_current_stock_price(ticker: str) -> Optional[float]:
     """
-    Get current stock price using optimized yfinance methods
+    Fetch current price for a specific stock ticker.
 
     Args:
         ticker: Stock ticker symbol
 
     Returns:
-        Current price or None if failed
+        Current stock price or None if failed
     """
     fetcher = StockFetcher()
-    return fetcher.get_current_price(ticker)
+    return fetcher.get_current_stock_price(ticker)
