@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-Multi-Stock AI Trading Demo - Trading across 10 companies
+Stock Trading Demo - Long Running Live Trading System
+
+This demo runs continuously, checking market hours and trading during open periods.
 """
 
 import sys
 from pathlib import Path
 
+from trading_bench import StockTradingSystem
+
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
-
-from trading_bench import TradingSystem
 
 
 def main():
@@ -19,7 +21,7 @@ def main():
     print("=" * 60)
 
     # Create trading system
-    system = TradingSystem()
+    system = StockTradingSystem()
 
     # Add AI agents with higher initial cash for multiple stocks
     system.add_agent("Portfolio_Alice", 2000.0, "gpt-4o-mini")
@@ -30,29 +32,10 @@ def main():
     print("   • Risk management across positions")
     print("   • LLM-powered decision making")
 
-    # Define 10 popular companies
-    top_stocks = [
-        "AAPL",  # Apple - Tech
-        "MSFT",  # Microsoft - Tech
-        "GOOGL",  # Google - Tech
-        "AMZN",  # Amazon - E-commerce
-        "TSLA",  # Tesla - EV/Energy
-        "META",  # Meta - Social Media
-        "NVDA",  # NVIDIA - Semiconductors
-        "NFLX",  # Netflix - Streaming
-        "CRM",  # Salesforce - CRM
-        "UBER",  # Uber - Transportation
-    ]
-
-    print(f"\n📊 Trading Universe ({len(top_stocks)} stocks):")
-    print("   Tech: AAPL, MSFT, GOOGL, META, NVDA")
-    print("   Services: AMZN, NFLX, CRM, UBER")
-    print("   EV/Energy: TSLA")
-
     # Run the multi-stock system
     try:
         print("\n🚀 Starting multi-stock AI trading...")
-        system.run(top_stocks, cycles=1000, interval=60.0)
+        system.run(cycles=1000, interval=60.0)
     except Exception as e:
         print(f"❌ System error: {e}")
         import traceback
