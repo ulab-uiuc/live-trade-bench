@@ -114,18 +114,20 @@ class PolymarketAccount(BaseAccount):
     positions: Dict[str, PolymarketPosition] = field(default_factory=dict)
     transactions: List[PolymarketTransaction] = field(default_factory=list)
 
-    def _fetch_current_price(self, market_id: str, outcome: str = "yes") -> Optional[float]:
+    def _fetch_current_price(
+        self, market_id: str, outcome: str = "yes"
+    ) -> Optional[float]:
         """Fetch current price for a specific market and outcome"""
         try:
             # Use standalone function to get current market price
             from ..fetchers.polymarket_fetcher import fetch_current_market_price
-            
+
             price_data = fetch_current_market_price(market_id)
             if isinstance(price_data, dict) and outcome.lower() in price_data:
                 return price_data[outcome.lower()]
         except Exception as e:
             print(f"Warning: Failed to fetch price for {market_id}: {e}")
-        
+
         # Fallback prices based on market_id patterns
         fallback_prices = {
             "election_2024": 0.52,

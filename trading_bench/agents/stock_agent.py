@@ -23,14 +23,18 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
         # Backward compat:
         return data["ticker"], float(data["current_price"])
 
-    def _prepare_analysis_data(self, _id: str, price: float, data: Dict[str, Any], account: StockAccount) -> str:
+    def _prepare_analysis_data(
+        self, _id: str, price: float, data: Dict[str, Any], account: StockAccount
+    ) -> str:
         hist = self.history_tail(_id, 5)
         prev = self.prev_price(_id)
         pct = 0.0 if prev is None else ((price - prev) / prev) * 100.0
         trend = "increasing" if pct > 0 else ("decreasing" if pct < 0 else "stable")
 
         pos = account.get_active_positions().get(_id)
-        pos_txt = f"holding {pos.quantity} @ ${pos.avg_price:.2f}" if pos else "no position"
+        pos_txt = (
+            f"holding {pos.quantity} @ ${pos.avg_price:.2f}" if pos else "no position"
+        )
 
         return (
             f"Stock Analysis:\n"
@@ -43,7 +47,9 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
             f"Decide buy/sell/hold with quantity (1-10) and reasoning."
         )
 
-    def _create_action_from_response(self, parsed_response: Dict[str, Any], ticker: str, current_price: float) -> Optional[StockAction]:
+    def _create_action_from_response(
+        self, parsed_response: Dict[str, Any], ticker: str, current_price: float
+    ) -> Optional[StockAction]:
         action = (parsed_response.get("action") or "hold").lower()
         if action == "hold":
             return None
@@ -91,13 +97,18 @@ class StockTradingSystem:
     def _initialize_universe(self, limit: int) -> None:
         try:
             from ..fetchers.stock_fetcher import fetch_trending_stocks
+
             stocks = fetch_trending_stocks(limit=limit)
             self.universe = [s["ticker"] for s in stocks]
-            print(f"📊 Initialized {len(self.universe)} tickers: {', '.join(self.universe[:5])}...")
+            print(
+                f"📊 Initialized {len(self.universe)} tickers: {', '.join(self.universe[:5])}..."
+            )
         except Exception as e:
             raise ValueError(f"Failed to fetch trending stocks: {e}")
 
-    def add_agent(self, name: str, initial_cash: float = 1_000.0, model_name: str = "gpt-4o-mini") -> None:
+    def add_agent(
+        self, name: str, initial_cash: float = 1_000.0, model_name: str = "gpt-4o-mini"
+    ) -> None:
         agent = LLMStockAgent(name, model_name)
         self.agents[name] = agent
         self.accounts[name] = create_stock_account(initial_cash)
@@ -106,6 +117,7 @@ class StockTradingSystem:
     def _fetch_prices(self) -> Dict[str, float]:
         try:
             from ..fetchers.stock_fetcher import fetch_current_stock_price
+
             out: Dict[str, float] = {}
             for t in self.universe:
                 p = fetch_current_stock_price(t)
@@ -148,12 +160,14 @@ class StockTradingSystem:
 
         except Exception as e:
             print(f"❌ Error in stock cycle: {e}")
-            import traceback; traceback.print_exc()
+            import traceback
+
+            traceback.print_exc()
 
     def run(self, duration_minutes: int = 10, interval: int = 60):
         """
         Run the trading system for a specified duration
-        
+
         Args:
             duration_minutes: Total time to run the system in minutes
             interval: Seconds to wait between cycles (default: 60)
@@ -162,33 +176,39 @@ class StockTradingSystem:
         print(f"   Interval: {interval} seconds between cycles")
         start_time = datetime.now()
         end_time = start_time + timedelta(minutes=duration_minutes)
-        
+
         print(f"   Start: {start_time.strftime('%H:%M:%S')}")
         print(f"   End:   {end_time.strftime('%H:%M:%S')}")
-        
+
         try:
             while datetime.now() < end_time:
                 self.run_cycle()
-                
+
                 # Check if we should continue
                 remaining = end_time - datetime.now()
                 if remaining.total_seconds() <= 0:
                     break
-                    
+
                 # Wait before next cycle (user-configurable interval)
-                print(f"⏱️  Waiting {interval}s... ({remaining.total_seconds()//60:.0f}m {remaining.total_seconds()%60:.0f}s remaining)")
+                print(
+                    f"⏱️  Waiting {interval}s... ({remaining.total_seconds()//60:.0f}m {remaining.total_seconds()%60:.0f}s remaining)"
+                )
                 time.sleep(interval)
-                
+
         except KeyboardInterrupt:
             print("\n⏹️  Trading stopped by user")
         except Exception as e:
             print(f"\n❌ Trading system error: {e}")
-            
+
         elapsed = datetime.now() - start_time
-        print(f"\n✅ Trading completed! Ran for {elapsed.total_seconds()/60:.1f} minutes")
+        print(
+            f"\n✅ Trading completed! Ran for {elapsed.total_seconds()/60:.1f} minutes"
+        )
+
 
 def create_stock_agent(name: str, model_name: str = "gpt-4o-mini") -> LLMStockAgent:
     return LLMStockAgent(name, model_name)
+
 
 # Convenience
 def create_trading_system() -> StockTradingSystem:

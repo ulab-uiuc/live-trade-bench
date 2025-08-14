@@ -32,20 +32,19 @@ def call_llm(
         formatted_messages = []
         for msg in messages:
             content = msg.get("content", "")
-            
+
             # Keep content as string for standard OpenAI API
-            formatted_messages.append({
-                "role": msg["role"],
-                "content": str(content)  # Ensure it's a string
-            })
+            formatted_messages.append(
+                {"role": msg["role"], "content": str(content)}  # Ensure it's a string
+            )
 
         # Call LLM with retry for different models
         try:
             response = litellm.completion(
-                model=model, 
-                messages=formatted_messages, 
-                temperature=0.3, 
-                max_tokens=200
+                model=model,
+                messages=formatted_messages,
+                temperature=0.3,
+                max_tokens=200,
             )
         except Exception as model_error:
             raise model_error

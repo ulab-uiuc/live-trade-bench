@@ -6,7 +6,6 @@ Merged Base LLM Agent for trading agents
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
-from datetime import datetime
 
 from ..accounts import BaseAccount
 
@@ -21,7 +20,7 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
 
     # Shared tuning knobs
     price_epsilon: float = 0.01  # ignore tiny price moves
-    max_history: int = 10        # rolling price history per id
+    max_history: int = 10  # rolling price history per id
 
     def __init__(self, name: str, model_name: str = "gpt-4o-mini"):
         self.name = name
@@ -31,7 +30,9 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
         self._last_price: Dict[str, float] = {}
 
     # -------------------- Public entry point --------------------
-    def generate_action(self, data: DataType, account: AccountType) -> Optional[ActionType]:
+    def generate_action(
+        self, data: DataType, account: AccountType
+    ) -> Optional[ActionType]:
         """
         Unified generate_action:
           1) Extract id+price (domain-specific via hook)
@@ -45,7 +46,9 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
         # Gate on negligible price changes
         last = self._last_price.get(_id)
         if last is not None and abs(price - last) < self.price_epsilon:
-            print(f"💤 {self.name}: {_id} price unchanged at {self._fmt_price(price)}, no action")
+            print(
+                f"💤 {self.name}: {_id} price unchanged at {self._fmt_price(price)}, no action"
+            )
             return None
 
         # Track price + history
@@ -53,9 +56,11 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
         h = self._history.setdefault(_id, [])
         h.append(price)
         if len(h) > self.max_history:
-            self._history[_id] = h[-self.max_history:]
+            self._history[_id] = h[-self.max_history :]
 
-        print(f"📈 {self.name}: {_id} price changed to {self._fmt_price(price)}, analyzing...")
+        print(
+            f"📈 {self.name}: {_id} price changed to {self._fmt_price(price)}, analyzing..."
+        )
 
         # If LLM is unavailable, skip action
         if not self.available:
@@ -98,11 +103,14 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
 
         try:
             from ..utils import call_llm
+
             return call_llm(messages, self.model_name, self.name)
         except Exception as e:
             return {"success": False, "content": "", "error": str(e)}
 
-    def _parse_llm_response(self, llm_response: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _parse_llm_response(
+        self, llm_response: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """
         Parse LLM response with error handling
 
@@ -117,6 +125,7 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
 
         try:
             from ..utils import parse_trading_response
+
             return parse_trading_response(llm_response["content"])
         except Exception as e:
             print(f"⚠️ {self.name}: Failed to parse LLM response: {e}")
@@ -134,7 +143,9 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
         pass
 
     @abstractmethod
-    def _create_action_from_response(self, parsed: Dict[str, Any], _id: str, price: float) -> Optional[ActionType]:
+    def _create_action_from_response(
+        self, parsed: Dict[str, Any], _id: str, price: float
+    ) -> Optional[ActionType]:
         """Turn parsed JSON dict into a domain action (StockAction / PolymarketAction / etc.)."""
         pass
 
@@ -169,7 +180,6 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
     # --- presentation tweak ---
     def _fmt_price(self, price: float) -> str:
         return f"{price:.2f}"  # probability display
-
 
     @property
     def is_available(self) -> bool:

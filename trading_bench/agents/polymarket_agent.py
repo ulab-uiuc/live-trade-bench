@@ -9,7 +9,9 @@ from .base_agent import BaseAgent
 
 
 # ---------------------- Agent ----------------------
-class LLMPolyMarketAgent(BaseAgent[PolymarketAction, PolymarketAccount, Dict[str, Any]]):
+class LLMPolyMarketAgent(
+    BaseAgent[PolymarketAction, PolymarketAccount, Dict[str, Any]]
+):
     """Symmetric, slim Polymarket agent using the shared base."""
 
     def __init__(self, name: str, model_name: str = "gpt-4o-mini") -> None:
@@ -23,7 +25,9 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAction, PolymarketAccount, Dict[str
         # Backward compat:
         return data["market_id"], float(data["price"])
 
-    def _prepare_analysis_data(self, _id: str, price: float, data: Dict[str, Any], account: PolymarketAccount) -> str:
+    def _prepare_analysis_data(
+        self, _id: str, price: float, data: Dict[str, Any], account: PolymarketAccount
+    ) -> str:
         hist = [f"{p:.2f}" for p in self.history_tail(_id, 5)]
         prev = self.prev_price(_id)
         pct = 0.0 if prev is None else ((price - prev) / prev) * 100.0
@@ -52,7 +56,9 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAction, PolymarketAccount, Dict[str
             "Decide buy/sell/hold with outcome (yes/no), quantity (1-20), and reasoning."
         )
 
-    def _create_action_from_response(self, parsed: Dict[str, Any], _id: str, price: float) -> Optional[PolymarketAction]:
+    def _create_action_from_response(
+        self, parsed: Dict[str, Any], _id: str, price: float
+    ) -> Optional[PolymarketAction]:
         action = (parsed.get("action") or "hold").lower()
         if action == "hold":
             return None
@@ -105,14 +111,19 @@ class PolymarketTradingSystem:
     def _initialize_universe(self, limit: int) -> None:
         try:
             from ..fetchers.polymarket_fetcher import fetch_trending_markets
+
             markets = fetch_trending_markets(limit=limit)
             self.universe = [m["id"] for m in markets]
-            print(f"📊 Initialized {len(self.universe)} markets: " +
-                  " | ".join([m[:8] + "..." for m in self.universe[:3]]))
+            print(
+                f"📊 Initialized {len(self.universe)} markets: "
+                + " | ".join([m[:8] + "..." for m in self.universe[:3]])
+            )
         except Exception as e:
             raise ValueError(f"Failed to fetch trending markets: {e}")
 
-    def add_agent(self, name: str, initial_cash: float = 500.0, model_name: str = "gpt-4o-mini") -> None:
+    def add_agent(
+        self, name: str, initial_cash: float = 500.0, model_name: str = "gpt-4o-mini"
+    ) -> None:
         agent = LLMPolyMarketAgent(name, model_name)
         self.agents[name] = agent
         self.accounts[name] = create_polymarket_account(initial_cash)
@@ -121,6 +132,7 @@ class PolymarketTradingSystem:
     def _fetch_prices(self) -> Dict[str, float]:
         try:
             from ..fetchers.polymarket_fetcher import fetch_current_market_price
+
             out: Dict[str, float] = {}
             for m in self.universe:
                 prices = fetch_current_market_price(m)
@@ -154,7 +166,9 @@ class PolymarketTradingSystem:
                 print("❌ No market data; skipping.")
                 return
 
-            preview = " | ".join(f"{m[:8]}...: {p:.2f}" for m, p in list(prices.items())[:5])
+            preview = " | ".join(
+                f"{m[:8]}...: {p:.2f}" for m, p in list(prices.items())[:5]
+            )
             print(f"📈 Markets: {preview}...")
 
             for agent_name, agent in self.agents.items():
@@ -175,12 +189,14 @@ class PolymarketTradingSystem:
 
         except Exception as e:
             print(f"❌ Error in polymarket cycle: {e}")
-            import traceback; traceback.print_exc()
+            import traceback
+
+            traceback.print_exc()
 
     def run(self, duration_minutes: int = 10, interval: int = 60):
         """
         Run the prediction market trading system for a specified duration
-        
+
         Args:
             duration_minutes: Total time to run the system in minutes
             interval: Seconds to wait between cycles (default: 60)
@@ -189,33 +205,41 @@ class PolymarketTradingSystem:
         print(f"   Interval: {interval} seconds between cycles")
         start_time = datetime.now()
         end_time = start_time + timedelta(minutes=duration_minutes)
-        
+
         print(f"   Start: {start_time.strftime('%H:%M:%S')}")
         print(f"   End:   {end_time.strftime('%H:%M:%S')}")
-        
+
         try:
             while datetime.now() < end_time:
                 self.run_cycle()
-                
+
                 # Check if we should continue
                 remaining = end_time - datetime.now()
                 if remaining.total_seconds() <= 0:
                     break
-                    
+
                 # Wait before next cycle (user-configurable interval)
-                print(f"⏱️  Waiting {interval}s... ({remaining.total_seconds()//60:.0f}m {remaining.total_seconds()%60:.0f}s remaining)")
+                print(
+                    f"⏱️  Waiting {interval}s... ({remaining.total_seconds()//60:.0f}m {remaining.total_seconds()%60:.0f}s remaining)"
+                )
                 time.sleep(interval)
-                
+
         except KeyboardInterrupt:
             print("\n⏹️  Trading stopped by user")
         except Exception as e:
             print(f"\n❌ Trading system error: {e}")
-            
-        elapsed = datetime.now() - start_time
-        print(f"\n✅ Trading completed! Ran for {elapsed.total_seconds()/60:.1f} minutes")
 
-def create_polymarket_agent(name: str, model_name: str = "gpt-4o-mini") -> LLMPolyMarketAgent:
+        elapsed = datetime.now() - start_time
+        print(
+            f"\n✅ Trading completed! Ran for {elapsed.total_seconds()/60:.1f} minutes"
+        )
+
+
+def create_polymarket_agent(
+    name: str, model_name: str = "gpt-4o-mini"
+) -> LLMPolyMarketAgent:
     return LLMPolyMarketAgent(name, model_name)
+
 
 # Convenience
 def create_polymarket_trading_system() -> PolymarketTradingSystem:
