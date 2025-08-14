@@ -126,7 +126,7 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, tuple]):
         positions = account.get_active_positions()
         current_position = positions.get(ticker)
         position_info = (
-            f"Currently holding {current_position.quantity} shares at avg ${current_position.average_price:.2f}"
+            f"Currently holding {current_position.quantity} shares at avg ${current_position.avg_price:.2f}"
             if current_position
             else "No current position"
         )
