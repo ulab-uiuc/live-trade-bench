@@ -11,40 +11,38 @@ This package provides tools for:
 # Import core components
 from .accounts import (
     BaseAccount,
-    StockAccount, 
-    StockPosition, 
-    StockTransaction, 
-    StockAction,
-    create_stock_account,
     PolymarketAccount,
-    PolymarketPosition, 
-    PolymarketTransaction, 
     PolymarketAction,
-    create_polymarket_account
+    PolymarketPosition,
+    PolymarketTransaction,
+    StockAccount,
+    StockAction,
+    StockPosition,
+    StockTransaction,
+    create_polymarket_account,
+    create_stock_account,
 )
-
 from .agents import (
     BaseAgent,
-    LLMStockAgent, 
-    StockTradingSystem, 
+    LLMPolyMarketAgent,
+    LLMStockAgent,
+    PolymarketTradingSystem,
+    StockTradingSystem,
+    create_polymarket_agent,
+    create_polymarket_trading_system,
     create_trading_system,
-    LLMPolyMarketAgent, 
-    PolymarketTradingSystem, 
-    create_polymarket_agent, 
-    create_polymarket_trading_system
 )
-
 from .fetchers import (
     BaseFetcher,
     NewsFetcher,
     PolymarketFetcher,
-    fetch_trending_markets,
     fetch_current_market_price,
+    fetch_trending_markets,
 )
 
 # Optional fetchers (may not be available if dependencies missing)
 try:
-    from .fetchers import StockFetcher, fetch_trending_stocks, fetch_current_stock_price
+    from .fetchers import StockFetcher, fetch_current_stock_price, fetch_trending_stocks
 except ImportError:
     pass
 
@@ -64,36 +62,33 @@ from .utils import call_llm, parse_trading_response
 __all__ = [
     # Accounts
     "BaseAccount",
-    "StockAccount", 
-    "StockPosition", 
-    "StockTransaction", 
+    "StockAccount",
+    "StockPosition",
+    "StockTransaction",
     "StockAction",
     "create_stock_account",
     "PolymarketAccount",
-    "PolymarketPosition", 
-    "PolymarketTransaction", 
+    "PolymarketPosition",
+    "PolymarketTransaction",
     "PolymarketAction",
     "create_polymarket_account",
-    
-    # Agents 
+    # Agents
     "BaseAgent",
-    "LLMStockAgent", 
-    "StockTradingSystem", 
+    "LLMStockAgent",
+    "StockTradingSystem",
     "create_trading_system",
-    "LLMPolyMarketAgent", 
-    "PolymarketTradingSystem", 
-    "create_polymarket_agent", 
+    "LLMPolyMarketAgent",
+    "PolymarketTradingSystem",
+    "create_polymarket_agent",
     "create_polymarket_trading_system",
-    
     # Fetchers
     "BaseFetcher",
     "NewsFetcher",
     "PolymarketFetcher",
     "fetch_trending_markets",
     "fetch_current_market_price",
-    
     # Utils
-    "call_llm", 
+    "call_llm",
     "parse_trading_response",
 ]
 
