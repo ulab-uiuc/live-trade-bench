@@ -1,5 +1,3 @@
-import random
-
 from app.schemas import (
     ModelStatus,
     NewsCategory,
@@ -10,66 +8,8 @@ from app.schemas import (
     TradingModel,
 )
 
-# Sample trading models data
-SAMPLE_MODELS: list[TradingModel] = [
-    TradingModel(
-        id="1",
-        name="LSTM Deep Learning Model",
-        performance=78.5,
-        accuracy=82.3,
-        trades=145,
-        profit=2340.50,
-        status=ModelStatus.ACTIVE,
-    ),
-    TradingModel(
-        id="2",
-        name="Random Forest Classifier",
-        performance=65.2,
-        accuracy=71.8,
-        trades=89,
-        profit=1250.75,
-        status=ModelStatus.ACTIVE,
-    ),
-    TradingModel(
-        id="3",
-        name="XGBoost Regressor",
-        performance=71.9,
-        accuracy=76.4,
-        trades=112,
-        profit=1890.25,
-        status=ModelStatus.INACTIVE,
-    ),
-    TradingModel(
-        id="4",
-        name="Support Vector Machine",
-        performance=55.8,
-        accuracy=62.1,
-        trades=67,
-        profit=-450.30,
-        status=ModelStatus.TRAINING,
-    ),
-    TradingModel(
-        id="5",
-        name="Neural Network Ensemble",
-        performance=83.2,
-        accuracy=87.6,
-        trades=203,
-        profit=4120.80,
-        status=ModelStatus.ACTIVE,
-    ),
-]
-
-
-def get_models_data() -> list[TradingModel]:
-    """Get all trading models with some random variation in performance."""
-    models = []
-    for model in SAMPLE_MODELS:
-        # Add some random variation to make it more realistic
-        variation = random.uniform(-2, 2)
-        updated_model = model.model_copy()
-        updated_model.performance = max(0, min(100, model.performance + variation))
-        models.append(updated_model)
-    return models
+# Import trading actions management
+from app.trading_actions import get_trading_actions
 
 
 def get_real_models_data() -> list[TradingModel]:
@@ -116,12 +56,6 @@ def get_real_models_data() -> list[TradingModel]:
         ),
     ]
     return llm_models
-
-
-def get_trades_data() -> list[Trade]:
-    """Get trading history data."""
-    # Return empty list since SAMPLE_TRADES is commented out
-    return []
 
 
 def get_real_trades_data(ticker: str = "NVDA", days: int = 7) -> list[Trade]:
@@ -197,11 +131,6 @@ def get_real_trades_data(ticker: str = "NVDA", days: int = 7) -> list[Trade]:
     except Exception as e:
         print(f"Error fetching real trades: {e}")
         return []
-
-
-def get_news_data() -> list[NewsItem]:
-    """Get news data."""
-    return []
 
 
 def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsItem]:
@@ -315,7 +244,6 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
 
     except Exception as e:
         print(f"Error fetching real news: {e}")
-        # Fallback to sample data
         return []
 
 
@@ -325,7 +253,16 @@ def get_real_social_data(
     """Get real social media data from Reddit across all categories."""
     import os
     import sys
+    import warnings
     from datetime import datetime
+
+    # Suppress PRAW async warnings since we're using it correctly in FastAPI
+    warnings.filterwarnings("ignore", message=".*PRAW.*asynchronous.*")
+
+    # Also suppress PRAW logging warnings
+    import logging
+
+    logging.getLogger("praw").setLevel(logging.ERROR)
 
     # Add trading_bench to path
     project_root = os.path.dirname(
@@ -432,3 +369,14 @@ def get_real_social_data(
     except Exception as e:
         print(f"Error fetching real social data: {e}")
         return []
+
+
+def get_real_system_log_data(
+    agent_type: str = None, status: str = None, limit: int = 100, hours: int = 24
+) -> list[dict]:
+    """Get trading actions from system logs - ONLY trading decisions, not data fetching."""
+    # Get trading actions using the new system - NO SAMPLE DATA
+    actions = get_trading_actions(
+        agent_type=agent_type, status=status, limit=limit, hours=hours
+    )
+    return actions

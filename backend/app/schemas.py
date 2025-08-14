@@ -15,6 +15,18 @@ class TradeType(str, Enum):
     SELL = "sell"
 
 
+class ActionType(str, Enum):
+    BUY = "BUY"
+    SELL = "SELL"
+    HOLD = "HOLD"
+
+
+class ActionStatus(str, Enum):
+    PENDING = "pending"
+    EXECUTED = "executed"
+    EVALUATED = "evaluated"
+
+
 class NewsImpact(str, Enum):
     HIGH = "high"
     MEDIUM = "medium"
@@ -95,6 +107,33 @@ class NewsItemCreate(BaseModel):
     impact: NewsImpact
     category: NewsCategory
     url: str
+
+
+class Portfolio(BaseModel):
+    cash: float
+    holdings: dict[str, float]  # ticker -> quantity
+
+
+class TradingAction(BaseModel):
+    id: str
+    agent_id: str  # model identifier (e.g., "claude-3.5-sonnet")
+    agent_name: str  # human readable name
+    agent_type: str = "trading_agent"
+    action: ActionType
+    description: str
+    status: ActionStatus
+    timestamp: datetime
+    targets: list[str]  # tickers affected
+    metadata: dict
+
+
+class SystemLogStats(BaseModel):
+    total_actions: int
+    pending_actions: int
+    executed_actions: int
+    evaluated_actions: int
+    models_active: int
+    recent_activity: int  # last hour
 
 
 class APIResponse(BaseModel):
