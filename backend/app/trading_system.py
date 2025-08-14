@@ -35,10 +35,10 @@ class MultiAssetTradingSystem:
     def __init__(self):
         # Import the native trading systems after path setup
         from trading_bench.agents.polymarket_agent import PolymarketTradingSystem
-        from trading_bench.agents.stock_agent import TradingSystem
+        from trading_bench.agents.stock_agent import StockTradingSystem
 
         # Create the native trading systems
-        self.stock_system = TradingSystem()
+        self.stock_system = StockTradingSystem()
         self.polymarket_system = PolymarketTradingSystem()
 
         # System control
@@ -143,12 +143,13 @@ class MultiAssetTradingSystem:
         models_data = []
 
         # Get stock model data
-        for i, (model_id, model_config) in enumerate(
-            zip(self.active_stock_models.keys(), self.models_config)
+        for model_id, model_config in zip(
+            self.active_stock_models.keys(), self.models_config
         ):
-            if i < len(self.stock_system.agents):
-                stock_agent = self.stock_system.agents[i]
-                stock_account = self.stock_system.accounts[stock_agent.name]
+            agent_name = f"{model_config['name']} (Stock)"
+            if agent_name in self.stock_system.agents:
+                stock_agent = self.stock_system.agents[agent_name]
+                stock_account = self.stock_system.accounts[agent_name]
 
                 try:
                     stock_evaluation = stock_account.evaluate()
@@ -179,14 +180,13 @@ class MultiAssetTradingSystem:
                     logger.error(f"Error getting stock data for {model_id}: {e}")
 
         # Get polymarket model data
-        for i, (model_id, model_config) in enumerate(
-            zip(self.active_polymarket_models.keys(), self.models_config)
+        for model_id, model_config in zip(
+            self.active_polymarket_models.keys(), self.models_config
         ):
-            if i < len(self.polymarket_system.agents):
-                polymarket_agent = self.polymarket_system.agents[i]
-                polymarket_account = self.polymarket_system.accounts[
-                    polymarket_agent.name
-                ]
+            agent_name = f"{model_config['name']} (Polymarket)"
+            if agent_name in self.polymarket_system.agents:
+                polymarket_agent = self.polymarket_system.agents[agent_name]
+                polymarket_account = self.polymarket_system.accounts[agent_name]
 
                 try:
                     polymarket_evaluation = polymarket_account.evaluate()
@@ -417,16 +417,15 @@ class MultiAssetTradingSystem:
             )
 
     def _run_stock_cycle_native(self):
-        """Run stock cycle using native TradingSystem.run() - adapted for backend service"""
+        """Run stock cycle using native StockTradingSystem.run() - adapted for backend service"""
         try:
             logger.info("Running stock system using native .run() method")
-            # For backend service: run a short burst (like polymarket demo)
+            # For backend service: run a short burst
             # This gets called repeatedly by our background loop (every 30 min)
-            # So we run a few cycles each time rather than all 1000 at once
+            # So we run for 2 minutes each time with 30 second intervals
             self.stock_system.run(
-                tickers=self.stock_tickers,
-                cycles=3,  # Short burst of cycles per call
-                interval=30.0,  # 30 seconds between cycles within this burst
+                duration_minutes=2,  # Short burst duration per call
+                interval=30,  # 30 seconds between cycles within this burst
             )
             logger.info("Stock system .run() completed")
         except Exception as e:
@@ -436,8 +435,11 @@ class MultiAssetTradingSystem:
         """Run polymarket cycle using native PolymarketTradingSystem.run() - matching polymarket_demo.py"""
         try:
             logger.info("Running polymarket system using native .run() method")
-            # Use same parameters as polymarket_demo.py for consistency
-            self.polymarket_system.run(cycles=4, interval=2.0)
+            # Short burst for backend service
+            self.polymarket_system.run(
+                duration_minutes=2,  # Short burst duration
+                interval=60,  # 1 minute between cycles
+            )
             logger.info("Polymarket system .run() completed")
         except Exception as e:
             logger.error(f"Error in polymarket system .run(): {e}")
@@ -446,11 +448,14 @@ class MultiAssetTradingSystem:
         """Get portfolio data for a specific model"""
         if model_id.endswith("_stock"):
             base_model_id = model_id.replace("_stock", "")
-            model_index = list(self.active_stock_models.keys()).index(base_model_id)
-
-            if model_index < len(self.stock_system.agents):
-                agent = self.stock_system.agents[model_index]
-                account = self.stock_system.accounts[agent.name]
+            model_config = next(
+                (m for m in self.models_config if m["id"] == base_model_id), None
+            )
+            if model_config:
+                agent_name = f"{model_config['name']} (Stock)"
+                if agent_name in self.stock_system.agents:
+                    agent = self.stock_system.agents[agent_name]
+                    account = self.stock_system.accounts[agent_name]
                 evaluation = account.evaluate()
 
                 # Extract holdings and detailed position info for frontend compatibility
@@ -490,13 +495,14 @@ class MultiAssetTradingSystem:
 
         elif model_id.endswith("_polymarket"):
             base_model_id = model_id.replace("_polymarket", "")
-            model_index = list(self.active_polymarket_models.keys()).index(
-                base_model_id
+            model_config = next(
+                (m for m in self.models_config if m["id"] == base_model_id), None
             )
-
-            if model_index < len(self.polymarket_system.agents):
-                agent = self.polymarket_system.agents[model_index]
-                account = self.polymarket_system.accounts[agent.name]
+            if model_config:
+                agent_name = f"{model_config['name']} (Polymarket)"
+                if agent_name in self.polymarket_system.agents:
+                    agent = self.polymarket_system.agents[agent_name]
+                    account = self.polymarket_system.accounts[agent_name]
                 evaluation = account.evaluate()
 
                 # Extract holdings and detailed position info for polymarket
@@ -549,17 +555,17 @@ class MultiAssetTradingSystem:
         )
 
         # Calculate total system performance from native systems
-        for agent in self.stock_system.agents:
+        for agent_name in self.stock_system.agents.keys():
             try:
-                account = self.stock_system.accounts[agent.name]
+                account = self.stock_system.accounts[agent_name]
                 evaluation = account.evaluate()
                 total_stock_value += evaluation["portfolio_summary"]["total_value"]
             except Exception:
                 total_stock_value += self.stock_initial_cash
 
-        for agent in self.polymarket_system.agents:
+        for agent_name in self.polymarket_system.agents.keys():
             try:
-                account = self.polymarket_system.accounts[agent.name]
+                account = self.polymarket_system.accounts[agent_name]
                 evaluation = account.evaluate()
                 total_polymarket_value += evaluation["portfolio_summary"]["total_value"]
             except Exception:
