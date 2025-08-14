@@ -8,54 +8,43 @@ from app.schemas import (
     TradingModel,
 )
 
-# Import trading actions management
-from app.trading_actions import get_trading_actions
+# Import trading system for real data
+from app.trading_system import get_trading_system
 
 
 def get_real_models_data() -> list[TradingModel]:
-    """Get real LLM model performance data from actual trading predictions."""
-    # These are the different LLM models that can be used in trading_bench.model_wrapper
-    # Each model corresponds to different LLM providers and models
-    # Performance gets calculated from their actual predictions vs market outcomes
-    llm_models = [
-        TradingModel(
-            id="claude-3.5-sonnet",
-            name="Claude 3.5 Sonnet",
-            performance=0.0,  # % of correct predictions
-            accuracy=0.0,  # Same as performance
-            trades=0,  # Number of predictions made via run_trade()
-            profit=0.0,  # Total profit from eval() results
-            status=ModelStatus.INACTIVE,  # ACTIVE when making predictions
-        ),
-        TradingModel(
-            id="gpt-4",
-            name="GPT-4",
-            performance=0.0,
-            accuracy=0.0,
-            trades=0,
-            profit=0.0,
-            status=ModelStatus.INACTIVE,
-        ),
-        TradingModel(
-            id="gemini-1.5-pro",
-            name="Gemini 1.5 Pro",
-            performance=0.0,
-            accuracy=0.0,
-            trades=0,
-            profit=0.0,
-            status=ModelStatus.INACTIVE,
-        ),
-        TradingModel(
-            id="claude-4-haiku",
-            name="Claude 4 Haiku",
-            performance=0.0,
-            accuracy=0.0,
-            trades=0,
-            profit=0.0,
-            status=ModelStatus.INACTIVE,
-        ),
-    ]
-    return llm_models
+    """Get real LLM model performance data from actual trading agents."""
+    try:
+        trading_system = get_trading_system()
+        models_data = trading_system.get_model_data()
+
+        # Convert to TradingModel schema
+        trading_models = []
+        for model_data in models_data:
+            # Map status
+            status = (
+                ModelStatus.ACTIVE
+                if model_data["status"] == "active"
+                else ModelStatus.INACTIVE
+            )
+
+            trading_model = TradingModel(
+                id=model_data["id"],
+                name=model_data["name"],
+                performance=model_data["performance"],  # Return percentage
+                accuracy=model_data["accuracy"],  # Profitable trades percentage
+                trades=model_data["trades"],  # Number of transactions
+                profit=model_data["profit"],  # Total profit/loss
+                status=status,
+            )
+            trading_models.append(trading_model)
+
+        return trading_models
+
+    except Exception as e:
+        print(f"Error getting real models data: {e}")
+        # Return empty list - no fallback data
+        raise Exception(f"Trading system not available: {e}")
 
 
 def get_real_trades_data(ticker: str = "NVDA", days: int = 7) -> list[Trade]:
@@ -130,7 +119,7 @@ def get_real_trades_data(ticker: str = "NVDA", days: int = 7) -> list[Trade]:
 
     except Exception as e:
         print(f"Error fetching real trades: {e}")
-        return []
+        raise Exception(f"Unable to fetch trading data: {e}")
 
 
 def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsItem]:
@@ -244,7 +233,7 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
 
     except Exception as e:
         print(f"Error fetching real news: {e}")
-        return []
+        raise Exception(f"Unable to fetch news data: {e}")
 
 
 def get_real_social_data(
@@ -368,15 +357,4 @@ def get_real_social_data(
 
     except Exception as e:
         print(f"Error fetching real social data: {e}")
-        return []
-
-
-def get_real_system_log_data(
-    agent_type: str = None, status: str = None, limit: int = 100, hours: int = 24
-) -> list[dict]:
-    """Get trading actions from system logs - ONLY trading decisions, not data fetching."""
-    # Get trading actions using the new system - NO SAMPLE DATA
-    actions = get_trading_actions(
-        agent_type=agent_type, status=status, limit=limit, hours=hours
-    )
-    return actions
+        raise Exception(f"Unable to fetch social media data: {e}")

@@ -32,7 +32,7 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
     setLoading(true);
     try {
       // Fetch real trading data instead of sample data
-      const response = await fetch('http://localhost:8000/api/trades/real?ticker=NVDA&days=7');
+      const response = await fetch('http://localhost:5000/api/trades/real?ticker=NVDA&days=7');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

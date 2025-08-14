@@ -41,27 +41,34 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
   const fetchSystemLog = async () => {
     setLoading(true);
     try {
-      // Fetch from backend API
-      const response = await fetch('http://localhost:8000/api/system-log/');
+      // Fetch from model-actions API instead of system-log
+      const response = await fetch('http://localhost:5000/api/model-actions/?limit=100');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
 
-      // Transform backend data to frontend format
+      // Transform model-actions data to SystemAction format
       const transformedActions: SystemAction[] = data.map((action: any) => ({
         id: action.id,
-        agentId: action.agent_id,
-        agentName: action.agent_name,
-        agentType: action.agent_type,
-        action: action.action,
-        description: action.description,
-        status: action.status,
+        agentId: action.modelId,
+        agentName: action.modelName,
+        agentType: 'trading_agent' as const,
+        action: action.action.toUpperCase() as 'BUY' | 'SELL' | 'HOLD',
+        description: action.reason || `${action.action.toUpperCase()} ${action.quantity} ${action.symbol}`,
+        status: action.status === 'executed' ? 'executed' : 'pending',
         timestamp: new Date(action.timestamp),
-        duration: action.duration,
-        dataProcessed: action.data_processed,
-        targets: action.targets,
-        metadata: action.metadata
+        targets: [action.symbol],
+        metadata: {
+          ticker: action.symbol,
+          action_type: action.action,
+          quantity: action.quantity,
+          price: action.price,
+          reasoning: action.reason || '',
+          portfolio_before: { cash: 0, holdings: {} }, // Not available in model-actions
+          portfolio_after: { cash: 0, holdings: {} },  // Not available in model-actions
+          total_cost: action.price * action.quantity
+        }
       }));
 
       setActions(transformedActions);
