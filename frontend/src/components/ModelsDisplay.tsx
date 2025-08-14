@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Portfolio from './Portfolio';
 
 interface Model {
   id: string;
@@ -9,6 +10,18 @@ interface Model {
   trades: number;
   profit: number;
   status: 'active' | 'inactive' | 'training';
+  // Enhanced fields from Phase 2
+  total_value?: number;
+  cash_balance?: number;
+  active_positions?: number;
+  is_activated?: boolean;
+  recent_performance?: {
+    daily_actions: number;
+    weekly_actions: number;
+    recent_win_rate: number;
+    last_action_time?: string;
+  };
+  llm_available?: boolean;
   // Category-specific fields
   market_type?: string; // For polymarket models
   ticker?: string; // For stock/option models
@@ -30,18 +43,19 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock' | 'option'>('all');
+  const [expandedModel, setExpandedModel] = useState<string | null>(null);
 
   const fetchModels = async () => {
     setLoading(true);
     try {
       // Fetch real LLM models data
-      const response = await fetch('http://localhost:8000/api/models/');
+      const response = await fetch('http://localhost:5000/api/models/');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
 
-      // Transform backend data to frontend format
+      // Transform backend data to frontend format with enhanced fields
       const transformedModels: Model[] = data.map((model: any) => ({
         id: model.id,
         name: model.name,
@@ -51,6 +65,14 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
         trades: model.trades,
         profit: model.profit,
         status: model.status,
+        // Enhanced Phase 2 fields
+        total_value: model.total_value,
+        cash_balance: model.cash_balance,
+        active_positions: model.active_positions,
+        is_activated: model.is_activated,
+        recent_performance: model.recent_performance,
+        llm_available: model.llm_available,
+        // Category-specific fields
         market_type: model.market_type,
         ticker: model.ticker,
         strategy: model.strategy
@@ -75,8 +97,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       fetchModels();
     }
 
-    // Auto-refresh every day
-    const interval = setInterval(fetchModels, 24 * 60 * 60 * 1000);
+    // Auto-refresh every 30 seconds for real-time data
+    const interval = setInterval(fetchModels, 30 * 1000);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -171,8 +193,22 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
             </div>
 
             <div className="model-status">
-              <span className={`status-indicator ${model.status}`}></span>
-              <span className="status-text">{model.status}</span>
+              <div className="status-row">
+                <span className={`status-indicator ${model.status}`}></span>
+                <span className="status-text">{model.status}</span>
+                {model.is_activated !== undefined && (
+                  <span className={`activation-badge ${model.is_activated ? 'active' : 'inactive'}`}>
+                    {model.is_activated ? '🟢 Active' : '⚪ Inactive'}
+                  </span>
+                )}
+              </div>
+              {model.llm_available !== undefined && (
+                <div className="llm-status">
+                  <span className={`llm-indicator ${model.llm_available ? 'available' : 'unavailable'}`}>
+                    {model.llm_available ? '🤖 LLM Available' : '⚠️ LLM Unavailable'}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Category-specific information */}
@@ -218,7 +254,73 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                   {model.profit >= 0 ? '+' : ''}${model.profit.toFixed(2)}
                 </span>
               </div>
+
+              {/* Enhanced Phase 2 Metrics */}
+              {model.total_value !== undefined && (
+                <div className="metric-item">
+                  <span className="metric-label">Portfolio Value</span>
+                  <span className="metric-value">${model.total_value.toFixed(2)}</span>
+                </div>
+              )}
+              {model.cash_balance !== undefined && (
+                <div className="metric-item">
+                  <span className="metric-label">Cash</span>
+                  <span className="metric-value">${model.cash_balance.toFixed(2)}</span>
+                </div>
+              )}
+              {model.active_positions !== undefined && (
+                <div className="metric-item">
+                  <span className="metric-label">Positions</span>
+                  <span className="metric-value">{model.active_positions}</span>
+                </div>
+              )}
             </div>
+
+            {/* Recent Performance */}
+            {model.recent_performance && (
+              <div className="recent-performance">
+                <h4>Recent Activity</h4>
+                <div className="performance-metrics">
+                  <div className="perf-metric">
+                    <span className="perf-label">Daily Actions</span>
+                    <span className="perf-value">{model.recent_performance.daily_actions}</span>
+                  </div>
+                  <div className="perf-metric">
+                    <span className="perf-label">Weekly Actions</span>
+                    <span className="perf-value">{model.recent_performance.weekly_actions}</span>
+                  </div>
+                  <div className="perf-metric">
+                    <span className="perf-label">Recent Win Rate</span>
+                    <span className="perf-value">{model.recent_performance.recent_win_rate.toFixed(1)}%</span>
+                  </div>
+                  {model.recent_performance.last_action_time && (
+                    <div className="perf-metric">
+                      <span className="perf-label">Last Action</span>
+                      <span className="perf-value">
+                        {new Date(model.recent_performance.last_action_time).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Portfolio Toggle */}
+            <div className="model-actions">
+              <button
+                onClick={() => setExpandedModel(expandedModel === model.id ? null : model.id)}
+                className="portfolio-toggle"
+              >
+                {expandedModel === model.id ? 'Hide Portfolio' : 'View Portfolio'}
+              </button>
+            </div>
+
+            {/* Expanded Portfolio View */}
+            {expandedModel === model.id && (
+              <div className="portfolio-section">
+                <Portfolio modelId={model.id} modelName={model.name} />
+              </div>
+            )}
           </div>
         ))}
       </div>

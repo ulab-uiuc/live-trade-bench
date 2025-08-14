@@ -1,13 +1,5 @@
-from datetime import datetime, timedelta
-
-from app.data import get_real_system_log_data
-from app.schemas import ActionStatus, ActionType, Portfolio, SystemLogStats
-from app.trading_actions import (
-    MODEL_PORTFOLIOS,
-    add_trading_action,
-    get_model_portfolio,
-    update_action_status,
-)
+from app.schemas import Portfolio, SystemLogStats
+from app.trading_system import get_trading_system
 from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(prefix="/api/system-log", tags=["system-logs"])
@@ -20,7 +12,7 @@ async def get_system_log(
         description="Filter by agent type (data_collector, trading_agent, etc.)",
     ),
     status: str = Query(
-        default=None, description="Filter by status (success, warning, error, info)"
+        default=None, description="Filter by status (executed, failed, pending)"
     ),
     limit: int = Query(default=100, ge=1, le=500),
     hours: int = Query(
@@ -29,10 +21,24 @@ async def get_system_log(
 ):
     """Get real system log data from trading operations."""
     try:
-        actions = get_real_system_log_data(
-            agent_type=agent_type, status=status, limit=limit, hours=hours
-        )
+        trading_system = get_trading_system()
+
+        # Get recent actions from trading system
+        actions = trading_system.get_recent_actions(hours=hours)
+
+        # Apply filters
+        if agent_type and agent_type != "trading_agent":
+            # Only trading_agent type is available
+            actions = []
+
+        if status:
+            actions = [a for a in actions if a.get("status") == status]
+
+        # Limit results
+        actions = actions[:limit]
+
         return actions
+
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error fetching system log: {str(e)}"
@@ -43,7 +49,8 @@ async def get_system_log(
 async def get_system_log_stats():
     """Get system log statistics for trading actions."""
     try:
-        actions = get_real_system_log_data(limit=1000, hours=24)
+        trading_system = get_trading_system()
+        actions = trading_system.get_recent_actions(hours=24)
 
         if not actions:
             return SystemLogStats(
@@ -57,23 +64,16 @@ async def get_system_log_stats():
 
         # Calculate statistics
         total_actions = len(actions)
-        pending_actions = len([a for a in actions if a["status"] == "pending"])
-        executed_actions = len([a for a in actions if a["status"] == "executed"])
-        evaluated_actions = len([a for a in actions if a["status"] == "evaluated"])
+        pending_actions = len([a for a in actions if a.get("status") == "pending"])
+        executed_actions = len([a for a in actions if a.get("status") == "executed"])
+        evaluated_actions = len([a for a in actions if a.get("status") == "evaluated"])
 
         # Count active models (models with actions in last 24 hours)
         active_models = len(set(a["agent_id"] for a in actions))
 
         # Recent activity (last hour)
-        one_hour_ago = datetime.now() - timedelta(hours=1)
-        recent_activity = len(
-            [
-                a
-                for a in actions
-                if datetime.fromisoformat(a["timestamp"].replace("Z", "+00:00"))
-                >= one_hour_ago
-            ]
-        )
+        recent_actions = trading_system.get_recent_actions(hours=1)
+        recent_activity = len(recent_actions)
 
         return SystemLogStats(
             total_actions=total_actions,
@@ -93,19 +93,19 @@ async def get_system_log_stats():
 async def get_all_portfolios():
     """Get portfolios for all trading models."""
     try:
+        trading_system = get_trading_system()
         portfolios = {}
-        for model_id, portfolio in MODEL_PORTFOLIOS.items():
-            portfolios[model_id] = {
-                "model_id": model_id,
-                "model_name": _get_model_name(model_id),
-                "cash": portfolio.cash,
-                "holdings": dict(portfolio.holdings),
-                "total_value": portfolio.cash
-                + sum(
-                    quantity * 150.0  # Simplified price for demo
-                    for quantity in portfolio.holdings.values()
-                ),
-            }
+
+        # Get portfolios from trading system
+        for model_id in trading_system.agents.keys():
+            try:
+                portfolio_data = trading_system.get_portfolio(model_id)
+                portfolios[model_id] = portfolio_data
+            except Exception as e:
+                print(f"Error getting portfolio for {model_id}: {e}")
+                # Don't add fallback data - just skip this portfolio
+                continue
+
         return portfolios
     except Exception as e:
         raise HTTPException(
@@ -113,62 +113,30 @@ async def get_all_portfolios():
         )
 
 
-@router.get("/portfolios/{model_id}", response_model=Portfolio)
+@router.get("/portfolios/{model_id}")
 async def get_portfolio(model_id: str):
     """Get portfolio for a specific trading model."""
     try:
-        portfolio = get_model_portfolio(model_id)
+        trading_system = get_trading_system()
+
+        if model_id not in trading_system.agents:
+            raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
+
+        portfolio_data = trading_system.get_portfolio(model_id)
+
+        # Convert to Portfolio schema format
+        portfolio = Portfolio(
+            cash=portfolio_data["cash"], holdings=portfolio_data["holdings"]
+        )
+
         return portfolio
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error fetching portfolio: {str(e)}"
         )
-
-
-@router.post("/actions")
-async def create_trading_action(
-    model_id: str = Query(..., description="Model ID (e.g., claude-3.5-sonnet)"),
-    action_type: ActionType = Query(..., description="Action type: BUY, SELL, or HOLD"),
-    ticker: str = Query(..., description="Stock ticker symbol"),
-    quantity: float = Query(..., description="Number of shares"),
-    price: float = Query(..., description="Price per share"),
-    reasoning: str = Query(default="", description="Reasoning for the action"),
-):
-    """Create a new trading action for a model."""
-    try:
-        action_id = add_trading_action(
-            model_id=model_id,
-            action_type=action_type,
-            ticker=ticker,
-            quantity=quantity,
-            price=price,
-            reasoning=reasoning,
-        )
-        return {
-            "success": True,
-            "action_id": action_id,
-            "message": "Trading action created successfully",
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error creating action: {str(e)}")
-
-
-@router.put("/actions/{action_id}/status")
-async def update_trading_action_status(
-    action_id: str,
-    status: ActionStatus = Query(..., description="New status for the action"),
-):
-    """Update the status of a trading action."""
-    try:
-        success = update_action_status(action_id, status)
-        if not success:
-            raise HTTPException(status_code=404, detail="Action not found")
-
-        return {"success": True, "message": f"Action status updated to {status.value}"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error updating action: {str(e)}")
 
 
 def _get_model_name(model_id: str) -> str:

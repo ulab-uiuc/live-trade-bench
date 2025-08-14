@@ -443,9 +443,3 @@ def create_polymarket_account(
 ) -> PolymarketAccount:
     """Create new polymarket account (higher commission rate for prediction markets)"""
     return PolymarketAccount(cash_balance=initial_cash, commission_rate=commission_rate)
-
-
-# Legacy function for backward compatibility
-def eval_polymarket_account(account: PolymarketAccount) -> Dict[str, Any]:
-    """Legacy function - use account.evaluate() instead"""
-    return account.evaluate()
