@@ -14,8 +14,15 @@ from .accounts import (
     StockTransaction,
     create_polymarket_account,
     create_stock_account,
-    eval_account,
-    eval_polymarket_account,
+)
+from .agents import (
+    AIPolymarketAgent,
+    AITradingAgent,
+    PolymarketTradingSystem,
+    TradingSystem,
+    create_polymarket_agent,
+    create_polymarket_trading_system,
+    create_trading_system,
 )
 from .agents import (
     AIPolymarketAgent,
@@ -39,7 +46,6 @@ __all__ = [
     "StockTransaction",
     "StockAction",
     "create_stock_account",
-    "eval_account",
     # Prediction market trading
     "AIPolymarketAgent",
     "PolymarketTradingSystem",
@@ -50,7 +56,6 @@ __all__ = [
     "PolymarketTransaction",
     "PolymarketAction",
     "create_polymarket_account",
-    "eval_polymarket_account",
 ]
 
 __version__ = "1.0.0"

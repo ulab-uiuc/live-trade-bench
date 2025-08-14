@@ -195,72 +195,6 @@ class StockAccount(BaseAccount):
             notes=notes or f"StockAction from {action.timestamp}",
         )
 
-    def execute_trade(
-        self, ticker: str, action: str, price: float, quantity: float, notes: str = ""
-    ) -> Tuple[bool, str, Optional[StockTransaction]]:
-        """
-        Execute trade transaction (legacy method for backward compatibility)
-
-        Args:
-            ticker: Stock ticker symbol
-            action: "buy" or "sell"
-            price: Price per share
-            quantity: Number of shares
-            notes: Optional notes
-
-        Returns:
-            Tuple of (success, message, transaction)
-        """
-        action = action.lower()
-        commission = self.calculate_commission(price, quantity)
-
-        # Validate transaction
-        if action == "buy":
-            can_afford, reason = self.can_afford(ticker, price, quantity)
-            if not can_afford:
-                return False, reason, None
-        elif action == "sell":
-            can_sell, reason = self.can_sell(ticker, quantity)
-            if not can_sell:
-                return False, reason, None
-        else:
-            return False, f"Invalid action: {action}", None
-
-        # Create transaction record
-        transaction = StockTransaction(
-            ticker=ticker,
-            action=action,
-            quantity=quantity,
-            price=price,
-            timestamp=datetime.now().isoformat(),
-            commission=commission,
-            notes=notes,
-        )
-
-        # Execute transaction
-        try:
-            if action == "buy":
-                self.cash_balance -= transaction.total_value
-
-                if ticker in self.positions:
-                    self.positions[ticker].update_buy(price, quantity)
-                else:
-                    self.positions[ticker] = StockPosition(ticker, quantity, price)
-
-            elif action == "sell":
-                self.cash_balance += transaction.total_value
-                self.positions[ticker].update_sell(quantity)
-
-            self.transactions.append(transaction)
-            return (
-                True,
-                f"Successfully {action} {quantity} shares of {ticker} @ ${price:.2f}",
-                transaction,
-            )
-
-        except Exception as e:
-            return False, f"Trade failed: {str(e)}", None
-
     def get_active_positions(self) -> Dict[str, StockPosition]:
         """Get active positions (quantity > 0)"""
         return {
@@ -402,9 +336,3 @@ def create_stock_account(
 ) -> StockAccount:
     """Create new stock account"""
     return StockAccount(cash_balance=initial_cash, commission_rate=commission_rate)
-
-
-# Legacy function for backward compatibility
-def eval_account(account: StockAccount) -> Dict[str, Any]:
-    """Legacy function - use account.evaluate() instead"""
-    return account.evaluate()
