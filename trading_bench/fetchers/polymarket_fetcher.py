@@ -1,13 +1,14 @@
 """
-Polymarket data fetcher for trading bench.
+Polymarket data fetcher for trading bench (simplified).
 
-This module provides:
-1. PolymarketFetcher class - Core fetcher class with methods
-2. fetch_trending_markets() - Standalone function using the class
-3. fetch_current_market_price() - Standalone function using the class
+Exports:
+1) PolymarketFetcher         - Core fetcher class
+2) fetch_trending_markets()  - Convenience wrapper
+3) fetch_current_market_price() - Convenience wrapper
+4) fetch_token_price()       - Convenience wrapper
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional, Any
 
 from trading_bench.fetchers.base_fetcher import BaseFetcher
 
@@ -16,200 +17,131 @@ class PolymarketFetcher(BaseFetcher):
     """Fetcher for Polymarket prediction market data."""
 
     def __init__(self, min_delay: float = 0.5, max_delay: float = 1.5):
-        """Initialize the Polymarket fetcher."""
         super().__init__(min_delay, max_delay)
 
     def fetch(self, mode: str, **kwargs):
         """
-        Unified fetch interface for PolymarketFetcher.
+        Minimal unified fetch interface.
 
         Args:
-            mode: The type of data to fetch ('trending_markets' or 'market_price')
-            **kwargs: Arguments for the specific fetch method
+            mode: 'trending_markets' | 'market_price' | 'token_price'
         """
         if mode == "trending_markets":
             return self.get_trending_markets(limit=kwargs.get("limit", 10))
-        elif mode == "market_price":
-            if "market_id" not in kwargs:
-                raise ValueError("market_id is required for market_price")
-            return self.get_current_market_price(kwargs["market_id"])
-        else:
-            raise ValueError(f"Unknown fetch mode: {mode}")
+        if mode == "market_price":
+            token_ids = kwargs.get("token_ids")
+            if not token_ids:
+                raise ValueError("token_ids is required for market_price")
+            return self.get_market_prices(token_ids)
+        if mode == "token_price":
+            token_id = kwargs.get("token_id")
+            if not token_id:
+                raise ValueError("token_id is required for token_price")
+            return {
+                "token_id": token_id,
+                "side": kwargs.get("side", "buy"),
+                "price": self.get_token_price(token_id, kwargs.get("side", "buy")),
+            }
+        raise ValueError(f"Unknown fetch mode: {mode}")
 
-    def get_trending_markets(self, limit: int = 10) -> List[Dict]:
+    # ----------------------------
+    # Core methods (no mocks)
+    # ----------------------------
+    def get_trending_markets(self, limit: int = 10) -> List[Dict[str, Any]]:
         """
-        Fetch trending markets from Polymarket API.
+        Return basic info for active, open markets.
 
-        Args:
-            limit: Maximum number of markets to return
-
-        Returns:
-            List of dictionaries containing market basic info
+        Note: API may return a list or an object with a 'data' field.
         """
+        url = "https://gamma-api.polymarket.com/markets?active=true&closed=false"
+        resp = self.make_request(url, timeout=10)
+        if resp.status_code != 200:
+            raise ValueError(f"Polymarket markets API error: {resp.status_code}")
+
+        data = self.safe_json_parse(resp, "Polymarket markets API")
+        markets = data.get("data", data) if isinstance(data, dict) else data
+        if not isinstance(markets, list):
+            return []
+
+        out: List[Dict[str, Any]] = []
+        for m in markets:
+            if not isinstance(m, dict):
+                continue
+            if m.get("active") is False or m.get("closed") is True:
+                continue
+            # Parse token_ids - handle both list and string formats
+            token_ids = m.get("clobTokenIds")
+            if isinstance(token_ids, str):
+                try:
+                    import json
+                    token_ids = json.loads(token_ids)
+                except (json.JSONDecodeError, TypeError):
+                    token_ids = None
+            
+            out.append(
+                {
+                    "id": m.get("id"),
+                    "question": m.get("question"),
+                    "category": m.get("category"),
+                    "token_ids": token_ids if isinstance(token_ids, list) else None,
+                }
+            )
+            if len(out) >= limit:
+                break
+        return out
+
+    def get_token_price(self, token_id: str, side: str = "buy") -> Optional[float]:
+        """
+        Return current price for a token on the given side, or None if unavailable.
+        """
+        url = f"https://clob.polymarket.com/price?token_id={token_id}&side={side}"
+        resp = self.make_request(url, timeout=8)
+        if resp.status_code != 200:
+            return None
+        payload = self.safe_json_parse(resp, f"Token {token_id} {side} price")
+        price = payload.get("price") if isinstance(payload, dict) else None
         try:
-            url = "https://clob.polymarket.com/markets"
-            response = self.make_request(url, timeout=10)
+            return float(price) if price is not None else None
+        except (TypeError, ValueError):
+            return None
 
-            if response.status_code == 200:
-                markets_data = self.safe_json_parse(response, "Polymarket markets API")
-
-                # Ensure we're working with a list
-                if not isinstance(markets_data, list):
-                    if isinstance(markets_data, dict) and "data" in markets_data:
-                        markets_data = markets_data["data"]
-                    else:
-                        raise RuntimeError("Unexpected API response format")
-
-                # Extract basic market info for trending markets
-                trending_markets = []
-                for market in markets_data:
-                    if isinstance(market, dict) and market.get("active", False):
-                        market_id = (
-                            market.get("question_id")
-                            or market.get("condition_id")
-                            or market.get("market_slug")
-                        )
-                        if market_id:
-                            trending_markets.append(
-                                {
-                                    "id": market_id,
-                                    "title": market.get("question")
-                                    or market.get("description", ""),
-                                    "category": "prediction",  # Default category
-                                }
-                            )
-
-                            if len(trending_markets) >= limit:
-                                break
-
-                return trending_markets
-
-        except Exception as e:
-            raise ValueError(f"Failed to fetch trending markets: {e}")
-
-    def get_current_market_price(self, market_id: str) -> Dict[str, float]:
+    def get_market_prices(self, token_ids: List[str]) -> Dict[str, Optional[float]]:
         """
-        Fetch current price for a specific market.
+        Return a dict of prices for given token_ids.
 
-        Args:
-            market_id: The market ID to fetch price for
-
-        Returns:
-            Dictionary with yes/no prices
+        Keys:
+          - Each token_id as-is maps to its price (or None).
+          - Positional aliases: "token_0", "token_1", ...
+          - If exactly two tokens, also add "yes" := token_0, "no" := token_1
+            (kept for backward compatibility; **does not** infer actual YES/NO semantics).
         """
-        try:
-            # Try to get detailed market info
-            url = f"https://clob.polymarket.com/markets/{market_id}"
-            response = self.make_request(url, timeout=10)
+        prices: Dict[str, Optional[float]] = {}
+        for idx, tid in enumerate(token_ids):
+            if not tid:
+                continue
+            # Try buy first, then sell
+            price = self.get_token_price(tid, "buy")
+            if price is None:
+                price = self.get_token_price(tid, "sell")
+            prices[tid] = price
+            prices[f"token_{idx}"] = price
 
-            if response.status_code == 200:
-                market_data = self.safe_json_parse(
-                    response, f"Market {market_id} details"
-                )
-
-                # Extract yes/no prices from outcomes
-                prices = {"yes": 0.5, "no": 0.5}  # Default prices
-
-                for outcome in market_data.get("outcomes", []):
-                    if isinstance(outcome, dict):
-                        outcome_name = outcome.get("name", "").lower()
-                        price = float(outcome.get("current_price", 0.5) or 0.5)
-
-                        if any(word in outcome_name for word in ["yes", "true", "win"]):
-                            prices["yes"] = price
-                        elif any(
-                            word in outcome_name for word in ["no", "false", "lose"]
-                        ):
-                            prices["no"] = price
-
-                return prices
-
-        except Exception as e:
-            raise ValueError(f"Failed to fetch price for market {market_id}: {e}")
-
-    def _get_mock_markets(self) -> List[Dict]:
-        """Generate mock market data for testing/fallback purposes."""
-        return [
-            {
-                "id": "election_2024",
-                "title": "Will Democrats win the 2024 US Presidential Election?",
-                "category": "politics",
-            },
-            {
-                "id": "agi_2025",
-                "title": "Will AGI be achieved by 2025?",
-                "category": "tech",
-            },
-            {
-                "id": "climate_2024",
-                "title": "Will CO2 emissions decrease by 5% in 2024?",
-                "category": "economics",
-            },
-            {
-                "id": "crypto_btc_100k",
-                "title": "Will Bitcoin reach $100K by end of 2024?",
-                "category": "crypto",
-            },
-            {
-                "id": "superbowl_2024",
-                "title": "Will the Super Bowl have over 60 points scored?",
-                "category": "sports",
-            },
-        ]
-
-    def _get_mock_price(self, market_id: str) -> Dict[str, float]:
-        """Generate mock price data based on market_id."""
-        if "election" in market_id:
-            return {"yes": 0.52, "no": 0.48}
-        elif "agi" in market_id:
-            return {"yes": 0.25, "no": 0.75}
-        elif "climate" in market_id:
-            return {"yes": 0.30, "no": 0.70}
-        elif "crypto" in market_id or "btc" in market_id:
-            return {"yes": 0.35, "no": 0.65}
-        elif "superbowl" in market_id or "sports" in market_id:
-            return {"yes": 0.60, "no": 0.40}
-        else:
-            # Use hash-based consistent price for unknown markets
-            # This ensures the same market_id always gets the same price
-            import hashlib
-
-            hash_value = int(hashlib.md5(market_id.encode()).hexdigest()[:8], 16)
-            # Convert to a price between 0.2 and 0.8
-            yes_price = round(0.2 + (hash_value % 1000) / 1000 * 0.6, 2)
-            return {"yes": yes_price, "no": round(1.0 - yes_price, 2)}
+        if len(token_ids) == 2:
+            prices["yes"] = prices.get("token_0")
+            prices["no"] = prices.get("token_1")
+        return prices
 
 
-# Standalone functions that use the class
-def fetch_trending_markets(limit: int = 10) -> List[Dict]:
-    """
-    Fetch trending markets from Polymarket API.
-
-    Args:
-        limit: Maximum number of markets to return (default: 10)
-
-    Returns:
-        List of dictionaries containing market basic info
-    """
-    fetcher = PolymarketFetcher()
-    markets = fetcher.get_trending_markets(limit=limit)
-    print(f"📊 Fetched {len(markets)} trending markets")
-    return markets
+# ----------------------------
+# Convenience wrappers
+# ----------------------------
+def fetch_trending_markets(limit: int = 10) -> List[Dict[str, Any]]:
+    return PolymarketFetcher().get_trending_markets(limit=limit)
 
 
-def fetch_current_market_price(market_id: str) -> Dict[str, float]:
-    """
-    Fetch current price for a specific market.
+def fetch_current_market_price(token_ids: List[str]) -> Dict[str, Optional[float]]:
+    return PolymarketFetcher().get_market_prices(token_ids)
 
-    Args:
-        market_id: The market ID to fetch price for
 
-    Returns:
-        Dictionary with yes/no prices:
-        {
-            "yes": 0.52,
-            "no": 0.48
-        }
-    """
-    fetcher = PolymarketFetcher()
-    return fetcher.get_current_market_price(market_id)
+def fetch_token_price(token_id: str, side: str = "buy") -> Optional[float]:
+    return PolymarketFetcher().get_token_price(token_id, side)
