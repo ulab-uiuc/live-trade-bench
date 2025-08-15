@@ -12,7 +12,9 @@
 
 </div>
 
-AI-powered trading agents using LLMs for stocks and prediction markets.
+## Overview
+
+Trading agent evaluation in the live environment.
 
 ## Features
 
