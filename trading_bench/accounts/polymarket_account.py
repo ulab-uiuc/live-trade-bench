@@ -167,24 +167,23 @@ class PolymarketAccount(BaseAccount):
             return False, f"Insufficient position: have {pos.quantity}, sell {quantity}"
         return True, "Sufficient position"
 
-    def execute_trade(
-        self,
-        market_id: str,
-        outcome: str,
-        action: str,
-        price: float,
-        quantity: float,
-        notes: str = "",
+    def execute_action(
+        self, action: "PolymarketAction", notes: str = ""
     ) -> Tuple[bool, str, Optional[PolymarketTransaction]]:
         """
-        Unified trade entrypoint. Returns (success, message, transaction).
+        Execute a PolymarketAction. Returns (success, message, transaction).
         """
-        outcome = outcome.lower()
-        action = action.lower()
-        if action not in {"buy", "sell"}:
-            return False, f"Invalid action: {action}", None
+        market_id = action.market_id
+        outcome = action.outcome.lower()
+        trade_action = action.action.lower()
+        price = action.price
+        quantity = action.quantity
+        notes = notes or f"PolymarketAction from {action.timestamp}"
+        
+        if trade_action not in {"buy", "sell"}:
+            return False, f"Invalid action: {trade_action}", None
 
-        if action == "buy":
+        if trade_action == "buy":
             ok, why = self.can_afford(price, quantity)
             if not ok:
                 return False, why, None
@@ -197,7 +196,7 @@ class PolymarketAccount(BaseAccount):
         tx = PolymarketTransaction(
             market_id=market_id,
             outcome=outcome,
-            action=action,
+            action=trade_action,
             quantity=quantity,
             price=price,
             commission=commission,
@@ -210,7 +209,7 @@ class PolymarketAccount(BaseAccount):
             self.cash_balance += tx.cash_effect  # signed effect
 
             key = self._key(market_id, outcome)
-            if action == "buy":
+            if trade_action == "buy":
                 if key in self.positions:
                     self.positions[key].apply_buy(price, quantity)
                 else:
@@ -228,25 +227,12 @@ class PolymarketAccount(BaseAccount):
             self.transactions.append(tx)
             return (
                 True,
-                f"{action.title()} {quantity} {outcome} @ ${price:.3f} ({market_id})",
+                f"{trade_action.title()} {quantity} {outcome} @ ${price:.3f} ({market_id})",
                 tx,
             )
 
         except Exception as e:
             return False, f"Trade failed: {e}", None
-
-    # Back-compat wrapper for code calling account.execute_action(action)
-    def execute_action(
-        self, action: "PolymarketAction", notes: str = ""
-    ) -> Tuple[bool, str, Optional[PolymarketTransaction]]:
-        return self.execute_trade(
-            market_id=action.market_id,
-            outcome=action.outcome,
-            action=action.action,
-            price=action.price,
-            quantity=action.quantity,
-            notes=notes or f"PolymarketAction from {action.timestamp}",
-        )
 
     # ----------- Valuation / Reporting -----------
 

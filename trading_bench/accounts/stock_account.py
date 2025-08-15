@@ -149,22 +149,27 @@ class StockAccount(BaseAccount):
             return False, f"Insufficient position: have {pos.quantity}, sell {quantity}"
         return True, "Sufficient position"
 
-    def execute_trade(
-        self,
-        ticker: str,
-        action: str,
-        price: float,
-        quantity: float,
-        notes: str = "",
+    def execute_action(
+        self, action: "StockAction", notes: str = ""
     ) -> Tuple[bool, str, Optional[StockTransaction]]:
         """
-        Unified trade entrypoint. Returns (success, message, transaction).
+        Execute a StockAction. Returns (success, message, transaction).
         """
-        action = action.lower()
-        if action not in {"buy", "sell"}:
-            return False, f"Invalid action: {action}", None
+        from .action import StockAction
 
-        if action == "buy":
+        if not isinstance(action, StockAction):
+            return False, "Invalid action: must be a StockAction instance", None
+
+        ticker = action.ticker
+        trade_action = action.action.lower()
+        price = action.price
+        quantity = action.quantity
+        notes = notes or f"StockAction from {action.timestamp}"
+        
+        if trade_action not in {"buy", "sell"}:
+            return False, f"Invalid action: {trade_action}", None
+
+        if trade_action == "buy":
             ok, why = self.can_afford(price, quantity)
             if not ok:
                 return False, why, None
@@ -176,7 +181,7 @@ class StockAccount(BaseAccount):
         commission = self.calculate_commission(price, quantity)
         tx = StockTransaction(
             ticker=ticker,
-            action=action,
+            action=trade_action,
             quantity=quantity,
             price=price,
             commission=commission,
@@ -189,7 +194,7 @@ class StockAccount(BaseAccount):
             self.cash_balance += tx.cash_effect
 
             # position
-            if action == "buy":
+            if trade_action == "buy":
                 if ticker in self.positions:
                     self.positions[ticker].apply_buy(price, quantity)
                 else:
@@ -203,26 +208,10 @@ class StockAccount(BaseAccount):
 
             # record
             self.transactions.append(tx)
-            return True, f"{action.title()} {quantity} {ticker} @ ${price:.3f}", tx
+            return True, f"{trade_action.title()} {quantity} {ticker} @ ${price:.3f}", tx
 
         except Exception as e:
             return False, f"Trade failed: {e}", None
-
-    # Back-compat wrapper for code calling account.execute_action(action)
-    def execute_action(
-        self, action: "StockAction", notes: str = ""
-    ) -> Tuple[bool, str, Optional[StockTransaction]]:
-        from .action import StockAction
-
-        if not isinstance(action, StockAction):
-            return False, "Invalid action: must be a StockAction instance", None
-        return self.execute_trade(
-            ticker=action.ticker,
-            action=action.action,
-            price=action.price,
-            quantity=action.quantity,
-            notes=notes or f"StockAction from {action.timestamp}",
-        )
 
     # ----------- Valuation / Reporting -----------
 
