@@ -162,6 +162,16 @@ class MultiAssetTradingSystem:
         # Unified trading history from both systems
         self.trading_history: List[Dict[str, Any]] = []
 
+        # Background news cache
+        self.cached_news: List[Dict[str, Any]] = []
+        self.news_last_updated: Optional[datetime] = None
+        self.news_update_interval = 60 * 60  # 1 hour in seconds
+
+        # Background social media cache
+        self.cached_social: List[Dict[str, Any]] = []
+        self.social_last_updated: Optional[datetime] = None
+        self.social_update_interval = 60 * 60  # 1 hour in seconds
+
         # Execution logs
         self.execution_logs: List[Dict[str, Any]] = []
         self.max_log_entries = 1000
@@ -171,6 +181,12 @@ class MultiAssetTradingSystem:
 
         # Initialize models in both systems
         self._initialize_models()
+
+        # Initialize news cache
+        self._update_news_cache()
+
+        # Initialize social media cache
+        self._update_social_cache()
 
         logger.info(
             "Multi-asset trading system initialized using native .run() methods"
@@ -206,6 +222,166 @@ class MultiAssetTradingSystem:
             logger.info(
                 f"Initialized {model_name} in both stock and polymarket systems"
             )
+
+    def _update_news_cache(self):
+        """Update the news cache in background"""
+        try:
+            # Import here to avoid circular imports
+            from trading_bench.fetchers.news_fetcher import NewsFetcher
+
+            logger.info("Updating background news cache")
+
+            # Calculate date range (last 7 days)
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=7)
+
+            # Use NewsFetcher directly with correct method and parameters
+            news_fetcher = NewsFetcher()
+            news_articles = news_fetcher.fetch(
+                query="stock market",
+                start_date=start_date.strftime("%Y-%m-%d"),
+                end_date=end_date.strftime("%Y-%m-%d"),
+                max_pages=3,  # Limit to first 3 pages for faster fetching
+            )
+
+            # Transform to dict format for JSON serialization
+            self.cached_news = []
+            for i, article in enumerate(news_articles):
+                # Parse the date string to ISO format
+                try:
+                    published_at = (
+                        datetime.now().isoformat()
+                    )  # Default to now if parsing fails
+                    if article.get("date"):
+                        # Try to parse the date (Google News date format can vary)
+                        # For now, use current time - in production you'd parse the actual date
+                        published_at = datetime.now().isoformat()
+                except Exception:
+                    published_at = datetime.now().isoformat()
+
+                self.cached_news.append(
+                    {
+                        "id": f"news_{i}_{int(datetime.now().timestamp())}",
+                        "title": article.get("title", "No title"),
+                        "summary": article.get("snippet", "No summary"),
+                        "source": article.get("source", "Unknown"),
+                        "published_at": published_at,
+                        "impact": "medium",  # Default impact
+                        "category": "market",  # Default category
+                        "url": article.get("link", ""),
+                    }
+                )
+
+            self.news_last_updated = datetime.now(timezone.utc)
+            logger.info(f"News cache updated with {len(self.cached_news)} articles")
+
+        except Exception as e:
+            logger.error(f"Error updating news cache: {e}")
+            # Don't clear cache on error, keep previous data
+
+    def get_cached_news(self) -> List[Dict[str, Any]]:
+        """Get cached news data"""
+        # Check if cache needs refresh
+        if (
+            not self.news_last_updated
+            or (datetime.now(timezone.utc) - self.news_last_updated).total_seconds()
+            > self.news_update_interval
+        ):
+            self._update_news_cache()
+
+        return self.cached_news
+
+    def _should_update_news(self) -> bool:
+        """Check if news cache should be updated"""
+        if not self.news_last_updated:
+            return True
+
+        time_since_update = (
+            datetime.now(timezone.utc) - self.news_last_updated
+        ).total_seconds()
+        return time_since_update >= self.news_update_interval
+
+    def _update_social_cache(self):
+        """Update the social media cache in background"""
+        try:
+            # Import here to avoid circular imports
+            from trading_bench.fetchers.reddit_fetcher import RedditFetcher
+
+            logger.info("Updating background social media cache")
+
+            # Use RedditFetcher directly
+            reddit_fetcher = RedditFetcher()
+
+            # Fetch from multiple categories
+            categories = ["stocks", "investing", "wallstreetbets"]
+            all_posts = []
+
+            for category in categories:
+                try:
+                    posts = reddit_fetcher.fetch(
+                        category=category,
+                        query=None,
+                        max_limit=20,  # Limit posts per category
+                        time_filter="day",
+                    )
+                    all_posts.extend(posts)
+                except Exception as e:
+                    logger.warning(f"Error fetching from {category}: {e}")
+                    continue
+
+            # Transform to dict format for JSON serialization
+            self.cached_social = []
+            for i, post in enumerate(all_posts):
+                try:
+                    self.cached_social.append(
+                        {
+                            "id": f"social_{i}_{int(datetime.now().timestamp())}",
+                            "title": post.get("title", "No title"),
+                            "content": post.get("selftext", post.get("content", "")),
+                            "author": post.get("author", "Unknown"),
+                            "subreddit": post.get("subreddit", "Unknown"),
+                            "score": post.get("score", 0),
+                            "num_comments": post.get("num_comments", 0),
+                            "created_utc": post.get(
+                                "created_utc", datetime.now().timestamp()
+                            ),
+                            "url": post.get("url", ""),
+                            "sentiment": "neutral",  # Default sentiment
+                            "platform": "reddit",
+                        }
+                    )
+                except Exception as e:
+                    logger.warning(f"Error processing social post: {e}")
+                    continue
+
+            self.social_last_updated = datetime.now(timezone.utc)
+            logger.info(f"Social cache updated with {len(self.cached_social)} posts")
+
+        except Exception as e:
+            logger.error(f"Error updating social cache: {e}")
+            # Don't clear cache on error, keep previous data
+
+    def get_cached_social(self) -> List[Dict[str, Any]]:
+        """Get cached social media data"""
+        # Check if cache needs refresh
+        if (
+            not self.social_last_updated
+            or (datetime.now(timezone.utc) - self.social_last_updated).total_seconds()
+            > self.social_update_interval
+        ):
+            self._update_social_cache()
+
+        return self.cached_social
+
+    def _should_update_social(self) -> bool:
+        """Check if social media cache should be updated"""
+        if not self.social_last_updated:
+            return True
+
+        time_since_update = (
+            datetime.now(timezone.utc) - self.social_last_updated
+        ).total_seconds()
+        return time_since_update >= self.social_update_interval
 
     def get_model_data(self) -> List[Dict[str, Any]]:
         """Get current model performance data from both systems"""
@@ -795,6 +971,14 @@ class MultiAssetTradingSystem:
                         f"Running native .run() cycle with {len(active_stock_models)} stock models and {len(active_polymarket_models)} polymarket models"
                     )
                     self.run_trading_cycle()
+
+                # Update news cache if needed
+                if self._should_update_news():
+                    self._update_news_cache()
+
+                # Update social media cache if needed
+                if self._should_update_social():
+                    self._update_social_cache()
 
                 # Update next cycle time
                 self.next_cycle_time = datetime.now(timezone.utc) + timedelta(

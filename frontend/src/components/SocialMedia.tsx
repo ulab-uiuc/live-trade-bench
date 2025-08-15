@@ -53,17 +53,17 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
       // Transform backend data to frontend format
       const transformedPosts: SocialPost[] = data.map((post: any) => ({
         id: post.id,
-        platform: post.platform,
+        platform: post.platform as 'reddit' | 'twitter' | 'discord' | 'telegram',
         author: post.author,
         content: post.content,
         title: post.title,
-        postedAt: new Date(post.posted_at),
+        postedAt: new Date(post.created_utc * 1000), // Convert Unix timestamp to Date
         engagement: {
-          upvotes: post.upvotes,
-          comments: post.comments,
+          upvotes: post.score,
+          comments: post.num_comments,
         },
-        sentiment: post.sentiment,
-        category: post.category,
+        sentiment: post.sentiment as 'positive' | 'negative' | 'neutral',
+        category: 'market' as const, // Default to market category
         ticker: post.ticker,
         url: post.url,
         subreddit: post.subreddit,
@@ -80,15 +80,10 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
   };
 
   useEffect(() => {
-    // Only fetch if we don't have data or if it's been more than a day
-    const shouldFetch = socialData.length === 0 ||
-      (Date.now() - lastRefresh.getTime()) > 24 * 60 * 60 * 1000;
+    // Always fetch immediately - backend returns cached data instantly
+    fetchSocialPosts();
 
-    if (shouldFetch) {
-      fetchSocialPosts();
-    }
-
-    // Auto-refresh every day
+    // Auto-refresh every hour to get updated cached data
     const interval = setInterval(fetchSocialPosts, 60 * 60 * 1000);
 
     return () => clearInterval(interval);
