@@ -64,12 +64,15 @@ async def get_system_status():
         for model_id, active in trading_system.active_polymarket_models.items():
             combined_active_models[f"{model_id}_polymarket"] = active
 
+        # Get actual stock tickers from trading system
+        actual_stock_tickers = trading_system.get_stock_tickers()
+
         return {
             "system_running": trading_system.system_running,
             "cycle_interval_minutes": trading_system.cycle_interval // 60,
             "total_agents": total_agents,  # Frontend expects this
             "active_agents": active_agents,  # Frontend expects this
-            "tickers": trading_system.stock_tickers,  # Frontend expects this
+            "tickers": actual_stock_tickers,  # Frontend expects this - now dynamic
             "initial_cash": trading_system.stock_initial_cash,  # Frontend expects this
             # Additional detailed info
             "total_stock_agents": len(trading_system.stock_system.agents),
@@ -88,7 +91,7 @@ async def get_system_status():
                     if active
                 ]
             ),
-            "stock_tickers": trading_system.stock_tickers,
+            "stock_tickers": actual_stock_tickers,  # Now using dynamic tickers
             "stock_initial_cash": trading_system.stock_initial_cash,
             "polymarket_initial_cash": trading_system.polymarket_initial_cash,
             "total_actions": len(trading_system.trading_history),

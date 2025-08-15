@@ -107,7 +107,6 @@ class MultiAssetTradingSystem:
         self.trading_thread: Optional[threading.Thread] = None
 
         # Trading configuration matching demo patterns
-        self.stock_tickers = ["AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "AMZN", "META"]
         self.cycle_interval = 30 * 60  # 30 minutes between cycles
         self.stock_initial_cash = 1000.0
         self.polymarket_initial_cash = 500.0
@@ -368,6 +367,22 @@ class MultiAssetTradingSystem:
     def get_market_status(self) -> Dict[str, Any]:
         """Get current market status for frontend display"""
         return get_market_status()
+
+    def get_stock_tickers(self) -> List[str]:
+        """Get actual stock tickers being traded by the stock system"""
+        try:
+            if hasattr(self.stock_system, "universe") and self.stock_system.universe:
+                return self.stock_system.universe
+            else:
+                # Fallback: fetch trending stocks directly
+                from trading_bench.fetchers.stock_fetcher import fetch_trending_stocks
+
+                trending_stocks = fetch_trending_stocks(limit=10)
+                return [s["ticker"] for s in trending_stocks]
+        except Exception as e:
+            logger.warning(f"Could not get stock tickers: {e}")
+            # Ultimate fallback to ensure API doesn't break
+            return ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META", "NVDA"]
 
     def activate_model(self, model_id: str, category: str = None) -> bool:
         """Activate a trading model for specific category or both"""
