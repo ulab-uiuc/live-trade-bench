@@ -9,7 +9,7 @@ interface Trade {
   price: number;
   profit: number;
   model: string;
-  category: 'polymarket' | 'stock' | 'option';
+  category: 'polymarket' | 'stock';
   status: 'completed' | 'pending' | 'cancelled' | 'failed';
   fees: number;
   totalValue: number;
@@ -24,7 +24,7 @@ interface TradingHistoryProps {
 
 const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTradesData, lastRefresh, setLastRefresh }) => {
   const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock' | 'option'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock'>('all');
   const [selectedType, setSelectedType] = useState<'all' | 'buy' | 'sell'>('all');
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'completed' | 'pending' | 'cancelled' | 'failed'>('all');
 
@@ -110,7 +110,6 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
     switch (category) {
       case 'polymarket': return '#8e44ad';
       case 'stock': return '#3498db';
-      case 'option': return '#e67e22';
       default: return '#95a5a6';
     }
   };
@@ -133,7 +132,6 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
   const categoryStats = {
     polymarket: tradesData.filter(t => t.category === 'polymarket').length,
     stock: tradesData.filter(t => t.category === 'stock').length,
-    option: tradesData.filter(t => t.category === 'option').length,
     total: tradesData.length
   };
 
@@ -232,7 +230,6 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
               <option value="all">All Categories ({categoryStats.total})</option>
               <option value="polymarket">Polymarket ({categoryStats.polymarket})</option>
               <option value="stock">Stock ({categoryStats.stock})</option>
-              <option value="option">Option ({categoryStats.option})</option>
             </select>
           </div>
           <div>

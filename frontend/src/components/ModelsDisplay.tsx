@@ -4,7 +4,7 @@ import Portfolio from './Portfolio';
 interface Model {
   id: string;
   name: string;
-  category: 'polymarket' | 'stock' | 'option';
+  category: 'polymarket' | 'stock';
   performance: number;
   accuracy: number;
   trades: number;
@@ -24,8 +24,8 @@ interface Model {
   llm_available?: boolean;
   // Category-specific fields
   market_type?: string; // For polymarket models
-  ticker?: string; // For stock/option models
-  strategy?: string; // For option models
+  ticker?: string; // For stock models
+  strategy?: string;
 }
 
 interface ModelsDisplayProps {
@@ -42,7 +42,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   setLastRefresh
 }) => {
   const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock' | 'option'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock'>('all');
   const [expandedModel, setExpandedModel] = useState<string | null>(null);
 
   const fetchModels = async () => {
@@ -117,7 +117,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     switch (category) {
       case 'polymarket': return '#8e44ad';
       case 'stock': return '#3498db';
-      case 'option': return '#e67e22';
       default: return '#95a5a6';
     }
   };
@@ -126,7 +125,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     switch (category) {
       case 'polymarket': return '📊';
       case 'stock': return '📈';
-      case 'option': return '⚡';
       default: return '📋';
     }
   };
@@ -138,7 +136,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   const categoryStats = {
     polymarket: modelsData.filter(m => m.category === 'polymarket').length,
     stock: modelsData.filter(m => m.category === 'stock').length,
-    option: modelsData.filter(m => m.category === 'option').length,
     total: modelsData.length
   };
 
@@ -173,12 +170,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           className={`filter-button ${selectedCategory === 'stock' ? 'active' : ''}`}
         >
           📈 Stock ({categoryStats.stock})
-        </button>
-        <button
-          onClick={() => setSelectedCategory('option')}
-          className={`filter-button ${selectedCategory === 'option' ? 'active' : ''}`}
-        >
-          ⚡ Option ({categoryStats.option})
         </button>
       </div>
 
@@ -223,12 +214,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 <div className="metric-item">
                   <span className="metric-label">Ticker</span>
                   <span className="metric-value">{model.ticker}</span>
-                </div>
-              )}
-              {model.category === 'option' && model.ticker && (
-                <div className="metric-item">
-                  <span className="metric-label">Option</span>
-                  <span className="metric-value">{model.ticker} {model.strategy && `- ${model.strategy}`}</span>
                 </div>
               )}
             </div>

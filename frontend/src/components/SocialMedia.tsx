@@ -16,7 +16,7 @@ interface SocialPost {
     shares?: number;
   };
   sentiment: 'positive' | 'negative' | 'neutral';
-  category: 'market' | 'stock' | 'tech' | 'options' | 'polymarket';
+  category: 'market' | 'stock' | 'tech' | 'polymarket';
   ticker?: string;
   url?: string;
   subreddit?: string;
@@ -38,7 +38,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<'all' | 'reddit' | 'twitter' | 'discord' | 'telegram'>('all');
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'market' | 'stock' | 'tech' | 'options' | 'polymarket'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'market' | 'stock' | 'tech' | 'polymarket'>('all');
 
   const fetchSocialPosts = async () => {
     setLoading(true);
@@ -129,7 +129,6 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
       case 'market': return '#007bff';
       case 'stock': return '#28a745';
       case 'tech': return '#17a2b8';
-      case 'options': return '#fd7e14';
       case 'polymarket': return '#6f42c1';
       default: return '#6c757d';
     }
@@ -172,7 +171,6 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
     market: socialData.filter(p => p.category === 'market').length,
     stock: socialData.filter(p => p.category === 'stock').length,
     tech: socialData.filter(p => p.category === 'tech').length,
-    options: socialData.filter(p => p.category === 'options').length,
     polymarket: socialData.filter(p => p.category === 'polymarket').length,
     total: socialData.length
   };
@@ -295,7 +293,6 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
               <option value="market">Market ({categoryStats.market})</option>
               <option value="stock">Stock ({categoryStats.stock})</option>
               <option value="tech">Tech ({categoryStats.tech})</option>
-              <option value="options">Options ({categoryStats.options})</option>
               <option value="polymarket">Polymarket ({categoryStats.polymarket})</option>
             </select>
           </div>

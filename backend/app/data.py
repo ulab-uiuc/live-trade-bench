@@ -35,8 +35,6 @@ def get_real_models_data() -> list[TradingModel]:
                 category = ModelCategory.STOCK
             elif category_str == "polymarket":
                 category = ModelCategory.POLYMARKET
-            elif category_str == "option":
-                category = ModelCategory.OPTION
             else:
                 category = ModelCategory.STOCK  # Default fallback
 
@@ -343,8 +341,6 @@ def get_real_social_data(
                 # Set the category based on which Reddit category this came from
                 if reddit_category == "company_news":
                     post_category = "stock"
-                elif reddit_category == "options":
-                    post_category = "options"
                 elif reddit_category == "tech":
                     post_category = "tech"
                 else:

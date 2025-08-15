@@ -13,7 +13,6 @@ class ModelStatus(str, Enum):
 class ModelCategory(str, Enum):
     STOCK = "stock"
     POLYMARKET = "polymarket"
-    OPTION = "option"
 
 
 class TradeType(str, Enum):
