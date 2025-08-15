@@ -1,12 +1,15 @@
 """
-Polymarket account management system inheriting from BaseAccount
+Polymarket account management system (simplified)
+- Single trade path (buy/sell) via `execute_trade`
+- Optional price_provider callable for valuation
+- Thin compatibility wrapper `execute_action(PolymarketAction)`
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 from .base_account import BaseAccount
 
@@ -14,76 +17,73 @@ if TYPE_CHECKING:
     from .action import PolymarketAction
 
 
+# ----------------------------- Data Models -----------------------------
+
+
 @dataclass
 class PolymarketPosition:
-    """Polymarket position information"""
+    """Position in a Polymarket market."""
 
     market_id: str
     outcome: str  # "yes" or "no"
     quantity: float
-    avg_price: float  # Average price (0-1 range)
+    avg_price: float  # 0-1
     last_updated: str = field(default_factory=lambda: datetime.now().isoformat())
 
-    def __post_init__(self):
-        """Validate position fields"""
+    def __post_init__(self) -> None:
         if self.quantity < 0:
             raise ValueError(f"Invalid quantity: {self.quantity}")
-        if not (0 <= self.avg_price <= 1):
+        if not (0.0 <= self.avg_price <= 1.0):
             raise ValueError(f"Invalid avg_price: {self.avg_price} (must be 0-1)")
         if not self.market_id:
             raise ValueError("Market ID cannot be empty")
         if self.outcome.lower() not in ("yes", "no"):
             raise ValueError(f"Invalid outcome: {self.outcome}")
 
+        self.outcome = self.outcome.lower()
+
     @property
     def position_key(self) -> str:
-        """Unique key for this position"""
-        return f"{self.market_id}_{self.outcome.lower()}"
+        return f"{self.market_id}_{self.outcome}"
 
     @property
     def cost_basis(self) -> float:
-        """Total cost basis of the position"""
         return self.quantity * self.avg_price
 
-    def update_buy(self, price: float, quantity: float) -> None:
-        """Update position after buy transaction"""
-        if not (0 <= price <= 1) or quantity <= 0:
+    def apply_buy(self, price: float, qty: float) -> None:
+        if not (0.0 <= price <= 1.0) or qty <= 0:
             raise ValueError("Price must be 0-1 and quantity must be positive")
-
-        total_cost = self.cost_basis + (price * quantity)
-        self.quantity += quantity
+        total_cost = self.cost_basis + price * qty
+        self.quantity += qty
         self.avg_price = total_cost / self.quantity if self.quantity > 0 else price
         self.last_updated = datetime.now().isoformat()
 
-    def update_sell(self, quantity: float) -> None:
-        """Update position after sell transaction"""
-        if quantity <= 0:
+    def apply_sell(self, qty: float) -> None:
+        if qty <= 0:
             raise ValueError("Quantity must be positive")
-        if self.quantity < quantity:
-            raise ValueError(f"Insufficient position: {self.quantity} < {quantity}")
-
-        self.quantity -= quantity
+        if qty > self.quantity:
+            raise ValueError(f"Insufficient position: have {self.quantity}, sell {qty}")
+        self.quantity -= qty
         self.last_updated = datetime.now().isoformat()
 
 
 @dataclass
 class PolymarketTransaction:
-    """Polymarket trading transaction record"""
+    """Immutable record of a trade."""
 
     market_id: str
     outcome: str  # "yes" or "no"
     action: str  # "buy" or "sell"
     quantity: float
-    price: float  # 0-1 range
+    price: float  # 0-1
     timestamp: str
     commission: float = 0.0
     notes: str = ""
 
-    def __post_init__(self):
-        """Validate transaction fields"""
+    def __post_init__(self) -> None:
         if self.action.lower() not in ("buy", "sell"):
             raise ValueError(f"Invalid action: {self.action}")
-        if not (0 <= self.price <= 1):
+        if not (0.0 <= self.price <= 1.0):
             raise ValueError(f"Invalid price: {self.price} (must be 0-1)")
         if self.quantity <= 0:
             raise ValueError(f"Invalid quantity: {self.quantity}")
@@ -92,213 +92,80 @@ class PolymarketTransaction:
         if self.outcome.lower() not in ("yes", "no"):
             raise ValueError(f"Invalid outcome: {self.outcome}")
 
-    @property
-    def position_key(self) -> str:
-        """Unique key for this position"""
-        return f"{self.market_id}_{self.outcome.lower()}"
+        self.action = self.action.lower()
+        self.outcome = self.outcome.lower()
 
     @property
-    def total_value(self) -> float:
-        """Total transaction value including commission"""
-        base_value = self.quantity * self.price
-        if self.action.lower() == "buy":
-            return base_value + self.commission
-        else:
-            return base_value - self.commission
+    def position_key(self) -> str:
+        return f"{self.market_id}_{self.outcome}"
+
+    @property
+    def cash_effect(self) -> float:
+        """
+        Signed cash flow for the account (positive = cash in).
+        Buy -> negative (price*qty + commission); Sell -> positive (price*qty - commission).
+        """
+        gross = self.quantity * self.price
+        return (
+            (gross - self.commission)
+            if self.action == "sell"
+            else -(gross + self.commission)
+        )
+
+
+# ------------------------------- Account -------------------------------
 
 
 @dataclass
 class PolymarketAccount(BaseAccount):
-    """Polymarket trading account with integrated portfolio evaluation"""
+    """
+    Polymarket trading account.
+
+    Attributes expected from BaseAccount:
+      - cash_balance: float
+      - initial_cash: float
+      - commission_rate: float
+      - calculate_commission(price, quantity) -> float
+      - get_basic_summary() -> Dict[str, Any]
+    """
 
     positions: Dict[str, PolymarketPosition] = field(default_factory=dict)
     transactions: List[PolymarketTransaction] = field(default_factory=list)
 
-    def _fetch_current_price(
-        self, market_id: str, outcome: str = "yes"
-    ) -> Optional[float]:
-        """Fetch current price for a specific market and outcome"""
-        try:
-            # Use standalone function to get current market price
-            from ..fetchers.polymarket_fetcher import fetch_current_market_price
+    # Optional: provide a callable to fetch current prices: (market_id, outcome) -> Optional[float]
+    price_provider: Optional[Callable[[str, str], Optional[float]]] = None
 
-            price_data = fetch_current_market_price(market_id)
-            if isinstance(price_data, dict) and outcome.lower() in price_data:
-                return price_data[outcome.lower()]
-        except Exception as e:
-            print(f"Warning: Failed to fetch price for {market_id}: {e}")
+    # ----------- Convenience -----------
 
-        # Fallback prices based on market_id patterns
-        fallback_prices = {
-            "election_2024": 0.52,
-            "agi_2025": 0.25,
-            "climate_2024": 0.30,
-            "crypto_btc": 0.65,
-            "superbowl_2024": 0.60,
-        }
-        return fallback_prices.get(market_id.lower())
+    def _key(self, market_id: str, outcome: str) -> str:
+        return f"{market_id}_{outcome.lower()}"
 
-    def print_status(self) -> None:
-        """Print simple account status"""
-        positions = self.get_active_positions()
-        total_value = self.get_total_value()
-        print(
-            f"💰 Cash: ${self.cash_balance:.2f} | Positions: {len(positions)} | Total: ${total_value:.2f}"
-        )
+    def get_active_positions(self) -> Dict[str, PolymarketPosition]:
+        return {k: p for k, p in self.positions.items() if p.quantity > 0}
 
-    def get_total_value(self) -> float:
-        """Get total account value (cash + polymarket positions)"""
-        active_positions = self.get_active_positions()
-        position_value = 0.0
+    # ----------- Trading -----------
 
-        for position_key, position in active_positions.items():
-            # Try to fetch current price, fallback to avg price
-            current_price = self._fetch_current_price(
-                position.market_id, position.outcome
-            )
-            if current_price is None:
-                current_price = position.avg_price
-            position_value += position.quantity * current_price
-
-        return self.cash_balance + position_value
-
-    def can_afford(
-        self, market_id: str, price: float, quantity: float
-    ) -> Tuple[bool, str]:
-        """Check if account has sufficient funds for purchase"""
+    def can_afford(self, price: float, quantity: float) -> Tuple[bool, str]:
         commission = self.calculate_commission(price, quantity)
         total_cost = price * quantity + commission
-
-        if total_cost <= self.cash_balance:
-            return True, f"Can buy {quantity} shares in {market_id}"
-        else:
-            return (
+        return (
+            (True, "Sufficient funds")
+            if total_cost <= self.cash_balance
+            else (
                 False,
-                f"Insufficient funds: need ${total_cost:.2f}, available ${self.cash_balance:.2f}",
+                f"Insufficient funds: need ${total_cost:.2f}, have ${self.cash_balance:.2f}",
             )
+        )
 
     def can_sell(
         self, market_id: str, outcome: str, quantity: float
     ) -> Tuple[bool, str]:
-        """Check if account has sufficient position for sale"""
-        position_key = f"{market_id}_{outcome.lower()}"
-        position = self.positions.get(position_key)
-
-        if not position or position.quantity == 0:
+        pos = self.positions.get(self._key(market_id, outcome))
+        if not pos or pos.quantity == 0:
             return False, f"No position in {market_id} {outcome}"
-
-        if position.quantity >= quantity:
-            return True, f"Can sell {quantity} shares of {market_id} {outcome}"
-        else:
-            return (
-                False,
-                f"Insufficient position: hold {position.quantity} shares, trying to sell {quantity}",
-            )
-
-    def execute_action(
-        self, action: "PolymarketAction", notes: str = ""
-    ) -> Tuple[bool, str, Optional[PolymarketTransaction]]:
-        """
-        Execute a PolymarketAction
-
-        Args:
-            action: PolymarketAction instance containing trade details
-            notes: Optional notes for the transaction
-
-        Returns:
-            Tuple of (success, message, transaction)
-        """
-        # Import here to avoid circular imports
-        from .action import PolymarketAction
-
-        if not isinstance(action, PolymarketAction):
-            return False, "Invalid action: must be a PolymarketAction instance", None
-
-        # Extract action details
-        market_id = action.market_id
-        outcome = action.outcome.lower()
-        trade_action = action.action.lower()
-        price = action.price
-        quantity = action.quantity
-        position_key = f"{market_id}_{outcome}"
-        commission = self.calculate_commission(price, quantity)
-
-        # Validate transaction
-        if trade_action == "buy":
-            can_afford, reason = self.can_afford(market_id, price, quantity)
-            if not can_afford:
-                return False, reason, None
-        elif trade_action == "sell":
-            can_sell, reason = self.can_sell(market_id, outcome, quantity)
-            if not can_sell:
-                return False, reason, None
-        else:
-            return False, f"Invalid action: {trade_action}", None
-
-        # Execute the transaction
-        if trade_action == "buy":
-            total_cost = (price * quantity) + commission
-            self.cash_balance -= total_cost
-
-            # Update or create position
-            if position_key in self.positions:
-                self.positions[position_key].update_buy(price, quantity)
-            else:
-                self.positions[position_key] = PolymarketPosition(
-                    market_id=market_id,
-                    outcome=outcome,
-                    quantity=quantity,
-                    avg_price=price,
-                )
-
-            # Record transaction
-            transaction = PolymarketTransaction(
-                market_id=market_id,
-                outcome=outcome,
-                action="buy",
-                quantity=quantity,
-                price=price,
-                timestamp=datetime.now().isoformat(),
-                commission=commission,
-                notes=notes or f"PolymarketAction from {action.timestamp}",
-            )
-            self.transactions.append(transaction)
-
-            return (
-                True,
-                f"Bought {quantity} {outcome} shares for {market_id} at ${price:.2f}",
-                transaction,
-            )
-
-        elif trade_action == "sell":
-            total_proceeds = (price * quantity) - commission
-            self.cash_balance += total_proceeds
-
-            # Update position
-            self.positions[position_key].update_sell(quantity)
-
-            # Remove position if quantity is zero
-            if self.positions[position_key].quantity <= 0:
-                del self.positions[position_key]
-
-            # Record transaction
-            transaction = PolymarketTransaction(
-                market_id=market_id,
-                outcome=outcome,
-                action="sell",
-                quantity=quantity,
-                price=price,
-                timestamp=datetime.now().isoformat(),
-                commission=commission,
-                notes=notes or f"PolymarketAction from {action.timestamp}",
-            )
-            self.transactions.append(transaction)
-
-            return (
-                True,
-                f"Sold {quantity} {outcome} shares for {market_id} at ${price:.2f}",
-                transaction,
-            )
+        if pos.quantity < quantity:
+            return False, f"Insufficient position: have {pos.quantity}, sell {quantity}"
+        return True, "Sufficient position"
 
     def execute_trade(
         self,
@@ -310,226 +177,232 @@ class PolymarketAccount(BaseAccount):
         notes: str = "",
     ) -> Tuple[bool, str, Optional[PolymarketTransaction]]:
         """
-        Execute trade transaction
-
-        Args:
-            market_id: Market identifier
-            outcome: "yes" or "no"
-            action: "buy" or "sell"
-            price: Price per share (0-1 range)
-            quantity: Number of shares
-            notes: Optional notes
-
-        Returns:
-            Tuple of (success, message, transaction)
+        Unified trade entrypoint. Returns (success, message, transaction).
         """
-        action = action.lower()
         outcome = outcome.lower()
-        position_key = f"{market_id}_{outcome}"
-        commission = self.calculate_commission(price, quantity)
-
-        # Validate transaction
-        if action == "buy":
-            can_afford, reason = self.can_afford(market_id, price, quantity)
-            if not can_afford:
-                return False, reason, None
-        elif action == "sell":
-            can_sell, reason = self.can_sell(market_id, outcome, quantity)
-            if not can_sell:
-                return False, reason, None
-        else:
+        action = action.lower()
+        if action not in {"buy", "sell"}:
             return False, f"Invalid action: {action}", None
 
-        # Create transaction record
-        transaction = PolymarketTransaction(
+        if action == "buy":
+            ok, why = self.can_afford(price, quantity)
+            if not ok:
+                return False, why, None
+        else:
+            ok, why = self.can_sell(market_id, outcome, quantity)
+            if not ok:
+                return False, why, None
+
+        commission = self.calculate_commission(price, quantity)
+        tx = PolymarketTransaction(
             market_id=market_id,
             outcome=outcome,
             action=action,
             quantity=quantity,
             price=price,
-            timestamp=datetime.now().isoformat(),
             commission=commission,
+            timestamp=datetime.now().isoformat(),
             notes=notes,
         )
 
-        # Execute transaction
+        # Apply cash and position changes
         try:
-            if action == "buy":
-                self.cash_balance -= transaction.total_value
+            self.cash_balance += tx.cash_effect  # signed effect
 
-                if position_key in self.positions:
-                    self.positions[position_key].update_buy(price, quantity)
+            key = self._key(market_id, outcome)
+            if action == "buy":
+                if key in self.positions:
+                    self.positions[key].apply_buy(price, quantity)
                 else:
-                    self.positions[position_key] = PolymarketPosition(
+                    self.positions[key] = PolymarketPosition(
                         market_id=market_id,
                         outcome=outcome,
                         quantity=quantity,
                         avg_price=price,
                     )
+            else:  # sell
+                self.positions[key].apply_sell(quantity)
+                if self.positions[key].quantity <= 0:
+                    del self.positions[key]
 
-            elif action == "sell":
-                self.cash_balance += transaction.total_value
-                self.positions[position_key].update_sell(quantity)
-
-            self.transactions.append(transaction)
+            self.transactions.append(tx)
             return (
                 True,
-                f"Successfully {action} {quantity} shares of {market_id} {outcome} @ ${price:.3f}",
-                transaction,
+                f"{action.title()} {quantity} {outcome} @ ${price:.3f} ({market_id})",
+                tx,
             )
 
         except Exception as e:
-            return False, f"Trade failed: {str(e)}", None
+            return False, f"Trade failed: {e}", None
 
-    def get_active_positions(self) -> Dict[str, PolymarketPosition]:
-        """Get active positions (quantity > 0)"""
-        return {key: pos for key, pos in self.positions.items() if pos.quantity > 0}
+    # Back-compat wrapper for code calling account.execute_action(action)
+    def execute_action(
+        self, action: "PolymarketAction", notes: str = ""
+    ) -> Tuple[bool, str, Optional[PolymarketTransaction]]:
+        return self.execute_trade(
+            market_id=action.market_id,
+            outcome=action.outcome,
+            action=action.action,
+            price=action.price,
+            quantity=action.quantity,
+            notes=notes or f"PolymarketAction from {action.timestamp}",
+        )
 
-    def get_trading_summary(self) -> Dict[str, Any]:
-        """Get basic trading summary"""
-        buy_trades = [t for t in self.transactions if t.action == "buy"]
-        sell_trades = [t for t in self.transactions if t.action == "sell"]
-        total_commission = sum(t.commission for t in self.transactions)
+    # ----------- Valuation / Reporting -----------
 
-        # Group by markets
-        markets_traded = set()
-        for transaction in self.transactions:
-            markets_traded.add(transaction.market_id)
-
-        base_summary = self.get_basic_summary()
-
-        return {
-            **base_summary,
-            "total_trades": len(self.transactions),
-            "buy_trades": len(buy_trades),
-            "sell_trades": len(sell_trades),
-            "total_commission": total_commission,
-            "active_positions": len(self.get_active_positions()),
-            "markets_traded": len(markets_traded),
-        }
+    def _current_price(self, market_id: str, outcome: str, fallback: float) -> float:
+        if self.price_provider is None:
+            return fallback
+        try:
+            p = self.price_provider(market_id, outcome.lower())
+            return fallback if p is None else p
+        except Exception:
+            return fallback
 
     def evaluate(self) -> Dict[str, Any]:
         """
-        Evaluate account portfolio with current prices and calculate portfolio value
-
-        Returns:
-            Dictionary containing portfolio evaluation results
+        Evaluate portfolio with current prices (from price_provider if set, else avg_price).
         """
         active = self.get_active_positions()
-
-        # If no active positions, return basic cash-only portfolio
         if not active:
-            cash_value = self.cash_balance
-            total_return = cash_value - self.initial_cash
-            return_pct = (
-                (total_return / self.initial_cash * 100)
-                if self.initial_cash > 0
-                else 0.0
-            )
-
+            total = self.cash_balance
+            total_return = total - self.initial_cash
             return {
-                "total_asset_value": cash_value,
+                "total_asset_value": total,
                 "portfolio_assets": {},
                 "active_positions": 0,
                 "portfolio_summary": {
-                    "cash_balance": cash_value,
+                    "cash_balance": self.cash_balance,
                     "position_value": 0.0,
-                    "total_value": cash_value,
+                    "total_value": total,
                     "unrealized_pnl": 0.0,
                     "total_return": total_return,
-                    "return_pct": return_pct,
+                    "return_pct": (total_return / self.initial_cash * 100.0)
+                    if self.initial_cash > 0
+                    else 0.0,
                 },
                 "markets": [],
                 "account_summary": self.get_trading_summary(),
-                "price_fetch_success": 0,
             }
 
-        # Try to fetch current prices, fallback to avg price if fetch fails
-        prices = {}
-        price_fetch_count = 0
-
-        for position_key, position in active.items():
-            current_price = self._fetch_current_price(
-                position.market_id, position.outcome
-            )
-            if current_price is not None:
-                prices[position_key] = current_price
-                price_fetch_count += 1
-            else:
-                # Fallback to average price
-                prices[position_key] = position.avg_price
-
-        # Calculate portfolio assets and values
         assets: Dict[str, Dict[str, Any]] = {}
         position_value = 0.0
-        total_unrealized_pnl = 0.0
+        total_unrealized = 0.0
 
-        for position_key, position in active.items():
-            current_price = prices[position_key]
-            current_value = position.quantity * current_price
-            cost_basis = position.cost_basis
-            unrealized_pnl = current_value - cost_basis
+        for key, pos in active.items():
+            cur_price = self._current_price(
+                pos.market_id, pos.outcome, fallback=pos.avg_price
+            )
+            cur_val = pos.quantity * cur_price
+            basis = pos.cost_basis
+            upl = cur_val - basis
 
-            assets[position_key] = {
-                "market_id": position.market_id,
-                "outcome": position.outcome,
-                "quantity": position.quantity,
-                "avg_price": position.avg_price,
-                "current_price": current_price,
-                "cost_basis": cost_basis,
-                "current_value": current_value,
-                "unrealized_pnl": unrealized_pnl,
-                "unrealized_pnl_pct": (unrealized_pnl / cost_basis * 100.0)
-                if cost_basis > 0
-                else 0.0,
-                "portfolio_weight": 0.0,  # Will be calculated below
-                "last_updated": position.last_updated,
+            assets[key] = {
+                "market_id": pos.market_id,
+                "outcome": pos.outcome,
+                "quantity": pos.quantity,
+                "avg_price": pos.avg_price,
+                "current_price": cur_price,
+                "cost_basis": basis,
+                "current_value": cur_val,
+                "unrealized_pnl": upl,
+                "unrealized_pnl_pct": (upl / basis * 100.0) if basis > 0 else 0.0,
+                "portfolio_weight": 0.0,  # set below
+                "last_updated": pos.last_updated,
             }
 
-            position_value += current_value
-            total_unrealized_pnl += unrealized_pnl
+            position_value += cur_val
+            total_unrealized += upl
 
-        # Calculate total portfolio value
         total_value = self.cash_balance + position_value
         total_return = total_value - self.initial_cash
         return_pct = (
-            (total_return / self.initial_cash * 100) if self.initial_cash > 0 else 0.0
+            (total_return / self.initial_cash * 100.0) if self.initial_cash > 0 else 0.0
         )
 
-        # Calculate portfolio weights
         if total_value > 0:
-            for position_key in assets:
-                assets[position_key]["portfolio_weight"] = (
-                    assets[position_key]["current_value"] / total_value * 100.0
+            for k in assets:
+                assets[k]["portfolio_weight"] = (
+                    assets[k]["current_value"] / total_value * 100.0
                 )
-
-        # Portfolio summary
-        portfolio_summary = {
-            "cash_balance": self.cash_balance,
-            "position_value": position_value,
-            "total_value": total_value,
-            "unrealized_pnl": total_unrealized_pnl,
-            "total_return": total_return,
-            "return_pct": return_pct,
-        }
-
-        # Get unique markets
-        markets_list = list(set(pos.market_id for pos in active.values()))
 
         return {
             "total_asset_value": total_value,
             "portfolio_assets": assets,
             "active_positions": len(active),
-            "portfolio_summary": portfolio_summary,
-            "markets": markets_list,
+            "portfolio_summary": {
+                "cash_balance": self.cash_balance,
+                "position_value": position_value,
+                "total_value": total_value,
+                "unrealized_pnl": total_unrealized,
+                "total_return": total_return,
+                "return_pct": return_pct,
+            },
+            "markets": list({p.market_id for p in active.values()}),
             "account_summary": self.get_trading_summary(),
-            "price_fetch_success": price_fetch_count,
         }
 
+    def _calculate_total_value_direct(self) -> float:
+        """Calculate total value directly without going through evaluate() to avoid recursion."""
+        active = self.get_active_positions()
+        position_value = 0.0
 
-# Convenience functions
+        for pos in active.values():
+            current_price = self._current_price(
+                pos.market_id, pos.outcome, fallback=pos.avg_price
+            )
+            position_value += pos.quantity * current_price
+
+        return self.cash_balance + position_value
+
+    def get_total_value(self) -> float:
+        return self.evaluate()["portfolio_summary"]["total_value"]
+
+    def get_trading_summary(self) -> Dict[str, Any]:
+        buys = [t for t in self.transactions if t.action == "buy"]
+        sells = [t for t in self.transactions if t.action == "sell"]
+        total_commission = sum(t.commission for t in self.transactions)
+
+        base = self.get_basic_summary()
+
+        # Calculate total_return and return_percentage without recursion
+        current_total_value = self._calculate_total_value_direct()
+        total_return = current_total_value - self.initial_cash
+        return_percentage = (
+            (total_return / self.initial_cash * 100.0) if self.initial_cash > 0 else 0.0
+        )
+
+        return {
+            **base,
+            "total_return": total_return,
+            "return_percentage": return_percentage,
+            "total_trades": len(self.transactions),
+            "buy_trades": len(buys),
+            "sell_trades": len(sells),
+            "total_commission": total_commission,
+            "active_positions": len(self.get_active_positions()),
+            "markets_traded": len({t.market_id for t in self.transactions}),
+        }
+
+    def print_status(self) -> None:
+        print(
+            f"💰 Cash: ${self.cash_balance:.2f} | Positions: {len(self.get_active_positions())} | Total: ${self.get_total_value():.2f}"
+        )
+
+
+# --------------------------- Convenience ---------------------------
+
+
 def create_polymarket_account(
-    initial_cash: float = 1000.0, commission_rate: float = 0.01
+    initial_cash: float = 1000.0,
+    commission_rate: float = 0.01,
+    price_provider: Optional[Callable[[str, str], Optional[float]]] = None,
 ) -> PolymarketAccount:
-    """Create new polymarket account (higher commission rate for prediction markets)"""
-    return PolymarketAccount(cash_balance=initial_cash, commission_rate=commission_rate)
+    """
+    Create a new PolymarketAccount. Provide `price_provider` to enable live valuation.
+    """
+    return PolymarketAccount(
+        cash_balance=initial_cash,
+        commission_rate=commission_rate,
+        price_provider=price_provider,
+    )
