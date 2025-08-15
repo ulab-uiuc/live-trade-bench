@@ -105,6 +105,7 @@ async def get_system_status():
             "last_action": trading_system.trading_history[-1]
             if trading_system.trading_history
             else None,
+            "market_status": trading_system.get_market_status(),  # Market hours info
         }
     except Exception as e:
         raise HTTPException(

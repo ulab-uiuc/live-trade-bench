@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
+interface MarketStatus {
+  is_open: boolean;
+  is_weekday: boolean;
+  current_time_et: string;
+  next_open: string;
+  next_close: string;
+  timezone: string;
+}
+
 interface SystemStatus {
   system_running: boolean;
   active_agents: number;
@@ -9,6 +18,7 @@ interface SystemStatus {
   cycle_interval_minutes: number;
   last_cycle_time?: string;
   next_cycle_time?: string;
+  market_status?: MarketStatus;
 }
 
 const SystemMonitoring: React.FC = () => {
@@ -145,6 +155,30 @@ const SystemMonitoring: React.FC = () => {
               {formatTime(systemStatus.next_cycle_time)}
             </div>
           </div>
+
+          {/* Market Status */}
+          {systemStatus.market_status && (
+            <>
+              <div className="status-card">
+                <div className="status-label">Stock Market</div>
+                <div className={`status-value ${systemStatus.market_status.is_open ? 'running' : 'stopped'}`}>
+                  {systemStatus.market_status.is_open ? '🟢 Open' : '🔴 Closed'}
+                </div>
+              </div>
+
+              <div className="status-card">
+                <div className="status-label">
+                  {systemStatus.market_status.is_open ? 'Market Closes' : 'Market Opens'}
+                </div>
+                <div className="status-value">
+                  {formatTime(systemStatus.market_status.is_open ?
+                    systemStatus.market_status.next_close :
+                    systemStatus.market_status.next_open
+                  )} ET
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

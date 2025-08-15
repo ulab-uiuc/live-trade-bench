@@ -13,6 +13,8 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+import pytz
+
 # Add trading_bench to path before any runtime imports
 project_root = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,6 +26,65 @@ if TYPE_CHECKING:  # pragma: no cover - type checking only
     pass
 
 logger = logging.getLogger(__name__)
+
+
+def is_market_hours() -> bool:
+    """Check if current time is during stock market hours (9:30 AM - 4:00 PM ET, weekdays only)"""
+    # Get current time in Eastern timezone
+    et_tz = pytz.timezone("US/Eastern")
+    current_et = datetime.now(et_tz)
+
+    # Check if it's a weekday (Monday=0, Sunday=6)
+    if current_et.weekday() >= 5:  # Saturday or Sunday
+        return False
+
+    # Check if it's within market hours (9:30 AM - 4:00 PM ET)
+    market_open = current_et.replace(hour=9, minute=30, second=0, microsecond=0)
+    market_close = current_et.replace(hour=16, minute=0, second=0, microsecond=0)
+
+    return market_open <= current_et <= market_close
+
+
+def get_market_status() -> Dict[str, Any]:
+    """Get detailed market status information"""
+    et_tz = pytz.timezone("US/Eastern")
+    current_et = datetime.now(et_tz)
+
+    is_weekday = current_et.weekday() < 5
+    is_open = is_market_hours()
+
+    # Calculate next market open
+    if (
+        is_weekday
+        and current_et.hour < 9
+        or (current_et.hour == 9 and current_et.minute < 30)
+    ):
+        # Market opens today
+        next_open = current_et.replace(hour=9, minute=30, second=0, microsecond=0)
+    else:
+        # Market opens next weekday
+        days_ahead = 1
+        while True:
+            next_day = current_et + timedelta(days=days_ahead)
+            if next_day.weekday() < 5:  # Weekday
+                next_open = next_day.replace(hour=9, minute=30, second=0, microsecond=0)
+                break
+            days_ahead += 1
+
+    # Calculate next market close
+    if is_open:
+        next_close = current_et.replace(hour=16, minute=0, second=0, microsecond=0)
+    else:
+        next_close = next_open.replace(hour=16, minute=0, second=0, microsecond=0)
+
+    return {
+        "is_open": is_open,
+        "is_weekday": is_weekday,
+        "current_time_et": current_et.isoformat(),
+        "next_open": next_open.isoformat(),
+        "next_close": next_close.isoformat(),
+        "timezone": "US/Eastern",
+    }
 
 
 class MultiAssetTradingSystem:
@@ -304,6 +365,10 @@ class MultiAssetTradingSystem:
 
         return sorted(actions, key=lambda x: x["timestamp"], reverse=True)
 
+    def get_market_status(self) -> Dict[str, Any]:
+        """Get current market status for frontend display"""
+        return get_market_status()
+
     def activate_model(self, model_id: str, category: str = None) -> bool:
         """Activate a trading model for specific category or both"""
         base_model_id = model_id.replace("_stock", "").replace("_polymarket", "")
@@ -432,7 +497,17 @@ class MultiAssetTradingSystem:
     def _run_stock_cycle_native(self):
         """Run stock cycle using native StockTradingSystem.run() - adapted for backend service"""
         try:
-            logger.info("Running stock system using native .run() method")
+            # Check if market is open before running stock trading
+            if not is_market_hours():
+                market_status = get_market_status()
+                logger.info(
+                    f"Stock market is closed. Market will open at {market_status['next_open']} ET. Skipping stock trading cycle."
+                )
+                return
+
+            logger.info(
+                "Running stock system using native .run() method (market is open)"
+            )
             # For backend service: run a short burst
             # This gets called repeatedly by our background loop (every 30 min)
             # So we run for 2 minutes each time with 30 second intervals
