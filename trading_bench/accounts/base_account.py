@@ -95,8 +95,8 @@ class BaseAccount(ABC):
             "cash_balance": self.cash_balance,
             "initial_cash": self.initial_cash,
             "account_age_days": self.account_age_days,
-            "total_return": self.total_return,
-            "return_percentage": self.return_percentage,
             "commission_rate": self.commission_rate,
             "created_at": self.created_at,
+            # Note: total_return and return_percentage not included here to avoid recursion
+            # They should be calculated separately where needed
         }

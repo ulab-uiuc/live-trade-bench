@@ -1,12 +1,15 @@
 """
-Stock account management system inheriting from BaseAccount
+Stock account management system (simplified)
+- Single trade path via `execute_trade`
+- Optional price_provider: (ticker) -> Optional[float] for live valuation
+- Thin compatibility wrapper `execute_action(StockAction)`
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 from .base_account import BaseAccount
 
@@ -14,17 +17,19 @@ if TYPE_CHECKING:
     from .action import StockAction
 
 
+# ----------------------------- Data Models -----------------------------
+
+
 @dataclass
 class StockPosition:
-    """Stock position information"""
+    """Long/short position for a stock ticker."""
 
     ticker: str
     quantity: float
     avg_price: float
     last_updated: str = field(default_factory=lambda: datetime.now().isoformat())
 
-    def __post_init__(self):
-        """Validate position fields"""
+    def __post_init__(self) -> None:
         if self.quantity < 0:
             raise ValueError(f"Invalid quantity: {self.quantity}")
         if self.avg_price <= 0:
@@ -34,33 +39,28 @@ class StockPosition:
 
     @property
     def cost_basis(self) -> float:
-        """Total cost basis of the position"""
         return self.quantity * self.avg_price
 
-    def update_buy(self, price: float, quantity: float) -> None:
-        """Update position after buy transaction"""
-        if price <= 0 or quantity <= 0:
+    def apply_buy(self, price: float, qty: float) -> None:
+        if price <= 0 or qty <= 0:
             raise ValueError("Price and quantity must be positive")
-
-        total_cost = self.cost_basis + (price * quantity)
-        self.quantity += quantity
+        total_cost = self.cost_basis + price * qty
+        self.quantity += qty
         self.avg_price = total_cost / self.quantity if self.quantity > 0 else price
         self.last_updated = datetime.now().isoformat()
 
-    def update_sell(self, quantity: float) -> None:
-        """Update position after sell transaction"""
-        if quantity <= 0:
+    def apply_sell(self, qty: float) -> None:
+        if qty <= 0:
             raise ValueError("Quantity must be positive")
-        if self.quantity < quantity:
-            raise ValueError(f"Insufficient position: {self.quantity} < {quantity}")
-
-        self.quantity -= quantity
+        if qty > self.quantity:
+            raise ValueError(f"Insufficient position: have {self.quantity}, sell {qty}")
+        self.quantity -= qty
         self.last_updated = datetime.now().isoformat()
 
 
 @dataclass
 class StockTransaction:
-    """Trading transaction record"""
+    """Immutable record of a trade."""
 
     ticker: str
     action: str  # "buy" or "sell"
@@ -70,8 +70,7 @@ class StockTransaction:
     commission: float = 0.0
     notes: str = ""
 
-    def __post_init__(self):
-        """Validate transaction fields"""
+    def __post_init__(self) -> None:
         if self.action.lower() not in ("buy", "sell"):
             raise ValueError(f"Invalid action: {self.action}")
         if self.price <= 0:
@@ -80,332 +79,283 @@ class StockTransaction:
             raise ValueError(f"Invalid quantity: {self.quantity}")
         if not self.ticker:
             raise ValueError("Ticker cannot be empty")
+        self.action = self.action.lower()
 
     @property
-    def total_value(self) -> float:
-        """Total transaction value including commission"""
-        base_value = self.quantity * self.price
-        if self.action.lower() == "buy":
-            return base_value + self.commission
-        else:
-            return base_value - self.commission
+    def cash_effect(self) -> float:
+        """
+        Signed cash flow (positive = cash in).
+        Buy -> -(price*qty + commission); Sell -> +(price*qty - commission).
+        """
+        gross = self.quantity * self.price
+        return (
+            (gross - self.commission)
+            if self.action == "sell"
+            else -(gross + self.commission)
+        )
+
+
+# ------------------------------- Account -------------------------------
 
 
 @dataclass
 class StockAccount(BaseAccount):
-    """Stock trading account with integrated portfolio evaluation"""
+    """
+    Stock trading account.
+
+    BaseAccount is expected to provide:
+      - cash_balance: float
+      - initial_cash: float
+      - commission_rate: float
+      - calculate_commission(price, quantity) -> float
+      - get_basic_summary() -> Dict[str, Any]
+    """
 
     positions: Dict[str, StockPosition] = field(default_factory=dict)
     transactions: List[StockTransaction] = field(default_factory=list)
 
-    def _fetch_current_price(self, ticker: str) -> float:
-        """Fetch current price for a ticker"""
-        try:
-            from ..fetchers.stock_fetcher import fetch_current_stock_price
+    # Optional callable to fetch current prices: (ticker) -> Optional[float]
+    price_provider: Optional[Callable[[str], Optional[float]]] = None
 
-            price = fetch_current_stock_price(ticker)
-            if price and price > 0:
-                return float(price)
-        except Exception as e:
-            print(f"⚠️ Failed to fetch current price for {ticker}: {e}")
+    # ----------- Convenience -----------
 
-        # Fallback to a default price
-        default_prices = {
-            "AAPL": 180.0,
-            "MSFT": 350.0,
-            "GOOGL": 140.0,
-            "AMZN": 150.0,
-            "TSLA": 200.0,
-        }
-        return default_prices.get(ticker, 150.0)
+    def get_active_positions(self) -> Dict[str, StockPosition]:
+        return {t: p for t, p in self.positions.items() if p.quantity > 0}
 
     def print_status(self) -> None:
-        """Print simple account status"""
-        positions = self.get_active_positions()
-        total_value = self.get_total_value()
         print(
-            f"💰 Cash: ${self.cash_balance:.2f} | Positions: {len(positions)} | Total: ${total_value:.2f}"
+            f"💰 Cash: ${self.cash_balance:.2f} | Positions: {len(self.get_active_positions())} | Total: ${self.get_total_value():.2f}"
         )
 
-    def get_total_value(self) -> float:
-        """Get total account value (cash + stock positions)"""
-        active_positions = self.get_active_positions()
-        stock_value = 0.0
+    # ----------- Trading -----------
 
-        for ticker, position in active_positions.items():
-            # Try to fetch current price, fallback to avg price
-            current_price = self._fetch_current_price(ticker)
-            if current_price is None:
-                current_price = position.avg_price
-            stock_value += position.quantity * current_price
-
-        return self.cash_balance + stock_value
-
-    def can_afford(
-        self, ticker: str, price: float, quantity: float
-    ) -> Tuple[bool, str]:
-        """Check if account has sufficient funds for purchase"""
+    def can_afford(self, price: float, quantity: float) -> Tuple[bool, str]:
         commission = self.calculate_commission(price, quantity)
         total_cost = price * quantity + commission
-
-        if total_cost <= self.cash_balance:
-            return True, f"Can buy {quantity} shares of {ticker}"
-        else:
-            return (
+        return (
+            (True, "Sufficient funds")
+            if total_cost <= self.cash_balance
+            else (
                 False,
-                f"Insufficient funds: need ${total_cost:.2f}, available ${self.cash_balance:.2f}",
+                f"Insufficient funds: need ${total_cost:.2f}, have ${self.cash_balance:.2f}",
             )
+        )
 
     def can_sell(self, ticker: str, quantity: float) -> Tuple[bool, str]:
-        """Check if account has sufficient position for sale"""
-        position = self.positions.get(ticker)
-        if not position or position.quantity == 0:
+        pos = self.positions.get(ticker)
+        if not pos or pos.quantity == 0:
             return False, f"No position in {ticker}"
-
-        if position.quantity >= quantity:
-            return True, f"Can sell {quantity} shares of {ticker}"
-        else:
-            return (
-                False,
-                f"Insufficient position: hold {position.quantity} shares, trying to sell {quantity}",
-            )
+        if pos.quantity < quantity:
+            return False, f"Insufficient position: have {pos.quantity}, sell {quantity}"
+        return True, "Sufficient position"
 
     def execute_action(
         self, action: "StockAction", notes: str = ""
     ) -> Tuple[bool, str, Optional[StockTransaction]]:
         """
-        Execute a StockAction
-
-        Args:
-            action: StockAction instance containing trade details
-            notes: Optional notes for the transaction
-
-        Returns:
-            Tuple of (success, message, transaction)
+        Execute a StockAction. Returns (success, message, transaction).
         """
-        # Import here to avoid circular imports
         from .action import StockAction
 
         if not isinstance(action, StockAction):
             return False, "Invalid action: must be a StockAction instance", None
 
-        # Extract action details
         ticker = action.ticker
         trade_action = action.action.lower()
         price = action.price
         quantity = action.quantity
-        commission = self.calculate_commission(price, quantity)
-
-        # Validate transaction
-        if trade_action == "buy":
-            can_afford, reason = self.can_afford(ticker, price, quantity)
-            if not can_afford:
-                return False, reason, None
-        elif trade_action == "sell":
-            can_sell, reason = self.can_sell(ticker, quantity)
-            if not can_sell:
-                return False, reason, None
-        else:
+        notes = notes or f"StockAction from {action.timestamp}"
+        
+        if trade_action not in {"buy", "sell"}:
             return False, f"Invalid action: {trade_action}", None
 
-        # Execute the transaction
         if trade_action == "buy":
-            total_cost = (price * quantity) + commission
-            self.cash_balance -= total_cost
+            ok, why = self.can_afford(price, quantity)
+            if not ok:
+                return False, why, None
+        else:
+            ok, why = self.can_sell(ticker, quantity)
+            if not ok:
+                return False, why, None
 
-            # Update or create position
-            if ticker in self.positions:
-                self.positions[ticker].update_buy(price, quantity)
-            else:
-                self.positions[ticker] = StockPosition(
-                    ticker=ticker, quantity=quantity, avg_price=price
-                )
+        commission = self.calculate_commission(price, quantity)
+        tx = StockTransaction(
+            ticker=ticker,
+            action=trade_action,
+            quantity=quantity,
+            price=price,
+            commission=commission,
+            timestamp=datetime.now().isoformat(),
+            notes=notes,
+        )
 
-            # Record transaction
-            transaction = StockTransaction(
-                ticker=ticker,
-                action="buy",
-                quantity=quantity,
-                price=price,
-                timestamp=datetime.now().isoformat(),
-                commission=commission,
-                notes=notes or f"StockAction from {action.timestamp}",
-            )
-            self.transactions.append(transaction)
+        try:
+            # cash
+            self.cash_balance += tx.cash_effect
 
-            return (
-                True,
-                f"Bought {quantity} shares of {ticker} at ${price:.2f}",
-                transaction,
-            )
+            # position
+            if trade_action == "buy":
+                if ticker in self.positions:
+                    self.positions[ticker].apply_buy(price, quantity)
+                else:
+                    self.positions[ticker] = StockPosition(
+                        ticker=ticker, quantity=quantity, avg_price=price
+                    )
+            else:  # sell
+                self.positions[ticker].apply_sell(quantity)
+                if self.positions[ticker].quantity <= 0:
+                    del self.positions[ticker]
 
-        elif trade_action == "sell":
-            total_proceeds = (price * quantity) - commission
-            self.cash_balance += total_proceeds
+            # record
+            self.transactions.append(tx)
+            return True, f"{trade_action.title()} {quantity} {ticker} @ ${price:.3f}", tx
 
-            # Update position
-            self.positions[ticker].update_sell(quantity)
+        except Exception as e:
+            return False, f"Trade failed: {e}", None
 
-            # Remove position if quantity is zero
-            if self.positions[ticker].quantity <= 0:
-                del self.positions[ticker]
+    # ----------- Valuation / Reporting -----------
 
-            # Record transaction
-            transaction = StockTransaction(
-                ticker=ticker,
-                action="sell",
-                quantity=quantity,
-                price=price,
-                timestamp=datetime.now().isoformat(),
-                commission=commission,
-                notes=notes or f"StockAction from {action.timestamp}",
-            )
-            self.transactions.append(transaction)
-
-            return (
-                True,
-                f"Sold {quantity} shares of {ticker} at ${price:.2f}",
-                transaction,
-            )
-
-    def get_active_positions(self) -> Dict[str, StockPosition]:
-        """Get active positions (quantity > 0)"""
-        return {
-            ticker: pos for ticker, pos in self.positions.items() if pos.quantity > 0
-        }
-
-    def get_trading_summary(self) -> Dict[str, Any]:
-        """Get basic trading summary"""
-        buy_trades = [t for t in self.transactions if t.action == "buy"]
-        sell_trades = [t for t in self.transactions if t.action == "sell"]
-        total_commission = sum(t.commission for t in self.transactions)
-
-        base_summary = self.get_basic_summary()
-
-        return {
-            **base_summary,
-            "total_trades": len(self.transactions),
-            "buy_trades": len(buy_trades),
-            "sell_trades": len(sell_trades),
-            "total_commission": total_commission,
-            "active_positions": len(self.get_active_positions()),
-        }
+    def _current_price(self, ticker: str, fallback: float) -> float:
+        if self.price_provider is None:
+            return fallback
+        try:
+            p = self.price_provider(ticker)
+            return fallback if p is None or p <= 0 else float(p)
+        except Exception:
+            return fallback
 
     def evaluate(self) -> Dict[str, Any]:
         """
-        Evaluate account portfolio with current prices and calculate portfolio value
-
-        Returns:
-            Dictionary containing portfolio evaluation results
+        Evaluate portfolio using `price_provider` if set, else falls back to avg_price.
         """
         active = self.get_active_positions()
-
-        # If no active positions, return basic cash-only portfolio
         if not active:
-            cash_value = self.cash_balance
-            total_return = cash_value - self.initial_cash
-            return_pct = (
-                (total_return / self.initial_cash * 100)
-                if self.initial_cash > 0
-                else 0.0
-            )
-
+            total = self.cash_balance
+            total_ret = total - self.initial_cash
             return {
-                "total_asset_value": cash_value,
+                "total_asset_value": total,
                 "portfolio_assets": {},
                 "active_positions": 0,
                 "portfolio_summary": {
-                    "cash_balance": cash_value,
+                    "cash_balance": self.cash_balance,
                     "stock_value": 0.0,
-                    "total_value": cash_value,
+                    "total_value": total,
                     "unrealized_pnl": 0.0,
-                    "total_return": total_return,
-                    "return_pct": return_pct,
+                    "total_return": total_ret,
+                    "return_pct": (total_ret / self.initial_cash * 100.0)
+                    if self.initial_cash > 0
+                    else 0.0,
                 },
                 "tickers": [],
                 "account_summary": self.get_trading_summary(),
-                "price_fetch_success": 0,
             }
 
-        # Try to fetch current prices, fallback to avg price if fetch fails
-        prices = {}
-        price_fetch_count = 0
-
-        for ticker, position in active.items():
-            current_price = self._fetch_current_price(ticker)
-            if current_price:
-                prices[ticker] = current_price
-                price_fetch_count += 1
-            else:
-                # Fallback to average price
-                prices[ticker] = position.avg_price
-
-        # Calculate portfolio assets and values
-        assets: Dict[str, Dict[str, float]] = {}
+        assets: Dict[str, Dict[str, Any]] = {}
         stock_value = 0.0
-        total_unrealized_pnl = 0.0
+        total_unrealized = 0.0
 
-        for ticker, position in active.items():
-            current_price = prices[ticker]
-            current_value = position.quantity * current_price
-            cost_basis = position.cost_basis
-            unrealized_pnl = current_value - cost_basis
+        for t, pos in active.items():
+            cur_price = self._current_price(t, fallback=pos.avg_price)
+            cur_val = pos.quantity * cur_price
+            basis = pos.cost_basis
+            upl = cur_val - basis
 
-            assets[ticker] = {
-                "quantity": position.quantity,
-                "avg_price": position.avg_price,
-                "current_price": current_price,
-                "cost_basis": cost_basis,
-                "current_value": current_value,
-                "unrealized_pnl": unrealized_pnl,
-                "unrealized_pnl_pct": (unrealized_pnl / cost_basis * 100.0)
-                if cost_basis > 0
-                else 0.0,
-                "portfolio_weight": 0.0,  # Will be calculated below
-                "last_updated": position.last_updated,
+            assets[t] = {
+                "quantity": pos.quantity,
+                "avg_price": pos.avg_price,
+                "current_price": cur_price,
+                "cost_basis": basis,
+                "current_value": cur_val,
+                "unrealized_pnl": upl,
+                "unrealized_pnl_pct": (upl / basis * 100.0) if basis > 0 else 0.0,
+                "portfolio_weight": 0.0,  # set below
+                "last_updated": pos.last_updated,
             }
 
-            stock_value += current_value
-            total_unrealized_pnl += unrealized_pnl
+            stock_value += cur_val
+            total_unrealized += upl
 
-        # Calculate total portfolio value
         total_value = self.cash_balance + stock_value
-        total_return = total_value - self.initial_cash
+        total_ret = total_value - self.initial_cash
         return_pct = (
-            (total_return / self.initial_cash * 100) if self.initial_cash > 0 else 0.0
+            (total_ret / self.initial_cash * 100.0) if self.initial_cash > 0 else 0.0
         )
 
-        # Calculate portfolio weights
         if total_value > 0:
-            for ticker in assets:
-                assets[ticker]["portfolio_weight"] = (
-                    assets[ticker]["current_value"] / total_value * 100.0
+            for t in assets:
+                assets[t]["portfolio_weight"] = (
+                    assets[t]["current_value"] / total_value * 100.0
                 )
-
-        # Portfolio summary
-        portfolio_summary = {
-            "cash_balance": self.cash_balance,
-            "stock_value": stock_value,
-            "total_value": total_value,
-            "unrealized_pnl": total_unrealized_pnl,
-            "total_return": total_return,
-            "return_pct": return_pct,
-        }
 
         return {
             "total_asset_value": total_value,
             "portfolio_assets": assets,
             "active_positions": len(active),
-            "portfolio_summary": portfolio_summary,
+            "portfolio_summary": {
+                "cash_balance": self.cash_balance,
+                "stock_value": stock_value,
+                "total_value": total_value,
+                "unrealized_pnl": total_unrealized,
+                "total_return": total_ret,
+                "return_pct": return_pct,
+            },
             "tickers": list(active.keys()),
             "account_summary": self.get_trading_summary(),
-            "price_fetch_success": price_fetch_count,
+        }
+
+    def _calculate_total_value_direct(self) -> float:
+        """Calculate total value directly without going through evaluate() to avoid recursion."""
+        active = self.get_active_positions()
+        position_value = 0.0
+
+        for pos in active.values():
+            current_price = self._current_price(pos.ticker, fallback=pos.avg_price)
+            position_value += pos.quantity * current_price
+
+        return self.cash_balance + position_value
+
+    def get_total_value(self) -> float:
+        return self.evaluate()["portfolio_summary"]["total_value"]
+
+    def get_trading_summary(self) -> Dict[str, Any]:
+        buys = [t for t in self.transactions if t.action == "buy"]
+        sells = [t for t in self.transactions if t.action == "sell"]
+        total_commission = sum(t.commission for t in self.transactions)
+
+        base = self.get_basic_summary()
+
+        # Calculate total_return and return_percentage without recursion
+        # We need total_value but calling get_total_value() would cause recursion via evaluate()
+        # So we'll calculate it directly from cash + position values
+        current_total_value = self._calculate_total_value_direct()
+        total_return = current_total_value - self.initial_cash
+        return_percentage = (
+            (total_return / self.initial_cash * 100.0) if self.initial_cash > 0 else 0.0
+        )
+
+        return {
+            **base,
+            "total_return": total_return,
+            "return_percentage": return_percentage,
+            "total_trades": len(self.transactions),
+            "buy_trades": len(buys),
+            "sell_trades": len(sells),
+            "total_commission": total_commission,
+            "active_positions": len(self.get_active_positions()),
         }
 
 
-# Convenience functions
+# --------------------------- Convenience ---------------------------
+
+
 def create_stock_account(
-    initial_cash: float = 100000.0, commission_rate: float = 0.001
+    initial_cash: float = 100_000.0,
+    commission_rate: float = 0.001,
+    price_provider: Optional[Callable[[str], Optional[float]]] = None,
 ) -> StockAccount:
-    """Create new stock account"""
-    return StockAccount(cash_balance=initial_cash, commission_rate=commission_rate)
+    """Create a new StockAccount. Provide `price_provider` to enable live valuation."""
+    return StockAccount(
+        cash_balance=initial_cash,
+        commission_rate=commission_rate,
+        price_provider=price_provider,
+    )
