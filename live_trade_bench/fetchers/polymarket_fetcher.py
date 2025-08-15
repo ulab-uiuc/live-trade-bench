@@ -10,7 +10,7 @@ Exports:
 
 from typing import Any, Dict, List, Optional
 
-from trading_bench.fetchers.base_fetcher import BaseFetcher
+from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
 
 class PolymarketFetcher(BaseFetcher):

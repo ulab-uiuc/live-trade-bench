@@ -11,7 +11,7 @@ from typing import Optional
 
 import praw
 
-from trading_bench.fetchers.base_fetcher import BaseFetcher
+from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
 # Company name mapping for ticker symbols
 TICKER_TO_COMPANY = {

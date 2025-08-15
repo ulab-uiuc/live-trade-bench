@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 
 import yfinance as yf
 
-from trading_bench.fetchers.base_fetcher import BaseFetcher
+from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
 
 class StockFetcher(BaseFetcher):

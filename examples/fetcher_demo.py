@@ -5,7 +5,7 @@ This file demonstrates how to use the BaseFetcher and its derived classes
 for fetching different types of data.
 """
 
-from trading_bench.fetchers import (
+from live_trade_bench.fetchers import (
     BaseFetcher,
     NewsFetcher,
     OptionFetcher,
