@@ -15,6 +15,8 @@ from app.routers import (
 from app.trading_system import start_trading_system, stop_trading_system
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -83,9 +85,9 @@ app.include_router(model_actions.router)
 app.include_router(polymarket.router)
 
 
-@app.get("/")
-async def root():
-    """Root endpoint with API information."""
+@app.get("/api")
+async def api_root():
+    """API information endpoint."""
     return {
         "message": "Live Trade Bench API",
         "version": "1.0.0",
@@ -125,6 +127,41 @@ async def shutdown_event():
 
 # Register cleanup on exit
 atexit.register(stop_trading_system)
+
+frontend_build_path = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "..", "frontend", "build"
+)
+
+# Serve static files
+app.mount(
+    "/static",
+    StaticFiles(directory=os.path.join(frontend_build_path, "static")),
+    name="static",
+)
+
+
+# Catch-all route for React Router (must be last)
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    """Serve React frontend for all non-API routes."""
+    # Don't serve frontend for API routes
+    if (
+        full_path.startswith("api/")
+        or full_path.startswith("docs")
+        or full_path.startswith("redoc")
+    ):
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+
+    # Serve index.html for React Router
+    index_file = os.path.join(frontend_build_path, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    else:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Frontend not found")
 
 
 if __name__ == "__main__":

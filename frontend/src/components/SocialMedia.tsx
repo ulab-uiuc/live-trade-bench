@@ -44,7 +44,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
     setLoading(true);
     try {
       // Fetch real social media data from Reddit - get 5 posts from each category
-      const response = await fetch('http://localhost:5000/api/social/?category=all');
+      const response = await fetch('/api/social/?category=all');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

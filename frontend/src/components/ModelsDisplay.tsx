@@ -49,7 +49,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     setLoading(true);
     try {
       // Fetch real LLM models data
-      const response = await fetch('http://localhost:5000/api/models/');
+      const response = await fetch('/api/models/');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

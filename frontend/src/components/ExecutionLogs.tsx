@@ -57,7 +57,7 @@ const ExecutionLogs: React.FC = () => {
         ...(selectedEventType && { event_type: selectedEventType })
       });
 
-      const response = await fetch(`http://localhost:5000/api/models/execution-logs?${params}`);
+      const response = await fetch(`/api/models/execution-logs?${params}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -74,7 +74,7 @@ const ExecutionLogs: React.FC = () => {
 
   const fetchMetrics = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/models/system-metrics');
+      const response = await fetch('/api/models/system-metrics');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

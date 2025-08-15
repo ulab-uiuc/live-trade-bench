@@ -49,7 +49,7 @@ const ModelControls: React.FC<ModelControlsProps> = ({ models, onModelUpdate }) 
   const fetchSystemStatus = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/models/system-status');
+      const response = await fetch('/api/models/system-status');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -75,7 +75,7 @@ const ModelControls: React.FC<ModelControlsProps> = ({ models, onModelUpdate }) 
     setActionLoading(modelId);
     try {
       const action = currentlyActive ? 'deactivate' : 'activate';
-      const response = await fetch(`http://localhost:5000/api/models/${modelId}/${action}`, {
+      const response = await fetch(`/api/models/${modelId}/${action}`, {
         method: 'POST'
       });
 
@@ -95,7 +95,7 @@ const ModelControls: React.FC<ModelControlsProps> = ({ models, onModelUpdate }) 
   const triggerCycle = async () => {
     setActionLoading('cycle');
     try {
-      const response = await fetch('http://localhost:5000/api/models/trigger-cycle', {
+      const response = await fetch('/api/models/trigger-cycle', {
         method: 'POST'
       });
 
@@ -115,7 +115,7 @@ const ModelControls: React.FC<ModelControlsProps> = ({ models, onModelUpdate }) 
   const setCycleInterval = async () => {
     setActionLoading('interval');
     try {
-      const response = await fetch(`http://localhost:5000/api/models/cycle-interval?minutes=${newInterval}`, {
+      const response = await fetch(`/api/models/cycle-interval?minutes=${newInterval}`, {
         method: 'POST'
       });
 
