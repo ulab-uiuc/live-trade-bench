@@ -143,12 +143,8 @@ async def get_model_specific_actions(
 
         # Check if model exists in either stock or polymarket systems
         base_model_id = model_id.replace("_stock", "").replace("_polymarket", "")
-        stock_agents = {
-            agent.name: agent for agent in trading_system.stock_system.agents
-        }
-        polymarket_agents = {
-            agent.name: agent for agent in trading_system.polymarket_system.agents
-        }
+        stock_agents = trading_system.stock_system.agents
+        polymarket_agents = trading_system.polymarket_system.agents
 
         model_found = (
             model_id.endswith("_stock")

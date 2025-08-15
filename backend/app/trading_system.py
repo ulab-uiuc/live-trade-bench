@@ -94,13 +94,15 @@ class MultiAssetTradingSystem:
     """
 
     def __init__(self):
-        # Import the native trading systems after path setup
-        from trading_bench.agents.polymarket_agent import PolymarketTradingSystem
-        from trading_bench.agents.stock_agent import StockTradingSystem
+        # Import the native trading systems using factory functions
+        from trading_bench import (
+            create_polymarket_trading_system,
+            create_stock_trading_system,
+        )
 
-        # Create the native trading systems
-        self.stock_system = StockTradingSystem()
-        self.polymarket_system = PolymarketTradingSystem()
+        # Create the native trading systems using factory functions
+        self.stock_system = create_stock_trading_system()
+        self.polymarket_system = create_polymarket_trading_system()
 
         # System control
         self.system_running = False
@@ -375,7 +377,7 @@ class MultiAssetTradingSystem:
                 return self.stock_system.universe
             else:
                 # Fallback: fetch trending stocks directly
-                from trading_bench.fetchers.stock_fetcher import fetch_trending_stocks
+                from trading_bench import fetch_trending_stocks
 
                 trending_stocks = fetch_trending_stocks(limit=10)
                 return [s["ticker"] for s in trending_stocks]

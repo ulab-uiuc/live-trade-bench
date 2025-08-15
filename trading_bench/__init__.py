@@ -38,7 +38,9 @@ from .fetchers import (
     NewsFetcher,
     PolymarketFetcher,
     fetch_current_market_price,
+    fetch_current_stock_price,
     fetch_trending_markets,
+    fetch_trending_stocks,
 )
 from .utils import call_llm, parse_trading_response
 

@@ -153,8 +153,8 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
     sys.path.insert(0, project_root)
 
     try:
+        from trading_bench import fetch_trending_stocks
         from trading_bench.fetchers.news_fetcher import fetch_news_data
-        from trading_bench.fetchers.stock_fetcher import fetch_trending_stocks
 
         # Calculate date range
         end_date = datetime.now()
@@ -469,7 +469,7 @@ def get_real_polymarket_data(limit: int = 10) -> list[dict]:
     sys.path.insert(0, project_root)
 
     try:
-        from trading_bench.fetchers.polymarket_fetcher import PolymarketFetcher
+        from trading_bench import PolymarketFetcher
 
         fetcher = PolymarketFetcher()
         markets = fetcher.fetch_markets(limit=limit)
