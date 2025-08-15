@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import ModelsDisplay from './ModelsDisplay';
 import SystemLog from './SystemLog';
-import ModelControls from './ModelControls';
-import ExecutionLogs from './ExecutionLogs';
+import SystemMonitoring from './SystemMonitoring';
 
 interface Model {
   id: string;
   name: string;
-  category: 'polymarket' | 'stock' | 'option';
+  category: 'polymarket' | 'stock';
   performance: number;
   accuracy: number;
   trades: number;
@@ -41,14 +40,11 @@ const Dashboard: React.FC<DashboardProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  const handleModelUpdate = () => {
-    // Force refresh of models data when controls are used
-    setModelsLastRefresh(new Date());
-  };
 
   return (
     <div className="dashboard">
       <div className="dashboard-grid">
+        {/* Trading Models - Full Left Column */}
         <div className="models-section">
           <ModelsDisplay
             modelsData={modelsData}
@@ -58,23 +54,14 @@ const Dashboard: React.FC<DashboardProps> = ({
           />
         </div>
 
-        <div className="controls-section">
-          <ModelControls
-            models={modelsData.map(m => ({
-              id: m.id,
-              name: m.name,
-              status: m.status
-            }))}
-            onModelUpdate={handleModelUpdate}
-          />
+        {/* System Monitoring - Top Right */}
+        <div className="monitoring-section">
+          <SystemMonitoring />
         </div>
 
+        {/* System Logs - Bottom Right */}
         <div className="system-log-section">
           <SystemLog lastRefresh={lastRefresh} />
-        </div>
-
-        <div className="execution-logs-section">
-          <ExecutionLogs />
         </div>
       </div>
     </div>

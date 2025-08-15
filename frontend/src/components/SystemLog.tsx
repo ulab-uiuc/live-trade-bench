@@ -42,7 +42,7 @@ const SystemLog: React.FC<SystemLogProps> = ({ lastRefresh }) => {
     setLoading(true);
     try {
       // Fetch from model-actions API instead of system-log
-      const response = await fetch('http://localhost:5000/api/model-actions/?limit=100');
+      const response = await fetch('/api/model-actions/?limit=100');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

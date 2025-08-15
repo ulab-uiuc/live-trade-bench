@@ -27,7 +27,7 @@ interface Trade {
   price: number;
   profit: number;
   model: string;
-  category: 'polymarket' | 'stock' | 'option';
+  category: 'polymarket' | 'stock';
   status: 'completed' | 'pending' | 'cancelled' | 'failed';
   fees: number;
   totalValue: number;
@@ -36,7 +36,7 @@ interface Trade {
 interface Model {
   id: string;
   name: string;
-  category: 'polymarket' | 'stock' | 'option';
+  category: 'polymarket' | 'stock';
   performance: number;
   accuracy: number;
   trades: number;
@@ -63,7 +63,7 @@ interface SocialPost {
     shares?: number;
   };
   sentiment: 'positive' | 'negative' | 'neutral';
-  category: 'market' | 'stock' | 'tech' | 'options' | 'polymarket';
+  category: 'market' | 'stock' | 'tech' | 'polymarket';
   ticker?: string;
   url?: string;
   subreddit?: string;

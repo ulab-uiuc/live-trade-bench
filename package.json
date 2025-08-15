@@ -1,0 +1,13 @@
+{
+  "name": "live-trade-bench",
+  "version": "1.0.0",
+  "description": "Trading evaluation platform with AI-powered models",
+  "scripts": {
+    "heroku-prebuild": "cd frontend && npm install",
+    "heroku-postbuild": "cd frontend && npm run build"
+  },
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  }
+}

@@ -10,8 +10,10 @@ import os
 import sys
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+import pytz
 
 # Add trading_bench to path before any runtime imports
 project_root = os.path.dirname(
@@ -24,6 +26,65 @@ if TYPE_CHECKING:  # pragma: no cover - type checking only
     pass
 
 logger = logging.getLogger(__name__)
+
+
+def is_market_hours() -> bool:
+    """Check if current time is during stock market hours (9:30 AM - 4:00 PM ET, weekdays only)"""
+    # Get current time in Eastern timezone
+    et_tz = pytz.timezone("US/Eastern")
+    current_et = datetime.now(et_tz)
+
+    # Check if it's a weekday (Monday=0, Sunday=6)
+    if current_et.weekday() >= 5:  # Saturday or Sunday
+        return False
+
+    # Check if it's within market hours (9:30 AM - 4:00 PM ET)
+    market_open = current_et.replace(hour=9, minute=30, second=0, microsecond=0)
+    market_close = current_et.replace(hour=16, minute=0, second=0, microsecond=0)
+
+    return market_open <= current_et <= market_close
+
+
+def get_market_status() -> Dict[str, Any]:
+    """Get detailed market status information"""
+    et_tz = pytz.timezone("US/Eastern")
+    current_et = datetime.now(et_tz)
+
+    is_weekday = current_et.weekday() < 5
+    is_open = is_market_hours()
+
+    # Calculate next market open
+    if (
+        is_weekday
+        and current_et.hour < 9
+        or (current_et.hour == 9 and current_et.minute < 30)
+    ):
+        # Market opens today
+        next_open = current_et.replace(hour=9, minute=30, second=0, microsecond=0)
+    else:
+        # Market opens next weekday
+        days_ahead = 1
+        while True:
+            next_day = current_et + timedelta(days=days_ahead)
+            if next_day.weekday() < 5:  # Weekday
+                next_open = next_day.replace(hour=9, minute=30, second=0, microsecond=0)
+                break
+            days_ahead += 1
+
+    # Calculate next market close
+    if is_open:
+        next_close = current_et.replace(hour=16, minute=0, second=0, microsecond=0)
+    else:
+        next_close = next_open.replace(hour=16, minute=0, second=0, microsecond=0)
+
+    return {
+        "is_open": is_open,
+        "is_weekday": is_weekday,
+        "current_time_et": current_et.isoformat(),
+        "next_open": next_open.isoformat(),
+        "next_close": next_close.isoformat(),
+        "timezone": "US/Eastern",
+    }
 
 
 class MultiAssetTradingSystem:
@@ -46,7 +107,6 @@ class MultiAssetTradingSystem:
         self.trading_thread: Optional[threading.Thread] = None
 
         # Trading configuration matching demo patterns
-        self.stock_tickers = ["AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "AMZN", "META"]
         self.cycle_interval = 30 * 60  # 30 minutes between cycles
         self.stock_initial_cash = 1000.0
         self.polymarket_initial_cash = 500.0
@@ -58,16 +118,23 @@ class MultiAssetTradingSystem:
                 "name": "Claude 3.5 Sonnet",
                 "llm_model": "claude-3-5-sonnet-20241022",
             },
-            {"id": "gpt-4", "name": "GPT-4", "llm_model": "gpt-4"},
+            {"id": "gpt-5", "name": "GPT-5", "llm_model": "gpt-5"},
+            {"id": "gpt-4o", "name": "GPT-4o", "llm_model": "gpt-4o"},
             {
-                "id": "gemini-1.5-pro",
-                "name": "Gemini 1.5 Pro",
-                "llm_model": "gemini-1.5-pro",
+                "id": "gemini-2.5-pro",
+                "name": "Gemini 2.5 Pro",
+                "llm_model": "gemini-2.5-pro",
             },
             {
-                "id": "claude-4-haiku",
-                "name": "Claude 4 Haiku",
-                "llm_model": "claude-3-haiku-20240307",
+                "id": "claude-4-sonnet",
+                "name": "Claude 4 Sonnet",
+                "llm_model": "claude-sonnet-4-20250514",
+            },
+            {"id": "grok-4", "name": "Grok 4", "llm_model": "grok-4-0709"},
+            {
+                "id": "deepseek-chat",
+                "name": "Deepseek V3 (Chat)",
+                "llm_model": "deepseek-chat",
             },
         ]
 
@@ -98,7 +165,7 @@ class MultiAssetTradingSystem:
         self.max_log_entries = 1000
 
         # System startup time
-        self.start_time = datetime.now()
+        self.start_time = datetime.now(timezone.utc)
 
         # Initialize models in both systems
         self._initialize_models()
@@ -163,9 +230,11 @@ class MultiAssetTradingSystem:
                         "accuracy": self._calculate_stock_accuracy(stock_account),
                         "trades": len(stock_account.transactions),
                         "profit": stock_portfolio_summary["total_return"],
-                        "status": "active"
-                        if self.active_stock_models.get(model_id, True)
-                        else "inactive",
+                        "status": (
+                            "active"
+                            if self.active_stock_models.get(model_id, True)
+                            else "inactive"
+                        ),
                         "total_value": stock_portfolio_summary["total_value"],
                         "cash_balance": stock_account.cash_balance,
                         "active_positions": len(stock_account.get_active_positions()),
@@ -204,9 +273,11 @@ class MultiAssetTradingSystem:
                         ),
                         "trades": len(polymarket_account.transactions),
                         "profit": polymarket_portfolio_summary["total_return"],
-                        "status": "active"
-                        if self.active_polymarket_models.get(model_id, True)
-                        else "inactive",
+                        "status": (
+                            "active"
+                            if self.active_polymarket_models.get(model_id, True)
+                            else "inactive"
+                        ),
                         "total_value": polymarket_portfolio_summary["total_value"],
                         "cash_balance": polymarket_account.cash_balance,
                         "active_positions": len(
@@ -270,16 +341,16 @@ class MultiAssetTradingSystem:
             "daily_actions": len(daily_actions),
             "weekly_actions": len(weekly_actions),
             "recent_win_rate": recent_win_rate,
-            "last_action_time": daily_actions[0]["timestamp"]
-            if daily_actions
-            else None,
+            "last_action_time": (
+                daily_actions[0]["timestamp"] if daily_actions else None
+            ),
         }
 
     def get_recent_actions(
         self, model_id: str = None, hours: int = 24
     ) -> List[Dict[str, Any]]:
         """Get recent trading actions from unified history"""
-        cutoff_time = datetime.now() - timedelta(hours=hours)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
 
         actions = []
         for action in self.trading_history:
@@ -292,6 +363,26 @@ class MultiAssetTradingSystem:
                 continue
 
         return sorted(actions, key=lambda x: x["timestamp"], reverse=True)
+
+    def get_market_status(self) -> Dict[str, Any]:
+        """Get current market status for frontend display"""
+        return get_market_status()
+
+    def get_stock_tickers(self) -> List[str]:
+        """Get actual stock tickers being traded by the stock system"""
+        try:
+            if hasattr(self.stock_system, "universe") and self.stock_system.universe:
+                return self.stock_system.universe
+            else:
+                # Fallback: fetch trending stocks directly
+                from trading_bench.fetchers.stock_fetcher import fetch_trending_stocks
+
+                trending_stocks = fetch_trending_stocks(limit=10)
+                return [s["ticker"] for s in trending_stocks]
+        except Exception as e:
+            logger.warning(f"Could not get stock tickers: {e}")
+            # Ultimate fallback to ensure API doesn't break
+            return ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META", "NVDA"]
 
     def activate_model(self, model_id: str, category: str = None) -> bool:
         """Activate a trading model for specific category or both"""
@@ -357,7 +448,7 @@ class MultiAssetTradingSystem:
 
     def run_trading_cycle(self):
         """Run one trading cycle using the native .run() methods"""
-        cycle_start_time = datetime.now()
+        cycle_start_time = datetime.now(timezone.utc)
         self.execution_stats["total_cycles"] += 1
 
         try:
@@ -388,7 +479,9 @@ class MultiAssetTradingSystem:
             )
             self.execution_stats["successful_cycles"] += 1
 
-            cycle_duration = (datetime.now() - cycle_start_time).total_seconds()
+            cycle_duration = (
+                datetime.now(timezone.utc) - cycle_start_time
+            ).total_seconds()
             logger.info(f"Native .run() cycle completed in {cycle_duration:.1f}s")
 
             # Log cycle execution
@@ -411,7 +504,7 @@ class MultiAssetTradingSystem:
                     "cycle_number": self.execution_stats["total_cycles"],
                     "error": str(e),
                     "duration_seconds": (
-                        datetime.now() - cycle_start_time
+                        datetime.now(timezone.utc) - cycle_start_time
                     ).total_seconds(),
                 },
             )
@@ -419,7 +512,18 @@ class MultiAssetTradingSystem:
     def _run_stock_cycle_native(self):
         """Run stock cycle using native StockTradingSystem.run() - adapted for backend service"""
         try:
-            logger.info("Running stock system using native .run() method")
+            # Check if market is open before running stock trading
+            if not is_market_hours():
+                market_status = get_market_status()
+                logger.info(
+                    f"Stock market is closed. Market will open at {market_status['next_open']} ET. Skipping stock trading cycle."
+                )
+                return
+
+            logger.info(
+                "Running stock system using native .run() method (market is open)"
+            )
+
             # For backend service: run a short burst
             # This gets called repeatedly by our background loop (every 30 min)
             # So we run for 2 minutes each time with 30 second intervals
@@ -490,7 +594,7 @@ class MultiAssetTradingSystem:
                         "unrealized_pnl", 0.0
                     ),
                     "market_data_available": True,  # Assume market data is available
-                    "last_updated": datetime.now().isoformat(),
+                    "last_updated": datetime.now(timezone.utc).isoformat(),
                 }
 
         elif model_id.endswith("_polymarket"):
@@ -540,7 +644,7 @@ class MultiAssetTradingSystem:
                         "unrealized_pnl", 0.0
                     ),
                     "market_data_available": True,  # Assume market data is available
-                    "last_updated": datetime.now().isoformat(),
+                    "last_updated": datetime.now(timezone.utc).isoformat(),
                 }
 
         raise ValueError(f"Invalid model_id format: {model_id}")
@@ -579,7 +683,7 @@ class MultiAssetTradingSystem:
             else 0.0
         )
 
-        uptime_seconds = (datetime.now() - self.start_time).total_seconds()
+        uptime_seconds = (datetime.now(timezone.utc) - self.start_time).total_seconds()
 
         return {
             "system_performance": {
@@ -618,7 +722,7 @@ class MultiAssetTradingSystem:
     def _add_execution_log(self, event_type: str, data: Dict[str, Any]):
         """Add entry to execution logs"""
         log_entry = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "event_type": event_type,
             "data": data,
         }
@@ -691,7 +795,7 @@ class MultiAssetTradingSystem:
                     self.run_trading_cycle()
 
                 # Update next cycle time
-                self.next_cycle_time = datetime.now() + timedelta(
+                self.next_cycle_time = datetime.now(timezone.utc) + timedelta(
                     seconds=self.cycle_interval
                 )
 

@@ -35,8 +35,6 @@ def get_real_models_data() -> list[TradingModel]:
                 category = ModelCategory.STOCK
             elif category_str == "polymarket":
                 category = ModelCategory.POLYMARKET
-            elif category_str == "option":
-                category = ModelCategory.OPTION
             else:
                 category = ModelCategory.STOCK  # Default fallback
 
@@ -143,7 +141,7 @@ def get_real_trades_data(ticker: str = "NVDA", days: int = 7) -> list[Trade]:
 
 
 def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsItem]:
-    """Get real news data from Google News."""
+    """Get real news data from Google News, using trending stocks as queries when no specific query provided."""
     import os
     import sys
     from datetime import datetime, timedelta
@@ -156,18 +154,70 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
 
     try:
         from trading_bench.fetchers.news_fetcher import fetch_news_data
+        from trading_bench.fetchers.stock_fetcher import fetch_trending_stocks
 
         # Calculate date range
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
 
-        # Fetch real news data
-        raw_news = fetch_news_data(
-            query=query,
-            start_date=start_date.strftime("%Y-%m-%d"),
-            end_date=end_date.strftime("%Y-%m-%d"),
-            max_pages=3,
-        )
+        raw_news = []
+
+        # If using default query, fetch news for trending stocks
+        if query == "stock market":
+            try:
+                # Get trending stocks to use as news queries
+                trending_stocks = fetch_trending_stocks(
+                    limit=10
+                )  # Use top 10 stocks for news
+                print(
+                    f"📰 Fetching news for trending stocks: {[s['ticker'] for s in trending_stocks]}"
+                )
+
+                for stock in trending_stocks:
+                    stock_query = f"{stock['ticker']} {stock['name']} stock"
+                    print(f"📰 Searching news for: {stock_query}")
+
+                    try:
+                        stock_news = fetch_news_data(
+                            query=stock_query,
+                            start_date=start_date.strftime("%Y-%m-%d"),
+                            end_date=end_date.strftime("%Y-%m-%d"),
+                            max_pages=1,  # Limit pages per stock to avoid too many requests
+                        )
+                        raw_news.extend(stock_news)
+                    except Exception as e:
+                        print(f"⚠️ Error fetching news for {stock['ticker']}: {e}")
+                        continue
+
+                # Also add general market news
+                try:
+                    general_news = fetch_news_data(
+                        query="stock market finance",
+                        start_date=start_date.strftime("%Y-%m-%d"),
+                        end_date=end_date.strftime("%Y-%m-%d"),
+                        max_pages=1,
+                    )
+                    raw_news.extend(general_news)
+                except Exception as e:
+                    print(f"⚠️ Error fetching general market news: {e}")
+
+            except Exception as e:
+                print(f"⚠️ Error fetching trending stocks for news: {e}")
+                # Fallback to default query if trending stocks fail
+                raw_news = fetch_news_data(
+                    query=query,
+                    start_date=start_date.strftime("%Y-%m-%d"),
+                    end_date=end_date.strftime("%Y-%m-%d"),
+                    max_pages=3,
+                )
+        else:
+            # Use specific query provided by user
+            raw_news = fetch_news_data(
+                query=query,
+                start_date=start_date.strftime("%Y-%m-%d"),
+                end_date=end_date.strftime("%Y-%m-%d"),
+                max_pages=3,
+            )
 
         # Convert to NewsItem format
         news_items = []
@@ -207,27 +257,55 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
                 else:
                     impact = NewsImpact.LOW
 
-                # Determine category based on keywords
+                # Determine category based on keywords and stock tickers
+                # Check if any trending stock tickers appear in the title/snippet
+                stock_mentioned = False
+                if query == "stock market":
+                    try:
+                        trending_stocks = fetch_trending_stocks(limit=10)
+                        stock_tickers = [s["ticker"] for s in trending_stocks]
+                        stock_names = [s["name"].lower() for s in trending_stocks]
+
+                        if any(
+                            ticker in title_lower or ticker in snippet_lower
+                            for ticker in stock_tickers
+                        ) or any(
+                            name in title_lower or name in snippet_lower
+                            for name in stock_names
+                        ):
+                            stock_mentioned = True
+                    except Exception:
+                        pass
+
                 if any(
                     word in title_lower or word in snippet_lower
                     for word in ["fed", "federal", "rate", "inflation", "economy"]
                 ):
                     category = NewsCategory.ECONOMIC
-                elif any(
-                    word in title_lower or word in snippet_lower
-                    for word in [
-                        "tech",
-                        "ai",
-                        "software",
-                        "apple",
-                        "google",
-                        "microsoft",
-                    ]
+                elif (
+                    any(
+                        word in title_lower or word in snippet_lower
+                        for word in [
+                            "tech",
+                            "ai",
+                            "software",
+                            "apple",
+                            "google",
+                            "microsoft",
+                            "nvidia",
+                            "tesla",
+                            "meta",
+                        ]
+                    )
+                    or stock_mentioned
                 ):
                     category = NewsCategory.TECH
-                elif any(
-                    word in title_lower or word in snippet_lower
-                    for word in ["earnings", "company", "ceo", "revenue"]
+                elif (
+                    any(
+                        word in title_lower or word in snippet_lower
+                        for word in ["earnings", "company", "ceo", "revenue", "stock"]
+                    )
+                    or stock_mentioned
                 ):
                     category = NewsCategory.COMPANY
                 else:
@@ -343,8 +421,6 @@ def get_real_social_data(
                 # Set the category based on which Reddit category this came from
                 if reddit_category == "company_news":
                     post_category = "stock"
-                elif reddit_category == "options":
-                    post_category = "options"
                 elif reddit_category == "tech":
                     post_category = "tech"
                 else:
