@@ -14,7 +14,7 @@
 
 ## Overview
 
-Trading agent evaluation in the live environment.
+Trading agent evaluation in the live environment. We target at avoiding overfitting on back test and build an arena for LLM-based trading agents.
 
 ## Features
 
