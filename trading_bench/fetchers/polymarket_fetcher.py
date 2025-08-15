@@ -8,7 +8,7 @@ Exports:
 4) fetch_token_price()       - Convenience wrapper
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from trading_bench.fetchers.base_fetcher import BaseFetcher
 
@@ -74,10 +74,11 @@ class PolymarketFetcher(BaseFetcher):
             if isinstance(token_ids, str):
                 try:
                     import json
+
                     token_ids = json.loads(token_ids)
                 except (json.JSONDecodeError, TypeError):
                     token_ids = None
-            
+
             out.append(
                 {
                     "id": m.get("id"),

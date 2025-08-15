@@ -123,13 +123,15 @@ class PolymarketTradingSystem:
             self.universe = []
             for market in markets:
                 if market.get("token_ids"):  # Only include markets with token_ids
-                    self.universe.append({
-                        "id": market["id"],
-                        "question": market.get("question", "Unknown"),
-                        "category": market.get("category", "Unknown"),
-                        "token_ids": market["token_ids"]
-                    })
-            
+                    self.universe.append(
+                        {
+                            "id": market["id"],
+                            "question": market.get("question", "Unknown"),
+                            "category": market.get("category", "Unknown"),
+                            "token_ids": market["token_ids"],
+                        }
+                    )
+
             print(
                 f"📊 Initialized {len(self.universe)} markets: \n"
                 + " | ".join([m["question"][:40] + "...\n" for m in self.universe])
@@ -153,7 +155,7 @@ class PolymarketTradingSystem:
             for market in self.universe:
                 market_id = market["id"]
                 token_ids = market["token_ids"]
-                
+
                 if token_ids:
                     prices = fetch_current_market_price(token_ids)
                     if prices and "yes" in prices:
@@ -163,7 +165,7 @@ class PolymarketTradingSystem:
                             "no_price": float(prices.get("no", 1.0 - prices["yes"])),
                             "token_ids": token_ids,
                             "question": market["question"],
-                            "category": market["category"]
+                            "category": market["category"],
                         }
             if out:
                 return out
@@ -175,7 +177,7 @@ class PolymarketTradingSystem:
         for market in self.universe:
             market_id = market["id"]
             question = market["question"].lower()
-            
+
             if "election" in question:
                 default_price = 0.52
             elif "agi" in question:
@@ -184,14 +186,14 @@ class PolymarketTradingSystem:
                 default_price = 0.30
             else:
                 default_price = 0.60
-                
+
             fb[market_id] = {
                 "price": default_price,
                 "yes_price": default_price,
                 "no_price": 1.0 - default_price,
                 "token_ids": market.get("token_ids", []),
                 "question": market["question"],
-                "category": market["category"]
+                "category": market["category"],
             }
         return fb
 
@@ -206,7 +208,7 @@ class PolymarketTradingSystem:
                 return
 
             preview = " | ".join(
-                f"{data['question'][:40]}...: {data['yes_price']:.2f}\n" 
+                f"{data['question'][:40]}...: {data['yes_price']:.2f}\n"
                 for _, data in list(prices.items())[:3]
             )
             print(f"📈 Markets: {preview}...")
@@ -217,13 +219,13 @@ class PolymarketTradingSystem:
                 for market_id, market_data in prices.items():
                     # Create unified data structure for agent
                     data = {
-                        "id": market_id, 
+                        "id": market_id,
                         "price": market_data["yes_price"],
                         "yes_price": market_data["yes_price"],
                         "no_price": market_data["no_price"],
                         "token_ids": market_data["token_ids"],
                         "question": market_data["question"],
-                        "category": market_data["category"]
+                        "category": market_data["category"],
                     }
                     action = agent.generate_action(data, account)
                     if action:
