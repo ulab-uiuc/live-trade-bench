@@ -131,7 +131,7 @@ class StockFetcher(BaseFetcher):
         interval: str = "1d",
     ):
         try:
-            self.sleep()  # Rate limiting
+            self._rate_limit_delay()  # Rate limiting
             df = self._download_price_data(ticker, start_date, end_date, interval)
             return df
         except Exception as e:

@@ -31,7 +31,7 @@ const Portfolio: React.FC<PortfolioProps> = ({ modelId, modelName }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:5000/api/models/${modelId}/portfolio`);
+      const response = await fetch(`/api/models/${modelId}/portfolio`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
