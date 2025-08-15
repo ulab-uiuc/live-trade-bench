@@ -1,5 +1,5 @@
 """
-Multi-Asset Trading System Integration using existing .run() methods from trading_bench
+Multi-Asset Trading System Integration using existing .run() methods from live_trade_bench
 
 This module uses the native TradingSystem and PolymarketTradingSystem classes
 with their .run() methods, following the same patterns as the demo scripts.
@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pytz
 
-# Add trading_bench to path before any runtime imports
+# Add live_trade_bench to path before any runtime imports
 project_root = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
@@ -95,7 +95,7 @@ class MultiAssetTradingSystem:
 
     def __init__(self):
         # Import the native trading systems using factory functions
-        from trading_bench import (
+        from live_trade_bench import (
             create_polymarket_trading_system,
             create_stock_trading_system,
         )
@@ -227,7 +227,7 @@ class MultiAssetTradingSystem:
         """Update the news cache in background"""
         try:
             # Import here to avoid circular imports
-            from trading_bench.fetchers.news_fetcher import NewsFetcher
+            from live_trade_bench.fetchers.news_fetcher import NewsFetcher
 
             logger.info("Updating background news cache")
 
@@ -305,7 +305,7 @@ class MultiAssetTradingSystem:
         """Update the social media cache in background"""
         try:
             # Import here to avoid circular imports
-            from trading_bench.fetchers.reddit_fetcher import RedditFetcher
+            from live_trade_bench.fetchers.reddit_fetcher import RedditFetcher
 
             logger.info("Updating background social media cache")
 
@@ -553,7 +553,7 @@ class MultiAssetTradingSystem:
                 return self.stock_system.universe
             else:
                 # Fallback: fetch trending stocks directly
-                from trading_bench import fetch_trending_stocks
+                from live_trade_bench import fetch_trending_stocks
 
                 trending_stocks = fetch_trending_stocks(limit=10)
                 return [s["ticker"] for s in trending_stocks]

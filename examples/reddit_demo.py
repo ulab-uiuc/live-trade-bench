@@ -13,7 +13,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # noqa: E402 - imports after path modification
-from trading_bench.fetchers.reddit_fetcher import (  # noqa: E402
+from live_trade_bench.fetchers.reddit_fetcher import (  # noqa: E402
     fetch_reddit_posts_by_ticker,
     fetch_top_from_category,
     get_available_categories,
