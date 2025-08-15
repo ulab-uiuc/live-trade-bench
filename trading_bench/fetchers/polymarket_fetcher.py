@@ -14,7 +14,6 @@ from trading_bench.fetchers.base_fetcher import BaseFetcher
 
 
 class PolymarketFetcher(BaseFetcher):
-
     # Global token_id to market info mapping
     _token_market_map: Dict[str, Dict[str, Any]] = {}
 
@@ -74,7 +73,7 @@ class PolymarketFetcher(BaseFetcher):
                 "token_ids": token_ids if isinstance(token_ids, list) else None,
             }
             out.append(market_info)
-            
+
             # Update global token mapping
             if token_ids and isinstance(token_ids, list):
                 for token_id in token_ids:
@@ -107,7 +106,7 @@ class PolymarketFetcher(BaseFetcher):
 
     def get_market_prices(self, token_ids: List[str]) -> Dict[str, Any]:
         prices: Dict[str, Any] = {}
-        
+
         # Get prices
         for idx, tid in enumerate(token_ids):
             if not tid:
@@ -123,16 +122,16 @@ class PolymarketFetcher(BaseFetcher):
         if len(token_ids) == 2:
             prices["yes"] = prices.get("token_0")
             prices["no"] = prices.get("token_1")
-        
+
         # Add market info from token mapping
         if token_ids:
             first_token = token_ids[0]
             market_info = self.get_market_info_by_token(first_token)
             if market_info:
                 prices["question"] = market_info.get("question")
-                prices["category"] = market_info.get("category") 
+                prices["category"] = market_info.get("category")
                 prices["market_id"] = market_info.get("market_id")
-        
+
         return prices
 
 
@@ -153,19 +152,27 @@ def fetch_current_market_price(token_ids: List[str]) -> Dict[str, Any]:
         if question:
             question_short = question[:40] + "..." if len(question) > 40 else question
             print(f"💰 {question_short}")
-            print(f"   YES: {prices['yes']:.3f} | NO: {prices.get('no', 1-prices['yes']):.3f}")
+            print(
+                f"   YES: {prices['yes']:.3f} | NO: {prices.get('no', 1-prices['yes']):.3f}"
+            )
         else:
-            print(f"💰 YES: {prices['yes']:.3f} | NO: {prices.get('no', 1-prices['yes']):.3f}")
+            print(
+                f"💰 YES: {prices['yes']:.3f} | NO: {prices.get('no', 1-prices['yes']):.3f}"
+            )
     return prices
 
 
 def fetch_token_price(token_id: str, side: str = "buy") -> Optional[float]:
     price = PolymarketFetcher().get_token_price(token_id, side)
     market_info = PolymarketFetcher.get_market_info_by_token(token_id)
-    
+
     if price:
         if market_info and market_info.get("question"):
-            question_short = market_info["question"][:30] + "..." if len(market_info["question"]) > 30 else market_info["question"]
+            question_short = (
+                market_info["question"][:30] + "..."
+                if len(market_info["question"]) > 30
+                else market_info["question"]
+            )
             print(f"🪙 {question_short}: {price:.4f}")
         else:
             print(f"🪙 Token price: {price:.4f}")

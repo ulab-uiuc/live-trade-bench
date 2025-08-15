@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
@@ -6,7 +7,9 @@ from ..accounts import PolymarketAccount, PolymarketAction
 from .base_agent import BaseAgent
 
 
-class LLMPolyMarketAgent(BaseAgent[PolymarketAction, PolymarketAccount, Dict[str, Any]]):
+class LLMPolyMarketAgent(
+    BaseAgent[PolymarketAction, PolymarketAccount, Dict[str, Any]]
+):
     """Active prediction market trading agent for market analysis and trading."""
 
     def __init__(self, name: str, model_name: str = "gpt-4o-mini") -> None:
@@ -40,22 +43,23 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAction, PolymarketAccount, Dict[str
         is_yes_expensive = yes_price > 0.6
         has_yes_position = yes_q > 0
         has_no_position = no_q > 0
-        
+
         signals = []
         if is_yes_cheap:
             signals.append("🟢 YES looks undervalued")
         if is_yes_expensive:
-            signals.append("🔴 YES looks overvalued")  
+            signals.append("🔴 YES looks overvalued")
         if has_yes_position:
             signals.append(f"📊 Holding {yes_q} YES shares")
         if has_no_position:
             signals.append(f"📊 Holding {no_q} NO shares")
-            
+
         return (
             f"MARKET: {question}\n"
             f"CATEGORY: {category}\n"
             f"PRICES: YES {yes_price:.3f} ({yes_price*100:.1f}%) | NO {no_price:.3f} ({no_price*100:.1f}%)\n"
             f"TREND: {trend} ({pct:+.2f}%)\n"
+            f"HISTORY: [{hist}]\n"
             f"CASH: ${account.cash_balance:.2f}\n"
             f"POSITIONS: YES {yes_q} | NO {no_q}\n"
             f"SIGNALS: {' | '.join(signals) if signals else 'No clear signals'}"
@@ -68,11 +72,11 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAction, PolymarketAccount, Dict[str
         outcome = (parsed.get("outcome") or "yes").lower()
         qty = int(parsed.get("quantity", 0))  # HOLD can have 0 quantity
         conf = float(parsed.get("confidence", 0.5))
-        
+
         # For non-hold actions, require positive quantity
-        if action == 'hold' or qty <= 0:
+        if action == "hold" or qty <= 0:
             return None
-            
+
         return PolymarketAction(
             market_id=_id,
             outcome=outcome,
@@ -89,7 +93,7 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAction, PolymarketAccount, Dict[str
             f"Market Analysis: {analysis_data}\n\n"
             "TRADING RULES:\n"
             "- If YES price < 0.4 and you think it should be higher: BUY YES (quantity 5-15)\n"
-            "- If YES price > 0.6 and you think it should be lower: BUY NO (quantity 5-15)\n"  
+            "- If YES price > 0.6 and you think it should be lower: BUY NO (quantity 5-15)\n"
             "- If you hold opposite position: SELL to close (quantity 1-10)\n"
             "- Only HOLD if market price seems fair (confidence < 0.3)\n"
             "- Be decisive! Take positions based on your analysis.\n\n"

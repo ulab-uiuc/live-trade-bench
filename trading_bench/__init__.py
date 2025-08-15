@@ -29,8 +29,8 @@ from .agents import (
     PolymarketTradingSystem,
     StockTradingSystem,
     create_polymarket_agent,
-    create_stock_agent,
     create_polymarket_trading_system,
+    create_stock_agent,
     create_stock_trading_system,
 )
 from .fetchers import (
@@ -40,23 +40,6 @@ from .fetchers import (
     fetch_current_market_price,
     fetch_trending_markets,
 )
-
-# Optional fetchers (may not be available if dependencies missing)
-try:
-    from .fetchers import StockFetcher, fetch_current_stock_price, fetch_trending_stocks
-except ImportError:
-    pass
-
-try:
-    from .fetchers import OptionFetcher
-except ImportError:
-    pass
-
-try:
-    from .fetchers import RedditFetcher
-except ImportError:
-    pass
-
 from .utils import call_llm, parse_trading_response
 
 # Define what gets exported when importing *

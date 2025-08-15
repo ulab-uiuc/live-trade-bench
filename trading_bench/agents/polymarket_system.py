@@ -1,12 +1,13 @@
 from __future__ import annotations
+
 import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from ..accounts import PolymarketAccount, create_polymarket_account
 from ..fetchers.polymarket_fetcher import (
-    fetch_trending_markets,
     fetch_current_market_price,
+    fetch_trending_markets,
 )
 from .polymarket_agent import LLMPolyMarketAgent
 
@@ -31,7 +32,9 @@ class PolymarketTradingSystem:
             if m.get("token_ids")
         ]
 
-    def add_agent(self, name: str, initial_cash: float = 500.0, model_name: str = "gpt-4o-mini") -> None:
+    def add_agent(
+        self, name: str, initial_cash: float = 500.0, model_name: str = "gpt-4o-mini"
+    ) -> None:
         self.agents[name] = LLMPolyMarketAgent(name, model_name)
         self.accounts[name] = create_polymarket_account(initial_cash)
 
@@ -69,7 +72,8 @@ class PolymarketTradingSystem:
             "agents": list(self.agents.keys()),
             "trades": trades,
             "portfolios": {
-                name: acc.evaluate()["portfolio_summary"] for name, acc in self.accounts.items()
+                name: acc.evaluate()["portfolio_summary"]
+                for name, acc in self.accounts.items()
             },
         }
 

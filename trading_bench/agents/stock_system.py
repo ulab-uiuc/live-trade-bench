@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 import time
 from datetime import datetime, timedelta
 from typing import Dict, List
 
 from ..accounts import StockAccount, create_stock_account
-from ..fetchers.stock_fetcher import fetch_trending_stocks, fetch_current_stock_price
+from ..fetchers.stock_fetcher import fetch_current_stock_price, fetch_trending_stocks
 from .stock_agent import LLMStockAgent
 
 
@@ -16,10 +17,11 @@ class StockTradingSystem:
         self._init_universe(universe_size)
 
     def _init_universe(self, limit: int) -> None:
-        stocks = fetch_trending_stocks(limit=limit)
-        self.universe = [s["ticker"] for s in stocks]
+        self.universe = fetch_trending_stocks(limit=limit)
 
-    def add_agent(self, name: str, initial_cash: float = 1_000.0, model_name: str = "gpt-4o-mini") -> None:
+    def add_agent(
+        self, name: str, initial_cash: float = 1_000.0, model_name: str = "gpt-4o-mini"
+    ) -> None:
         self.agents[name] = LLMStockAgent(name, model_name)
         self.accounts[name] = create_stock_account(initial_cash)
 
@@ -49,7 +51,8 @@ class StockTradingSystem:
             "agents": list(self.agents.keys()),
             "trades": trades,
             "portfolios": {
-                name: acc.evaluate()["portfolio_summary"] for name, acc in self.accounts.items()
+                name: acc.evaluate()["portfolio_summary"]
+                for name, acc in self.accounts.items()
             },
         }
 

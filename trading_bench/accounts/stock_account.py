@@ -123,7 +123,9 @@ class StockAccount(BaseAccount):
         """Print simple account status"""
         positions = self.get_active_positions()
         total_value = self.get_total_value()
-        print(f"💰 Cash: ${self.cash_balance:.2f} | Positions: {len(positions)} | Total: ${total_value:.2f}")
+        print(
+            f"💰 Cash: ${self.cash_balance:.2f} | Positions: {len(positions)} | Total: ${total_value:.2f}"
+        )
 
     def get_total_value(self) -> float:
         """Get total account value (cash + stock positions)"""

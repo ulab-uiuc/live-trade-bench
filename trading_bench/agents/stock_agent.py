@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
@@ -33,7 +34,7 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
         is_trending_up = pct > 2.0
         is_trending_down = pct < -2.0
         has_position = pos is not None
-        
+
         signals = []
         if is_trending_up:
             signals.append("🟢 Strong uptrend")
@@ -41,15 +42,16 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
             signals.append("🔴 Strong downtrend")
         else:
             signals.append("🟡 Sideways movement")
-            
+
         if has_position:
             profit_loss = (price - pos.avg_price) * pos.quantity if pos else 0
             signals.append(f"📊 P&L: ${profit_loss:+.2f}")
-            
+
         return (
             f"STOCK: {_id}\n"
             f"PRICE: ${price:.2f}\n"
             f"CHANGE: {pct:+.2f}% ({trend})\n"
+            f"HISTORY: [{hist}]\n"
             f"CASH: ${account.cash_balance:.2f}\n"
             f"POSITION: {pos_txt}\n"
             f"SIGNALS: {' | '.join(signals)}"
@@ -61,11 +63,11 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
         action = (parsed.get("action") or "hold").lower()
         qty = int(parsed.get("quantity", 0))  # HOLD can have 0 quantity
         conf = float(parsed.get("confidence", 0.5))
-        
+
         # For non-hold actions, require positive quantity
-        if action == 'hold' or qty <= 0:
+        if action == "hold" or qty <= 0:
             return None
-            
+
         return StockAction(
             ticker=ticker,
             action=action,
@@ -97,4 +99,3 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
 
 def create_stock_agent(name: str, model_name: str = "gpt-4o-mini") -> LLMStockAgent:
     return LLMStockAgent(name, model_name)
-

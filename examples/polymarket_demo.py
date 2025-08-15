@@ -27,7 +27,6 @@ def main():
     # Add AI agents with funds for prediction market trading
     system.add_agent("Predictor_Alice", 400.0, "gpt-4o-mini")
 
-
     # Run the prediction market system for a specified duration
     try:
         print("\n🚀 Starting prediction market trading...")

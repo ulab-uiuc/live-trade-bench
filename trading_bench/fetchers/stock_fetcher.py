@@ -15,7 +15,6 @@ from trading_bench.fetchers.base_fetcher import BaseFetcher
 
 
 class StockFetcher(BaseFetcher):
-
     def __init__(self, min_delay: float = 1.0, max_delay: float = 3.0):
         """Initialize the stock fetcher."""
         super().__init__(min_delay, max_delay)
@@ -31,43 +30,21 @@ class StockFetcher(BaseFetcher):
             raise ValueError(f"Unknown fetch mode: {mode}")
 
     def get_trending_stocks(self, limit: int = 10) -> List[Dict]:
-        # Popular stocks for demo purposes
-        trending_stocks = [
-            {"ticker": "AAPL", "name": "Apple Inc.", "sector": "Technology"},
-            {"ticker": "MSFT", "name": "Microsoft Corporation", "sector": "Technology"},
-            {"ticker": "GOOGL", "name": "Alphabet Inc.", "sector": "Technology"},
-            {
-                "ticker": "AMZN",
-                "name": "Amazon.com Inc.",
-                "sector": "Consumer Discretionary",
-            },
-            {
-                "ticker": "TSLA",
-                "name": "Tesla Inc.",
-                "sector": "Consumer Discretionary",
-            },
-            {"ticker": "META", "name": "Meta Platforms Inc.", "sector": "Technology"},
-            {"ticker": "NVDA", "name": "NVIDIA Corporation", "sector": "Technology"},
-            {
-                "ticker": "JPM",
-                "name": "JPMorgan Chase & Co.",
-                "sector": "Financial Services",
-            },
-            {"ticker": "JNJ", "name": "Johnson & Johnson", "sector": "Healthcare"},
-            {"ticker": "V", "name": "Visa Inc.", "sector": "Financial Services"},
-            {
-                "ticker": "PG",
-                "name": "Procter & Gamble Co.",
-                "sector": "Consumer Staples",
-            },
-            {
-                "ticker": "UNH",
-                "name": "UnitedHealth Group Inc.",
-                "sector": "Healthcare",
-            },
+        trending_tickers = [
+            "AAPL",
+            "MSFT",
+            "GOOGL",
+            "AMZN",
+            "TSLA",
+            "META",
+            "NVDA",
+            "JPM",
+            "JNJ",
+            "V",
+            "PG",
+            "UNH",
         ]
-
-        return trending_stocks[:limit]
+        return trending_tickers[:limit]
 
     def get_current_stock_price(self, ticker: str) -> Optional[float]:
         return self.get_current_price(ticker)

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
 
@@ -47,11 +48,13 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
             ]
             llm_response = self._call_llm(messages)
             parsed = self._parse_llm_response(llm_response)
-            
+
             if parsed:
                 action = self._create_action_from_response(parsed, _id, price)
                 if action:
-                    print(f"🤖 {self.name} ({_id}): {action.action.upper()} {action.quantity} {getattr(action, 'outcome', 'shares').upper()}")
+                    print(
+                        f"🤖 {self.name} ({_id}): {action.action.upper()} {action.quantity} {getattr(action, 'outcome', 'shares').upper()}"
+                    )
                 else:
                     # hold
                     print(f"🤖 {self.name} ({_id}): HOLD")
@@ -67,6 +70,7 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
             return {"success": False, "content": "", "error": "LLM not available"}
         try:
             from ..utils import call_llm
+
             return call_llm(messages, self.model_name, self.name)
         except Exception as e:
             return {"success": False, "content": "", "error": str(e)}
@@ -78,6 +82,7 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
             return None
         try:
             from ..utils import parse_trading_response
+
             return parse_trading_response(llm_response["content"])
         except Exception as e:
             self._log_error("parse error", str(e))
