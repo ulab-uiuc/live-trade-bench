@@ -20,9 +20,8 @@ class LLMPolyMarketAgent(
             return str(data["id"]), float(data["price"])
         return str(data["market_id"]), float(data["price"])
 
-    def _prepare_analysis_data(
-        self, data: Dict[str, Any], account: PolymarketAccount
-    ) -> str:
+    def _prepare_market_analysis(self, data: Dict[str, Any]) -> str:
+        """Prepare market-specific analysis for Polymarket."""
         _id, price = self._extract_id_price(data)
         yes_price = float(data.get("yes_price", price))
         no_price = float(data.get("no_price", 1.0 - yes_price))
@@ -34,9 +33,9 @@ class LLMPolyMarketAgent(
         trend = "up" if pct > 0 else ("down" if pct < 0 else "flat")
         hist = ", ".join(f"{p:.2f}" for p in self.history_tail(_id, 5))
 
-        pos = account.get_active_positions()
-        yes_q = pos.get(f"{_id}_yes").quantity if f"{_id}_yes" in pos else 0
-        no_q = pos.get(f"{_id}_no").quantity if f"{_id}_no" in pos else 0
+        # Note: positions will be provided separately in account analysis
+        yes_q = 0  # Placeholder - actual positions shown in account section
+        no_q = 0
 
         # Calculate trading signals
         is_yes_cheap = yes_price < 0.4
@@ -60,20 +59,31 @@ class LLMPolyMarketAgent(
             f"PRICES: YES {yes_price:.3f} ({yes_price*100:.1f}%) | NO {no_price:.3f} ({no_price*100:.1f}%)\n"
             f"TREND: {trend} ({pct:+.2f}%)\n"
             f"HISTORY: [{hist}]\n"
-            f"CASH: ${account.cash_balance:.2f}\n"
-            f"POSITIONS: YES {yes_q} | NO {no_q}\n"
+            f"CURRENT POSITIONS: YES {yes_q} | NO {no_q}\n"
             f"SIGNALS: {' | '.join(signals) if signals else 'No clear signals'}"
         )
+
+    def _create_news_query(self, _id: str, data: Dict[str, Any]) -> str:
+        """Create Polymarket-specific news query."""
+        question = data.get("question", "")
+        category = data.get("category", "")
+
+        if question and len(question) > 10:
+            key_terms = question.split()[:5]
+            return " ".join(key_terms)
+        elif category:
+            return f"{category} prediction market"
+        else:
+            return f"polymarket {_id}"
 
     def _create_action_from_response(
         self, parsed: Dict[str, Any], _id: str, price: float
     ) -> Optional[PolymarketAction]:
         action = (parsed.get("action") or "hold").lower()
         outcome = (parsed.get("outcome") or "yes").lower()
-        qty = int(parsed.get("quantity", 0))  # HOLD can have 0 quantity
+        qty = int(parsed.get("quantity", 0))
         conf = float(parsed.get("confidence", 0.5))
 
-        # For non-hold actions, require positive quantity
         if action == "hold" or qty <= 0:
             return None
 
@@ -87,16 +97,20 @@ class LLMPolyMarketAgent(
             confidence=conf,
         )
 
-    def _get_system_prompt(self, analysis_data: str) -> str:
+    def _get_prompt(self, analysis_data: str) -> str:
         return (
-            "You are an active prediction market trader. Analyze the market and take positions.\n"
+            "You are an intelligent prediction market trader. Use your judgment to analyze markets.\n"
             f"Market Analysis: {analysis_data}\n\n"
-            "TRADING RULES:\n"
-            "- If YES price < 0.4 and you think it should be higher: BUY YES (quantity 5-15)\n"
-            "- If YES price > 0.6 and you think it should be lower: BUY NO (quantity 5-15)\n"
-            "- If you hold opposite position: SELL to close (quantity 1-10)\n"
-            "- Only HOLD if market price seems fair (confidence < 0.3)\n"
-            "- Be decisive! Take positions based on your analysis.\n\n"
+            "TRADING PHILOSOPHY:\n"
+            "- Look for mispriced markets where your analysis differs from market consensus\n"
+            "- Consider news, trends, and historical context in your decisions\n"
+            "- Manage risk by sizing positions based on your confidence level\n"
+            "- Don't trade just to trade - only act when you see clear opportunities\n"
+            "- Learn from your positions and market feedback\n\n"
+            "POSITION SIZING GUIDANCE:\n"
+            "- High confidence (>0.8): Larger positions (10-20 shares)\n"
+            "- Medium confidence (0.5-0.8): Moderate positions (5-10 shares)\n"
+            "- Low confidence (<0.5): Small positions (1-5 shares) or HOLD\n\n"
             "Return VALID JSON ONLY:\n"
             "{\n"
             ' "action": "buy|sell|hold",\n'

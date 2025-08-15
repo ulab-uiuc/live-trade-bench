@@ -18,22 +18,19 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
             return str(data["id"]), float(data["price"])
         return str(data["ticker"]), float(data["current_price"])
 
-    def _prepare_analysis_data(
-        self, data: Dict[str, Any], account: StockAccount
-    ) -> str:
+    def _prepare_market_analysis(self, data: Dict[str, Any]) -> str:
+        """Prepare market-specific analysis for stocks."""
         _id, price = self._extract_id_price(data)
         prev = self.prev_price(_id)
         pct = 0.0 if prev is None else ((price - prev) / prev) * 100.0
         trend = "up" if pct > 0 else ("down" if pct < 0 else "flat")
         hist = ", ".join(f"{p:.2f}" for p in self.history_tail(_id, 5))
 
-        pos = account.get_active_positions().get(_id)
-        pos_txt = f"{pos.quantity}@{pos.avg_price:.2f}" if pos else "none"
+        pos_txt = "See account section"
 
         # Calculate trading signals
         is_trending_up = pct > 2.0
         is_trending_down = pct < -2.0
-        has_position = pos is not None
 
         signals = []
         if is_trending_up:
@@ -43,19 +40,18 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
         else:
             signals.append("🟡 Sideways movement")
 
-        if has_position:
-            profit_loss = (price - pos.avg_price) * pos.quantity if pos else 0
-            signals.append(f"📊 P&L: ${profit_loss:+.2f}")
-
         return (
             f"STOCK: {_id}\n"
             f"PRICE: ${price:.2f}\n"
             f"CHANGE: {pct:+.2f}% ({trend})\n"
             f"HISTORY: [{hist}]\n"
-            f"CASH: ${account.cash_balance:.2f}\n"
-            f"POSITION: {pos_txt}\n"
+            f"CURRENT POSITION: {pos_txt}\n"
             f"SIGNALS: {' | '.join(signals)}"
         )
+
+    def _create_news_query(self, _id: str, data: Dict[str, Any]) -> str:
+        """Create stock-specific news query."""
+        return f"{_id} stock earnings news"
 
     def _create_action_from_response(
         self, parsed: Dict[str, Any], ticker: str, current_price: float
@@ -64,7 +60,6 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
         qty = int(parsed.get("quantity", 0))  # HOLD can have 0 quantity
         conf = float(parsed.get("confidence", 0.5))
 
-        # For non-hold actions, require positive quantity
         if action == "hold" or qty <= 0:
             return None
 
@@ -77,16 +72,21 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
             confidence=conf,
         )
 
-    def _get_system_prompt(self, analysis_data: str) -> str:
+    def _get_prompt(self, analysis_data: str) -> str:
         return (
-            "You are an active stock trader. Analyze trends and take positions.\n"
+            "You are a thoughtful stock trader. Make data-driven investment decisions.\n"
             f"Stock Analysis: {analysis_data}\n\n"
-            "TRADING RULES:\n"
-            "- If stock is trending UP (>2%): BUY (quantity 5-10)\n"
-            "- If stock is trending DOWN (<-2%): SELL (quantity 3-8)\n"
-            "- If you have position and trend reverses: SELL to close\n"
-            "- Only HOLD if trend is flat (<2% change) and no clear signal\n"
-            "- Be active! Stock markets reward decisive trading.\n\n"
+            "TRADING PHILOSOPHY:\n"
+            "- Focus on momentum, fundamentals, and market sentiment\n"
+            "- Consider both technical patterns and news catalysts\n"
+            "- Diversify risk across your portfolio when possible\n"
+            "- Cut losses early, let winners run when appropriate\n"
+            "- Adapt your strategy based on market conditions\n\n"
+            "POSITION SIZING GUIDANCE:\n"
+            "- High conviction trades: Larger positions (8-15 shares)\n"
+            "- Moderate conviction: Standard positions (3-8 shares)\n"
+            "- Low conviction: Small positions (1-3 shares) or HOLD\n"
+            "- Consider your existing exposure to avoid concentration risk\n\n"
             "Return VALID JSON ONLY:\n"
             "{\n"
             ' "action": "buy|sell|hold",\n'
