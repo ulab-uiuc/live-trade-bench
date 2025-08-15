@@ -15,20 +15,12 @@ from trading_bench.fetchers.base_fetcher import BaseFetcher
 
 
 class StockFetcher(BaseFetcher):
-    """Fetcher for stock price data from Yahoo Finance."""
 
     def __init__(self, min_delay: float = 1.0, max_delay: float = 3.0):
         """Initialize the stock fetcher."""
         super().__init__(min_delay, max_delay)
 
     def fetch(self, mode: str, **kwargs):
-        """
-        Unified fetch interface for StockFetcher.
-
-        Args:
-            mode: The type of data to fetch ('trending_stocks' or 'stock_price')
-            **kwargs: Arguments for the specific fetch method
-        """
         if mode == "trending_stocks":
             return self.get_trending_stocks(limit=kwargs.get("limit", 10))
         elif mode == "stock_price":
@@ -39,15 +31,6 @@ class StockFetcher(BaseFetcher):
             raise ValueError(f"Unknown fetch mode: {mode}")
 
     def get_trending_stocks(self, limit: int = 10) -> List[Dict]:
-        """
-        Get trending/popular stock tickers.
-
-        Args:
-            limit: Maximum number of stocks to return
-
-        Returns:
-            List of dictionaries containing stock basic info
-        """
         # Popular stocks for demo purposes
         trending_stocks = [
             {"ticker": "AAPL", "name": "Apple Inc.", "sector": "Technology"},
@@ -87,30 +70,11 @@ class StockFetcher(BaseFetcher):
         return trending_stocks[:limit]
 
     def get_current_stock_price(self, ticker: str) -> Optional[float]:
-        """
-        Get current stock price for a specific ticker.
-
-        Args:
-            ticker: Stock ticker symbol
-
-        Returns:
-            Current stock price or None if failed
-        """
         return self.get_current_price(ticker)
 
     def _download_price_data(
         self, ticker: str, start_date: str, end_date: str, interval: str
     ):
-        """
-        Internal function to download price data with error handling.
-        Args:
-            ticker:     Stock ticker symbol.
-            start_date: YYYY-MM-DD
-            end_date:   YYYY-MM-DD
-            interval:   yfinance interval string
-        Returns:
-            pandas.DataFrame: Downloaded price data
-        """
         df = yf.download(
             tickers=ticker,
             start=start_date,
@@ -130,13 +94,6 @@ class StockFetcher(BaseFetcher):
         return df
 
     def get_current_price(self, ticker: str) -> Optional[float]:
-        """
-        Get the current stock price for a given ticker.
-        Args:
-            ticker: Stock ticker symbol (e.g., 'AAPL', 'GOOGL').
-        Returns:
-            float: Current stock price, or None if unable to fetch.
-        """
         try:
             stock = yf.Ticker(ticker)
 
@@ -196,16 +153,6 @@ class StockFetcher(BaseFetcher):
         end_date: str,
         interval: str = "1d",
     ):
-        """
-        Fetch historical stock data from Yahoo Finance.
-        Args:
-            ticker:     Stock ticker symbol.
-            start_date: Start date in YYYY-MM-DD format.
-            end_date:   End date in YYYY-MM-DD format.
-            interval:   Data interval ('1d', '1h', '5m', etc.).
-        Returns:
-            pandas.DataFrame: Historical stock price data.
-        """
         try:
             self.sleep()  # Rate limiting
             df = self._download_price_data(ticker, start_date, end_date, interval)
@@ -215,17 +162,7 @@ class StockFetcher(BaseFetcher):
             raise
 
 
-# Standalone functions that use the class
 def fetch_trending_stocks(limit: int = 10) -> List[Dict]:
-    """
-    Fetch trending/popular stocks.
-
-    Args:
-        limit: Maximum number of stocks to return (default: 10)
-
-    Returns:
-        List of dictionaries containing stock basic info
-    """
     fetcher = StockFetcher()
     stocks = fetcher.get_trending_stocks(limit=limit)
     print(f"📊 Fetched {len(stocks)} trending stocks")
@@ -233,14 +170,8 @@ def fetch_trending_stocks(limit: int = 10) -> List[Dict]:
 
 
 def fetch_current_stock_price(ticker: str) -> Optional[float]:
-    """
-    Fetch current price for a specific stock ticker.
-
-    Args:
-        ticker: Stock ticker symbol
-
-    Returns:
-        Current stock price or None if failed
-    """
     fetcher = StockFetcher()
-    return fetcher.get_current_stock_price(ticker)
+    price = fetcher.get_current_stock_price(ticker)
+    if price:
+        print(f"Stock price 💰 {ticker}: {price}")
+    return price

@@ -26,13 +26,6 @@ def main():
     # Add AI agents with higher initial cash for multiple stocks
     system.add_agent("Portfolio_Alice", 2000.0, "gpt-4o-mini")
 
-    print("\n🎯 Multi-Stock Architecture:")
-    print("   • AI agents analyze all 10 stocks each cycle")
-    print("   • Portfolio diversification considerations")
-    print("   • Risk management across positions")
-    print("   • LLM-powered decision making")
-
-    # Run the stock trading system for a specified duration
     try:
         print("\n🚀 Starting stock trading...")
         system.run(
@@ -43,18 +36,5 @@ def main():
         import traceback
 
         traceback.print_exc()
-
-    print("\n✅ Multi-Stock AI Trading Demo completed!")
-    print("\n💡 Key Features Demonstrated:")
-    print("   • Portfolio diversification across sectors")
-    print("   • AI-driven stock selection and sizing")
-    print("   • Risk management with limited cash")
-    print("   • Real-time multi-stock analysis")
-    print("\n🔧 To enable full functionality:")
-    print("   1. Install: pip install litellm yfinance")
-    print("   2. Set: export OPENAI_API_KEY=your_key")
-    print("   3. Experiment with different stock combinations")
-
-
 if __name__ == "__main__":
     main()

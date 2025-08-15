@@ -17,6 +17,7 @@ class StockAction:
     timestamp: str
     price: float
     quantity: float = 1.0
+    confidence: float = 0.5
 
     def __post_init__(self):
         """Validate stock action fields."""
