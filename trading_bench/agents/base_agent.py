@@ -41,11 +41,14 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
             return None
 
         try:
-            analysis = self._prepare_analysis_data(data, account)
-            messages = [
-                {"role": "system", "content": self._get_system_prompt(analysis)},
-                {"role": "user", "content": analysis},
-            ]
+            market_analysis = self._prepare_market_analysis(data)
+            account_analysis = self._prepare_account_analysis(account)
+            news_analysis = self._prepare_news_analysis(_id, data)
+            full_analysis = self._combine_analysis_data(
+                market_analysis, account_analysis, news_analysis
+            )
+
+            messages = [{"role": "user", "content": self._get_prompt(full_analysis)}]
             llm_response = self._call_llm(messages)
             parsed = self._parse_llm_response(llm_response)
 
@@ -88,13 +91,70 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
             self._log_error("parse error", str(e))
             return None
 
+    # ----- Analysis Methods -----
+    @abstractmethod
+    def _prepare_market_analysis(self, data: DataType) -> str:
+        """Prepare market data analysis."""
+        ...
+
+    def _prepare_account_analysis(self, account: AccountType) -> str:
+        """Prepare account analysis with portfolio info."""
+        positions = account.get_active_positions()
+        total_positions = len(positions)
+        portfolio_value = account.get_total_value()
+        profit_loss = portfolio_value - account.cash_balance
+
+        return (
+            f"ACCOUNT INFO:\n"
+            f"  Cash: ${account.cash_balance:.2f}\n"
+            f"  Portfolio Value: ${portfolio_value:.2f}\n"
+            f"  P&L: ${profit_loss:+.2f}\n"
+            f"  Total Positions: {total_positions}"
+        )
+
+    def _prepare_news_analysis(self, _id: str, data: DataType) -> str:
+        """Prepare news analysis for the asset."""
+        try:
+            from datetime import datetime, timedelta
+
+            from ..fetchers.news_fetcher import fetch_news_data
+
+            # Get recent news (last 3 days)
+            end_date = datetime.now().strftime("%Y-%m-%d")
+            start_date = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
+
+            # Create search query based on data type
+            query = self._create_news_query(_id, data)
+
+            news = fetch_news_data(query, start_date, end_date, max_pages=1)
+
+            if news:
+                # Summarize top 2 news items
+                news_summary = []
+                for article in news[:2]:
+                    title = article.get("title", "")[:60]
+                    news_summary.append(f"• {title}...")
+
+                return "RECENT NEWS:\n" + "\n".join(news_summary)
+            else:
+                return "RECENT NEWS:\n• No recent news found"
+
+        except Exception as e:
+            return f"RECENT NEWS:\n• News fetch error: {str(e)[:50]}..."
+
+    def _create_news_query(self, _id: str, data: DataType) -> str:
+        """Create news search query. Override in subclasses for domain-specific queries."""
+        return _id
+
+    def _combine_analysis_data(
+        self, market_analysis: str, account_analysis: str, news_analysis: str
+    ) -> str:
+        """Combine all analysis data into final format."""
+        return f"{market_analysis}\n\n{account_analysis}\n\n{news_analysis}"
+
     # ----- Hooks -----
     @abstractmethod
     def _extract_id_price(self, data: DataType) -> Tuple[str, float]:
-        ...
-
-    @abstractmethod
-    def _prepare_analysis_data(self, data: DataType, account: AccountType) -> str:
         ...
 
     @abstractmethod
@@ -104,7 +164,7 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
         ...
 
     @abstractmethod
-    def _get_system_prompt(self) -> str:
+    def _get_prompt(self, analysis: str) -> str:
         ...
 
     # ----- Helpers -----

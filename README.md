@@ -19,7 +19,7 @@ Trading agent evaluation in the live environment. We target at avoiding overfitt
 ## Features
 
 - **AI Agents**: GPT-4 powered trading decisions
-- **Multi-Asset**: Stocks and prediction markets  
+- **Multi-Asset**: Stocks and prediction markets
 - **Real-time Data**: Live market feeds
 - **Portfolio Management**: Automated tracking and execution
 
@@ -36,7 +36,7 @@ account = create_stock_account(10000.0)
 
 # Prediction markets
 from trading_bench import LLMPolyMarketAgent, fetch_trending_markets
-agent = LLMPolyMarketAgent("Predictor") 
+agent = LLMPolyMarketAgent("Predictor")
 markets = fetch_trending_markets(5)
 ```
 
