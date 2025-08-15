@@ -26,8 +26,15 @@ class LLMPolyMarketAgent(
         return data["market_id"], float(data["price"])
 
     def _prepare_analysis_data(
-        self, _id: str, price: float, data: Dict[str, Any], account: PolymarketAccount
+        self, data: Dict[str, Any], account: PolymarketAccount
     ) -> str:
+        _id = data["id"]
+        price = float(data["price"])
+        yes_price = float(data.get("yes_price", price))
+        no_price = float(data.get("no_price", 1.0 - price))
+        question = data.get("question", _id)
+        category = data.get("category", "Unknown")
+
         hist = [f"{p:.2f}" for p in self.history_tail(_id, 5)]
         prev = self.prev_price(_id)
         pct = 0.0 if prev is None else ((price - prev) / prev) * 100.0
@@ -43,12 +50,11 @@ class LLMPolyMarketAgent(
             pos_txt.append(f"NO {pos[no_key].quantity}")
         holdings = ", ".join(pos_txt) if pos_txt else "no positions"
 
-        no_price = 1.0 - price
-
         return (
             "Prediction Market Analysis:\n"
-            f"- Market: {_id}\n"
-            f"- YES: {price:.3f} | NO: {no_price:.3f}\n"
+            f"- Market: {question}\n"
+            f"- Category: {category}\n"
+            f"- YES: {yes_price:.3f} | NO: {no_price:.3f}\n"
             f"- Change: {pct:+.2f}% ({trend})\n"
             f"- History(YES): {hist}\n"
             f"- Cash: ${account.cash_balance:.2f}\n"
@@ -104,7 +110,7 @@ class PolymarketTradingSystem:
     def __init__(self, universe_size: int = 5) -> None:
         self.agents: Dict[str, LLMPolyMarketAgent] = {}
         self.accounts: Dict[str, PolymarketAccount] = {}
-        self.universe: List[str] = []  # list of market_ids
+        self.universe: List[Dict[str, Any]] = []  # list of market data with token_ids
         self.iteration = 0
         self._initialize_universe(universe_size)
 
@@ -113,10 +119,22 @@ class PolymarketTradingSystem:
             from ..fetchers.polymarket_fetcher import fetch_trending_markets
 
             markets = fetch_trending_markets(limit=limit)
-            self.universe = [m["id"] for m in markets]
+            # Store full market data including token_ids
+            self.universe = []
+            for market in markets:
+                if market.get("token_ids"):  # Only include markets with token_ids
+                    self.universe.append(
+                        {
+                            "id": market["id"],
+                            "question": market.get("question", "Unknown"),
+                            "category": market.get("category", "Unknown"),
+                            "token_ids": market["token_ids"],
+                        }
+                    )
+
             print(
-                f"📊 Initialized {len(self.universe)} markets: "
-                + " | ".join([m[:8] + "..." for m in self.universe[:3]])
+                f"📊 Initialized {len(self.universe)} markets: \n"
+                + " | ".join([m["question"][:40] + "...\n" for m in self.universe])
             )
         except Exception as e:
             raise ValueError(f"Failed to fetch trending markets: {e}")
@@ -129,31 +147,54 @@ class PolymarketTradingSystem:
         self.accounts[name] = create_polymarket_account(initial_cash)
         print(f"✅ Added agent {name} with ${initial_cash:.2f}")
 
-    def _fetch_prices(self) -> Dict[str, float]:
+    def _fetch_prices(self) -> Dict[str, Dict[str, Any]]:
         try:
             from ..fetchers.polymarket_fetcher import fetch_current_market_price
 
-            out: Dict[str, float] = {}
-            for m in self.universe:
-                prices = fetch_current_market_price(m)
-                if prices and "yes" in prices:
-                    out[m] = float(prices["yes"])
+            out: Dict[str, Dict[str, Any]] = {}
+            for market in self.universe:
+                market_id = market["id"]
+                token_ids = market["token_ids"]
+
+                if token_ids:
+                    prices = fetch_current_market_price(token_ids)
+                    if prices and "yes" in prices:
+                        out[market_id] = {
+                            "price": float(prices["yes"]),
+                            "yes_price": float(prices["yes"]),
+                            "no_price": float(prices.get("no", 1.0 - prices["yes"])),
+                            "token_ids": token_ids,
+                            "question": market["question"],
+                            "category": market["category"],
+                        }
             if out:
                 return out
         except Exception as e:
             print(f"⚠️ Price fetch error: {e}")
 
         # Fallback: simple themed defaults
-        fb: Dict[str, float] = {}
-        for m in self.universe:
-            if "election" in m:
-                fb[m] = 0.52
-            elif "agi" in m:
-                fb[m] = 0.25
-            elif "climate" in m:
-                fb[m] = 0.30
+        fb: Dict[str, Dict[str, Any]] = {}
+        for market in self.universe:
+            market_id = market["id"]
+            question = market["question"].lower()
+
+            if "election" in question:
+                default_price = 0.52
+            elif "agi" in question:
+                default_price = 0.25
+            elif "climate" in question:
+                default_price = 0.30
             else:
-                fb[m] = 0.60
+                default_price = 0.60
+
+            fb[market_id] = {
+                "price": default_price,
+                "yes_price": default_price,
+                "no_price": 1.0 - default_price,
+                "token_ids": market.get("token_ids", []),
+                "question": market["question"],
+                "category": market["category"],
+            }
         return fb
 
     def run_cycle(self) -> None:
@@ -167,19 +208,29 @@ class PolymarketTradingSystem:
                 return
 
             preview = " | ".join(
-                f"{m[:8]}...: {p:.2f}" for m, p in list(prices.items())[:5]
+                f"{data['question'][:40]}...: {data['yes_price']:.2f}\n"
+                for _, data in list(prices.items())[:3]
             )
             print(f"📈 Markets: {preview}...")
 
             for agent_name, agent in self.agents.items():
                 account = self.accounts[agent_name]
                 print(f"\n🤖 {agent.name}:")
-                for _id, price in prices.items():
-                    data = {"id": _id, "price": price}  # uniform shape
+                for market_id, market_data in prices.items():
+                    # Create unified data structure for agent
+                    data = {
+                        "id": market_id,
+                        "price": market_data["yes_price"],
+                        "yes_price": market_data["yes_price"],
+                        "no_price": market_data["no_price"],
+                        "token_ids": market_data["token_ids"],
+                        "question": market_data["question"],
+                        "category": market_data["category"],
+                    }
                     action = agent.generate_action(data, account)
                     if action:
                         tag = f"{action.action.upper()} {action.quantity} {action.outcome.upper()} @ {action.price:.2f}"
-                        print(f"   📊 {tag}")
+                        print(f"   📊 {tag} | {market_data['question'][:30]}...")
                         ok, msg, _ = account.execute_action(action)
                         print(f"   {'✅' if ok else '❌'} {msg}")
 
