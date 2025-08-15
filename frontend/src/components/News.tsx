@@ -54,15 +54,10 @@ const News: React.FC<NewsProps> = ({ newsData, setNewsData, lastRefresh, setLast
   };
 
   useEffect(() => {
-    // Only fetch if we don't have data or if it's been more than an hour
-    const shouldFetch = newsData.length === 0 ||
-      (Date.now() - lastRefresh.getTime()) > 60 * 60 * 1000;
+    // Always fetch immediately - backend returns cached data instantly
+    fetchNews();
 
-    if (shouldFetch) {
-      fetchNews();
-    }
-
-    // Auto-refresh every hour
+    // Auto-refresh every hour to get updated cached data
     const interval = setInterval(fetchNews, 60 * 60 * 1000);
 
     return () => clearInterval(interval);

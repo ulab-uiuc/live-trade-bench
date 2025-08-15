@@ -1,13 +1,14 @@
 from datetime import datetime, timedelta
 
 from app.data import get_real_news_data
-from app.schemas import NewsCategory, NewsImpact, NewsItem
+from app.schemas import NewsCategory, NewsImpact
+from app.trading_system import get_trading_system
 from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(prefix="/api/news", tags=["news"])
 
 
-@router.get("/", response_model=list[NewsItem])
+@router.get("/")
 async def get_news(
     query: str = Query(default="stock market", description="Search query for news"),
     days: int = Query(
@@ -19,30 +20,40 @@ async def get_news(
     impact: NewsImpact | None = Query(default=None),
     hours: int | None = Query(default=None, ge=1, le=168),  # Last X hours (max 1 week)
 ):
-    """Get real news articles with optional filtering and pagination."""
+    """Get cached news articles with optional filtering and pagination."""
     try:
-        news = get_real_news_data(query=query, days=days)
+        # Get cached news from trading system instead of fetching on-demand
+        trading_system = get_trading_system()
+        news_data = trading_system.get_cached_news()
+
+        # Convert datetime strings back to datetime objects for filtering
+        for item in news_data:
+            item["published_at"] = datetime.fromisoformat(item["published_at"])
 
         # Apply time filter
         if hours:
             cutoff_time = datetime.now() - timedelta(hours=hours)
-            news = [n for n in news if n.published_at >= cutoff_time]
+            news_data = [n for n in news_data if n["published_at"] >= cutoff_time]
 
         # Apply category filter
         if category:
-            news = [n for n in news if n.category == category]
+            news_data = [n for n in news_data if n["category"] == category]
 
         # Apply impact filter
         if impact:
-            news = [n for n in news if n.impact == impact]
+            news_data = [n for n in news_data if n["impact"] == impact]
 
         # Sort by publication date (newest first)
-        news.sort(key=lambda x: x.published_at, reverse=True)
+        news_data.sort(key=lambda x: x["published_at"], reverse=True)
+
+        # Convert back to ISO strings for JSON response
+        for item in news_data:
+            item["published_at"] = item["published_at"].isoformat()
 
         # Apply pagination
-        news = news[offset : offset + limit]
+        news_data = news_data[offset : offset + limit]
 
-        return news
+        return news_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching news: {str(e)}")
 

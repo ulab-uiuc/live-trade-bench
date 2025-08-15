@@ -2,9 +2,12 @@
 Model Actions Router - Provides real trading actions from AI agents
 """
 
+import logging
 
 from app.trading_system import get_trading_system
 from fastapi import APIRouter, HTTPException, Query
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/model-actions", tags=["model-actions"])
 
@@ -36,12 +39,10 @@ async def get_model_actions(
         # Get recent actions from trading system
         actions = trading_system.get_recent_actions(model_id=model_id, hours=hours)
 
-        # If no actions and system hasn't been running, return appropriate error
-        if not actions and not trading_system.trading_history:
-            raise HTTPException(
-                status_code=503,
-                detail="No trading data available - system may not be running or LLM APIs not configured",
-            )
+        # If no actions, return empty list instead of error
+        # This is normal when the system is just starting or no significant price changes occurred
+        if not actions:
+            return []
 
         # Limit results
         actions = actions[:limit]
@@ -79,6 +80,7 @@ async def get_model_actions(
         return model_actions
 
     except Exception as e:
+        logger.error(f"Error in get_model_actions: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error fetching model actions: {str(e)}"
         )
