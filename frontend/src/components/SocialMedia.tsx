@@ -89,7 +89,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
     }
 
     // Auto-refresh every day
-    const interval = setInterval(fetchSocialPosts, 24 * 60 * 60 * 1000);
+    const interval = setInterval(fetchSocialPosts, 60 * 60 * 1000);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,8 +149,8 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
 
   const getTotalEngagement = (engagement: any) => {
     return (engagement.upvotes || 0) + (engagement.likes || 0) +
-           (engagement.retweets || 0) + (engagement.comments || 0) +
-           (engagement.shares || 0) - (engagement.downvotes || 0);
+      (engagement.retweets || 0) + (engagement.comments || 0) +
+      (engagement.shares || 0) - (engagement.downvotes || 0);
   };
 
   const filteredPosts = socialData.filter(post => {
