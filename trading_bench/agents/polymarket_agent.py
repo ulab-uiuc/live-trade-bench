@@ -107,6 +107,7 @@ class LLMPolyMarketAgent(
             "- Manage risk by sizing positions based on your confidence level\n"
             "- Don't trade just to trade - only act when you see clear opportunities\n"
             "- Learn from your positions and market feedback\n\n"
+            "- Try to be active and buy/sell more often\n\n"
             "POSITION SIZING GUIDANCE:\n"
             "- High confidence (>0.8): Larger positions (10-20 shares)\n"
             "- Medium confidence (0.5-0.8): Moderate positions (5-10 shares)\n"
