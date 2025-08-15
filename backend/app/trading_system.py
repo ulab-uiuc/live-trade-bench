@@ -523,6 +523,7 @@ class MultiAssetTradingSystem:
             logger.info(
                 "Running stock system using native .run() method (market is open)"
             )
+
             # For backend service: run a short burst
             # This gets called repeatedly by our background loop (every 30 min)
             # So we run for 2 minutes each time with 30 second intervals

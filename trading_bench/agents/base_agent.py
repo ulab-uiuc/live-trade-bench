@@ -1,9 +1,3 @@
-"""
-Merged Base LLM Agent for trading agents
-- Includes: LLM call + parse, price-change gating, short history, fallback path
-- Subclasses implement small domain hooks (id/price extraction, analysis text, action creation, fallback, prompt)
-"""
-
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
 
@@ -35,11 +29,11 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
     ) -> Optional[ActionType]:
         """
         Unified generate_action:
-          1) Extract id+price (domain-specific via hook)
-          2) Gate on price change
-          3) Prepare analysis text (hook) and call LLM with JSON-only system prompt (hook)
-          4) Parse -> create domain action (hook)
-          5) Fallback on errors/unavailable
+        1) Extract id+price (domain-specific via hook)
+        2) Gate on price change
+        3) Prepare analysis text (hook) and call LLM with JSON-only system prompt (hook)
+        4) Parse -> create domain action (hook)
+        5) Fallback on errors/unavailable
         """
         _id, price = self._extract_id_price(data)
 
@@ -67,7 +61,7 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
             return None
 
         try:
-            analysis = self._prepare_analysis_data(_id, price, data, account)
+            analysis = self._prepare_analysis_data(data, account)
             messages = [
                 {"role": "system", "content": self._get_system_prompt(analysis)},
                 {"role": "user", "content": analysis},
@@ -166,7 +160,7 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
 
     def _fmt_price(self, price: float) -> str:
         """Format price for prints; override for probability-style markets."""
-        return f"${price:.2f}"
+        return f"{price:.2f}"  # probability display
 
     # -------------------- Logging & metadata --------------------
     def _log_error(self, error_msg: str, context: str = "") -> None:
@@ -176,10 +170,6 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
     def _log_action(self, action_type: str, details: str = "") -> None:
         details_str = f": {details}" if details else ""
         print(f"💡 {self.name}: {action_type}{details_str}")
-
-    # --- presentation tweak ---
-    def _fmt_price(self, price: float) -> str:
-        return f"{price:.2f}"  # probability display
 
     @property
     def is_available(self) -> bool:
