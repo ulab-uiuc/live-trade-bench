@@ -206,7 +206,7 @@ class PolymarketTradingSystem:
                 return
 
             preview = " | ".join(
-                f"{data['question'][:40]}...: {data['yes_price']:.2f}" 
+                f"{data['question'][:40]}...: {data['yes_price']:.2f}\n" 
                 for _, data in list(prices.items())[:3]
             )
             print(f"📈 Markets: {preview}...")
