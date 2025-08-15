@@ -82,6 +82,7 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
             "- Diversify risk across your portfolio when possible\n"
             "- Cut losses early, let winners run when appropriate\n"
             "- Adapt your strategy based on market conditions\n\n"
+            "- Try to be active and buy/sell more often\n\n"
             "POSITION SIZING GUIDANCE:\n"
             "- High conviction trades: Larger positions (8-15 shares)\n"
             "- Moderate conviction: Standard positions (3-8 shares)\n"

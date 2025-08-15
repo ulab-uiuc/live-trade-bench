@@ -132,15 +132,15 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
                 # Summarize top 2 news items
                 news_summary = []
                 for article in news[:2]:
-                    title = article.get("title", "")[:60]
-                    news_summary.append(f"• {title}...")
+                    snippet = article.get("snippet", "")
+                    news_summary.append(f"• {snippet}...")
 
                 return "RECENT NEWS:\n" + "\n".join(news_summary)
             else:
                 return "RECENT NEWS:\n• No recent news found"
 
         except Exception as e:
-            return f"RECENT NEWS:\n• News fetch error: {str(e)[:50]}..."
+            return f"RECENT NEWS:\n• News fetch error: {str(e)}..."
 
     def _create_news_query(self, _id: str, data: DataType) -> str:
         """Create news search query. Override in subclasses for domain-specific queries."""
