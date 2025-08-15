@@ -92,12 +92,7 @@ const SystemMonitoring: React.FC = () => {
         <h3>System Monitoring</h3>
         <div className="refresh-indicator">
           {loading && <div className="spinner small"></div>}
-          <span>Updated: {lastRefresh.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-          })}</span>
+          <span>Updated: {formatTime(lastRefresh.toISOString())}</span>
         </div>
       </div>
 

@@ -10,7 +10,7 @@ import os
 import sys
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 # Add trading_bench to path before any runtime imports
@@ -105,7 +105,7 @@ class MultiAssetTradingSystem:
         self.max_log_entries = 1000
 
         # System startup time
-        self.start_time = datetime.now()
+        self.start_time = datetime.now(timezone.utc)
 
         # Initialize models in both systems
         self._initialize_models()
@@ -290,7 +290,7 @@ class MultiAssetTradingSystem:
         self, model_id: str = None, hours: int = 24
     ) -> List[Dict[str, Any]]:
         """Get recent trading actions from unified history"""
-        cutoff_time = datetime.now() - timedelta(hours=hours)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
 
         actions = []
         for action in self.trading_history:
@@ -368,7 +368,7 @@ class MultiAssetTradingSystem:
 
     def run_trading_cycle(self):
         """Run one trading cycle using the native .run() methods"""
-        cycle_start_time = datetime.now()
+        cycle_start_time = datetime.now(timezone.utc)
         self.execution_stats["total_cycles"] += 1
 
         try:
@@ -399,7 +399,9 @@ class MultiAssetTradingSystem:
             )
             self.execution_stats["successful_cycles"] += 1
 
-            cycle_duration = (datetime.now() - cycle_start_time).total_seconds()
+            cycle_duration = (
+                datetime.now(timezone.utc) - cycle_start_time
+            ).total_seconds()
             logger.info(f"Native .run() cycle completed in {cycle_duration:.1f}s")
 
             # Log cycle execution
@@ -422,7 +424,7 @@ class MultiAssetTradingSystem:
                     "cycle_number": self.execution_stats["total_cycles"],
                     "error": str(e),
                     "duration_seconds": (
-                        datetime.now() - cycle_start_time
+                        datetime.now(timezone.utc) - cycle_start_time
                     ).total_seconds(),
                 },
             )
@@ -501,7 +503,7 @@ class MultiAssetTradingSystem:
                         "unrealized_pnl", 0.0
                     ),
                     "market_data_available": True,  # Assume market data is available
-                    "last_updated": datetime.now().isoformat(),
+                    "last_updated": datetime.now(timezone.utc).isoformat(),
                 }
 
         elif model_id.endswith("_polymarket"):
@@ -551,7 +553,7 @@ class MultiAssetTradingSystem:
                         "unrealized_pnl", 0.0
                     ),
                     "market_data_available": True,  # Assume market data is available
-                    "last_updated": datetime.now().isoformat(),
+                    "last_updated": datetime.now(timezone.utc).isoformat(),
                 }
 
         raise ValueError(f"Invalid model_id format: {model_id}")
@@ -590,7 +592,7 @@ class MultiAssetTradingSystem:
             else 0.0
         )
 
-        uptime_seconds = (datetime.now() - self.start_time).total_seconds()
+        uptime_seconds = (datetime.now(timezone.utc) - self.start_time).total_seconds()
 
         return {
             "system_performance": {
@@ -629,7 +631,7 @@ class MultiAssetTradingSystem:
     def _add_execution_log(self, event_type: str, data: Dict[str, Any]):
         """Add entry to execution logs"""
         log_entry = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "event_type": event_type,
             "data": data,
         }
@@ -702,7 +704,7 @@ class MultiAssetTradingSystem:
                     self.run_trading_cycle()
 
                 # Update next cycle time
-                self.next_cycle_time = datetime.now() + timedelta(
+                self.next_cycle_time = datetime.now(timezone.utc) + timedelta(
                     seconds=self.cycle_interval
                 )
 
