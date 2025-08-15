@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+pydantic>=2.11.7
+finnhub-python
+yfinance
+requests
+beautifulsoup4
+tenacity
+scipy
+praw
+beartype>=0.17.1
+mypy>=1.16.1
+openai
+anthropic
+google-generativeai
+litellm

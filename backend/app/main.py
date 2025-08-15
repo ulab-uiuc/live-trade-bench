@@ -1,5 +1,6 @@
 import atexit
 import logging
+import os
 import time
 
 from app.routers import (
@@ -54,10 +55,19 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-# Configure CORS
+allowed_origins = [
+    "http://localhost:3000",  # React dev server
+    "https://localhost:3000",  # React dev server with HTTPS
+]
+
+# Add production frontend URL from environment variable
+frontend_url = os.environ.get("FRONTEND_URL")
+if frontend_url:
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
