@@ -63,7 +63,12 @@ def parse_trading_response(content: str) -> Dict[str, Any]:
     """Parse LLM response into trading decision format"""
     try:
         # Try to parse JSON response
-        return json.loads(content)
+        parsed = json.loads(content)
+        if isinstance(parsed, dict):
+            return parsed
+        else:
+            # If parsed is not a dict, create a dict with the parsed value
+            return {"response": parsed}
 
     except json.JSONDecodeError:
         # Fallback parsing for non-JSON responses

@@ -5,6 +5,8 @@ This file demonstrates how to use the BaseFetcher and its derived classes
 for fetching different types of data.
 """
 
+from typing import Any, Dict, List
+
 from live_trade_bench.fetchers import (
     BaseFetcher,
     NewsFetcher,
@@ -15,7 +17,7 @@ from live_trade_bench.fetchers import (
 )
 
 
-def example_stock_fetcher():
+def example_stock_fetcher() -> None:
     """Example of using StockFetcher."""
     print("=== Stock Fetcher Example ===")
 
@@ -24,19 +26,47 @@ def example_stock_fetcher():
 
     # Fetch price data
     try:
-        price_data = stock_fetcher.fetch(
+        price_data = stock_fetcher.fetch_stock_data(
             ticker="AAPL",
             start_date="2024-01-01",
             end_date="2024-01-31",
-            resolution="D",
+            interval="1d",
         )
-        print(f"Fetched {len(price_data)} days of AAPL data")
-        print(f"Sample data: {list(price_data.items())[:2]}")
+        if hasattr(
+            price_data, "__len__"
+        ):  # Check if it has a length (DataFrame or dict)
+            print(f"Fetched AAPL data (type: {type(price_data).__name__})")
+            # Try to convert to dict if it's a DataFrame
+            try:
+                import pandas as pd
+
+                if isinstance(price_data, pd.DataFrame):
+                    price_dict = price_data.to_dict(orient="index")
+                    print(f"Converted to dict with {len(price_dict)} entries")
+                    print(f"Sample data: {list(price_dict.items())[:2]}")
+                else:
+                    print(f"Data length: {len(price_data)}")
+            except ImportError:
+                print("Pandas not available, raw data received")
+        else:
+            print(f"Unexpected data type: {type(price_data)}")
     except Exception as e:
         print(f"Error fetching stock data: {e}")
 
+    # Also demonstrate the fetch() method with valid modes
+    try:
+        # Get trending stocks
+        trending = stock_fetcher.fetch("trending_stocks", limit=5)
+        print(f"Trending stocks: {trending}")
 
-def example_news_fetcher():
+        # Get current price for a specific stock
+        current_price = stock_fetcher.fetch("stock_price", ticker="AAPL")
+        print(f"Current AAPL price: ${current_price}")
+    except Exception as e:
+        print(f"Error using fetch method: {e}")
+
+
+def example_news_fetcher() -> None:
     """Example of using NewsFetcher."""
     print("\n=== News Fetcher Example ===")
 
@@ -58,7 +88,7 @@ def example_news_fetcher():
         print(f"Error fetching news data: {e}")
 
 
-def example_option_fetcher():
+def example_option_fetcher() -> None:
     """Example of using OptionFetcher."""
     print("\n=== Option Fetcher Example ===")
 
@@ -91,7 +121,7 @@ def example_option_fetcher():
         print(f"Error fetching option data: {e}")
 
 
-def example_polymarket_fetcher():
+def example_polymarket_fetcher() -> None:
     """Example of using PolymarketFetcher."""
     print("\n=== Polymarket Fetcher Example ===")
 
@@ -101,25 +131,35 @@ def example_polymarket_fetcher():
     try:
         # Fetch trending markets using the unified fetch method
         trending = poly_fetcher.fetch("markets", category=None, limit=5)
-        print(f"Found {len(trending)} trending markets")
+        if isinstance(trending, list):
+            print(f"Found {len(trending)} trending markets")
 
-        if trending:
-            # Get details for first market
-            market_id = trending[0]["id"]
-            details = poly_fetcher.fetch("market_details", market_id=market_id)
-            print(f"Market: {details['title']}")
-            print(f"Outcomes: {len(details['outcomes'])}")
+            if trending:
+                # Get details for first market
+                first_market = trending[0]
+                if isinstance(first_market, dict) and "id" in first_market:
+                    market_id = first_market["id"]
+                    details = poly_fetcher.fetch("market_details", market_id=market_id)
+                    if isinstance(details, dict):
+                        print(f"Market: {details.get('title', 'Unknown')}")
+                        print(f"Outcomes: {len(details.get('outcomes', []))}")
 
-            # Get orderbook
-            orderbook = poly_fetcher.fetch("orderbook", market_id=market_id)
-            print(
-                f"Orderbook has {len(orderbook['bids'])} bids and {len(orderbook['asks'])} asks"
-            )
+                        # Get orderbook
+                        orderbook = poly_fetcher.fetch("orderbook", market_id=market_id)
+                        if isinstance(orderbook, dict):
+                            print(
+                                f"Orderbook entries: {len(orderbook.get('asks', []))}"
+                            )
+                            print(
+                                f"Orderbook has {len(orderbook.get('bids', []))} bids and {len(orderbook.get('asks', []))} asks"
+                            )
+        else:
+            print(f"Unexpected trending data type: {type(trending)}")
     except Exception as e:
         print(f"Error fetching Polymarket data: {e}")
 
 
-def example_reddit_fetcher():
+def example_reddit_fetcher() -> None:
     """Example of using RedditFetcher."""
     print("\n=== Reddit Fetcher Example ===")
 
@@ -149,7 +189,7 @@ def example_reddit_fetcher():
         print(f"Error fetching Reddit data: {e}")
 
 
-def example_context_manager():
+def example_context_manager() -> None:
     """Example of using fetchers as context managers."""
     print("\n=== Context Manager Example ===")
 
@@ -162,14 +202,14 @@ def example_context_manager():
             print(f"Error: {e}")
 
 
-def example_custom_fetcher():
+def example_custom_fetcher() -> None:
     """Example of creating a custom fetcher."""
     print("\n=== Custom Fetcher Example ===")
 
     class CustomFetcher(BaseFetcher):
         """Example custom fetcher that fetches mock data."""
 
-        def fetch(self, query: str, limit: int = 10):
+        def fetch(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
             """Fetch mock data based on query."""
             self._rate_limit_delay()  # Use base class rate limiting
 
@@ -188,7 +228,7 @@ def example_custom_fetcher():
     print(f"Sample: {data[0]}")
 
 
-def main():
+def main() -> None:
     """Run all examples."""
     print("Fetcher Architecture Examples")
     print("=" * 50)

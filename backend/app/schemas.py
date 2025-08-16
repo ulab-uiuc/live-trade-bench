@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict
 
 from pydantic import BaseModel
 
@@ -58,7 +59,7 @@ class TradingModel(BaseModel):
     cash_balance: float | None = None
     active_positions: int | None = None
     is_activated: bool | None = None
-    recent_performance: dict | None = None
+    recent_performance: Dict[str, Any] | None = None
     llm_available: bool | None = None
     market_type: str | None = None
 
@@ -137,7 +138,7 @@ class TradingAction(BaseModel):
     status: ActionStatus
     timestamp: datetime
     targets: list[str]  # tickers affected
-    metadata: dict
+    metadata: Dict[str, Any]
 
 
 class SystemLogStats(BaseModel):
@@ -152,4 +153,4 @@ class SystemLogStats(BaseModel):
 class APIResponse(BaseModel):
     success: bool
     message: str
-    data: dict | None = None
+    data: Dict[str, Any] | None = None

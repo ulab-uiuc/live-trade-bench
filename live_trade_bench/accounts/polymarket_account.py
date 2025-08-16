@@ -117,7 +117,9 @@ class PolymarketTransaction:
 
 
 @dataclass
-class PolymarketAccount(BaseAccount):
+class PolymarketAccount(
+    BaseAccount[PolymarketPosition, PolymarketTransaction, "PolymarketAction"]
+):
     """
     Polymarket trading account.
 
@@ -145,7 +147,9 @@ class PolymarketAccount(BaseAccount):
 
     # ----------- Trading -----------
 
-    def can_afford(self, price: float, quantity: float) -> Tuple[bool, str]:
+    def can_afford(
+        self, ticker: str, price: float, quantity: float
+    ) -> Tuple[bool, str]:
         commission = self.calculate_commission(price, quantity)
         total_cost = price * quantity + commission
         return (
@@ -157,9 +161,15 @@ class PolymarketAccount(BaseAccount):
             )
         )
 
-    def can_sell(
-        self, market_id: str, outcome: str, quantity: float
-    ) -> Tuple[bool, str]:
+    def can_sell(self, ticker: str, quantity: float) -> Tuple[bool, str]:
+        # For polymarket, ticker format should be "market_id_outcome"
+        if "_" in ticker:
+            market_id, outcome = ticker.rsplit("_", 1)
+        else:
+            return (
+                False,
+                f"Invalid ticker format: {ticker}. Expected 'market_id_outcome'",
+            )
         pos = self.positions.get(self._key(market_id, outcome))
         if not pos or pos.quantity == 0:
             return False, f"No position in {market_id} {outcome}"
@@ -184,11 +194,11 @@ class PolymarketAccount(BaseAccount):
             return False, f"Invalid action: {trade_action}", None
 
         if trade_action == "buy":
-            ok, why = self.can_afford(price, quantity)
+            ok, why = self.can_afford(market_id, price, quantity)
             if not ok:
                 return False, why, None
         else:
-            ok, why = self.can_sell(market_id, outcome, quantity)
+            ok, why = self.can_sell(market_id, quantity)
             if not ok:
                 return False, why, None
 
@@ -342,7 +352,10 @@ class PolymarketAccount(BaseAccount):
         return self.cash_balance + position_value
 
     def get_total_value(self) -> float:
-        return self.evaluate()["portfolio_summary"]["total_value"]
+        evaluation = self.evaluate()
+        portfolio_summary = evaluation["portfolio_summary"]
+        total_value = portfolio_summary["total_value"]
+        return float(total_value)
 
     def get_trading_summary(self) -> Dict[str, Any]:
         buys = [t for t in self.transactions if t.action == "buy"]

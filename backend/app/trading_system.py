@@ -13,7 +13,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-import pytz
+import pytz  # type: ignore[import-untyped]
 
 # Add live_trade_bench to path before any runtime imports
 project_root = os.path.dirname(
@@ -93,7 +93,7 @@ class MultiAssetTradingSystem:
     both TradingSystem (stock_agent.py) and PolymarketTradingSystem (polymarket_agent.py)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Import the native trading systems using factory functions
         from live_trade_bench import (
             create_polymarket_trading_system,
@@ -192,7 +192,17 @@ class MultiAssetTradingSystem:
             "Multi-asset trading system initialized using native .run() methods"
         )
 
-    def _initialize_models(self):
+    @property
+    def stock_agents(self) -> List[str]:
+        """Return base model ids for stock agents (compat shim)."""
+        return list(self.active_stock_models.keys())
+
+    @property
+    def polymarket_agents(self) -> List[str]:
+        """Return base model ids for polymarket agents (compat shim)."""
+        return list(self.active_polymarket_models.keys())
+
+    def _initialize_models(self) -> None:
         """Initialize agents in both native trading systems"""
 
         # Initialize stock agents using native TradingSystem.add_agent()
@@ -223,7 +233,7 @@ class MultiAssetTradingSystem:
                 f"Initialized {model_name} in both stock and polymarket systems"
             )
 
-    def _update_news_cache(self):
+    def _update_news_cache(self) -> None:
         """Update the news cache in background"""
         try:
             # Import here to avoid circular imports
@@ -312,7 +322,7 @@ class MultiAssetTradingSystem:
         ).total_seconds()
         return time_since_update >= self.news_update_interval
 
-    def _update_social_cache(self):
+    def _update_social_cache(self) -> None:
         """Update the social media cache in background"""
         try:
             # Import here to avoid circular imports
@@ -404,8 +414,8 @@ class MultiAssetTradingSystem:
         ):
             agent_name = f"{model_config['name']} (Stock)"
             if agent_name in self.stock_system.agents:
-                stock_agent = self.stock_system.agents[agent_name]
-                stock_account = self.stock_system.accounts[agent_name]
+                stock_agent: Any = self.stock_system.agents[agent_name]
+                stock_account: Any = self.stock_system.accounts[agent_name]
 
                 try:
                     stock_evaluation = stock_account.evaluate()
@@ -443,8 +453,8 @@ class MultiAssetTradingSystem:
         ):
             agent_name = f"{model_config['name']} (Polymarket)"
             if agent_name in self.polymarket_system.agents:
-                polymarket_agent = self.polymarket_system.agents[agent_name]
-                polymarket_account = self.polymarket_system.accounts[agent_name]
+                polymarket_agent: Any = self.polymarket_system.agents[agent_name]
+                polymarket_account: Any = self.polymarket_system.accounts[agent_name]
 
                 try:
                     polymarket_evaluation = polymarket_account.evaluate()
@@ -487,7 +497,7 @@ class MultiAssetTradingSystem:
 
         return models_data
 
-    def _calculate_stock_accuracy(self, account) -> float:
+    def _calculate_stock_accuracy(self, account: Any) -> float:
         """Calculate stock trading accuracy"""
         total_trades = len(account.transactions)
         if total_trades == 0:
@@ -503,7 +513,7 @@ class MultiAssetTradingSystem:
         except Exception:
             return 0.0
 
-    def _calculate_polymarket_accuracy(self, account) -> float:
+    def _calculate_polymarket_accuracy(self, account: Any) -> float:
         """Calculate polymarket prediction accuracy"""
         total_trades = len(account.transactions)
         if total_trades == 0:
@@ -536,7 +546,7 @@ class MultiAssetTradingSystem:
         }
 
     def get_recent_actions(
-        self, model_id: str = None, hours: int = 24
+        self, model_id: Optional[str] = None, hours: int = 24
     ) -> List[Dict[str, Any]]:
         """Get recent trading actions from unified history"""
         cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
@@ -567,13 +577,23 @@ class MultiAssetTradingSystem:
                 from live_trade_bench import fetch_trending_stocks
 
                 trending_stocks = fetch_trending_stocks(limit=10)
-                return [s["ticker"] for s in trending_stocks]
+                # fetch_trending_stocks may return either a list of ticker strings
+                # or a list of dicts with 'ticker' keys depending on implementation.
+                if not trending_stocks:
+                    return []
+                first = trending_stocks[0]
+                if isinstance(first, str):
+                    return [s for s in trending_stocks]
+                elif isinstance(first, dict):
+                    return [s.get("ticker", "") for s in trending_stocks]
+                else:
+                    return []
         except Exception as e:
             logger.warning(f"Could not get stock tickers: {e}")
             # Ultimate fallback to ensure API doesn't break
             return ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META", "NVDA"]
 
-    def activate_model(self, model_id: str, category: str = None) -> bool:
+    def activate_model(self, model_id: str, category: Optional[str] = None) -> bool:
         """Activate a trading model for specific category or both"""
         base_model_id = model_id.replace("_stock", "").replace("_polymarket", "")
 
@@ -600,7 +620,7 @@ class MultiAssetTradingSystem:
 
         return False
 
-    def deactivate_model(self, model_id: str, category: str = None) -> bool:
+    def deactivate_model(self, model_id: str, category: Optional[str] = None) -> bool:
         """Deactivate a trading model for specific category or both"""
         base_model_id = model_id.replace("_stock", "").replace("_polymarket", "")
 
@@ -635,7 +655,7 @@ class MultiAssetTradingSystem:
             return True
         return False
 
-    def run_trading_cycle(self):
+    def run_trading_cycle(self) -> None:
         """Run one trading cycle using the native .run() methods"""
         cycle_start_time = datetime.now(timezone.utc)
         self.execution_stats["total_cycles"] += 1
@@ -698,7 +718,7 @@ class MultiAssetTradingSystem:
                 },
             )
 
-    def _run_stock_cycle_native(self):
+    def _run_stock_cycle_native(self) -> None:
         """Run stock cycle using native StockTradingSystem.run() - adapted for backend service"""
         try:
             # Check if market is open before running stock trading
@@ -724,7 +744,7 @@ class MultiAssetTradingSystem:
         except Exception as e:
             logger.error(f"Error in stock system .run(): {e}")
 
-    def _run_polymarket_cycle_native(self):
+    def _run_polymarket_cycle_native(self) -> None:
         """Run polymarket cycle using native PolymarketTradingSystem.run() - matching polymarket_demo.py"""
         try:
             logger.info("Running polymarket system using native .run() method")
@@ -747,9 +767,9 @@ class MultiAssetTradingSystem:
             if model_config:
                 agent_name = f"{model_config['name']} (Stock)"
                 if agent_name in self.stock_system.agents:
-                    agent = self.stock_system.agents[agent_name]
-                    account = self.stock_system.accounts[agent_name]
-                evaluation = account.evaluate()
+                    agent_stock: Any = self.stock_system.agents[agent_name]
+                    account_stock: Any = self.stock_system.accounts[agent_name]
+                    evaluation = account_stock.evaluate()
 
                 # Extract holdings and detailed position info for frontend compatibility
                 holdings = {}
@@ -757,7 +777,7 @@ class MultiAssetTradingSystem:
 
                 # Get active positions from account
                 try:
-                    active_positions = account.get_active_positions()
+                    active_positions = account_stock.get_active_positions()
                     for ticker, position in active_positions.items():
                         holdings[ticker] = position.quantity
                         positions[ticker] = {
@@ -772,9 +792,9 @@ class MultiAssetTradingSystem:
 
                 return {
                     "model_id": model_id,
-                    "model_name": agent.name,
+                    "model_name": agent_stock.name,
                     "category": "stock",
-                    "cash": account.cash_balance,
+                    "cash": account_stock.cash_balance,
                     "total_value": evaluation["portfolio_summary"]["total_value"],
                     "return_pct": evaluation["portfolio_summary"]["return_pct"],
                     "holdings": holdings,
@@ -794,9 +814,9 @@ class MultiAssetTradingSystem:
             if model_config:
                 agent_name = f"{model_config['name']} (Polymarket)"
                 if agent_name in self.polymarket_system.agents:
-                    agent = self.polymarket_system.agents[agent_name]
-                    account = self.polymarket_system.accounts[agent_name]
-                evaluation = account.evaluate()
+                    agent_poly: Any = self.polymarket_system.agents[agent_name]
+                    account_poly: Any = self.polymarket_system.accounts[agent_name]
+                    evaluation = account_poly.evaluate()
 
                 # Extract holdings and detailed position info for polymarket
                 holdings = {}
@@ -804,7 +824,7 @@ class MultiAssetTradingSystem:
 
                 # Get active positions from polymarket account
                 try:
-                    active_positions = account.get_active_positions()
+                    active_positions = account_poly.get_active_positions()
                     for market_id, position in active_positions.items():
                         holdings[market_id] = position.quantity
                         positions[market_id] = {
@@ -822,9 +842,9 @@ class MultiAssetTradingSystem:
 
                 return {
                     "model_id": model_id,
-                    "model_name": agent.name,
+                    "model_name": agent_poly.name,
                     "category": "polymarket",
-                    "cash": account.cash_balance,
+                    "cash": account_poly.cash_balance,
                     "total_value": evaluation["portfolio_summary"]["total_value"],
                     "return_pct": evaluation["portfolio_summary"]["return_pct"],
                     "holdings": holdings,
@@ -850,16 +870,16 @@ class MultiAssetTradingSystem:
         # Calculate total system performance from native systems
         for agent_name in self.stock_system.agents.keys():
             try:
-                account = self.stock_system.accounts[agent_name]
-                evaluation = account.evaluate()
+                stock_account = self.stock_system.accounts[agent_name]
+                evaluation = stock_account.evaluate()
                 total_stock_value += evaluation["portfolio_summary"]["total_value"]
             except Exception:
                 total_stock_value += self.stock_initial_cash
 
         for agent_name in self.polymarket_system.agents.keys():
             try:
-                account = self.polymarket_system.accounts[agent_name]
-                evaluation = account.evaluate()
+                polymarket_account = self.polymarket_system.accounts[agent_name]
+                evaluation = polymarket_account.evaluate()
                 total_polymarket_value += evaluation["portfolio_summary"]["total_value"]
             except Exception:
                 total_polymarket_value += self.polymarket_initial_cash
@@ -908,7 +928,7 @@ class MultiAssetTradingSystem:
             },
         }
 
-    def _add_execution_log(self, event_type: str, data: Dict[str, Any]):
+    def _add_execution_log(self, event_type: str, data: Dict[str, Any]) -> None:
         """Add entry to execution logs"""
         log_entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -923,7 +943,7 @@ class MultiAssetTradingSystem:
             self.execution_logs = self.execution_logs[-self.max_log_entries :]
 
     def get_execution_logs(
-        self, limit: int = 100, event_type: str = None
+        self, limit: int = 100, event_type: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Get recent execution logs"""
         logs = self.execution_logs
@@ -933,7 +953,7 @@ class MultiAssetTradingSystem:
 
         return sorted(logs, key=lambda x: x["timestamp"], reverse=True)[:limit]
 
-    def start_background_trading(self):
+    def start_background_trading(self) -> None:
         """Start background trading thread using native .run() methods"""
         if self.system_running:
             logger.warning("Multi-asset trading system already running")
@@ -948,14 +968,14 @@ class MultiAssetTradingSystem:
             "Multi-asset background trading started using native .run() methods"
         )
 
-    def stop_background_trading(self):
+    def stop_background_trading(self) -> None:
         """Stop background trading"""
         self.system_running = False
         if self.trading_thread:
             self.trading_thread.join(timeout=5)
         logger.info("Multi-asset background trading stopped")
 
-    def _background_trading_loop(self):
+    def _background_trading_loop(self) -> None:
         """Background trading loop using native .run() methods"""
         logger.info(
             f"Multi-asset trading loop started using native .run() methods with {self.cycle_interval//60} minute intervals"
@@ -1026,11 +1046,11 @@ def get_trading_system() -> MultiAssetTradingSystem:
     return trading_system
 
 
-def start_trading_system():
+def start_trading_system() -> None:
     """Start the multi-asset trading system using native .run() methods"""
     trading_system.start_background_trading()
 
 
-def stop_trading_system():
+def stop_trading_system() -> None:
     """Stop the multi-asset trading system"""
     trading_system.stop_background_trading()

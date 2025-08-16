@@ -21,7 +21,7 @@ from live_trade_bench.fetchers.reddit_fetcher import (  # noqa: E402
 )
 
 
-def main():
+def main() -> None:
     """Demonstrate Reddit data fetching functionality."""
 
     print("\n🔴 Reddit Live Data Fetching Demo")

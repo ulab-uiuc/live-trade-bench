@@ -63,7 +63,11 @@ class NewsFetcher(BaseFetcher):
                 for el in results_on_page:
                     try:
                         link_el = el.find("a")
-                        if not link_el or "href" not in link_el.attrs:
+                        if (
+                            not link_el
+                            or not hasattr(link_el, "attrs")
+                            or "href" not in link_el.attrs
+                        ):
                             continue
                         link = link_el["href"]
 
