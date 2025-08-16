@@ -179,7 +179,7 @@ class PolymarketAccount(BaseAccount):
         price = action.price
         quantity = action.quantity
         notes = notes or f"PolymarketAction from {action.timestamp}"
-        
+
         if trade_action not in {"buy", "sell"}:
             return False, f"Invalid action: {trade_action}", None
 

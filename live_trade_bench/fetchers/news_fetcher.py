@@ -62,11 +62,31 @@ class NewsFetcher(BaseFetcher):
 
                 for el in results_on_page:
                     try:
-                        link = el.find("a")["href"]
-                        title = el.select_one("div.MBeuO").get_text()
-                        snippet = el.select_one(".GI74Re").get_text()
-                        date = el.select_one(".LfVVr").get_text()
-                        source = el.select_one(".NUnG9d span").get_text()
+                        link_el = el.find("a")
+                        if not link_el or "href" not in link_el.attrs:
+                            continue
+                        link = link_el["href"]
+
+                        title_el = el.select_one("div.MBeuO")
+                        if not title_el:
+                            continue
+                        title = title_el.get_text()
+
+                        snippet_el = el.select_one(".GI74Re")
+                        if not snippet_el:
+                            continue
+                        snippet = snippet_el.get_text()
+
+                        date_el = el.select_one(".LfVVr")
+                        if not date_el:
+                            continue
+                        date = date_el.get_text()
+
+                        source_el = el.select_one(".NUnG9d span")
+                        if not source_el:
+                            continue
+                        source = source_el.get_text()
+
                         news_results.append(
                             {
                                 "link": link,

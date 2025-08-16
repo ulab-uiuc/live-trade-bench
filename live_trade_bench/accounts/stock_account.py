@@ -165,7 +165,7 @@ class StockAccount(BaseAccount):
         price = action.price
         quantity = action.quantity
         notes = notes or f"StockAction from {action.timestamp}"
-        
+
         if trade_action not in {"buy", "sell"}:
             return False, f"Invalid action: {trade_action}", None
 
@@ -208,7 +208,9 @@ class StockAccount(BaseAccount):
 
             # record
             self.transactions.append(tx)
+
             return True, f"{trade_action.title()} {quantity} {ticker} @ ${price:.3f}", tx
+
 
         except Exception as e:
             return False, f"Trade failed: {e}", None

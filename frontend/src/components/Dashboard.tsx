@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import ModelsDisplay from './ModelsDisplay';
-import SystemLog from './SystemLog';
 import SystemMonitoring from './SystemMonitoring';
 
 interface Model {
@@ -59,10 +58,6 @@ const Dashboard: React.FC<DashboardProps> = ({
           <SystemMonitoring />
         </div>
 
-        {/* System Logs - Bottom Right */}
-        <div className="system-log-section">
-          <SystemLog lastRefresh={lastRefresh} />
-        </div>
       </div>
     </div>
   );

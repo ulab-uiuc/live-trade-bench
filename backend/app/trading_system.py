@@ -228,6 +228,7 @@ class MultiAssetTradingSystem:
         try:
             # Import here to avoid circular imports
             from live_trade_bench.fetchers.news_fetcher import NewsFetcher
+            from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
 
             logger.info("Updating background news cache")
 
@@ -235,10 +236,20 @@ class MultiAssetTradingSystem:
             end_date = datetime.now()
             start_date = end_date - timedelta(days=7)
 
+            # Get trending stocks to use as search queries
+            trending_stocks = fetch_trending_stocks(limit=10)  # Get top 10 stocks
+
+            # Use trending stocks as search terms
+            stock_queries = (
+                " ".join(trending_stocks[:3]) if trending_stocks else "stock market"
+            )
+
+            logger.info(f"Fetching news for trending stocks: {stock_queries}")
+
             # Use NewsFetcher directly with correct method and parameters
             news_fetcher = NewsFetcher()
             news_articles = news_fetcher.fetch(
-                query="stock market",
+                query=stock_queries,
                 start_date=start_date.strftime("%Y-%m-%d"),
                 end_date=end_date.strftime("%Y-%m-%d"),
                 max_pages=3,  # Limit to first 3 pages for faster fetching
