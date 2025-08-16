@@ -1,9 +1,9 @@
 [tool.poetry]
-name = "trading-bench"
-version = "0.0.1"
-description = "A template for python-based research project"
+name = "live-trade-bench"
+version = "0.0.1b"
+description = "Live evaluation of trading agents"
 authors = ["Haofei Yu <yuhaofei44@gmail.com>"]
-license = "Apache 2.0 License"
+license = "MIT License"
 readme = "README.md"
 
 [tool.poetry.dependencies]

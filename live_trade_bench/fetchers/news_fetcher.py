@@ -10,7 +10,7 @@ from typing import Any, Dict, List
 
 from bs4 import BeautifulSoup
 
-from trading_bench.fetchers.base_fetcher import BaseFetcher
+from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
 
 class NewsFetcher(BaseFetcher):

@@ -10,7 +10,7 @@ from datetime import datetime
 
 import yfinance as yf
 
-from trading_bench.fetchers.base_fetcher import BaseFetcher
+from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
 
 class OptionFetcher(BaseFetcher):

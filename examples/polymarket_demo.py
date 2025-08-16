@@ -9,7 +9,7 @@ Each agent analyzes market conditions and makes trading decisions.
 import sys
 from pathlib import Path
 
-from trading_bench import PolymarketTradingSystem
+from live_trade_bench import PolymarketTradingSystem
 
 # Add project root to path
 project_root = Path(__file__).parent.parent

@@ -71,14 +71,14 @@ def get_real_trades_data(ticker: str = "NVDA", days: int = 7) -> list[Trade]:
     import sys
     from datetime import datetime, timedelta
 
-    # Add trading_bench to path
+    # Add live_trade_bench to path
     project_root = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
     sys.path.insert(0, project_root)
 
     try:
-        from trading_bench.fetchers.stock_fetcher import fetch_stock_data
+        from live_trade_bench.fetchers.stock_fetcher import fetch_stock_data
 
         # Calculate date range
         end_date = datetime.now() - timedelta(days=1)  # Yesterday
@@ -146,15 +146,15 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
     import sys
     from datetime import datetime, timedelta
 
-    # Add trading_bench to path
+    # Add live_trade_bench to path
     project_root = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
     sys.path.insert(0, project_root)
 
     try:
-        from trading_bench import fetch_trending_stocks
-        from trading_bench.fetchers.news_fetcher import fetch_news_data
+        from live_trade_bench import fetch_trending_stocks
+        from live_trade_bench.fetchers.news_fetcher import fetch_news_data
 
         # Calculate date range
         end_date = datetime.now()
@@ -351,14 +351,14 @@ def get_real_social_data(
 
     logging.getLogger("praw").setLevel(logging.ERROR)
 
-    # Add trading_bench to path
+    # Add live_trade_bench to path
     project_root = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
     sys.path.insert(0, project_root)
 
     try:
-        from trading_bench.fetchers.reddit_fetcher import (
+        from live_trade_bench.fetchers.reddit_fetcher import (
             fetch_top_from_category,
             get_available_categories,
         )
@@ -462,14 +462,14 @@ def get_real_polymarket_data(limit: int = 10) -> list[dict]:
     import sys
     from datetime import datetime
 
-    # Add trading_bench to path
+    # Add live_trade_bench to path
     project_root = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
     sys.path.insert(0, project_root)
 
     try:
-        from trading_bench import PolymarketFetcher
+        from live_trade_bench import PolymarketFetcher
 
         fetcher = PolymarketFetcher()
         markets = fetcher.fetch_markets(limit=limit)

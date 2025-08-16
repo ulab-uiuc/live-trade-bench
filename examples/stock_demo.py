@@ -8,7 +8,7 @@ This demo runs continuously, checking market hours and trading during open perio
 import sys
 from pathlib import Path
 
-from trading_bench import StockTradingSystem
+from live_trade_bench import StockTradingSystem
 
 # Add project root to path
 project_root = Path(__file__).parent.parent

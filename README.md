@@ -30,12 +30,12 @@ Trading agent evaluation in the live environment. We target at avoiding overfitt
 poetry install
 
 # Stock trading
-from trading_bench import LLMStockAgent, create_stock_account
+from live_trade_bench import LLMStockAgent, create_stock_account
 agent = LLMStockAgent("Trader")
 account = create_stock_account(10000.0)
 
 # Prediction markets
-from trading_bench import LLMPolyMarketAgent, fetch_trending_markets
+from live_trade_bench import LLMPolyMarketAgent, fetch_trending_markets
 agent = LLMPolyMarketAgent("Predictor")
 markets = fetch_trending_markets(5)
 ```
@@ -43,7 +43,7 @@ markets = fetch_trending_markets(5)
 ## Structure
 
 ```
-trading_bench/
+live_trade_bench/
 ├── agents/                     # AI trading agents
 │   ├── base_agent.py          # Base LLM agent class
 │   ├── stock_agent.py         # Stock trading agent
