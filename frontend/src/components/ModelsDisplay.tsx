@@ -177,10 +177,18 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
         {filteredModels.map(model => (
           <div key={model.id} className="model-card">
             <div className="model-header">
-              <h3 className="model-name">{model.name}</h3>
-              <span className={`model-category ${model.category}`}>
-                {getCategoryIcon(model.category)} {model.category}
-              </span>
+              <div className="model-title-row">
+                <h3 className="model-name">{model.name}</h3>
+                <span className={`model-category ${model.category}`}>
+                  {getCategoryIcon(model.category)} {model.category}
+                </span>
+              </div>
+              <button
+                onClick={() => setExpandedModel(expandedModel === model.id ? null : model.id)}
+                className="portfolio-toggle"
+              >
+                {expandedModel === model.id ? 'Hide Details' : 'View Details'}
+              </button>
             </div>
 
             <div className="model-status">
@@ -193,13 +201,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                   </span>
                 )}
               </div>
-              {model.llm_available !== undefined && (
-                <div className="llm-status">
-                  <span className={`llm-indicator ${model.llm_available ? 'available' : 'unavailable'}`}>
-                    {model.llm_available ? '🤖 LLM Available' : '⚠️ LLM Unavailable'}
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* Category-specific information */}
@@ -218,29 +219,14 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               )}
             </div>
 
-            <div className="model-metrics">
-              <div className="metric-item">
-                <span className="metric-label">Performance</span>
-                <span className={`metric-value ${model.performance >= 0 ? 'positive' : 'negative'}`}>
-                  {model.performance >= 0 ? '+' : ''}{model.performance.toFixed(1)}%
-                </span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-label">Accuracy</span>
-                <span className="metric-value">{model.accuracy.toFixed(1)}%</span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-label">Total Trades</span>
-                <span className="metric-value">{model.trades}</span>
-              </div>
+            {/* Simplified metrics - only P&L, Portfolio Value, Cash */}
+            <div className="model-metrics-simple">
               <div className="metric-item">
                 <span className="metric-label">Profit/Loss</span>
                 <span className={`metric-value ${model.profit >= 0 ? 'positive' : 'negative'}`}>
                   {model.profit >= 0 ? '+' : ''}${model.profit.toFixed(2)}
                 </span>
               </div>
-
-              {/* Enhanced Phase 2 Metrics */}
               {model.total_value !== undefined && (
                 <div className="metric-item">
                   <span className="metric-label">Portfolio Value</span>
@@ -253,54 +239,10 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                   <span className="metric-value">${model.cash_balance.toFixed(2)}</span>
                 </div>
               )}
-              {model.active_positions !== undefined && (
-                <div className="metric-item">
-                  <span className="metric-label">Positions</span>
-                  <span className="metric-value">{model.active_positions}</span>
-                </div>
-              )}
             </div>
 
-            {/* Recent Performance */}
-            {model.recent_performance && (
-              <div className="recent-performance">
-                <h4>Recent Activity</h4>
-                <div className="performance-metrics">
-                  <div className="perf-metric">
-                    <span className="perf-label">Daily Actions</span>
-                    <span className="perf-value">{model.recent_performance.daily_actions}</span>
-                  </div>
-                  <div className="perf-metric">
-                    <span className="perf-label">Weekly Actions</span>
-                    <span className="perf-value">{model.recent_performance.weekly_actions}</span>
-                  </div>
-                  <div className="perf-metric">
-                    <span className="perf-label">Recent Win Rate</span>
-                    <span className="perf-value">{model.recent_performance.recent_win_rate.toFixed(1)}%</span>
-                  </div>
-                  {model.recent_performance.last_action_time && (
-                    <div className="perf-metric">
-                      <span className="perf-label">Last Action</span>
-                      <span className="perf-value">
-                        {new Date(model.recent_performance.last_action_time).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
 
-            {/* Portfolio Toggle */}
-            <div className="model-actions">
-              <button
-                onClick={() => setExpandedModel(expandedModel === model.id ? null : model.id)}
-                className="portfolio-toggle"
-              >
-                {expandedModel === model.id ? 'Hide Portfolio' : 'View Portfolio'}
-              </button>
-            </div>
-
-            {/* Expanded Portfolio View */}
+            {/* Expanded Portfolio View - Holdings Only */}
             {expandedModel === model.id && (
               <div className="portfolio-section">
                 <Portfolio modelId={model.id} modelName={model.name} />

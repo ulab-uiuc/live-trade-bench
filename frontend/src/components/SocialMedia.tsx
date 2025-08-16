@@ -297,13 +297,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
       {/* Posts List */}
       <div style={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto' }}>
         {sortedPosts.map(post => (
-          <div key={post.id} className="social-post" style={{
-            border: `1px solid #e9ecef`,
-            borderRadius: '8px',
-            padding: '15px',
-            marginBottom: '10px',
-            background: 'white',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          <div key={post.id} className="news-item" style={{
             borderLeft: `4px solid ${getPlatformColor(post.platform)}`
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>

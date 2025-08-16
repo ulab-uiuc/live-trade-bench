@@ -171,8 +171,8 @@
 
 .models-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
 /* Model Card */
@@ -182,7 +182,7 @@
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1.5rem;
+  padding: 1rem;
   transition: all var(--transition-base);
   position: relative;
   overflow: hidden;
@@ -217,6 +217,12 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 1rem;
+}
+
+.model-title-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .model-name {
@@ -292,6 +298,34 @@
   margin-top: 1.25rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--border-color);
+}
+
+.model-metrics-simple {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.detailed-metrics {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.detailed-metrics h4 {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem 0;
+  font-weight: 600;
+}
+
+.portfolio-details h4 {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem 0;
+  font-weight: 600;
 }
 
 .metric-item {

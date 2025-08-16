@@ -31,27 +31,27 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
   const fetchTradingHistory = async () => {
     setLoading(true);
     try {
-      // Fetch real trading data instead of sample data
-      const response = await fetch('/api/trades/real?ticker=NVDA&days=7');
+      // Fetch real LLM trading actions from model-actions endpoint
+      const response = await fetch('/api/model-actions/?limit=100&hours=168');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
 
-      // Transform backend data to frontend format
-      const transformedTrades: Trade[] = data.map((trade: any) => ({
-        id: trade.id,
-        timestamp: new Date(trade.timestamp),
-        symbol: trade.symbol,
-        type: trade.type,
-        amount: trade.amount,
-        price: trade.price,
-        profit: trade.profit,
-        model: trade.model,
-        category: trade.category || 'stock',
-        status: trade.status || 'completed',
-        fees: trade.fees || 0,
-        totalValue: trade.amount * trade.price
+      // Transform model-actions data to Trade format
+      const transformedTrades: Trade[] = data.map((action: any) => ({
+        id: action.id,
+        timestamp: new Date(action.timestamp),
+        symbol: action.symbol,
+        type: action.action, // 'buy' or 'sell'
+        amount: action.quantity,
+        price: action.price,
+        profit: 0, // Calculate based on current portfolio value if needed
+        model: action.modelName,
+        category: action.category || 'stock',
+        status: action.status === 'executed' ? 'completed' : 'failed',
+        fees: 0, // Model actions don't include fees
+        totalValue: action.quantity * action.price
       }));
 
       setTradesData(transformedTrades);
@@ -268,13 +268,7 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
       {/* Trades List */}
       <div style={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto' }}>
         {sortedTrades.map(trade => (
-          <div key={trade.id} className="trade-item" style={{
-            border: `1px solid #e9ecef`,
-            borderRadius: '8px',
-            padding: '15px',
-            marginBottom: '10px',
-            background: 'white',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          <div key={trade.id} className="news-item" style={{
             borderLeft: `4px solid ${getTypeColor(trade.type)}`
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
