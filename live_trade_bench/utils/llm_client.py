@@ -25,7 +25,14 @@ def call_llm(
         import litellm
 
         # Check for API keys
-        if not os.getenv("OPENAI_API_KEY") and not os.getenv("ANTHROPIC_API_KEY"):
+        api_keys = [
+            os.getenv("OPENAI_API_KEY"),
+            os.getenv("ANTHROPIC_API_KEY"),
+            os.getenv("GEMINI_API_KEY"),
+            os.getenv("XAI_API_KEY"),
+            os.getenv("DEEPSEEK_API_KEY"),
+        ]
+        if not any(api_keys):
             return {"success": False, "content": "", "error": "No API key found"}
 
         # Ensure proper message format for OpenAI API
@@ -38,16 +45,21 @@ def call_llm(
                 {"role": msg["role"], "content": str(content)}  # Ensure it's a string
             )
 
-        # Call LLM with retry for different models
-        try:
-            response = litellm.completion(
-                model=model,
-                messages=formatted_messages,
-                temperature=0.3,
-                max_tokens=200,
-            )
-        except Exception as model_error:
-            raise model_error
+        # Call LLM with model-specific parameters
+        completion_params: Dict[str, Any] = {
+            "model": model,
+            "messages": formatted_messages,
+        }
+
+        # Handle GPT-5 specific requirements
+        if "gpt-5" in model.lower():
+            # GPT-5 only supports max_completion_tokens and default temperature
+            completion_params.update({"max_completion_tokens": 200})
+        else:
+            # All other models use standard parameters
+            completion_params.update({"temperature": 0.3, "max_tokens": 200})
+
+        response = litellm.completion(**completion_params)
 
         content = response.choices[0].message.content
         return {"success": True, "content": content, "error": None}

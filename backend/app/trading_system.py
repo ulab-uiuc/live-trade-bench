@@ -116,27 +116,39 @@ class MultiAssetTradingSystem:
         # Model configurations for multiple LLM models
         self.models_config = [
             {
-                "id": "claude-3.5-sonnet",
-                "name": "Claude 3.5 Sonnet",
-                "llm_model": "claude-3-5-sonnet-20241022",
+                "id": "claude-3.7-sonnet",
+                "name": "Claude 3.7 Sonnet",
+                "llm_model": "claude-3-7-sonnet-20250219",
             },
-            {"id": "gpt-5", "name": "GPT-5", "llm_model": "gpt-5"},
-            {"id": "gpt-4o", "name": "GPT-4o", "llm_model": "gpt-4o"},
             {
-                "id": "gemini-2.5-pro",
-                "name": "Gemini 2.5 Pro",
-                "llm_model": "gemini-2.5-pro",
+                "id": "gpt-5",
+                "name": "GPT-5",
+                "llm_model": "openai/gpt-5",
+            },
+            {
+                "id": "gpt-4o",
+                "name": "GPT-4o",
+                "llm_model": "openai/gpt-4o",
+            },
+            {
+                "id": "gemini-2.5-flash",
+                "name": "Gemini 2.5 Flash",
+                "llm_model": "gemini/gemini-2.5-flash",
             },
             {
                 "id": "claude-4-sonnet",
                 "name": "Claude 4 Sonnet",
                 "llm_model": "claude-sonnet-4-20250514",
             },
-            {"id": "grok-4", "name": "Grok 4", "llm_model": "grok-4-0709"},
+            {
+                "id": "grok-4",
+                "name": "Grok 4",
+                "llm_model": "xai/grok-4-0709",
+            },
             {
                 "id": "deepseek-chat",
                 "name": "Deepseek V3 (Chat)",
-                "llm_model": "deepseek-chat",
+                "llm_model": "deepseek/deepseek-chat",
             },
         ]
 
