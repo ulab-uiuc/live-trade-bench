@@ -69,7 +69,7 @@ class NewsFetcher(BaseFetcher):
                             or "href" not in link_el.attrs
                         ):
                             continue
-                        link = link_el["href"]
+                        link = link_el.attrs["href"]
 
                         title_el = el.select_one("div.MBeuO")
                         if not title_el:
