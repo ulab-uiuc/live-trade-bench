@@ -208,11 +208,9 @@ class StockAccount(BaseAccount):
 
             # record
             self.transactions.append(tx)
-            return (
-                True,
-                f"{trade_action.title()} {quantity} {ticker} @ ${price:.3f}",
-                tx,
-            )
+
+            return True, f"{trade_action.title()} {quantity} {ticker} @ ${price:.3f}", tx
+
 
         except Exception as e:
             return False, f"Trade failed: {e}", None
