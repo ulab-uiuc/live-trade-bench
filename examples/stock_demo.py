@@ -15,7 +15,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 
-def main():
+def main() -> None:
     """Multi-stock AI trading demo"""
     print("📈 Multi-Stock AI Trading Demo")
     print("=" * 60)

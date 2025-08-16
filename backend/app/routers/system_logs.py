@@ -1,4 +1,6 @@
-from app.schemas import Portfolio, SystemLogStats
+from typing import Any, Dict, List
+
+from app.schemas import SystemLogStats
 from app.trading_system import get_trading_system
 from fastapi import APIRouter, HTTPException, Query
 
@@ -18,7 +20,7 @@ async def get_system_log(
     hours: int = Query(
         default=24, ge=1, le=168, description="Number of hours to look back"
     ),
-):
+) -> List[Dict[str, Any]]:
     """Get real system log data from trading operations."""
     try:
         trading_system = get_trading_system()
@@ -46,7 +48,7 @@ async def get_system_log(
 
 
 @router.get("/stats", response_model=SystemLogStats)
-async def get_system_log_stats():
+async def get_system_log_stats() -> SystemLogStats:
     """Get system log statistics for trading actions."""
     try:
         trading_system = get_trading_system()
@@ -90,14 +92,18 @@ async def get_system_log_stats():
 
 
 @router.get("/portfolios")
-async def get_all_portfolios():
+async def get_all_portfolios() -> Dict[str, Any]:
     """Get portfolios for all trading models."""
     try:
         trading_system = get_trading_system()
         portfolios = {}
 
         # Get portfolios from trading system
-        for model_id in trading_system.agents.keys():
+        all_agents = {
+            **trading_system.stock_system.agents,
+            **trading_system.polymarket_system.agents,
+        }
+        for model_id in all_agents.keys():
             try:
                 portfolio_data = trading_system.get_portfolio(model_id)
                 portfolios[model_id] = portfolio_data
@@ -114,22 +120,22 @@ async def get_all_portfolios():
 
 
 @router.get("/portfolios/{model_id}")
-async def get_portfolio(model_id: str):
+async def get_portfolio(model_id: str) -> Dict[str, Any]:
     """Get portfolio for a specific trading model."""
     try:
         trading_system = get_trading_system()
 
-        if model_id not in trading_system.agents:
+        all_agents = {
+            **trading_system.stock_system.agents,
+            **trading_system.polymarket_system.agents,
+        }
+        if model_id not in all_agents:
             raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
 
         portfolio_data = trading_system.get_portfolio(model_id)
 
-        # Convert to Portfolio schema format
-        portfolio = Portfolio(
-            cash=portfolio_data["cash"], holdings=portfolio_data["holdings"]
-        )
-
-        return portfolio
+        # Return portfolio data as dictionary
+        return {"cash": portfolio_data["cash"], "holdings": portfolio_data["holdings"]}
 
     except HTTPException:
         raise

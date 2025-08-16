@@ -2,6 +2,7 @@ import atexit
 import logging
 import os
 import time
+from typing import Any, Callable, Dict
 
 from app.routers import (
     model_actions,
@@ -31,7 +32,7 @@ app = FastAPI(
 
 # Add request logging middleware
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
+async def log_requests(request: Request, call_next: Callable[[Request], Any]) -> Any:
     start_time = time.time()
 
     # Log incoming request
@@ -86,7 +87,7 @@ app.include_router(polymarket.router)
 
 
 @app.get("/api")
-async def api_root():
+async def api_root() -> Dict[str, Any]:
     """API information endpoint."""
     return {
         "message": "Live Trade Bench API",
@@ -106,20 +107,20 @@ async def api_root():
 
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> Dict[str, Any]:
     """Health check endpoint."""
     return {"status": "healthy", "message": "API is running"}
 
 
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
     """Initialize trading system on startup."""
     logger.info("Starting Live Trade Bench API with AI trading system")
     start_trading_system()
 
 
 @app.on_event("shutdown")
-async def shutdown_event():
+async def shutdown_event() -> None:
     """Cleanup on shutdown."""
     logger.info("Shutting down trading system")
     stop_trading_system()
@@ -142,7 +143,7 @@ app.mount(
 
 # Catch-all route for React Router (must be last)
 @app.get("/{full_path:path}")
-async def serve_frontend(full_path: str):
+async def serve_frontend(full_path: str) -> Any:
     """Serve React frontend for all non-API routes."""
     # Don't serve frontend for API routes
     if (

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from ..accounts import StockAccount, create_stock_account
 from ..fetchers.stock_fetcher import fetch_current_stock_price, fetch_trending_stocks
@@ -33,7 +33,7 @@ class StockTradingSystem:
                 out[t] = float(p)
         return out
 
-    def run_cycle(self) -> Dict[str, any]:
+    def run_cycle(self) -> Dict[str, Any]:
         prices = self._fetch_prices()
         trades = 0
         for name, agent in self.agents.items():

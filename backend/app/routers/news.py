@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any, Dict, List
 
 from app.data import get_real_news_data
 from app.schemas import NewsCategory, NewsImpact
@@ -19,7 +20,7 @@ async def get_news(
     category: NewsCategory | None = Query(default=None),
     impact: NewsImpact | None = Query(default=None),
     hours: int | None = Query(default=None, ge=1, le=168),  # Last X hours (max 1 week)
-):
+) -> List[Dict[str, Any]]:
     """Get cached news articles with optional filtering and pagination."""
     try:
         # Get cached news from trading system instead of fetching on-demand
@@ -65,7 +66,7 @@ async def search_news(
         default=7, ge=1, le=30, description="Number of days to look back"
     ),
     limit: int = Query(default=20, ge=1, le=100),
-):
+) -> Dict[str, Any]:
     """Search real news articles by query."""
     try:
         news = get_real_news_data(query=query, days=days)

@@ -6,7 +6,7 @@ from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
 from ..accounts import BaseAccount
 
 ActionType = TypeVar("ActionType")
-AccountType = TypeVar("AccountType", bound=BaseAccount)
+AccountType = TypeVar("AccountType", bound=BaseAccount[Any, Any, Any])
 DataType = TypeVar("DataType")
 
 
@@ -56,7 +56,7 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
                 action = self._create_action_from_response(parsed, _id, price)
                 if action:
                     print(
-                        f"🤖 {self.name} ({_id}): {action.action.upper()} {action.quantity} {getattr(action, 'outcome', 'shares').upper()}"
+                        f"🤖 {self.name} ({_id}): {getattr(action, 'action', '').upper()} {getattr(action, 'quantity', 0)} {getattr(action, 'outcome', 'shares').upper()}"
                     )
                 else:
                     # hold

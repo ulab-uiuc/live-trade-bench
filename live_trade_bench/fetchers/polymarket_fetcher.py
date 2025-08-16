@@ -8,7 +8,7 @@ Exports:
 4) fetch_token_price()       - Convenience wrapper
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
@@ -20,7 +20,9 @@ class PolymarketFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 0.5, max_delay: float = 1.5):
         super().__init__(min_delay, max_delay)
 
-    def fetch(self, mode: str, **kwargs):
+    def fetch(
+        self, mode: str, **kwargs: Any
+    ) -> Union[List[Dict[str, Any]], Dict[str, Any], Optional[float]]:
         if mode == "trending_markets":
             return self.get_trending_markets(limit=kwargs.get("limit", 10))
         if mode == "market_price":

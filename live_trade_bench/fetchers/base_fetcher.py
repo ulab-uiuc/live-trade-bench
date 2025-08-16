@@ -8,9 +8,9 @@ containing common functionality like retry logic, rate limiting, and error handl
 import random
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional
 
-import requests
+import requests  # type: ignore[import-untyped]
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -55,9 +55,12 @@ class BaseFetcher(ABC):
         time.sleep(random.uniform(self.min_delay, self.max_delay))
 
     @staticmethod
-    def is_rate_limited(response: requests.Response) -> bool:
+    def is_rate_limited(response: Any) -> bool:
         """Check if the response indicates rate limiting."""
-        return response.status_code == 429
+        try:
+            return getattr(response, "status_code", None) == 429
+        except Exception:
+            return False
 
     @retry(
         retry=retry_if_result(lambda resp: BaseFetcher.is_rate_limited(resp)),
@@ -65,7 +68,7 @@ class BaseFetcher(ABC):
         stop=stop_after_attempt(5),
     )
     def make_request(
-        self, url: str, headers: Union[Dict[str, str], None] = None, **kwargs
+        self, url: str, headers: Optional[Dict[str, str]] = None, **kwargs: Any
     ) -> requests.Response:
         """
         Make a request with retry logic for rate limiting.
@@ -91,7 +94,7 @@ class BaseFetcher(ABC):
         wait=wait_exponential(multiplier=1, min=2, max=30),
         stop=stop_after_attempt(3),
     )
-    def execute_with_retry(self, func, *args, **kwargs) -> Any:
+    def execute_with_retry(self, func: Any, *args: Any, **kwargs: Any) -> Any:
         """
         Execute a function with retry logic.
 
@@ -141,7 +144,7 @@ class BaseFetcher(ABC):
             raise RuntimeError(f"{context} JSON parsing failed: {e}")
 
     @abstractmethod
-    def fetch(self, *args, **kwargs) -> Any:
+    def fetch(self, *args: Any, **kwargs: Any) -> Any:
         """
         Abstract method that all fetchers must implement.
 
@@ -155,10 +158,10 @@ class BaseFetcher(ABC):
         # Default implementation does nothing
         pass
 
-    def __enter__(self):
+    def __enter__(self) -> "BaseFetcher":
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit with cleanup."""
         self.cleanup()

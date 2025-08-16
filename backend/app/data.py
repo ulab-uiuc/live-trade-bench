@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Optional
+
 from app.schemas import (
     ModelCategory,
     ModelStatus,
@@ -78,25 +80,51 @@ def get_real_trades_data(ticker: str = "NVDA", days: int = 7) -> list[Trade]:
     sys.path.insert(0, project_root)
 
     try:
-        from live_trade_bench.fetchers.stock_fetcher import fetch_stock_data
+        from live_trade_bench.fetchers.stock_fetcher import StockFetcher
 
         # Calculate date range
         end_date = datetime.now() - timedelta(days=1)  # Yesterday
         start_date = end_date - timedelta(days=days)
 
-        # Fetch real stock data
-        price_data = fetch_stock_data(
+        # Fetch real stock data (StockFetcher returns a pandas DataFrame)
+        fetcher = StockFetcher()
+        price_df = fetcher.fetch_stock_data(
             ticker=ticker,
             start_date=start_date.strftime("%Y-%m-%d"),
             end_date=(end_date + timedelta(days=1)).strftime("%Y-%m-%d"),
-            resolution="D",
+            interval="1d",
         )
-        if not price_data:
-            print("No price data available for the specified ticker and date range.")
-            return []
+
+        # If a DataFrame was returned, convert to dict keyed by ISO date strings
+        try:
+            # Defer import to avoid adding pandas to top-level if not installed
+            import pandas as pd
+
+            if isinstance(price_df, pd.DataFrame):
+                # Ensure the index is dates and convert to dict with date strings
+                df = price_df.copy()
+                if df.index.dtype != object:
+                    df.index = df.index.astype(str)
+                price_data: Dict[str, Dict[str, Any]] = df.to_dict(orient="index")
+            elif isinstance(price_df, dict):
+                price_data = price_df
+            else:
+                print(
+                    "No price data available for the specified ticker and date range."
+                )
+                return []
+        except Exception:
+            # Fallback if pandas is not available or conversion fails
+            if isinstance(price_df, dict):
+                price_data = price_df
+            else:
+                print(
+                    "No price data available for the specified ticker and date range."
+                )
+                return []
 
         # Convert price data to trade records
-        trades = []
+        trades: List[Trade] = []
         dates = sorted(price_data.keys())
 
         for i, date_str in enumerate(dates):
@@ -169,12 +197,10 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
                 trending_stocks = fetch_trending_stocks(
                     limit=10
                 )  # Use top 10 stocks for news
-                print(
-                    f"📰 Fetching news for trending stocks: {[s['ticker'] for s in trending_stocks]}"
-                )
+                print(f"📰 Fetching news for trending stocks: {trending_stocks}")
 
-                for stock in trending_stocks:
-                    stock_query = f"{stock['ticker']} {stock['name']} stock"
+                for ticker in trending_stocks:
+                    stock_query = f"{ticker} stock"
                     print(f"📰 Searching news for: {stock_query}")
 
                     try:
@@ -186,7 +212,7 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
                         )
                         raw_news.extend(stock_news)
                     except Exception as e:
-                        print(f"⚠️ Error fetching news for {stock['ticker']}: {e}")
+                        print(f"⚠️ Error fetching news for {ticker}: {e}")
                         continue
 
                 # Also add general market news
@@ -263,8 +289,12 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
                 if query == "stock market":
                     try:
                         trending_stocks = fetch_trending_stocks(limit=10)
-                        stock_tickers = [s["ticker"] for s in trending_stocks]
-                        stock_names = [s["name"].lower() for s in trending_stocks]
+                        stock_tickers = (
+                            trending_stocks  # Already a list of ticker strings
+                        )
+                        stock_names = [
+                            ticker.lower() for ticker in trending_stocks
+                        ]  # Use tickers as names
 
                         if any(
                             ticker in title_lower or ticker in snippet_lower
@@ -335,8 +365,8 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
 
 
 def get_real_social_data(
-    category: str = "all", query: str = None, days: int = 7
-) -> list[dict]:
+    category: str = "all", query: Optional[str] = None, days: int = 7
+) -> List[Dict[str, Any]]:
     """Get real social media data from Reddit across all categories."""
     import os
     import sys
@@ -456,7 +486,7 @@ def get_real_social_data(
         raise Exception(f"Unable to fetch social media data: {e}")
 
 
-def get_real_polymarket_data(limit: int = 10) -> list[dict]:
+def get_real_polymarket_data(limit: int = 10) -> List[Dict[str, Any]]:
     """Get real polymarket data from Polymarket API."""
     import os
     import sys
@@ -469,17 +499,17 @@ def get_real_polymarket_data(limit: int = 10) -> list[dict]:
     sys.path.insert(0, project_root)
 
     try:
-        from live_trade_bench import PolymarketFetcher
+        from live_trade_bench.fetchers.polymarket_fetcher import PolymarketFetcher
 
         fetcher = PolymarketFetcher()
-        markets = fetcher.fetch_markets(limit=limit)
+        markets = fetcher.get_trending_markets(limit=limit)
 
         if not markets:
             # Return empty list if no real data
             return []
 
         # Enhanced market data for frontend compatibility
-        enhanced_markets = []
+        enhanced_markets: list[dict[str, Any]] = []
         for market in markets:
             if not market.get("id"):
                 continue
@@ -514,7 +544,7 @@ def get_real_polymarket_data(limit: int = 10) -> list[dict]:
         return []
 
 
-def get_sample_polymarket_data() -> list[dict]:
+def get_sample_polymarket_data() -> List[Dict[str, Any]]:
     """Get sample polymarket data for testing when real API is not available."""
     import random
     from datetime import datetime, timedelta
@@ -567,10 +597,13 @@ def get_sample_polymarket_data() -> list[dict]:
     # Normalize prices so they sum to ~1
     for market in sample_markets:
         outcomes = market["outcomes"]
-        if len(outcomes) == 2:
-            total_price = sum(o["price"] for o in outcomes)
+        if isinstance(outcomes, list) and len(outcomes) == 2:
+            total_price = sum(
+                o["price"] for o in outcomes if isinstance(o, dict) and "price" in o
+            )
             if total_price > 0:
                 for outcome in outcomes:
-                    outcome["price"] = outcome["price"] / total_price
+                    if isinstance(outcome, dict) and "price" in outcome:
+                        outcome["price"] = outcome["price"] / total_price
 
     return sample_markets

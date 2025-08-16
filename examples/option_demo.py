@@ -13,7 +13,7 @@ from live_trade_bench.fetchers.option_fetcher import (
 )
 
 
-def main():
+def main() -> None:
     """Demonstrate option data fetching functionality."""
 
     ticker = "AAPL"
@@ -113,7 +113,7 @@ def main():
         print(f"Error: {e}")
 
 
-def demonstrate_historical_data():
+def demonstrate_historical_data() -> None:
     """Demonstrate historical option data fetching."""
 
     print("\n" + "=" * 60)

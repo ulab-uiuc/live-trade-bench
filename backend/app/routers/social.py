@@ -1,3 +1,5 @@
+from typing import Any, Dict, List
+
 from app.trading_system import get_trading_system
 from fastapi import APIRouter, HTTPException, Query
 
@@ -16,7 +18,7 @@ async def get_social_posts(
     days: int = Query(
         default=7, ge=1, le=30, description="Number of days to look back"
     ),
-):
+) -> List[Dict[str, Any]]:
     """Get cached social media data from Reddit."""
     try:
         # Get cached social data from trading system instead of fetching on-demand

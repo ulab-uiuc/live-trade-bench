@@ -3,6 +3,7 @@ Model Actions Router - Provides real trading actions from AI agents
 """
 
 import logging
+from typing import Any, Dict, List
 
 from app.trading_system import get_trading_system
 from fastapi import APIRouter, HTTPException, Query
@@ -21,7 +22,7 @@ async def get_model_actions(
     hours: int = Query(
         default=24, ge=1, le=168, description="Hours of history to include"
     ),
-):
+) -> List[Dict[str, Any]]:
     """Get recent trading actions from AI agents"""
     try:
         trading_system = get_trading_system()
@@ -91,7 +92,7 @@ async def get_model_actions_stats(
     hours: int = Query(
         default=24, ge=1, le=168, description="Hours of history to analyze"
     )
-):
+) -> Dict[str, Any]:
     """Get statistics about model actions"""
     try:
         trading_system = get_trading_system()
@@ -138,7 +139,7 @@ async def get_model_specific_actions(
     model_id: str,
     limit: int = Query(default=20, ge=1, le=100),
     hours: int = Query(default=24, ge=1, le=168),
-):
+) -> Dict[str, Any]:
     """Get actions for a specific model"""
     try:
         trading_system = get_trading_system()

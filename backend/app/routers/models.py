@@ -1,3 +1,5 @@
+from typing import Any, Dict, List
+
 from app.data import get_real_models_data
 from app.schemas import TradingModel
 from app.trading_system import get_trading_system
@@ -7,7 +9,7 @@ router = APIRouter(prefix="/api/models", tags=["models"])
 
 
 @router.get("/", response_model=list[TradingModel])
-async def get_models():
+async def get_models() -> List[TradingModel]:
     """Get real LLM trading models with performance from actual predictions."""
     try:
         models = get_real_models_data()
@@ -17,7 +19,7 @@ async def get_models():
 
 
 @router.post("/trigger-cycle")
-async def trigger_trading_cycle():
+async def trigger_trading_cycle() -> Dict[str, Any]:
     """Manually trigger a trading cycle for all models."""
     try:
         trading_system = get_trading_system()
@@ -37,7 +39,7 @@ async def trigger_trading_cycle():
 
 
 @router.get("/system-status")
-async def get_system_status():
+async def get_system_status() -> Dict[str, Any]:
     """Get multi-asset trading system status and configuration."""
     try:
         trading_system = get_trading_system()
@@ -121,7 +123,7 @@ async def set_cycle_interval(
     minutes: int = Query(
         ..., ge=1, le=1440, description="Cycle interval in minutes (1-1440)"
     )
-):
+) -> Dict[str, Any]:
     """Set the trading cycle interval."""
     try:
         trading_system = get_trading_system()
@@ -152,7 +154,7 @@ async def get_execution_logs(
         default=50, ge=1, le=500, description="Number of log entries to return"
     ),
     event_type: str = Query(default=None, description="Filter by event type"),
-):
+) -> Dict[str, Any]:
     """Get execution logs from the trading system."""
     try:
         trading_system = get_trading_system()
@@ -172,7 +174,7 @@ async def get_execution_logs(
 
 
 @router.get("/system-metrics")
-async def get_system_metrics():
+async def get_system_metrics() -> Dict[str, Any]:
     """Get comprehensive system performance metrics."""
     try:
         trading_system = get_trading_system()
@@ -187,7 +189,7 @@ async def get_system_metrics():
 
 
 @router.get("/{model_id}", response_model=TradingModel)
-async def get_model(model_id: str):
+async def get_model(model_id: str) -> TradingModel:
     """Get a specific real trading model by ID."""
     try:
         models = get_real_models_data()
@@ -202,7 +204,7 @@ async def get_model(model_id: str):
 
 
 @router.get("/{model_id}/performance")
-async def get_model_performance(model_id: str):
+async def get_model_performance(model_id: str) -> Dict[str, Any]:
     """Get detailed performance metrics for a specific real model."""
     try:
         models = get_real_models_data()
@@ -233,7 +235,7 @@ async def get_model_performance(model_id: str):
 
 
 @router.post("/{model_id}/activate")
-async def activate_model(model_id: str):
+async def activate_model(model_id: str) -> Dict[str, Any]:
     """Activate a trading model (handles both stock and polymarket)."""
     try:
         trading_system = get_trading_system()
@@ -269,7 +271,7 @@ async def activate_model(model_id: str):
 
 
 @router.post("/{model_id}/deactivate")
-async def deactivate_model(model_id: str):
+async def deactivate_model(model_id: str) -> Dict[str, Any]:
     """Deactivate a trading model (handles both stock and polymarket)."""
     try:
         trading_system = get_trading_system()
@@ -307,7 +309,7 @@ async def deactivate_model(model_id: str):
 
 
 @router.get("/{model_id}/portfolio")
-async def get_model_portfolio(model_id: str):
+async def get_model_portfolio(model_id: str) -> Dict[str, Any]:
     """Get portfolio data for a specific model (both stock and polymarket)."""
     try:
         trading_system = get_trading_system()
