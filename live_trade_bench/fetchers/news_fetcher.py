@@ -90,6 +90,7 @@ class NewsFetcher(BaseFetcher):
                         if not source_el:
                             continue
                         source = source_el.get_text()
+
                         news_results.append(
                             {
                                 "link": link,
