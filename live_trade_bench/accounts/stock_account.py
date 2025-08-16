@@ -248,9 +248,11 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction, "StockAction"]):
                     "total_value": total,
                     "unrealized_pnl": 0.0,
                     "total_return": total_ret,
-                    "return_pct": (total_ret / self.initial_cash * 100.0)
-                    if self.initial_cash > 0
-                    else 0.0,
+                    "return_pct": (
+                        (total_ret / self.initial_cash * 100.0)
+                        if self.initial_cash > 0
+                        else 0.0
+                    ),
                 },
                 "tickers": [],
                 "account_summary": self.get_trading_summary(),
