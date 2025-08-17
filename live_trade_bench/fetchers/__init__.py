@@ -2,6 +2,8 @@
 Fetchers Package - Data fetching utilities for various financial markets
 """
 
+from typing import TYPE_CHECKING
+
 from .base_fetcher import BaseFetcher
 from .news_fetcher import NewsFetcher
 from .polymarket_fetcher import (
@@ -10,27 +12,38 @@ from .polymarket_fetcher import (
     fetch_trending_markets,
 )
 
-# Optional imports with graceful degradation
-try:
+if TYPE_CHECKING:
+    # Optional imports for type checking only
     from .option_fetcher import OptionFetcher
-except ImportError:
-    OptionFetcher = None
-
-try:
+    from .reddit_fetcher import RedditFetcher
     from .stock_fetcher import (
         StockFetcher,
         fetch_current_stock_price,
         fetch_trending_stocks,
     )
-except ImportError:
-    StockFetcher = None
-    fetch_trending_stocks = None
-    fetch_current_stock_price = None
+else:
+    # Runtime imports - try but degrade gracefully
+    try:
+        from .option_fetcher import OptionFetcher  # type: ignore
+    except Exception:
+        OptionFetcher = None  # type: ignore
 
-try:
-    from .reddit_fetcher import RedditFetcher
-except ImportError:
-    RedditFetcher = None
+    try:
+        from .stock_fetcher import (
+            StockFetcher,
+            fetch_current_stock_price,
+            fetch_trending_stocks,
+        )
+    except Exception:
+        StockFetcher = None  # type: ignore
+        fetch_trending_stocks = None  # type: ignore
+        fetch_current_stock_price = None  # type: ignore
+
+    try:
+        from .reddit_fetcher import RedditFetcher  # type: ignore
+    except Exception:
+        RedditFetcher = None  # type: ignore
+
 
 # Export only the classes and main functions that are actually used
 __all__ = [
@@ -41,7 +54,6 @@ __all__ = [
     "fetch_current_market_price",
 ]
 
-# Add optional exports only if they're available
 if OptionFetcher is not None:
     __all__.append("OptionFetcher")
 

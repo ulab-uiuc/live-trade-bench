@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any, Dict, List
 
 from app.data import get_real_trades_data
 from app.schemas import Trade, TradingSummary
@@ -17,7 +18,7 @@ async def get_trades(
     offset: int = Query(default=0, ge=0),
     symbol: str | None = Query(default=None),
     model: str | None = Query(default=None),
-):
+) -> List[Trade]:
     """Get real trading history with optional filtering and pagination."""
     try:
         trades = get_real_trades_data(ticker=ticker, days=days)
@@ -47,7 +48,7 @@ async def get_trading_summary(
     days: int = Query(
         default=7, ge=1, le=30, description="Number of days of trading data"
     ),
-):
+) -> TradingSummary:
     """Get real trading performance summary."""
     try:
         trades = get_real_trades_data(ticker=ticker, days=days)
@@ -94,7 +95,7 @@ async def get_trading_stats(
     days: int = Query(
         default=7, ge=1, le=30, description="Number of days of trading data"
     ),
-):
+) -> Dict[str, Any]:
     """Get detailed real trading statistics."""
     try:
         trades = get_real_trades_data(ticker=ticker, days=days)
@@ -154,7 +155,7 @@ async def get_trades_by_symbol(
     days: int = Query(
         default=7, ge=1, le=30, description="Number of days of trading data"
     ),
-):
+) -> Dict[str, Any]:
     """Get all real trades for a specific symbol."""
     try:
         trades = get_real_trades_data(ticker=symbol, days=days)
@@ -199,7 +200,7 @@ async def get_trades_by_model(
     days: int = Query(
         default=7, ge=1, le=30, description="Number of days of trading data"
     ),
-):
+) -> Dict[str, Any]:
     """Get all real trades for a specific model."""
     try:
         trades = get_real_trades_data(ticker=ticker, days=days)
@@ -243,7 +244,7 @@ async def get_real_trades(
     days: int = Query(
         default=7, ge=1, le=30, description="Number of days of trading data"
     ),
-):
+) -> List[Trade]:
     """Get real trading data by fetching stock prices."""
     try:
         real_trades = get_real_trades_data(ticker=ticker, days=days)

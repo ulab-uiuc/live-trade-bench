@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Sequence, TypeVar, Union
+from typing import Any, Dict, List, Sequence, TypeVar, Union, cast
 
 
 @dataclass
@@ -19,7 +19,7 @@ class StockAction:
     quantity: float = 1.0
     confidence: float = 0.5
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate stock action fields."""
         if self.action.lower() not in ("buy", "sell"):
             raise ValueError(f"Invalid action: {self.action}")
@@ -41,7 +41,7 @@ class PolymarketAction:
     quantity: float = 1.0
     confidence: float = 0.5
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate polymarket action fields."""
         if self.outcome.lower() not in ("yes", "no"):
             raise ValueError(f"Invalid outcome: {self.outcome}")
@@ -60,7 +60,8 @@ T = TypeVar("T", StockAction, PolymarketAction)
 
 
 def parse_actions(
-    actions: Union[str, dict, List[dict], Sequence[T]], action_type: type[T]
+    actions: Union[str, Dict[str, Any], List[Dict[str, Any]], Sequence[T]],
+    action_type: type[T],
 ) -> List[T]:
     """
     Parse actions from various input formats into Action class instances.
@@ -86,7 +87,7 @@ def parse_actions(
 
         # If already Action instances, return as-is
         if actions and isinstance(actions[0], action_type):
-            return list(actions)
+            return list(cast(Sequence[T], actions))
 
         # Validate actions is a list
         if not isinstance(actions, (list, tuple)):
@@ -95,7 +96,7 @@ def parse_actions(
             )
 
         # Convert dicts to Action instances
-        result = []
+        result: List[T] = []
         for i, action in enumerate(actions):
             if isinstance(action, action_type):
                 result.append(action)
@@ -110,7 +111,7 @@ def parse_actions(
                                 timestamp=action["timestamp"],
                                 price=action.get("price", 0.0),
                                 quantity=action.get("quantity", 1.0),
-                            )
+                            )  # type: ignore[arg-type]
                         )
                     elif action_type == PolymarketAction:
                         result.append(
@@ -122,7 +123,7 @@ def parse_actions(
                                 price=action["price"],
                                 quantity=action.get("quantity", 1.0),
                                 confidence=action.get("confidence", 0.5),
-                            )
+                            )  # type: ignore[arg-type]
                         )
                     else:
                         raise ValueError(f"Unsupported action type: {action_type}")
@@ -156,9 +157,9 @@ def validate_stock_action(action: StockAction) -> bool:
     try:
         # Basic validation (post_init already handles field validation)
         return (
-            action.ticker
+            bool(action.ticker.strip())
             and action.action.lower() in ("buy", "sell")
-            and action.timestamp
+            and bool(action.timestamp.strip())
             and action.price > 0
             and action.quantity > 0
         )
@@ -179,10 +180,10 @@ def validate_polymarket_action(action: PolymarketAction) -> bool:
     try:
         # Basic validation (post_init already handles field validation)
         return (
-            action.market_id
+            bool(action.market_id.strip())
             and action.outcome.lower() in ("yes", "no")
             and action.action.lower() in ("buy", "sell")
-            and action.timestamp
+            and bool(action.timestamp.strip())
             and 0 <= action.price <= 1
             and action.quantity > 0
             and 0 <= action.confidence <= 1

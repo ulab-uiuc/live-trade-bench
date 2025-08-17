@@ -99,7 +99,7 @@ class StockTransaction:
 
 
 @dataclass
-class StockAccount(BaseAccount):
+class StockAccount(BaseAccount[StockPosition, StockTransaction, "StockAction"]):
     """
     Stock trading account.
 
@@ -129,7 +129,9 @@ class StockAccount(BaseAccount):
 
     # ----------- Trading -----------
 
-    def can_afford(self, price: float, quantity: float) -> Tuple[bool, str]:
+    def can_afford(
+        self, ticker: str, price: float, quantity: float
+    ) -> Tuple[bool, str]:
         commission = self.calculate_commission(price, quantity)
         total_cost = price * quantity + commission
         return (
@@ -170,7 +172,7 @@ class StockAccount(BaseAccount):
             return False, f"Invalid action: {trade_action}", None
 
         if trade_action == "buy":
-            ok, why = self.can_afford(price, quantity)
+            ok, why = self.can_afford(ticker, price, quantity)
             if not ok:
                 return False, why, None
         else:
@@ -208,9 +210,11 @@ class StockAccount(BaseAccount):
 
             # record
             self.transactions.append(tx)
-
-            return True, f"{trade_action.title()} {quantity} {ticker} @ ${price:.3f}", tx
-
+            return (
+                True,
+                f"{trade_action.title()} {quantity} {ticker} @ ${price:.3f}",
+                tx,
+            )
 
         except Exception as e:
             return False, f"Trade failed: {e}", None
@@ -244,9 +248,11 @@ class StockAccount(BaseAccount):
                     "total_value": total,
                     "unrealized_pnl": 0.0,
                     "total_return": total_ret,
-                    "return_pct": (total_ret / self.initial_cash * 100.0)
-                    if self.initial_cash > 0
-                    else 0.0,
+                    "return_pct": (
+                        (total_ret / self.initial_cash * 100.0)
+                        if self.initial_cash > 0
+                        else 0.0
+                    ),
                 },
                 "tickers": [],
                 "account_summary": self.get_trading_summary(),
@@ -317,7 +323,10 @@ class StockAccount(BaseAccount):
         return self.cash_balance + position_value
 
     def get_total_value(self) -> float:
-        return self.evaluate()["portfolio_summary"]["total_value"]
+        evaluation = self.evaluate()
+        portfolio_summary = evaluation["portfolio_summary"]
+        total_value = portfolio_summary["total_value"]
+        return float(total_value)
 
     def get_trading_summary(self) -> Dict[str, Any]:
         buys = [t for t in self.transactions if t.action == "buy"]

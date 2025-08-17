@@ -5,7 +5,7 @@ Base account management system - Abstract base for all account types
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple, TypeVar
+from typing import Any, Dict, Generic, Optional, Tuple, TypeVar
 
 # Generic type for different position types
 PositionType = TypeVar("PositionType")
@@ -14,7 +14,7 @@ ActionType = TypeVar("ActionType")
 
 
 @dataclass
-class BaseAccount(ABC):
+class BaseAccount(ABC, Generic[PositionType, TransactionType, ActionType]):
     """Abstract base class for trading accounts"""
 
     cash_balance: float
@@ -22,7 +22,7 @@ class BaseAccount(ABC):
     commission_rate: float = 0.001
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Post-initialization processing"""
         if self.cash_balance < 0:
             raise ValueError(f"Invalid cash_balance: {self.cash_balance}")

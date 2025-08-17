@@ -1,13 +1,9 @@
-"""
-Stock data fetcher for trading bench.
+"""Stock data fetcher for trading bench.
 
-This module provides:
-1. StockFetcher class - Core fetcher class with methods
-2. fetch_trending_stocks() - Standalone function using the class
-3. fetch_current_stock_price() - Standalone function using the class
+Provides StockFetcher and convenience wrappers.
 """
 
-from typing import Dict, List, Optional
+from typing import Any, List, Optional, Union
 
 import yfinance as yf
 
@@ -19,17 +15,18 @@ class StockFetcher(BaseFetcher):
         """Initialize the stock fetcher."""
         super().__init__(min_delay, max_delay)
 
-    def fetch(self, mode: str, **kwargs):
+    def fetch(self, mode: str, **kwargs: Any) -> Union[List[str], Optional[float]]:
         if mode == "trending_stocks":
-            return self.get_trending_stocks(limit=kwargs.get("limit", 10))
+            return self.get_trending_stocks(limit=int(kwargs.get("limit", 10)))
         elif mode == "stock_price":
-            if "ticker" not in kwargs:
+            ticker = kwargs.get("ticker")
+            if ticker is None:
                 raise ValueError("ticker is required for stock_price")
-            return self.get_current_stock_price(kwargs["ticker"])
+            return self.get_current_stock_price(str(ticker))
         else:
             raise ValueError(f"Unknown fetch mode: {mode}")
 
-    def get_trending_stocks(self, limit: int = 10) -> List[Dict]:
+    def get_trending_stocks(self, limit: int = 10) -> List[str]:
         trending_tickers = [
             "AAPL",
             "MSFT",
@@ -51,7 +48,7 @@ class StockFetcher(BaseFetcher):
 
     def _download_price_data(
         self, ticker: str, start_date: str, end_date: str, interval: str
-    ):
+    ) -> Any:
         df = yf.download(
             tickers=ticker,
             start=start_date,
@@ -129,7 +126,7 @@ class StockFetcher(BaseFetcher):
         start_date: str,
         end_date: str,
         interval: str = "1d",
-    ):
+    ) -> Any:
         try:
             self._rate_limit_delay()  # Rate limiting
             df = self._download_price_data(ticker, start_date, end_date, interval)
@@ -139,7 +136,7 @@ class StockFetcher(BaseFetcher):
             raise
 
 
-def fetch_trending_stocks(limit: int = 10) -> List[Dict]:
+def fetch_trending_stocks(limit: int = 10) -> List[str]:
     fetcher = StockFetcher()
     stocks = fetcher.get_trending_stocks(limit=limit)
     print(f"📊 Fetched {len(stocks)} trending stocks")

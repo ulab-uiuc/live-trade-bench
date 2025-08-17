@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from app.data import get_real_polymarket_data, get_sample_polymarket_data
 from fastapi import APIRouter, HTTPException, Query
 
@@ -9,7 +11,7 @@ async def get_markets(
     limit: int = Query(
         default=10, ge=1, le=50, description="Number of markets to return"
     )
-):
+) -> Dict[str, Any]:
     """Get prediction markets from Polymarket."""
     try:
         # Try to get real data first
@@ -48,7 +50,7 @@ async def get_markets(
 
 
 @router.get("/markets/{market_id}")
-async def get_market(market_id: str):
+async def get_market(market_id: str) -> Dict[str, Any]:
     """Get a specific prediction market by ID."""
     try:
         markets = get_real_polymarket_data(
@@ -74,7 +76,7 @@ async def get_market(market_id: str):
 
 
 @router.get("/categories")
-async def get_market_categories():
+async def get_market_categories() -> Dict[str, Any]:
     """Get available market categories."""
     try:
         markets = get_real_polymarket_data(limit=50)
@@ -111,7 +113,7 @@ async def get_markets_by_category(
     limit: int = Query(
         default=10, ge=1, le=50, description="Number of markets to return"
     ),
-):
+) -> Dict[str, Any]:
     """Get prediction markets filtered by category."""
     try:
         markets = get_real_polymarket_data(limit=50)  # Get more to filter
@@ -147,7 +149,7 @@ async def get_markets_by_category(
 
 
 @router.get("/stats")
-async def get_polymarket_stats():
+async def get_polymarket_stats() -> Dict[str, Any]:
     """Get general polymarket statistics."""
     try:
         markets = get_real_polymarket_data(limit=50)
