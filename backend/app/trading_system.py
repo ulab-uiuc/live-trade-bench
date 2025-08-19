@@ -248,60 +248,27 @@ class MultiAssetTradingSystem:
     def _update_news_cache(self) -> None:
         """Update the news cache in background"""
         try:
-            # Import here to avoid circular imports
-            from live_trade_bench.fetchers.news_fetcher import NewsFetcher
-            from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
-
             logger.info("Updating background news cache")
 
-            # Calculate date range (last 7 days)
-            end_date = datetime.now()
-            start_date = end_date - timedelta(days=7)
+            # Use our updated function that tracks stock symbols
+            from app.data import get_real_news_data
 
-            # Get trending stocks to use as search queries
-            trending_stocks = fetch_trending_stocks(limit=10)  # Get top 10 stocks
-
-            # Use trending stocks as search terms
-            stock_queries = (
-                " ".join(trending_stocks[:3]) if trending_stocks else "stock market"
-            )
-
-            logger.info(f"Fetching news for trending stocks: {stock_queries}")
-
-            # Use NewsFetcher directly with correct method and parameters
-            news_fetcher = NewsFetcher()
-            news_articles = news_fetcher.fetch(
-                query=stock_queries,
-                start_date=start_date.strftime("%Y-%m-%d"),
-                end_date=end_date.strftime("%Y-%m-%d"),
-                max_pages=3,  # Limit to first 3 pages for faster fetching
-            )
+            news_items = get_real_news_data(query="stock market", days=7)
 
             # Transform to dict format for JSON serialization
             self.cached_news = []
-            for i, article in enumerate(news_articles):
-                # Parse the date string to ISO format
-                try:
-                    published_at = (
-                        datetime.now().isoformat()
-                    )  # Default to now if parsing fails
-                    if article.get("date"):
-                        # Try to parse the date (Google News date format can vary)
-                        # For now, use current time - in production you'd parse the actual date
-                        published_at = datetime.now().isoformat()
-                except Exception:
-                    published_at = datetime.now().isoformat()
-
+            for news_item in news_items:
                 self.cached_news.append(
                     {
-                        "id": f"news_{i}_{int(datetime.now().timestamp())}",
-                        "title": article.get("title", "No title"),
-                        "summary": article.get("snippet", "No summary"),
-                        "source": article.get("source", "Unknown"),
-                        "published_at": published_at,
-                        "impact": "medium",  # Default impact
-                        "category": "market",  # Default category
-                        "url": article.get("link", ""),
+                        "id": news_item.id,
+                        "title": news_item.title,
+                        "summary": news_item.summary,
+                        "source": news_item.source,
+                        "published_at": news_item.published_at.isoformat(),
+                        "impact": news_item.impact.value,
+                        "category": news_item.category.value,
+                        "url": news_item.url,
+                        "stock_symbol": news_item.stock_symbol,
                     }
                 )
 

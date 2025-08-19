@@ -111,6 +111,7 @@ class NewsItem(BaseModel):
     impact: NewsImpact
     category: NewsCategory
     url: str
+    stock_symbol: str | None = None
 
 
 class NewsItemCreate(BaseModel):
@@ -121,6 +122,7 @@ class NewsItemCreate(BaseModel):
     impact: NewsImpact
     category: NewsCategory
     url: str
+    stock_symbol: str | None = None
 
 
 class Portfolio(BaseModel):

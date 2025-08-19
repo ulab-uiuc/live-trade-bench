@@ -178,10 +178,14 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           <div key={model.id} className="model-card">
             <div className="model-header">
               <div className="model-title-row">
-                <h3 className="model-name">{model.name}</h3>
-                <span className={`model-category ${model.category}`}>
-                  {getCategoryIcon(model.category)} {model.category}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h3 className="model-name">{model.name}</h3>
+                  <span className={`model-category ${model.category}`}>
+                    {getCategoryIcon(model.category)} {model.category}
+                  </span>
+                  <span className={`status-indicator ${model.status}`} style={{ marginLeft: '8px' }}></span>
+                  <span className="status-text" style={{ fontSize: '0.8rem', textTransform: 'capitalize' }}>{model.status}</span>
+                </div>
               </div>
               <button
                 onClick={() => setExpandedModel(expandedModel === model.id ? null : model.id)}
@@ -191,26 +195,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               </button>
             </div>
 
-            <div className="model-status">
-              <div className="status-row">
-                <span className={`status-indicator ${model.status}`}></span>
-                <span className="status-text">{model.status}</span>
-                {model.is_activated !== undefined && (
-                  <span className={`activation-badge ${model.is_activated ? 'active' : 'inactive'}`}>
-                    {model.is_activated ? '🟢 Active' : '⚪ Inactive'}
-                  </span>
-                )}
-              </div>
-            </div>
 
             {/* Category-specific information */}
             <div style={{ marginBottom: '1rem' }}>
-              {model.category === 'polymarket' && model.market_type && (
-                <div className="metric-item">
-                  <span className="metric-label">Market Type</span>
-                  <span className="metric-value">{model.market_type}</span>
-                </div>
-              )}
               {model.category === 'stock' && model.ticker && (
                 <div className="metric-item">
                   <span className="metric-label">Ticker</span>
