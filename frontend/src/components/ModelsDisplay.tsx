@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Portfolio from './Portfolio';
+import { PieChart, LineChart } from './charts';
 
 interface Model {
   id: string;
@@ -26,6 +27,13 @@ interface Model {
   market_type?: string; // For polymarket models
   ticker?: string; // For stock models
   strategy?: string;
+  // Chart data
+  holdings?: { [ticker: string]: number };
+  profit_history?: Array<{
+    timestamp: string;
+    profit: number;
+    totalValue: number;
+  }>;
 }
 
 interface ModelsDisplayProps {
@@ -56,27 +64,45 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       const data = await response.json();
 
       // Transform backend data to frontend format with enhanced fields
-      const transformedModels: Model[] = data.map((model: any) => ({
-        id: model.id,
-        name: model.name,
-        category: model.category || 'stock', // Default to stock, but can expand to options, etc.
-        performance: model.performance,
-        accuracy: model.accuracy,
-        trades: model.trades,
-        profit: model.profit,
-        status: model.status,
-        // Enhanced Phase 2 fields
-        total_value: model.total_value,
-        cash_balance: model.cash_balance,
-        active_positions: model.active_positions,
-        is_activated: model.is_activated,
-        recent_performance: model.recent_performance,
-        llm_available: model.llm_available,
-        // Category-specific fields
-        market_type: model.market_type,
-        ticker: model.ticker,
-        strategy: model.strategy
-      }));
+      const transformedModels: Model[] = await Promise.all(
+        data.map(async (model: any) => {
+          // Fetch chart data for each model
+          let chartData = { holdings: {}, profit_history: [] };
+          try {
+            const chartResponse = await fetch(`/api/models/${model.id}/chart-data`);
+            if (chartResponse.ok) {
+              chartData = await chartResponse.json();
+            }
+          } catch (chartError) {
+            console.warn(`Failed to fetch chart data for model ${model.id}:`, chartError);
+          }
+
+          return {
+            id: model.id,
+            name: model.name,
+            category: model.category || 'stock',
+            performance: model.performance,
+            accuracy: model.accuracy,
+            trades: model.trades,
+            profit: model.profit,
+            status: model.status,
+            // Enhanced Phase 2 fields
+            total_value: model.total_value,
+            cash_balance: model.cash_balance,
+            active_positions: model.active_positions,
+            is_activated: model.is_activated,
+            recent_performance: model.recent_performance,
+            llm_available: model.llm_available,
+            // Category-specific fields
+            market_type: model.market_type,
+            ticker: model.ticker,
+            strategy: model.strategy,
+            // Chart data
+            holdings: chartData.holdings,
+            profit_history: chartData.profit_history
+          };
+        })
+      );
 
       setModelsData(transformedModels);
       setLastRefresh(new Date());
@@ -104,22 +130,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return '#28a745';
-      case 'inactive': return '#6c757d';
-      case 'training': return '#ffc107';
-      default: return '#6c757d';
-    }
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'polymarket': return '#8e44ad';
-      case 'stock': return '#3498db';
-      default: return '#95a5a6';
-    }
-  };
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -191,7 +201,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 onClick={() => setExpandedModel(expandedModel === model.id ? null : model.id)}
                 className="portfolio-toggle"
               >
-                {expandedModel === model.id ? 'Hide Details' : 'View Details'}
+                {expandedModel === model.id ? 'Hide Portfolio' : 'View Portfolio'}
               </button>
             </div>
 
@@ -206,30 +216,30 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               )}
             </div>
 
-            {/* Simplified metrics - only P&L, Portfolio Value, Cash */}
-            <div className="model-metrics-simple">
-              <div className="metric-item">
-                <span className="metric-label">Profit/Loss</span>
-                <span className={`metric-value ${model.profit >= 0 ? 'positive' : 'negative'}`}>
-                  {model.profit >= 0 ? '+' : ''}${model.profit.toFixed(2)}
-                </span>
+            {/* Model Charts Layout */}
+            <div className="model-charts-layout">
+              {/* Charts Section */}
+              <div className="charts-section">
+                <div className="chart-container">
+                  <PieChart
+                    holdings={model.holdings || {}}
+                    totalValue={model.total_value || 1000}
+                    title="Allocation"
+                    size="small"
+                  />
+                </div>
+                <div className="chart-container">
+                  <LineChart
+                    profitHistory={model.profit_history || []}
+                    title="Profit Trend"
+                    size="small"
+                  />
+                </div>
               </div>
-              {model.total_value !== undefined && (
-                <div className="metric-item">
-                  <span className="metric-label">Portfolio Value</span>
-                  <span className="metric-value">${model.total_value.toFixed(2)}</span>
-                </div>
-              )}
-              {model.cash_balance !== undefined && (
-                <div className="metric-item">
-                  <span className="metric-label">Cash</span>
-                  <span className="metric-value">${model.cash_balance.toFixed(2)}</span>
-                </div>
-              )}
             </div>
 
 
-            {/* Expanded Portfolio View - Holdings Only */}
+            {/* Expanded Portfolio View - Area Chart Only */}
             {expandedModel === model.id && (
               <div className="portfolio-section">
                 <Portfolio modelId={model.id} modelName={model.name} />

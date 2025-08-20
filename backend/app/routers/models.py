@@ -317,6 +317,72 @@ async def get_model_portfolio(model_id: str) -> Dict[str, Any]:
         # Get portfolio data - the trading system handles model ID validation
         portfolio_data = trading_system.get_portfolio(model_id)
 
+        # Add portfolio history for area chart
+        model_actions = [
+            action
+            for action in trading_system.trading_history
+            if action.get("model_id") == model_id
+        ]
+
+        # Generate portfolio history snapshots
+        portfolio_history = []
+        current_holdings = {}
+        current_cash = portfolio_data.get("cash", 1000)
+
+        for action in model_actions[-20:]:  # Last 20 actions for history
+            if action.get("action") == "BUY":
+                ticker = action.get("symbol", "")
+                quantity = action.get("quantity", 0)
+                if ticker:
+                    current_holdings[ticker] = (
+                        current_holdings.get(ticker, 0) + quantity
+                    )
+            elif action.get("action") == "SELL":
+                ticker = action.get("symbol", "")
+                quantity = action.get("quantity", 0)
+                if ticker and ticker in current_holdings:
+                    current_holdings[ticker] = max(
+                        0, current_holdings[ticker] - quantity
+                    )
+                    if current_holdings[ticker] == 0:
+                        del current_holdings[ticker]
+
+            # Create portfolio snapshot
+            prices = {
+                ticker: action.get("price", 100) for ticker in current_holdings.keys()
+            }
+            total_value = current_cash + sum(
+                current_holdings.get(ticker, 0) * prices.get(ticker, 100)
+                for ticker in current_holdings.keys()
+            )
+
+            portfolio_history.append(
+                {
+                    "timestamp": action.get("timestamp", ""),
+                    "holdings": current_holdings.copy(),
+                    "prices": prices,
+                    "cash": current_cash,
+                    "totalValue": total_value,
+                }
+            )
+
+        # Add current state if no history
+        if not portfolio_history:
+            portfolio_history = [
+                {
+                    "timestamp": "2024-01-01T00:00:00Z",
+                    "holdings": portfolio_data.get("holdings", {}),
+                    "prices": {
+                        ticker: 100
+                        for ticker in portfolio_data.get("holdings", {}).keys()
+                    },
+                    "cash": current_cash,
+                    "totalValue": portfolio_data.get("total_value", 1000),
+                }
+            ]
+
+        portfolio_data["portfolio_history"] = portfolio_history
+
         return portfolio_data
 
     except ValueError as e:
@@ -324,4 +390,70 @@ async def get_model_portfolio(model_id: str) -> Dict[str, Any]:
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error fetching portfolio: {str(e)}"
+        )
+
+
+@router.get("/{model_id}/chart-data")
+async def get_model_chart_data(model_id: str) -> Dict[str, Any]:
+    """Get chart data (holdings allocation and profit history) for a specific model."""
+    try:
+        trading_system = get_trading_system()
+
+        # Get current portfolio for holdings allocation
+        portfolio_data = trading_system.get_portfolio(model_id)
+        holdings = portfolio_data.get("holdings", {})
+
+        # Get profit history from trading history
+        profit_history = []
+        model_actions = [
+            action
+            for action in trading_system.trading_history
+            if action.get("model_id") == model_id
+        ]
+
+        # Calculate cumulative profit over time
+        cumulative_profit = 0
+        total_value = portfolio_data.get("total_value", 1000)  # Start with initial cash
+
+        for i, action in enumerate(model_actions[-30:]):  # Last 30 actions for chart
+            if action.get("action") == "BUY":
+                # Buying reduces profit temporarily (cash to holdings)
+                pass
+            elif action.get("action") == "SELL":
+                # Selling realizes profit/loss
+                price = action.get("price", 0)
+                quantity = action.get("quantity", 0)
+                cumulative_profit += (price * quantity) - action.get(
+                    "cost_basis", price * quantity
+                )
+
+            profit_history.append(
+                {
+                    "timestamp": action.get("timestamp", ""),
+                    "profit": cumulative_profit,
+                    "totalValue": total_value + cumulative_profit,
+                }
+            )
+
+        # If no history, create a single point
+        if not profit_history:
+            profit_history = [
+                {
+                    "timestamp": "2024-01-01T00:00:00Z",
+                    "profit": 0,
+                    "totalValue": total_value,
+                }
+            ]
+
+        return {
+            "holdings": holdings,
+            "profit_history": profit_history,
+            "total_value": total_value,
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching chart data: {str(e)}"
         )
