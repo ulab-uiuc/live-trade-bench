@@ -210,6 +210,9 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
                             end_date=end_date.strftime("%Y-%m-%d"),
                             max_pages=1,  # Limit pages per stock to avoid too many requests
                         )
+                        # Add stock_symbol metadata to each article
+                        for article in stock_news:
+                            article["stock_symbol"] = ticker
                         raw_news.extend(stock_news)
                     except Exception as e:
                         print(f"⚠️ Error fetching news for {ticker}: {e}")
@@ -223,6 +226,9 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
                         end_date=end_date.strftime("%Y-%m-%d"),
                         max_pages=1,
                     )
+                    # Add stock_symbol as None for general market news
+                    for article in general_news:
+                        article["stock_symbol"] = None
                     raw_news.extend(general_news)
                 except Exception as e:
                     print(f"⚠️ Error fetching general market news: {e}")
@@ -236,6 +242,9 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
                     end_date=end_date.strftime("%Y-%m-%d"),
                     max_pages=3,
                 )
+                # Add stock_symbol as None for fallback news
+                for article in raw_news:
+                    article["stock_symbol"] = None
         else:
             # Use specific query provided by user
             raw_news = fetch_news_data(
@@ -244,6 +253,9 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
                 end_date=end_date.strftime("%Y-%m-%d"),
                 max_pages=3,
             )
+            # Add stock_symbol as None for user-provided queries
+            for article in raw_news:
+                article["stock_symbol"] = None
 
         # Convert to NewsItem format
         news_items = []
@@ -350,6 +362,7 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
                     impact=impact,
                     category=category,
                     url=article.get("link", "#"),
+                    stock_symbol=article.get("stock_symbol"),
                 )
                 news_items.append(news_item)
 

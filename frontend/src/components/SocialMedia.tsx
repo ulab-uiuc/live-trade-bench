@@ -192,81 +192,18 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
         </span>
       </div>
 
-      {/* Summary Statistics */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '15px',
-        marginBottom: '20px'
-      }}>
-        <div style={{
-          background: '#f8f9fa',
-          padding: '15px',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#007bff' }}>
-            {socialData.length}
-          </div>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>Total Posts</div>
-        </div>
-        <div style={{
-          background: '#e8f5e8',
-          padding: '15px',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#28a745' }}>
-            {sentimentStats.positive}
-          </div>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>Positive</div>
-        </div>
-        <div style={{
-          background: '#ffe8e8',
-          padding: '15px',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
-            {sentimentStats.negative}
-          </div>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>Negative</div>
-        </div>
-        <div style={{
-          background: '#f0f0f0',
-          padding: '15px',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#6c757d' }}>
-            {sentimentStats.neutral}
-          </div>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>Neutral</div>
-        </div>
-        <div style={{
-          background: '#fff3cd',
-          padding: '15px',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ffc107' }}>
-            {avgEngagement.toFixed(1)}
-          </div>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>Avg Engagement</div>
-        </div>
-      </div>
 
       {/* Filters */}
       <div style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '15px' }}>
           <div>
-            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block', color: 'var(--text-secondary)' }}>
               Platform
             </label>
             <select
               value={selectedPlatform}
               onChange={(e) => setSelectedPlatform(e.target.value as any)}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
             >
               <option value="all">All Platforms ({platformStats.total})</option>
               <option value="reddit">Reddit ({platformStats.reddit})</option>
@@ -276,13 +213,13 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
             </select>
           </div>
           <div>
-            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block', color: 'var(--text-secondary)' }}>
               Category
             </label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as any)}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
             >
               <option value="all">All Categories ({categoryStats.total})</option>
               <option value="market">Market ({categoryStats.market})</option>
@@ -295,7 +232,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
       </div>
 
       {/* Posts List */}
-      <div style={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto' }}>
+      <div style={{ display: 'grid', gap: '1rem' }}>
         {sortedPosts.map(post => (
           <div key={post.id} className="news-item" style={{
             borderLeft: `4px solid ${getPlatformColor(post.platform)}`
@@ -307,34 +244,39 @@ const SocialMedia: React.FC<SocialMediaProps> = ({
                   <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{post.title || post.content.substring(0, 100)}...</h3>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
                     <span style={{ color: '#666', fontSize: '0.9rem' }}>by {post.author}</span>
-                    {post.subreddit && (
-                      <span style={{
-                        background: '#f8f9fa',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.8rem',
-                        color: '#666'
-                      }}>
-                        r/{post.subreddit}
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span
-                  style={{
-                    backgroundColor: getCategoryColor(post.category),
-                    color: 'white',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  {post.category}
-                </span>
+                {post.subreddit ? (
+                  <span
+                    style={{
+                      backgroundColor: 'var(--bg-card)',
+                      color: 'var(--text-secondary)',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      border: '1px solid var(--border-color)'
+                    }}
+                  >
+                    r/{post.subreddit}
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      backgroundColor: getCategoryColor(post.category),
+                      color: 'white',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    {post.category}
+                  </span>
+                )}
                 <span
                   style={{
                     backgroundColor: getSentimentColor(post.sentiment),
