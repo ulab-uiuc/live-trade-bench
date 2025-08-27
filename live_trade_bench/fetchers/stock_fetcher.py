@@ -17,7 +17,7 @@ class StockFetcher(BaseFetcher):
 
     def fetch(self, mode: str, **kwargs: Any) -> Union[List[str], Optional[float]]:
         if mode == "trending_stocks":
-            return self.get_trending_stocks(limit=int(kwargs.get("limit", 10)))
+            return self.get_trending_stocks(limit=int(kwargs.get("limit", 15)))
         elif mode == "stock_price":
             ticker = kwargs.get("ticker")
             if ticker is None:
@@ -26,7 +26,7 @@ class StockFetcher(BaseFetcher):
         else:
             raise ValueError(f"Unknown fetch mode: {mode}")
 
-    def get_trending_stocks(self, limit: int = 10) -> List[str]:
+    def get_trending_stocks(self, limit: int = 15) -> List[str]:
         diversified_tickers = [
             # Technology (3 stocks)
             "AAPL",    # Apple - Consumer Electronics
@@ -149,7 +149,7 @@ class StockFetcher(BaseFetcher):
             raise
 
 
-def fetch_trending_stocks(limit: int = 10) -> List[str]:
+def fetch_trending_stocks(limit: int = 15) -> List[str]:
     fetcher = StockFetcher()
     stocks = fetcher.get_trending_stocks(limit=limit)
     print(f"📊 Fetched {len(stocks)} trending stocks")
