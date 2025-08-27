@@ -16,6 +16,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         self.available = True
         self._history: Dict[str, List[float]] = {}
         self._last_price: Dict[str, float] = {}
+        self.account = None  # Will be set by the system
 
     def generate_portfolio_allocation(
         self, market_data: Dict[str, DataType], account: AccountType
