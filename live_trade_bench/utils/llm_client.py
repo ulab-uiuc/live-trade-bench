@@ -99,3 +99,49 @@ def parse_trading_response(content: str) -> Dict[str, Any]:
             "confidence": 0.5,
             "reasoning": "Parsed from LLM response",
         }
+
+
+def parse_portfolio_response(content: str) -> Dict[str, Any]:
+    """Parse LLM response into portfolio allocation format"""
+    try:
+        # Clean the content - remove extra whitespace and newlines
+        cleaned_content = content.strip()
+
+        # Try to find JSON in the content
+        start_idx = cleaned_content.find("{")
+        end_idx = cleaned_content.rfind("}")
+
+        if start_idx != -1 and end_idx != -1:
+            json_content = cleaned_content[start_idx : end_idx + 1]
+            parsed = json.loads(json_content)
+
+            if isinstance(parsed, dict):
+                # Validate that we have allocations
+                if "allocations" in parsed and isinstance(parsed["allocations"], dict):
+                    return parsed
+                else:
+                    print("⚠️ No 'allocations' field found in response")
+                    return {"allocations": {}, "reasoning": "Invalid response format"}
+            else:
+                return {"allocations": {}, "reasoning": "Response is not a dictionary"}
+        else:
+            print("⚠️ No JSON object found in response")
+            return {"allocations": {}, "reasoning": "No JSON object found"}
+
+    except json.JSONDecodeError as e:
+        print(f"⚠️ JSON parse failed: {e}")
+        print(f"📝 Raw content: {content[:200]}...")
+
+        # Try to extract allocation information from text
+        content_lower = content.lower()
+        if "allocation" in content_lower or "weight" in content_lower:
+            print("⚠️ Using default allocation due to JSON parse failure")
+            return {
+                "allocations": {"default": 1.0},
+                "reasoning": "Parsed from LLM response - default allocation",
+            }
+        else:
+            return {
+                "allocations": {},
+                "reasoning": "Parsed from LLM response - no allocation change",
+            }

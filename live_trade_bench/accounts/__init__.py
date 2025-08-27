@@ -2,13 +2,20 @@
 Trading Bench Accounts Package
 """
 
-from .action import PolymarketAction, StockAction
 from .base_account import BaseAccount
 from .polymarket_account import (
     PolymarketAccount,
     PolymarketPosition,
     PolymarketTransaction,
     create_polymarket_account,
+)
+from .portfolio_models import (
+    AllocationChange,
+    PortfolioStatus,
+    PortfolioSummary,
+    PortfolioTarget,
+    RebalanceAction,
+    RebalancePlan,
 )
 from .stock_account import (
     StockAccount,
@@ -20,16 +27,21 @@ from .stock_account import (
 __all__ = [
     # Base classes
     "BaseAccount",
-    # Stock trading
+    # Stock portfolio management
     "StockAccount",
     "StockPosition",
     "StockTransaction",
-    "StockAction",
     "create_stock_account",
-    # Polymarket trading
+    # Polymarket portfolio management
     "PolymarketAccount",
     "PolymarketPosition",
     "PolymarketTransaction",
-    "PolymarketAction",
     "create_polymarket_account",
+    # Portfolio models
+    "PortfolioTarget",
+    "AllocationChange",
+    "PortfolioStatus",
+    "RebalanceAction",
+    "RebalancePlan",
+    "PortfolioSummary",
 ]
