@@ -34,10 +34,7 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             )
 
             # Update price history
-            self._history.setdefault(market_id, []).append(price)
-            if len(self._history[market_id]) > self.max_history:
-                self._history[market_id] = self._history[market_id][-self.max_history :]
-            self._last_price[market_id] = price
+            self._update_price_history(market_id, price)
 
         return "MARKET ANALYSIS:\n" + "\n".join(analysis_parts)
 

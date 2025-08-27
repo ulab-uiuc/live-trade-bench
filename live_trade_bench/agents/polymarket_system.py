@@ -42,8 +42,14 @@ class PolymarketPortfolioSystem:
         self, name: str, initial_cash: float = 500.0, model_name: str = "gpt-4o-mini"
     ) -> None:
         """Add a new portfolio agent."""
-        self.agents[name] = LLMPolyMarketAgent(name, model_name)
-        self.accounts[name] = create_polymarket_account(initial_cash)
+        agent = LLMPolyMarketAgent(name, model_name)
+        account = create_polymarket_account(initial_cash)
+
+        # Link agent to account
+        agent.account = account
+
+        self.agents[name] = agent
+        self.accounts[name] = account
 
     def _fetch_market_data(self) -> Dict[str, Dict[str, Any]]:
         """Fetch current market data for all markets."""

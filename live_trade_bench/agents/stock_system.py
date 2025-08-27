@@ -50,18 +50,18 @@ class StockPortfolioSystem:
     def _fetch_market_data(self) -> Dict[str, Dict[str, Any]]:
         """Fetch current market data for all stocks."""
         market_data = {}
-        for ticker in self.universe:
+        for stock in self.universe:
+            ticker = stock["ticker"]
             try:
                 price_data = fetch_current_stock_price(ticker)
                 if price_data and "current_price" in price_data:
-                    stock_info = self.stock_info[ticker]
                     market_data[ticker] = {
                         "ticker": ticker,
-                        "name": stock_info["name"],
-                        "sector": stock_info["sector"],
+                        "name": stock["name"],
+                        "sector": stock["sector"],
                         "current_price": float(price_data["current_price"]),
                         "volume": price_data.get("volume", 0),
-                        "market_cap": stock_info.get("market_cap", 0),
+                        "market_cap": stock.get("market_cap", 0),
                         "timestamp": datetime.now().isoformat(),
                     }
             except Exception as e:
