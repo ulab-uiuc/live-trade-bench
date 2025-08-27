@@ -32,10 +32,7 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
             )
 
             # Update price history
-            self._history.setdefault(ticker, []).append(price)
-            if len(self._history[ticker]) > self.max_history:
-                self._history[ticker] = self._history[ticker][-self.max_history :]
-            self._last_price[ticker] = price
+            self._update_price_history(ticker, price)
 
         return "MARKET ANALYSIS:\n" + "\n".join(analysis_parts)
 

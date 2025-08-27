@@ -10,9 +10,6 @@ DataType = TypeVar("DataType")
 
 
 class BaseAgent(ABC, Generic[AccountType, DataType]):
-    price_epsilon: float = 0.01
-    max_history: int = 10
-
     def __init__(self, name: str, model_name: str = "gpt-4o-mini") -> None:
         self.name = name
         self.model_name = model_name
@@ -184,11 +181,26 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
 
     # ----- Helpers -----
     def history_tail(self, asset_id: str, k: int = 5) -> List[float]:
+        """Get last k price values for an asset."""
         return self._history.get(asset_id, [])[-k:]
 
     def prev_price(self, asset_id: str) -> Optional[float]:
+        """Get previous price for an asset."""
         hist = self._history.get(asset_id, [])
         return hist[-2] if len(hist) >= 2 else None
+
+    def _update_price_history(self, asset_id: str, price: float) -> None:
+        """Update price history for an asset."""
+        if asset_id not in self._history:
+            self._history[asset_id] = []
+        
+        self._history[asset_id].append(price)
+        
+        # Keep only last 10 prices
+        if len(self._history[asset_id]) > 10:
+            self._history[asset_id] = self._history[asset_id][-10:]
+        
+        self._last_price[asset_id] = price
 
     def _log_error(self, msg: str, ctx: str = "") -> None:
         if ctx:
