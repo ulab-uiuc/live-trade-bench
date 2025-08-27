@@ -1,7 +1,7 @@
 from typing import Any, Dict, List
 
 from app.data import get_real_models_data
-from app.schemas import TradingModel
+from app.schemas import PortfolioData, TradingModel
 from app.trading_system import get_trading_system
 from fastapi import APIRouter, HTTPException, Query
 
@@ -308,16 +308,16 @@ async def deactivate_model(model_id: str) -> Dict[str, Any]:
         )
 
 
-@router.get("/{model_id}/portfolio")
-async def get_model_portfolio(model_id: str) -> Dict[str, Any]:
+@router.get("/{model_id}/portfolio", response_model=PortfolioData)
+async def get_model_portfolio(model_id: str) -> PortfolioData:
     """Get portfolio data for a specific model (both stock and polymarket)."""
     try:
         trading_system = get_trading_system()
 
         # Get portfolio data - the trading system handles model ID validation
-        portfolio_data = trading_system.get_portfolio(model_id)
+        portfolio_dict = trading_system.get_portfolio(model_id)
 
-        # Add portfolio history for area chart
+        # Add portfolio history for area chart (from ui-v2)
         model_actions = [
             action
             for action in trading_system.trading_history
@@ -327,7 +327,7 @@ async def get_model_portfolio(model_id: str) -> Dict[str, Any]:
         # Generate portfolio history snapshots
         portfolio_history = []
         current_holdings = {}
-        current_cash = portfolio_data.get("cash", 1000)
+        current_cash = portfolio_dict.get("cash", 1000)
 
         for action in model_actions[-20:]:  # Last 20 actions for history
             if action.get("action") == "BUY":
@@ -371,19 +371,20 @@ async def get_model_portfolio(model_id: str) -> Dict[str, Any]:
             portfolio_history = [
                 {
                     "timestamp": "2024-01-01T00:00:00Z",
-                    "holdings": portfolio_data.get("holdings", {}),
+                    "holdings": portfolio_dict.get("holdings", {}),
                     "prices": {
                         ticker: 100
-                        for ticker in portfolio_data.get("holdings", {}).keys()
+                        for ticker in portfolio_dict.get("holdings", {}).keys()
                     },
                     "cash": current_cash,
-                    "totalValue": portfolio_data.get("total_value", 1000),
+                    "totalValue": portfolio_dict.get("total_value", 1000),
                 }
             ]
 
-        portfolio_data["portfolio_history"] = portfolio_history
+        portfolio_dict["portfolio_history"] = portfolio_history
 
-        return portfolio_data
+        # Convert to PortfolioData schema with portfolio history included
+        return PortfolioData(**portfolio_dict)
 
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

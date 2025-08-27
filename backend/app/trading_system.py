@@ -90,19 +90,19 @@ def get_market_status() -> Dict[str, Any]:
 class MultiAssetTradingSystem:
     """
     Multi-asset trading system that uses the native .run() methods from
-    both TradingSystem (stock_agent.py) and PolymarketTradingSystem (polymarket_agent.py)
+    both StockPortfolioSystem and PolymarketPortfolioSystem for portfolio-based trading
     """
 
     def __init__(self) -> None:
-        # Import the native trading systems using factory functions
+        # Import the native portfolio systems using factory functions
         from live_trade_bench import (
-            create_polymarket_trading_system,
-            create_stock_trading_system,
+            create_polymarket_portfolio_system,
+            create_stock_portfolio_system,
         )
 
-        # Create the native trading systems using factory functions
-        self.stock_system = create_stock_trading_system()
-        self.polymarket_system = create_polymarket_trading_system()
+        # Create the native portfolio systems using factory functions
+        self.stock_system = create_stock_portfolio_system()
+        self.polymarket_system = create_polymarket_portfolio_system()
 
         # System control
         self.system_running = False
@@ -201,7 +201,7 @@ class MultiAssetTradingSystem:
         self._update_social_cache()
 
         logger.info(
-            "Multi-asset trading system initialized using native .run() methods"
+            "Multi-asset portfolio system initialized using native .run() methods"
         )
 
     @property
@@ -215,22 +215,22 @@ class MultiAssetTradingSystem:
         return list(self.active_polymarket_models.keys())
 
     def _initialize_models(self) -> None:
-        """Initialize agents in both native trading systems"""
+        """Initialize agents in both native portfolio systems"""
 
-        # Initialize stock agents using native TradingSystem.add_agent()
+        # Initialize stock agents using native StockPortfolioSystem.add_agent()
         for model_config in self.models_config:
             model_id = model_config["id"]
             model_name = model_config["name"]
             llm_model = model_config["llm_model"]
 
-            # Add agent to stock system using native method
+            # Add agent to stock portfolio system using native method
             self.stock_system.add_agent(
                 name=f"{model_name} (Stock)",
                 initial_cash=self.stock_initial_cash,
                 model_name=llm_model,
             )
 
-            # Add agent to polymarket system using native method
+            # Add agent to polymarket portfolio system using native method
             self.polymarket_system.add_agent(
                 name=f"{model_name} (Polymarket)",
                 initial_cash=self.polymarket_initial_cash,
@@ -550,7 +550,7 @@ class MultiAssetTradingSystem:
         """Get actual stock tickers being traded by the stock system"""
         try:
             if hasattr(self.stock_system, "universe") and self.stock_system.universe:
-                return self.stock_system.universe
+                return list(self.stock_system.universe)
             else:
                 # Fallback: fetch trending stocks directly
                 from live_trade_bench import fetch_trending_stocks
@@ -562,9 +562,11 @@ class MultiAssetTradingSystem:
                     return []
                 first = trending_stocks[0]
                 if isinstance(first, str):
-                    return [s for s in trending_stocks]
+                    return trending_stocks
                 elif isinstance(first, dict):
-                    return [s.get("ticker", "") for s in trending_stocks]
+                    return [
+                        s.get("ticker", "") for s in trending_stocks if s.get("ticker")
+                    ]
                 else:
                     return []
         except Exception as e:
@@ -698,7 +700,7 @@ class MultiAssetTradingSystem:
             )
 
     def _run_stock_cycle_native(self) -> None:
-        """Run stock cycle using native StockTradingSystem.run() - adapted for backend service"""
+        """Run stock cycle using native StockPortfolioSystem.run() - adapted for backend service"""
         try:
             # Check if market is open before running stock trading
             if not is_market_hours():
@@ -724,7 +726,7 @@ class MultiAssetTradingSystem:
             logger.error(f"Error in stock system .run(): {e}")
 
     def _run_polymarket_cycle_native(self) -> None:
-        """Run polymarket cycle using native PolymarketTradingSystem.run() - matching polymarket_demo.py"""
+        """Run polymarket cycle using native PolymarketPortfolioSystem.run() - portfolio-based trading"""
         try:
             logger.info("Running polymarket system using native .run() method")
             # Short burst for backend service
@@ -846,7 +848,7 @@ class MultiAssetTradingSystem:
             len(self.polymarket_system.agents) * self.polymarket_initial_cash
         )
 
-        # Calculate total system performance from native systems
+        # Calculate total system performance from native portfolio systems
         for agent_name in self.stock_system.agents.keys():
             try:
                 stock_account = self.stock_system.accounts[agent_name]
@@ -900,10 +902,10 @@ class MultiAssetTradingSystem:
                 )
                 * 100,
             },
-            "native_systems": {
+            "portfolio_systems": {
                 "stock_agents": len(self.stock_system.agents),
                 "polymarket_agents": len(self.polymarket_system.agents),
-                "using_native_run": True,
+                "using_portfolio_run": True,
             },
         }
 
@@ -943,21 +945,19 @@ class MultiAssetTradingSystem:
             target=self._background_trading_loop, daemon=True
         )
         self.trading_thread.start()
-        logger.info(
-            "Multi-asset background trading started using native .run() methods"
-        )
+        logger.info("Multi-asset portfolio system started using native .run() methods")
 
     def stop_background_trading(self) -> None:
         """Stop background trading"""
         self.system_running = False
         if self.trading_thread:
             self.trading_thread.join(timeout=5)
-        logger.info("Multi-asset background trading stopped")
+        logger.info("Multi-asset portfolio system stopped")
 
     def _background_trading_loop(self) -> None:
         """Background trading loop using native .run() methods"""
         logger.info(
-            f"Multi-asset trading loop started using native .run() methods with {self.cycle_interval//60} minute intervals"
+            f"Multi-asset portfolio loop started using native .run() methods with {self.cycle_interval//60} minute intervals"
         )
 
         while self.system_running:
@@ -1006,30 +1006,30 @@ class MultiAssetTradingSystem:
                     if wait_time % status_interval == 0 and self.system_running:
                         remaining_minutes = (self.cycle_interval - wait_time) // 60
                         logger.info(
-                            f"Multi-asset trading system running using native .run() - next cycle in {remaining_minutes} minutes"
+                            f"Multi-asset portfolio system running using native .run() - next cycle in {remaining_minutes} minutes"
                         )
 
             except Exception as e:
                 logger.error(f"Error in multi-asset trading loop: {e}")
                 time.sleep(60)
 
-        logger.info("Multi-asset trading loop stopped")
+        logger.info("Multi-asset portfolio loop stopped")
 
 
-# Global multi-asset trading system instance
+# Global multi-asset portfolio system instance
 trading_system = MultiAssetTradingSystem()
 
 
 def get_trading_system() -> MultiAssetTradingSystem:
-    """Get the global multi-asset trading system instance"""
+    """Get the global multi-asset portfolio system instance"""
     return trading_system
 
 
 def start_trading_system() -> None:
-    """Start the multi-asset trading system using native .run() methods"""
+    """Start the multi-asset portfolio system using native .run() methods"""
     trading_system.start_background_trading()
 
 
 def stop_trading_system() -> None:
-    """Stop the multi-asset trading system"""
+    """Stop the multi-asset portfolio system"""
     trading_system.stop_background_trading()

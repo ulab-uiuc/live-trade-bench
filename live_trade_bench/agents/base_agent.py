@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
+from typing import Any, Dict, Generic, List, Optional, TypeVar
 
 from ..accounts import BaseAccount
 
-ActionType = TypeVar("ActionType")
-AccountType = TypeVar("AccountType", bound=BaseAccount[Any, Any, Any])
+AccountType = TypeVar("AccountType", bound=BaseAccount[Any, Any])
 DataType = TypeVar("DataType")
 
 
-class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
+class BaseAgent(ABC, Generic[AccountType, DataType]):
     price_epsilon: float = 0.01
     max_history: int = 10
 
@@ -21,50 +20,67 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
         self._history: Dict[str, List[float]] = {}
         self._last_price: Dict[str, float] = {}
 
-    def generate_action(
-        self, data: DataType, account: AccountType
-    ) -> Optional[ActionType]:
-        _id, price = self._extract_id_price(data)
-
-        last = self._last_price.get(_id)
-        if last is not None and abs(price - last) < self.price_epsilon:
-            print(f"💤 no action for {_id} since no price change")
+    def generate_portfolio_allocation(
+        self, market_data: Dict[str, DataType], account: AccountType
+    ) -> Optional[Dict[str, float]]:
+        """Generate complete portfolio allocation for all assets."""
+        if not market_data:
+            print(f"💤 No market data available for {self.name}")
             return None
-
-        self._last_price[_id] = price
-        h = self._history.setdefault(_id, [])
-        h.append(price)
-        if len(h) > self.max_history:
-            self._history[_id] = h[-self.max_history :]
 
         if not self.available:
             return None
 
         try:
-            market_analysis = self._prepare_market_analysis(data)
+            # Prepare comprehensive analysis
+            market_analysis = self._prepare_market_analysis(market_data)
             account_analysis = self._prepare_account_analysis(account)
-            news_analysis = self._prepare_news_analysis(_id, data)
+            news_analysis = self._prepare_news_analysis(market_data)
             full_analysis = self._combine_analysis_data(
                 market_analysis, account_analysis, news_analysis
             )
 
-            messages = [{"role": "user", "content": self._get_prompt(full_analysis)}]
-            llm_response = self._call_llm(messages)
-            parsed = self._parse_llm_response(llm_response)
+            messages = [
+                {
+                    "role": "user",
+                    "content": self._get_portfolio_prompt(full_analysis, market_data),
+                }
+            ]
 
-            if parsed:
-                action = self._create_action_from_response(parsed, _id, price)
-                if action:
-                    print(
-                        f"🤖 {self.name} ({_id}): {getattr(action, 'action', '').upper()} {getattr(action, 'quantity', 0)} {getattr(action, 'outcome', 'shares').upper()}"
-                    )
-                else:
-                    # hold
-                    print(f"🤖 {self.name} ({_id}): HOLD")
-                return action
-            return None
+            print(f"🔍 {self.name}: Calling LLM with {len(market_data)} assets...")
+            llm_response = self._call_llm(messages)
+
+            if not llm_response.get("success"):
+                print(
+                    f"❌ {self.name}: LLM call failed: {llm_response.get('error', 'Unknown error')}"
+                )
+                return None
+
+            print(
+                f"✅ {self.name}: LLM response received, length: {len(llm_response.get('content', ''))}"
+            )
+
+            parsed = self._parse_portfolio_response(llm_response)
+
+            if not parsed:
+                print(f"❌ {self.name}: Failed to parse LLM response")
+                return None
+
+            print(f"✅ {self.name}: Response parsed successfully: {parsed}")
+
+            portfolio_allocation = self._create_portfolio_allocation_from_response(
+                parsed, market_data
+            )
+
+            if portfolio_allocation:
+                print(
+                    f"🤖 {self.name}: Generated portfolio allocation: {portfolio_allocation}"
+                )
+            else:
+                print(f"🤖 {self.name}: No portfolio allocation generated")
+            return portfolio_allocation
         except Exception as e:
-            self._log_error(f"LLM error for {_id}", str(e))
+            self._log_error("LLM error", str(e))
             return None
 
     # ----- LLM plumbing -----
@@ -78,23 +94,23 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
         except Exception as e:
             return {"success": False, "content": "", "error": str(e)}
 
-    def _parse_llm_response(
+    def _parse_portfolio_response(
         self, llm_response: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         if not llm_response.get("success"):
             return None
         try:
-            from ..utils import parse_trading_response
+            from ..utils import parse_portfolio_response
 
-            return parse_trading_response(llm_response["content"])
+            return parse_portfolio_response(llm_response["content"])
         except Exception as e:
             self._log_error("parse error", str(e))
             return None
 
     # ----- Analysis Methods -----
     @abstractmethod
-    def _prepare_market_analysis(self, data: DataType) -> str:
-        """Prepare market data analysis."""
+    def _prepare_market_analysis(self, market_data: Dict[str, DataType]) -> str:
+        """Prepare comprehensive market data analysis for all assets."""
         ...
 
     def _prepare_account_analysis(self, account: AccountType) -> str:
@@ -109,11 +125,12 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
             f"  Cash: ${account.cash_balance:.2f}\n"
             f"  Portfolio Value: ${portfolio_value:.2f}\n"
             f"  P&L: ${profit_loss:+.2f}\n"
-            f"  Total Positions: {total_positions}"
+            f"  Total Positions: {total_positions}\n"
+            f"  Current Allocations: {account.target_allocations}"
         )
 
-    def _prepare_news_analysis(self, _id: str, data: DataType) -> str:
-        """Prepare news analysis for the asset."""
+    def _prepare_news_analysis(self, market_data: Dict[str, DataType]) -> str:
+        """Prepare news analysis for all assets."""
         try:
             from datetime import datetime, timedelta
 
@@ -123,28 +140,26 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
             end_date = datetime.now().strftime("%Y-%m-%d")
             start_date = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
 
-            # Create search query based on data type
-            query = self._create_news_query(_id, data)
+            news_summaries = []
+            for asset_id, data in list(market_data.items())[:3]:  # Top 3 assets
+                query = self._create_news_query(asset_id, data)
+                news = fetch_news_data(query, start_date, end_date, max_pages=1)
 
-            news = fetch_news_data(query, start_date, end_date, max_pages=1)
+                if news:
+                    # Summarize top news item
+                    snippet = news[0].get("snippet", "")
+                    news_summaries.append(f"• {asset_id}: {snippet[:100]}...")
+                else:
+                    news_summaries.append(f"• {asset_id}: No recent news")
 
-            if news:
-                # Summarize top 2 news items
-                news_summary = []
-                for article in news[:2]:
-                    snippet = article.get("snippet", "")
-                    news_summary.append(f"• {snippet}...")
-
-                return "RECENT NEWS:\n" + "\n".join(news_summary)
-            else:
-                return "RECENT NEWS:\n• No recent news found"
+            return "RECENT NEWS:\n" + "\n".join(news_summaries)
 
         except Exception as e:
             return f"RECENT NEWS:\n• News fetch error: {str(e)}..."
 
-    def _create_news_query(self, _id: str, data: DataType) -> str:
+    def _create_news_query(self, asset_id: str, data: DataType) -> str:
         """Create news search query. Override in subclasses for domain-specific queries."""
-        return _id
+        return asset_id
 
     def _combine_analysis_data(
         self, market_analysis: str, account_analysis: str, news_analysis: str
@@ -154,25 +169,25 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
 
     # ----- Hooks -----
     @abstractmethod
-    def _extract_id_price(self, data: DataType) -> Tuple[str, float]:
+    def _create_portfolio_allocation_from_response(
+        self, parsed: Dict[str, Any], market_data: Dict[str, DataType]
+    ) -> Optional[Dict[str, float]]:
+        """Create complete portfolio allocation from LLM response."""
         ...
 
     @abstractmethod
-    def _create_action_from_response(
-        self, parsed: Dict[str, Any], _id: str, price: float
-    ) -> Optional[ActionType]:
-        ...
-
-    @abstractmethod
-    def _get_prompt(self, analysis: str) -> str:
+    def _get_portfolio_prompt(
+        self, analysis: str, market_data: Dict[str, DataType]
+    ) -> str:
+        """Get portfolio allocation prompt for all assets."""
         ...
 
     # ----- Helpers -----
-    def history_tail(self, _id: str, k: int = 5) -> List[float]:
-        return self._history.get(_id, [])[-k:]
+    def history_tail(self, asset_id: str, k: int = 5) -> List[float]:
+        return self._history.get(asset_id, [])[-k:]
 
-    def prev_price(self, _id: str) -> Optional[float]:
-        hist = self._history.get(_id, [])
+    def prev_price(self, asset_id: str) -> Optional[float]:
+        hist = self._history.get(asset_id, [])
         return hist[-2] if len(hist) >= 2 else None
 
     def _log_error(self, msg: str, ctx: str = "") -> None:

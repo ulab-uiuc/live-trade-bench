@@ -1,102 +1,112 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
-from ..accounts import StockAccount, StockAction
+from ..accounts import StockAccount
 from .base_agent import BaseAgent
 
 
-class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
-    """Active stock trading agent for market analysis and trading."""
+class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
+    """Active stock portfolio manager using AI agents."""
 
     def __init__(self, name: str, model_name: str = "gpt-4o-mini") -> None:
         super().__init__(name, model_name)
 
-    def _extract_id_price(self, data: Dict[str, Any]) -> Tuple[str, float]:
-        if "id" in data and "price" in data:
-            return str(data["id"]), float(data["price"])
-        return str(data["ticker"]), float(data["current_price"])
+    def _prepare_market_analysis(self, market_data: Dict[str, Dict[str, Any]]) -> str:
+        """Prepare comprehensive market analysis for all stocks."""
+        analysis_parts = []
 
-    def _prepare_market_analysis(self, data: Dict[str, Any]) -> str:
-        """Prepare market-specific analysis for stocks."""
-        _id, price = self._extract_id_price(data)
-        prev = self.prev_price(_id)
-        pct = 0.0 if prev is None else ((price - prev) / prev) * 100.0
-        trend = "up" if pct > 0 else ("down" if pct < 0 else "flat")
-        hist = ", ".join(f"{p:.2f}" for p in self.history_tail(_id, 5))
+        for ticker, data in market_data.items():
+            price = data.get("current_price", 0.0)
+            name = data.get("name", ticker)
+            sector = data.get("sector", "Unknown")
 
-        pos_txt = "See account section"
+            # Get price history
+            prev = self.prev_price(ticker)
+            pct = 0.0 if prev is None else ((price - prev) / prev) * 100.0
+            trend = "up" if pct > 0 else ("down" if pct < 0 else "flat")
+            hist = ", ".join(f"{p:.2f}" for p in self.history_tail(ticker, 3))
 
-        # Calculate trading signals
-        is_trending_up = pct > 2.0
-        is_trending_down = pct < -2.0
+            analysis_parts.append(
+                f"{ticker} ({name}): ${price:.2f} | {pct:+.2f}% ({trend}) | Sector: {sector} | History: [{hist}]"
+            )
 
-        signals = []
-        if is_trending_up:
-            signals.append("🟢 Strong uptrend")
-        elif is_trending_down:
-            signals.append("🔴 Strong downtrend")
-        else:
-            signals.append("🟡 Sideways movement")
+            # Update price history
+            self._history.setdefault(ticker, []).append(price)
+            if len(self._history[ticker]) > self.max_history:
+                self._history[ticker] = self._history[ticker][-self.max_history :]
+            self._last_price[ticker] = price
 
-        return (
-            f"STOCK: {_id}\n"
-            f"PRICE: ${price:.2f}\n"
-            f"CHANGE: {pct:+.2f}% ({trend})\n"
-            f"HISTORY: [{hist}]\n"
-            f"CURRENT POSITION: {pos_txt}\n"
-            f"SIGNALS: {' | '.join(signals)}"
-        )
+        return "MARKET ANALYSIS:\n" + "\n".join(analysis_parts)
 
-    def _create_news_query(self, _id: str, data: Dict[str, Any]) -> str:
+    def _create_news_query(self, ticker: str, data: Dict[str, Any]) -> str:
         """Create stock-specific news query."""
-        return f"{_id} stock earnings news"
+        return f"{ticker} stock earnings news"
 
-    def _create_action_from_response(
-        self, parsed: Dict[str, Any], ticker: str, current_price: float
-    ) -> Optional[StockAction]:
-        action = (parsed.get("action") or "hold").lower()
-        qty = int(parsed.get("quantity", 0))  # HOLD can have 0 quantity
-        conf = float(parsed.get("confidence", 0.5))
+    def _create_portfolio_allocation_from_response(
+        self, parsed: Dict[str, Any], market_data: Dict[str, Dict[str, Any]]
+    ) -> Optional[Dict[str, float]]:
+        """Create complete portfolio allocation from LLM response."""
+        allocations = parsed.get("allocations", {})
 
-        if action == "hold" or qty <= 0:
+        if not allocations:
+            print("⚠️ No allocations found in LLM response")
             return None
 
-        return StockAction(
-            ticker=ticker,
-            action=action,
-            timestamp=datetime.now().isoformat(),
-            price=current_price,
-            quantity=qty,
-            confidence=conf,
-        )
+        # Validate that allocations sum to approximately 1.0
+        total_allocation = sum(allocations.values())
+        if abs(total_allocation - 1.0) > 0.1:  # Allow 10% tolerance
+            print(
+                f"⚠️ Allocations don't sum to 1.0 (got {total_allocation:.3f}), normalizing"
+            )
+            # Normalize allocations
+            allocations = {k: v / total_allocation for k, v in allocations.items()}
 
-    def _get_prompt(self, analysis_data: str) -> str:
+        # Validate individual allocations
+        for ticker, allocation in allocations.items():
+            if not (0.0 <= allocation <= 1.0):
+                print(
+                    f"⚠️ Invalid allocation {allocation} for {ticker}, clamping to [0,1]"
+                )
+                allocations[ticker] = max(0.0, min(1.0, allocation))
+
+        return allocations
+
+    def _get_portfolio_prompt(
+        self, analysis: str, market_data: Dict[str, Dict[str, Any]]
+    ) -> str:
+        """Get portfolio allocation prompt for all stocks."""
+        stock_list = list(market_data.keys())
+
         return (
-            "You are a thoughtful stock trader. Make data-driven investment decisions.\n"
-            f"Stock Analysis: {analysis_data}\n\n"
-            "TRADING PHILOSOPHY:\n"
-            "- Focus on momentum, fundamentals, and market sentiment\n"
-            "- Consider both technical patterns and news catalysts\n"
-            "- Diversify risk across your portfolio when possible\n"
-            "- Cut losses early, let winners run when appropriate\n"
-            "- Adapt your strategy based on market conditions\n\n"
-            "- Try to be active and buy/sell more often\n\n"
-            "POSITION SIZING GUIDANCE:\n"
-            "- High conviction trades: Larger positions (8-15 shares)\n"
-            "- Moderate conviction: Standard positions (3-8 shares)\n"
-            "- Low conviction: Small positions (1-3 shares) or HOLD\n"
-            "- Consider your existing exposure to avoid concentration risk\n\n"
-            "Return VALID JSON ONLY:\n"
+            "You are a professional portfolio manager. Analyze the market data and generate a complete portfolio allocation.\n\n"
+            f"Market Analysis:\n{analysis}\n\n"
+            "PORTFOLIO MANAGEMENT PRINCIPLES:\n"
+            "- Diversify across sectors and market caps\n"
+            "- Consider market momentum and fundamentals\n"
+            "- Balance growth and value opportunities\n"
+            "- Maintain appropriate position sizes\n"
+            "- Total allocation must equal 100% (1.0)\n\n"
+            f"AVAILABLE STOCKS: {stock_list}\n\n"
+            "CRITICAL: You must return ONLY valid JSON format. No additional text, explanations, or formatting.\n\n"
+            "REQUIRED JSON FORMAT:\n"
             "{\n"
-            ' "action": "buy|sell|hold",\n'
-            ' "quantity": <int>,\n'
-            ' "confidence": <0.0-1.0>,\n'
-            ' "reasoning": "<brief explanation>"\n'
-            "}"
+            ' "allocations": {\n'
+            f'   "{stock_list[0]}": 0.3,\n'
+            f'   "{stock_list[1]}": 0.3,\n'
+            f'   "{stock_list[2]}": 0.4\n'
+            " },\n"
+            ' "reasoning": "brief explanation"\n'
+            "}\n\n"
+            "IMPORTANT RULES:\n"
+            "1. Return ONLY the JSON object\n"
+            "2. All allocations must sum to exactly 1.0\n"
+            "3. Use double quotes for strings\n"
+            "4. No trailing commas\n"
+            "5. No additional text before or after the JSON"
         )
 
 
 def create_stock_agent(name: str, model_name: str = "gpt-4o-mini") -> LLMStockAgent:
+    """Create a new stock portfolio manager."""
     return LLMStockAgent(name, model_name)
