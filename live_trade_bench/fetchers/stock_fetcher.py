@@ -27,21 +27,34 @@ class StockFetcher(BaseFetcher):
             raise ValueError(f"Unknown fetch mode: {mode}")
 
     def get_trending_stocks(self, limit: int = 10) -> List[str]:
-        trending_tickers = [
-            "AAPL",
-            "MSFT",
-            "GOOGL",
-            "AMZN",
-            "TSLA",
-            "META",
-            "NVDA",
-            "JPM",
-            "JNJ",
-            "V",
-            "PG",
-            "UNH",
+        diversified_tickers = [
+            # Technology (3 stocks)
+            "AAPL",    # Apple - Consumer Electronics
+            "MSFT",    # Microsoft - Software
+            "NVDA",    # NVIDIA - Semiconductor
+            # Financial Services (2 stocks)
+            "JPM",     # JPMorgan Chase - Banking
+            "V",       # Visa - Payment Processing
+            # Healthcare (2 stocks)
+            "JNJ",     # Johnson & Johnson - Pharmaceuticals
+            "UNH",     # UnitedHealth - Health Insurance
+            # Consumer Goods (2 stocks)
+            "PG",      # Procter & Gamble - Consumer Products
+            "KO",      # Coca-Cola - Beverages
+            # Energy (1 stock)
+            "XOM",     # ExxonMobil - Oil & Gas
+            # Industrial (1 stock)
+            "CAT",     # Caterpillar - Heavy Machinery
+            # Retail (1 stock)
+            "WMT",     # Walmart - Retail
+            # Communication (1 stock)
+            "META",    # Meta - Social Media
+            # Automotive (1 stock)
+            "TSLA",    # Tesla - Electric Vehicles
+            # E-commerce (1 stock)
+            "AMZN",    # Amazon - Online Retail
         ]
-        return trending_tickers[:limit]
+        return diversified_tickers[:limit]
 
     def get_current_stock_price(self, ticker: str) -> Optional[float]:
         return self.get_current_price(ticker)

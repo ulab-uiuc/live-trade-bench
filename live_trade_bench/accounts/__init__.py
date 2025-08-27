@@ -1,29 +1,35 @@
 """
-Trading Bench Accounts Package
+Account management system for portfolio management
 """
 
-from .portfolio_models import (
-    PortfolioSummary,
+from .base_account import BaseAccount
+from .polymarket_account import (
+    PolymarketAccount,
+    PolymarketPosition,
+    PolymarketTransaction,
+    create_polymarket_account,
+)
+from .portfolio_models import PortfolioSummary
+from .stock_account import (
+    StockAccount,
+    StockPosition,
+    StockTransaction,
+    create_stock_account,
 )
 
 __all__ = [
     # Base classes
     "BaseAccount",
-    # Stock portfolio management
+    # Stock account
     "StockAccount",
     "StockPosition",
     "StockTransaction",
     "create_stock_account",
-    # Polymarket portfolio management
+    # Polymarket account
     "PolymarketAccount",
     "PolymarketPosition",
     "PolymarketTransaction",
     "create_polymarket_account",
     # Portfolio models
-    "PortfolioTarget",
-    "AllocationChange",
-    "PortfolioStatus",
-    "RebalanceAction",
-    "RebalancePlan",
     "PortfolioSummary",
 ]

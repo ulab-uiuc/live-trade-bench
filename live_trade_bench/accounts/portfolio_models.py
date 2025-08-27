@@ -4,7 +4,6 @@ Simplified portfolio management data models
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict
 
 
 @dataclass

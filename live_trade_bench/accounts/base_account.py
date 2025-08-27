@@ -22,7 +22,7 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
     last_rebalance: Optional[str] = None
 
     def set_target_allocation(self, ticker: str, target_ratio: float) -> bool:
-        """Set target allocation for an asset."""
+        """Set target allocation for an asset (including CASH)."""
         if not (0.0 <= target_ratio <= 1.0):
             print(f"⚠️ Invalid allocation ratio {target_ratio} for {ticker}")
             return False
@@ -31,14 +31,17 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         return True
 
     def get_target_allocation(self, ticker: str) -> float:
-        """Get target allocation for an asset."""
+        """Get target allocation for an asset (including CASH)."""
         return self.target_allocations.get(ticker, 0.0)
 
     def get_current_allocation(self, ticker: str) -> float:
-        """Get current allocation for an asset."""
+        """Get current allocation for an asset (including CASH)."""
         total_value = self.get_total_value()
         if total_value == 0:
             return 0.0
+
+        if ticker == "CASH":
+            return self.cash_balance / total_value
 
         position_value = self._get_position_value(ticker)
         return position_value / total_value
@@ -51,6 +54,7 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
 
     def needs_rebalancing(self, threshold: float = 0.05) -> bool:
         """Check if portfolio needs rebalancing."""
+        # Check all assets including CASH
         for ticker in self.target_allocations:
             if abs(self.get_allocation_difference(ticker)) > threshold:
                 return True
@@ -60,8 +64,32 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         """Get total portfolio value."""
         total = self.cash_balance
         for ticker in self.target_allocations:
-            total += self._get_position_value(ticker)
+            if ticker != "CASH":  # Don't double-count cash
+                total += self._get_position_value(ticker)
         return total
+
+    def get_portfolio_value_breakdown(self) -> Dict[str, Any]:
+        """Get detailed portfolio value breakdown."""
+        total_value = self.get_total_value()
+        cash_value = self.cash_balance
+        positions_value = total_value - cash_value
+
+        # Calculate current allocations
+        current_allocations = {}
+        for ticker in self.target_allocations:
+            current_allocations[ticker] = self.get_current_allocation(ticker)
+
+        return {
+            "total_value": total_value,
+            "cash_value": cash_value,
+            "positions_value": positions_value,
+            "cash_allocation": cash_value / total_value if total_value > 0 else 0.0,
+            "positions_allocation": positions_value / total_value
+            if total_value > 0
+            else 0.0,
+            "current_allocations": current_allocations,
+            "target_allocations": self.target_allocations.copy(),
+        }
 
     @abstractmethod
     def _get_position_value(self, ticker: str) -> float:

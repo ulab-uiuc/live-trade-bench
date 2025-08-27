@@ -44,10 +44,10 @@ class PolymarketPortfolioSystem:
         """Add a new portfolio agent."""
         agent = LLMPolyMarketAgent(name, model_name)
         account = create_polymarket_account(initial_cash)
-        
+
         # Link agent to account
         agent.account = account
-        
+
         self.agents[name] = agent
         self.accounts[name] = account
 
@@ -96,6 +96,15 @@ class PolymarketPortfolioSystem:
                 try:
                     print(f"\n🤖 {agent_name} generating portfolio allocation...")
 
+                    # Show current portfolio status
+                    current_value = agent.account.get_total_value()
+                    cash_balance = agent.account.cash_balance
+                    print(f"   💰 Current Portfolio Value: ${current_value:,.2f}")
+                    print(f"   💵 Current Cash Balance: ${cash_balance:,.2f}")
+                    print(
+                        f"   📊 Current Target Allocations: {agent.account.target_allocations}"
+                    )
+
                     # Generate complete portfolio allocation
                     allocation = agent.generate_portfolio_allocation(
                         market_data, agent.account
@@ -137,8 +146,68 @@ class PolymarketPortfolioSystem:
     def get_portfolio_summaries(self) -> Dict[str, Dict[str, Any]]:
         """Get portfolio summaries for all agents."""
         summaries = {}
-        for agent_name, account in self.accounts.items():
-            summaries[agent_name] = account.get_portfolio_summary()
+        total_portfolio_value = 0.0
+
+        for agent_name, agent in self.agents.items():
+            account = agent.account
+            portfolio_info = account.get_portfolio_value_breakdown()
+
+            summary = {
+                "agent_name": agent_name,
+                "total_value": portfolio_info["total_value"],
+                "cash_value": portfolio_info["cash_value"],
+                "positions_value": portfolio_info["positions_value"],
+                "cash_allocation": portfolio_info["cash_allocation"],
+                "positions_allocation": portfolio_info["positions_allocation"],
+                "current_allocations": portfolio_info["current_allocations"],
+                "target_allocations": portfolio_info["target_allocations"],
+                "needs_rebalancing": account.needs_rebalancing(),
+                "last_rebalance": account.last_rebalance,
+            }
+
+            summaries[agent_name] = summary
+            total_portfolio_value += portfolio_info["total_value"]
+
+        # Add overall portfolio summary
+        summaries["OVERALL"] = {
+            "agent_name": "OVERALL",
+            "total_value": total_portfolio_value,
+            "cash_value": sum(
+                s["cash_value"]
+                for s in summaries.values()
+                if s["agent_name"] != "OVERALL"
+            ),
+            "positions_value": sum(
+                s["positions_value"]
+                for s in summaries.values()
+                if s["agent_name"] != "OVERALL"
+            ),
+            "cash_allocation": sum(
+                s["cash_allocation"]
+                for s in summaries.values()
+                if s["agent_name"] != "OVERALL"
+            )
+            / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
+            if summaries
+            else 0.0,
+            "positions_allocation": sum(
+                s["positions_allocation"]
+                for s in summaries.values()
+                if s["agent_name"] != "OVERALL"
+            )
+            / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
+            if summaries
+            else 0.0,
+            "current_allocations": {},
+            "target_allocations": {},
+            "needs_rebalancing": any(
+                s["needs_rebalancing"]
+                for s in summaries.values()
+                if s["agent_name"] != "OVERALL"
+            ),
+            "last_rebalance": None,
+        }
+
         return summaries
 
     def get_agent_status(self, agent_name: str) -> Dict[str, Any]:
