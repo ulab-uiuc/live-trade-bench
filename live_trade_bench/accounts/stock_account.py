@@ -9,11 +9,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from .base_account import BaseAccount
-from .utils import StockPosition, StockTransaction
-
 
 # ----------------------------- Data Models -----------------------------
 
@@ -137,15 +135,14 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
     def get_active_positions(self) -> Dict[str, Any]:
         """Get all active positions."""
         return {
-            ticker: pos for ticker, pos in self.positions.items()
-            if pos.quantity > 0
+            ticker: pos for ticker, pos in self.positions.items() if pos.quantity > 0
         }
 
     def get_portfolio_summary(self) -> Dict[str, Any]:
         """Get portfolio summary with allocations."""
         active = self.get_active_positions()
         total_value = self.get_total_value()
-        
+
         if not active:
             return {
                 "total_value": total_value,
@@ -153,17 +150,17 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
                 "positions": {},
                 "allocations": {},
                 "target_allocations": self.target_allocations,
-                "needs_rebalancing": self.needs_rebalancing()
+                "needs_rebalancing": self.needs_rebalancing(),
             }
 
         positions_summary = {}
         current_allocations = {}
-        
+
         for ticker, pos in active.items():
             current_price = self._current_price(ticker, pos.avg_price)
             current_value = pos.quantity * current_price
             current_ratio = current_value / total_value if total_value > 0 else 0.0
-            
+
             positions_summary[ticker] = {
                 "quantity": pos.quantity,
                 "avg_price": pos.avg_price,
@@ -171,9 +168,9 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
                 "current_value": current_value,
                 "current_allocation": current_ratio,
                 "target_allocation": self.get_target_allocation(ticker),
-                "allocation_difference": self.get_allocation_difference(ticker)
+                "allocation_difference": self.get_allocation_difference(ticker),
             }
-            
+
             current_allocations[ticker] = current_ratio
 
         return {
@@ -183,29 +180,29 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
             "allocations": current_allocations,
             "target_allocations": self.target_allocations,
             "needs_rebalancing": self.needs_rebalancing(),
-            "last_rebalance": self.last_rebalance
+            "last_rebalance": self.last_rebalance,
         }
 
     def execute_rebalancing(self, rebalance_plan: Dict[str, Any]) -> bool:
         """Execute portfolio rebalancing based on plan."""
         if rebalance_plan.get("status") != "rebalancing_required":
             return False
-        
+
         actions = rebalance_plan.get("actions", [])
         success_count = 0
-        
+
         for action in actions:
             ticker = action["ticker"]
             value_adjustment = action["value_adjustment"]
             action_type = action["action"]
-            
+
             if action_type == "buy" and value_adjustment > 0:
                 if self._execute_buy_adjustment(ticker, value_adjustment):
                     success_count += 1
             elif action_type == "sell" and value_adjustment < 0:
                 if self._execute_sell_adjustment(ticker, abs(value_adjustment)):
                     success_count += 1
-        
+
         return success_count == len(actions)
 
     def _execute_buy_adjustment(self, ticker: str, value_adjustment: float) -> bool:
@@ -213,16 +210,18 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
         current_price = self._current_price(ticker, 0.0)
         if current_price <= 0:
             return False
-        
+
         quantity = value_adjustment / current_price
         if quantity <= 0:
             return False
-        
+
         # Check if we can afford this
-        total_cost = value_adjustment + self.calculate_commission(current_price, quantity)
+        total_cost = value_adjustment + self.calculate_commission(
+            current_price, quantity
+        )
         if total_cost > self.cash_balance:
             return False
-        
+
         # Execute the buy
         self._add_position(ticker, quantity, current_price)
         self.cash_balance -= total_cost
@@ -233,16 +232,16 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
         current_price = self._current_price(ticker, 0.0)
         if current_price <= 0:
             return False
-        
+
         quantity = value_adjustment / current_price
         if quantity <= 0:
             return False
-        
+
         # Check if we have enough shares
         pos = self.positions.get(self._key(ticker))
         if not pos or pos.quantity < quantity:
             return False
-        
+
         # Execute the sell
         self._reduce_position(ticker, quantity)
         proceeds = value_adjustment - self.calculate_commission(current_price, quantity)
@@ -266,7 +265,7 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
                 quantity=quantity,
                 avg_price=price,
                 cost_basis=quantity * price,
-                last_updated=datetime.now().isoformat()
+                last_updated=datetime.now().isoformat(),
             )
 
     def _reduce_position(self, ticker: str, quantity: float) -> None:
@@ -278,7 +277,7 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
                 pos.quantity -= quantity
                 pos.cost_basis = pos.avg_price * pos.quantity
                 pos.last_updated = datetime.now().isoformat()
-                
+
                 # Remove position if quantity becomes 0
                 if pos.quantity <= 0:
                     del self.positions[key]
@@ -293,21 +292,13 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
         return {
             "total_trades": 0,  # No longer tracking individual trades
             "last_trade": None,
-            "commission_paid": 0.0
+            "commission_paid": 0.0,
         }
 
 
 # --------------------------- Convenience ---------------------------
 
 
-def create_stock_account(
-    initial_cash: float = 100_000.0,
-    commission_rate: float = 0.001,
-    price_provider: Optional[Callable[[str], Optional[float]]] = None,
-) -> StockAccount:
-    """Create a new StockAccount. Provide `price_provider` to enable live valuation."""
-    return StockAccount(
-        cash_balance=initial_cash,
-        commission_rate=commission_rate,
-        price_provider=price_provider,
-    )
+def create_stock_account(initial_cash: float) -> StockAccount:
+    """Create a new stock account."""
+    return StockAccount(initial_cash)

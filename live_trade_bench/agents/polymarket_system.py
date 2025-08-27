@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List
 
 from ..accounts import PolymarketAccount, create_polymarket_account
@@ -56,19 +56,23 @@ class PolymarketPortfolioSystem:
                         "category": market["category"],
                         "price": float(price_data["yes"]),
                         "yes_price": float(price_data["yes"]),
-                        "no_price": float(price_data.get("no", 1.0 - float(price_data["yes"]))),
+                        "no_price": float(
+                            price_data.get("no", 1.0 - float(price_data["yes"]))
+                        ),
                         "token_ids": market["token_ids"],
-                        "timestamp": datetime.now().isoformat()
+                        "timestamp": datetime.now().isoformat(),
                     }
             except Exception as e:
                 print(f"⚠️ Failed to fetch data for {market_id}: {e}")
-        
+
         return market_data
 
     def run_cycle(self) -> Dict[str, Any]:
         """Run one portfolio management cycle."""
-        print(f"🔄 Running polymarket portfolio cycle at {datetime.now().strftime('%H:%M:%S')}")
-        
+        print(
+            f"🔄 Running polymarket portfolio cycle at {datetime.now().strftime('%H:%M:%S')}"
+        )
+
         market_data = self._fetch_market_data()
         if not market_data:
             return {"status": "no_market_data", "timestamp": datetime.now().isoformat()}
@@ -79,7 +83,7 @@ class PolymarketPortfolioSystem:
             "agents_processed": 0,
             "allocations_updated": 0,
             "rebalancing_required": 0,
-            "errors": []
+            "errors": [],
         }
 
         # Process each agent
@@ -91,20 +95,27 @@ class PolymarketPortfolioSystem:
                 # Generate portfolio allocations for each market
                 for market_id, market_info in market_data.items():
                     try:
-                        allocation = agent.generate_portfolio_allocation(market_info, account)
+                        allocation = agent.generate_portfolio_allocation(
+                            market_info, account
+                        )
                         if allocation:
                             # Update target allocation
                             success = account.set_target_allocation(
-                                allocation["market_id"], 
-                                allocation["allocation"]
+                                allocation["market_id"], allocation["allocation"]
                             )
                             if success:
                                 cycle_results["allocations_updated"] += 1
-                                print(f"✅ {agent_name}: Updated {market_id} allocation to {allocation['allocation']:.1%}")
+                                print(
+                                    f"✅ {agent_name}: Updated {market_id} allocation to {allocation['allocation']:.1%}"
+                                )
                             else:
-                                cycle_results["errors"].append(f"Failed to set allocation for {market_id}")
+                                cycle_results["errors"].append(
+                                    f"Failed to set allocation for {market_id}"
+                                )
                     except Exception as e:
-                        error_msg = f"Error processing {market_id} for {agent_name}: {e}"
+                        error_msg = (
+                            f"Error processing {market_id} for {agent_name}: {e}"
+                        )
                         cycle_results["errors"].append(error_msg)
                         print(f"⚠️ {error_msg}")
 
@@ -112,7 +123,7 @@ class PolymarketPortfolioSystem:
                 if account.needs_rebalancing():
                     cycle_results["rebalancing_required"] += 1
                     rebalance_plan = account.rebalance_portfolio()
-                    
+
                     if rebalance_plan.get("status") == "rebalancing_required":
                         print(f"🔄 {agent_name}: Rebalancing required")
                         success = account.execute_rebalancing(rebalance_plan)
@@ -129,10 +140,12 @@ class PolymarketPortfolioSystem:
                 print(f"⚠️ {error_msg}")
 
         # Print cycle summary
-        print(f"📊 Cycle Summary: {cycle_results['agents_processed']} agents, "
-              f"{cycle_results['allocations_updated']} allocations updated, "
-              f"{cycle_results['rebalancing_required']} rebalancing required")
-        
+        print(
+            f"📊 Cycle Summary: {cycle_results['agents_processed']} agents, "
+            f"{cycle_results['allocations_updated']} allocations updated, "
+            f"{cycle_results['rebalancing_required']} rebalancing required"
+        )
+
         return cycle_results
 
     def get_portfolio_summaries(self) -> Dict[str, Dict[str, Any]]:
@@ -146,37 +159,41 @@ class PolymarketPortfolioSystem:
         """Get detailed status for a specific agent."""
         if agent_name not in self.agents:
             return {"error": "Agent not found"}
-        
+
         agent = self.agents[agent_name]
         account = self.accounts[agent_name]
-        
+
         return {
             "agent_name": agent.name,
             "model_name": agent.model_name,
             "available": agent.available,
             "portfolio": account.get_portfolio_summary(),
             "needs_rebalancing": account.needs_rebalancing(),
-            "last_rebalance": account.last_rebalance
+            "last_rebalance": account.last_rebalance,
         }
 
-    def run_continuous(self, interval_minutes: int = 15, max_cycles: int = None) -> None:
+    def run_continuous(
+        self, interval_minutes: int = 15, max_cycles: int = None
+    ) -> None:
         """Run continuous portfolio management cycles."""
-        print(f"🚀 Starting continuous polymarket portfolio management (interval: {interval_minutes} minutes)")
-        
+        print(
+            f"🚀 Starting continuous polymarket portfolio management (interval: {interval_minutes} minutes)"
+        )
+
         cycle_count = 0
         try:
             while max_cycles is None or cycle_count < max_cycles:
                 cycle_count += 1
                 print(f"\n🔄 Cycle {cycle_count}")
-                
+
                 result = self.run_cycle()
                 if result.get("errors"):
                     print(f"⚠️ Cycle {cycle_count} had {len(result['errors'])} errors")
-                
+
                 if max_cycles is None or cycle_count < max_cycles:
                     print(f"⏰ Waiting {interval_minutes} minutes until next cycle...")
                     time.sleep(interval_minutes * 60)
-                
+
         except KeyboardInterrupt:
             print(f"\n⏹️ Stopped after {cycle_count} cycles")
         except Exception as e:
@@ -186,12 +203,16 @@ class PolymarketPortfolioSystem:
 # Backward compatibility
 PolymarketTradingSystem = PolymarketPortfolioSystem
 
+
 # Factory functions
 def create_polymarket_portfolio_system() -> PolymarketPortfolioSystem:
     """Create a new polymarket portfolio management system."""
     return PolymarketPortfolioSystem()
 
+
 def create_polymarket_trading_system() -> PolymarketPortfolioSystem:
     """Backward compatibility - creates portfolio system."""
-    print("⚠️ create_polymarket_trading_system is deprecated, use create_polymarket_portfolio_system instead")
+    print(
+        "⚠️ create_polymarket_trading_system is deprecated, use create_polymarket_portfolio_system instead"
+    )
     return create_polymarket_portfolio_system()

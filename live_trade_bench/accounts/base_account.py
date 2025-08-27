@@ -5,7 +5,7 @@ Base account management system - Abstract base for all account types
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, Generic, Optional, Tuple, TypeVar
+from typing import Any, Dict, Generic, Optional, TypeVar
 
 # Generic type for different position and transaction types
 PositionType = TypeVar("PositionType")
@@ -20,7 +20,7 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
     initial_cash: float = field(init=False)
     commission_rate: float = 0.001
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    
+
     # Portfolio allocation tracking
     target_allocations: Dict[str, float] = field(default_factory=dict)
     last_rebalance: Optional[str] = None
@@ -55,7 +55,7 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         if not (0.0 <= target_ratio <= 1.0):
             print(f"⚠️ Invalid allocation ratio: {target_ratio} for {ticker}")
             return False
-        
+
         self.target_allocations[ticker] = target_ratio
         self.last_rebalance = datetime.now().isoformat()
         return True
@@ -69,7 +69,7 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         total_value = self.get_total_value()
         if total_value <= 0:
             return 0.0
-        
+
         position_value = self._get_position_value(ticker)
         return position_value / total_value
 
@@ -90,32 +90,34 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         """Rebalance portfolio to match target allocations."""
         if not self.needs_rebalancing():
             return {"status": "no_rebalancing_needed"}
-        
+
         rebalance_actions = []
         total_value = self.get_total_value()
-        
+
         for ticker, target_ratio in self.target_allocations.items():
             current_ratio = self.get_current_allocation(ticker)
             difference = target_ratio - current_ratio
-            
+
             if abs(difference) > 0.01:  # 1% threshold
                 target_value = total_value * target_ratio
                 current_value = total_value * current_ratio
                 value_adjustment = target_value - current_value
-                
-                rebalance_actions.append({
-                    "ticker": ticker,
-                    "current_ratio": current_ratio,
-                    "target_ratio": target_ratio,
-                    "value_adjustment": value_adjustment,
-                    "action": "buy" if value_adjustment > 0 else "sell"
-                })
-        
+
+                rebalance_actions.append(
+                    {
+                        "ticker": ticker,
+                        "current_ratio": current_ratio,
+                        "target_ratio": target_ratio,
+                        "value_adjustment": value_adjustment,
+                        "action": "buy" if value_adjustment > 0 else "sell",
+                    }
+                )
+
         self.last_rebalance = datetime.now().isoformat()
         return {
             "status": "rebalancing_required",
             "actions": rebalance_actions,
-            "timestamp": self.last_rebalance
+            "timestamp": self.last_rebalance,
         }
 
     # ----- Abstract Methods -----

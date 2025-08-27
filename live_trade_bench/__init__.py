@@ -9,23 +9,22 @@ This package provides tools for:
 """
 
 # Import core components
-from .accounts import (
+from .accounts import (  # Portfolio models
+    AllocationChange,
     BaseAccount,
     PolymarketAccount,
     PolymarketPosition,
     PolymarketTransaction,
+    PortfolioStatus,
+    PortfolioSummary,
+    PortfolioTarget,
+    RebalanceAction,
+    RebalancePlan,
     StockAccount,
     StockPosition,
     StockTransaction,
     create_polymarket_account,
     create_stock_account,
-    # Portfolio models
-    PortfolioTarget,
-    AllocationChange,
-    PortfolioStatus,
-    RebalanceAction,
-    RebalancePlan,
-    PortfolioSummary,
 )
 from .agents import (
     BaseAgent,
@@ -47,7 +46,7 @@ from .fetchers import (
     fetch_trending_markets,
     fetch_trending_stocks,
 )
-from .utils import call_llm, parse_trading_response, parse_portfolio_response
+from .utils import call_llm, parse_portfolio_response, parse_trading_response
 
 # Define what gets exported when importing *
 __all__ = [

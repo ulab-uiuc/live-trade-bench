@@ -48,12 +48,16 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                 market_analysis, account_analysis, news_analysis
             )
 
-            messages = [{"role": "user", "content": self._get_portfolio_prompt(full_analysis)}]
+            messages = [
+                {"role": "user", "content": self._get_portfolio_prompt(full_analysis)}
+            ]
             llm_response = self._call_llm(messages)
             parsed = self._parse_portfolio_response(llm_response)
 
             if parsed:
-                portfolio_allocation = self._create_portfolio_allocation_from_response(parsed, _id, price)
+                portfolio_allocation = self._create_portfolio_allocation_from_response(
+                    parsed, _id, price
+                )
                 if portfolio_allocation:
                     print(
                         f"🤖 {self.name} ({_id}): Portfolio allocation updated - {portfolio_allocation}"

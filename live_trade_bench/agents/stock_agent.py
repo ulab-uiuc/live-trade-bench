@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
 from ..accounts import StockAccount
@@ -59,20 +58,20 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
         """Create portfolio allocation from LLM response."""
         allocation = float(parsed.get("allocation", 0.0))
         confidence = float(parsed.get("confidence", 0.5))
-        
+
         # Validate allocation (0.0 to 1.0)
         if allocation < 0.0 or allocation > 1.0:
             print(f"⚠️ Invalid allocation {allocation} for {ticker}, using 0.0")
             allocation = 0.0
-        
+
         if allocation == 0.0:
             return None  # No allocation change
-        
+
         return {
             "ticker": ticker,
             "allocation": allocation,
             "confidence": confidence,
-            "reasoning": parsed.get("reasoning", "Portfolio allocation decision")
+            "reasoning": parsed.get("reasoning", "Portfolio allocation decision"),
         }
 
     def _get_portfolio_prompt(self, analysis_data: str) -> str:

@@ -115,7 +115,7 @@ def parse_portfolio_response(content: str) -> Dict[str, Any]:
     except json.JSONDecodeError:
         # Fallback parsing for non-JSON responses
         content_lower = content.lower()
-        
+
         # Look for percentage or allocation patterns
         if "allocation" in content_lower or "weight" in content_lower:
             # Try to extract allocation information
