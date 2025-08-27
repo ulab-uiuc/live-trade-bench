@@ -99,3 +99,33 @@ def parse_trading_response(content: str) -> Dict[str, Any]:
             "confidence": 0.5,
             "reasoning": "Parsed from LLM response",
         }
+
+
+def parse_portfolio_response(content: str) -> Dict[str, Any]:
+    """Parse LLM response into portfolio allocation format"""
+    try:
+        # Try to parse JSON response
+        parsed = json.loads(content)
+        if isinstance(parsed, dict):
+            return parsed
+        else:
+            # If parsed is not a dict, create a dict with the parsed value
+            return {"response": parsed}
+
+    except json.JSONDecodeError:
+        # Fallback parsing for non-JSON responses
+        content_lower = content.lower()
+        
+        # Look for percentage or allocation patterns
+        if "allocation" in content_lower or "weight" in content_lower:
+            # Try to extract allocation information
+            return {
+                "allocation": 0.1,  # Default 10% allocation
+                "reasoning": "Parsed from LLM response - default allocation",
+            }
+        else:
+            # Default to no change
+            return {
+                "allocation": 0.0,
+                "reasoning": "Parsed from LLM response - no allocation change",
+            }

@@ -3,12 +3,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
-from ..accounts import StockAccount, StockAction
+from ..accounts import StockAccount
 from .base_agent import BaseAgent
 
 
-class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
-    """Active stock trading agent for market analysis and trading."""
+class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
+    """Active stock trading agent for market analysis and portfolio allocation."""
 
     def __init__(self, name: str, model_name: str = "gpt-4o-mini") -> None:
         super().__init__(name, model_name)
@@ -53,50 +53,52 @@ class LLMStockAgent(BaseAgent[StockAction, StockAccount, Dict[str, Any]]):
         """Create stock-specific news query."""
         return f"{_id} stock earnings news"
 
-    def _create_action_from_response(
+    def _create_portfolio_allocation_from_response(
         self, parsed: Dict[str, Any], ticker: str, current_price: float
-    ) -> Optional[StockAction]:
-        action = (parsed.get("action") or "hold").lower()
-        qty = int(parsed.get("quantity", 0))  # HOLD can have 0 quantity
-        conf = float(parsed.get("confidence", 0.5))
+    ) -> Optional[Dict[str, float]]:
+        """Create portfolio allocation from LLM response."""
+        allocation = float(parsed.get("allocation", 0.0))
+        confidence = float(parsed.get("confidence", 0.5))
+        
+        # Validate allocation (0.0 to 1.0)
+        if allocation < 0.0 or allocation > 1.0:
+            print(f"⚠️ Invalid allocation {allocation} for {ticker}, using 0.0")
+            allocation = 0.0
+        
+        if allocation == 0.0:
+            return None  # No allocation change
+        
+        return {
+            "ticker": ticker,
+            "allocation": allocation,
+            "confidence": confidence,
+            "reasoning": parsed.get("reasoning", "Portfolio allocation decision")
+        }
 
-        if action == "hold" or qty <= 0:
-            return None
-
-        return StockAction(
-            ticker=ticker,
-            action=action,
-            timestamp=datetime.now().isoformat(),
-            price=current_price,
-            quantity=qty,
-            confidence=conf,
-        )
-
-    def _get_prompt(self, analysis_data: str) -> str:
+    def _get_portfolio_prompt(self, analysis_data: str) -> str:
         return (
-            "You are a thoughtful stock trader. Make data-driven investment decisions.\n"
+            "You are a thoughtful portfolio manager. Make data-driven portfolio allocation decisions.\n"
             f"Stock Analysis: {analysis_data}\n\n"
-            "TRADING PHILOSOPHY:\n"
-            "- Focus on momentum, fundamentals, and market sentiment\n"
-            "- Consider both technical patterns and news catalysts\n"
-            "- Diversify risk across your portfolio when possible\n"
-            "- Cut losses early, let winners run when appropriate\n"
-            "- Adapt your strategy based on market conditions\n\n"
-            "- Try to be active and buy/sell more often\n\n"
-            "POSITION SIZING GUIDANCE:\n"
-            "- High conviction trades: Larger positions (8-15 shares)\n"
-            "- Moderate conviction: Standard positions (3-8 shares)\n"
-            "- Low conviction: Small positions (1-3 shares) or HOLD\n"
-            "- Consider your existing exposure to avoid concentration risk\n\n"
+            "PORTFOLIO MANAGEMENT PHILOSOPHY:\n"
+            "- Focus on risk-adjusted returns and diversification\n"
+            "- Consider market momentum, fundamentals, and sentiment\n"
+            "- Balance growth and value opportunities\n"
+            "- Maintain appropriate position sizes based on conviction\n"
+            "- Adapt allocations based on changing market conditions\n\n"
+            "ALLOCATION GUIDANCE:\n"
+            "- High conviction (>0.8): 15-25% of portfolio\n"
+            "- Medium conviction (0.5-0.8): 8-15% of portfolio\n"
+            "- Low conviction (<0.5): 3-8% of portfolio or 0%\n"
+            "- Consider existing exposure to avoid concentration risk\n\n"
             "Return VALID JSON ONLY:\n"
             "{\n"
-            ' "action": "buy|sell|hold",\n'
-            ' "quantity": <int>,\n'
+            ' "allocation": <0.0-1.0>,\n'
             ' "confidence": <0.0-1.0>,\n'
-            ' "reasoning": "<brief explanation>"\n'
+            ' "reasoning": "<brief explanation of allocation decision>"\n'
             "}"
         )
 
 
 def create_stock_agent(name: str, model_name: str = "gpt-4o-mini") -> LLMStockAgent:
+    """Create a new stock trading agent."""
     return LLMStockAgent(name, model_name)

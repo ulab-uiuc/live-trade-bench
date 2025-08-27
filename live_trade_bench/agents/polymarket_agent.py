@@ -3,14 +3,14 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
-from ..accounts import PolymarketAccount, PolymarketAction
+from ..accounts import PolymarketAccount
 from .base_agent import BaseAgent
 
 
 class LLMPolyMarketAgent(
-    BaseAgent[PolymarketAction, PolymarketAccount, Dict[str, Any]]
+    BaseAgent[PolymarketAccount, Dict[str, Any]]
 ):
-    """Active prediction market trading agent for market analysis and trading."""
+    """Active prediction market trading agent for market analysis and portfolio allocation."""
 
     def __init__(self, name: str, model_name: str = "gpt-4o-mini") -> None:
         super().__init__(name, model_name)
@@ -76,49 +76,50 @@ class LLMPolyMarketAgent(
         else:
             return f"polymarket {_id}"
 
-    def _create_action_from_response(
+    def _create_portfolio_allocation_from_response(
         self, parsed: Dict[str, Any], _id: str, price: float
-    ) -> Optional[PolymarketAction]:
-        action = (parsed.get("action") or "hold").lower()
+    ) -> Optional[Dict[str, float]]:
+        """Create portfolio allocation from LLM response."""
+        allocation = float(parsed.get("allocation", 0.0))
+        confidence = float(parsed.get("confidence", 0.5))
         outcome = (parsed.get("outcome") or "yes").lower()
-        qty = int(parsed.get("quantity", 0))
-        conf = float(parsed.get("confidence", 0.5))
+        
+        # Validate allocation (0.0 to 1.0)
+        if allocation < 0.0 or allocation > 1.0:
+            print(f"⚠️ Invalid allocation {allocation} for {_id}, using 0.0")
+            allocation = 0.0
+        
+        if allocation == 0.0:
+            return None  # No allocation change
+        
+        return {
+            "market_id": _id,
+            "outcome": outcome,
+            "allocation": allocation,
+            "confidence": confidence,
+            "reasoning": parsed.get("reasoning", "Portfolio allocation decision")
+        }
 
-        if action == "hold" or qty <= 0:
-            return None
-
-        return PolymarketAction(
-            market_id=_id,
-            outcome=outcome,
-            action=action,
-            timestamp=datetime.now().isoformat(),
-            price=price,
-            quantity=qty,
-            confidence=conf,
-        )
-
-    def _get_prompt(self, analysis_data: str) -> str:
+    def _get_portfolio_prompt(self, analysis_data: str) -> str:
         return (
-            "You are an intelligent prediction market trader. Use your judgment to analyze markets.\n"
+            "You are an intelligent prediction market portfolio manager. Use your judgment to analyze markets and allocate portfolio weights.\n"
             f"Market Analysis: {analysis_data}\n\n"
-            "TRADING PHILOSOPHY:\n"
+            "PORTFOLIO MANAGEMENT PHILOSOPHY:\n"
             "- Look for mispriced markets where your analysis differs from market consensus\n"
             "- Consider news, trends, and historical context in your decisions\n"
             "- Manage risk by sizing positions based on your confidence level\n"
-            "- Don't trade just to trade - only act when you see clear opportunities\n"
+            "- Don't allocate just to allocate - only act when you see clear opportunities\n"
             "- Learn from your positions and market feedback\n\n"
-            "- Try to be active and buy/sell more often\n\n"
-            "POSITION SIZING GUIDANCE:\n"
-            "- High confidence (>0.8): Larger positions (10-20 shares)\n"
-            "- Medium confidence (0.5-0.8): Moderate positions (5-10 shares)\n"
-            "- Low confidence (<0.5): Small positions (1-5 shares) or HOLD\n\n"
+            "ALLOCATION GUIDANCE:\n"
+            "- High confidence (>0.8): 15-25% of portfolio\n"
+            "- Medium confidence (0.5-0.8): 8-15% of portfolio\n"
+            "- Low confidence (<0.5): 3-8% of portfolio or 0%\n"
+            "- Consider existing exposure to avoid concentration risk\n\n"
             "Return VALID JSON ONLY:\n"
             "{\n"
-            ' "action": "buy|sell|hold",\n'
-            ' "outcome": "yes|no",\n'
-            ' "quantity": <int>,\n'
+            ' "allocation": <0.0-1.0>,\n'
             ' "confidence": <0.0-1.0>,\n'
-            ' "reasoning": "<brief explanation>"\n'
+            ' "reasoning": "<brief explanation of allocation decision>"\n'
             "}"
         )
 
@@ -126,4 +127,5 @@ class LLMPolyMarketAgent(
 def create_polymarket_agent(
     name: str, model_name: str = "gpt-4o-mini"
 ) -> LLMPolyMarketAgent:
+    """Create a new Polymarket trading agent."""
     return LLMPolyMarketAgent(name, model_name)

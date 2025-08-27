@@ -7,20 +7,23 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, Generic, Optional, Tuple, TypeVar
 
-# Generic type for different position types
+# Generic type for different position and transaction types
 PositionType = TypeVar("PositionType")
 TransactionType = TypeVar("TransactionType")
-ActionType = TypeVar("ActionType")
 
 
 @dataclass
-class BaseAccount(ABC, Generic[PositionType, TransactionType, ActionType]):
-    """Abstract base class for trading accounts"""
+class BaseAccount(ABC, Generic[PositionType, TransactionType]):
+    """Abstract base class for portfolio management accounts"""
 
     cash_balance: float
     initial_cash: float = field(init=False)
     commission_rate: float = 0.001
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    
+    # Portfolio allocation tracking
+    target_allocations: Dict[str, float] = field(default_factory=dict)
+    last_rebalance: Optional[str] = None
 
     def __post_init__(self) -> None:
         """Post-initialization processing"""
@@ -46,57 +49,91 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType, ActionType]):
             return 0.0
         return (self.total_return / self.initial_cash) * 100
 
+    # ----- Portfolio Management Methods -----
+    def set_target_allocation(self, ticker: str, target_ratio: float) -> bool:
+        """Set target allocation for an asset."""
+        if not (0.0 <= target_ratio <= 1.0):
+            print(f"⚠️ Invalid allocation ratio: {target_ratio} for {ticker}")
+            return False
+        
+        self.target_allocations[ticker] = target_ratio
+        self.last_rebalance = datetime.now().isoformat()
+        return True
+
+    def get_target_allocation(self, ticker: str) -> float:
+        """Get target allocation for an asset."""
+        return self.target_allocations.get(ticker, 0.0)
+
+    def get_current_allocation(self, ticker: str) -> float:
+        """Get current allocation for an asset."""
+        total_value = self.get_total_value()
+        if total_value <= 0:
+            return 0.0
+        
+        position_value = self._get_position_value(ticker)
+        return position_value / total_value
+
+    def get_allocation_difference(self, ticker: str) -> float:
+        """Get difference between target and current allocation."""
+        target = self.get_target_allocation(ticker)
+        current = self.get_current_allocation(ticker)
+        return target - current
+
+    def needs_rebalancing(self, threshold: float = 0.05) -> bool:
+        """Check if portfolio needs rebalancing."""
+        for ticker in self.target_allocations:
+            if abs(self.get_allocation_difference(ticker)) > threshold:
+                return True
+        return False
+
+    def rebalance_portfolio(self) -> Dict[str, Any]:
+        """Rebalance portfolio to match target allocations."""
+        if not self.needs_rebalancing():
+            return {"status": "no_rebalancing_needed"}
+        
+        rebalance_actions = []
+        total_value = self.get_total_value()
+        
+        for ticker, target_ratio in self.target_allocations.items():
+            current_ratio = self.get_current_allocation(ticker)
+            difference = target_ratio - current_ratio
+            
+            if abs(difference) > 0.01:  # 1% threshold
+                target_value = total_value * target_ratio
+                current_value = total_value * current_ratio
+                value_adjustment = target_value - current_value
+                
+                rebalance_actions.append({
+                    "ticker": ticker,
+                    "current_ratio": current_ratio,
+                    "target_ratio": target_ratio,
+                    "value_adjustment": value_adjustment,
+                    "action": "buy" if value_adjustment > 0 else "sell"
+                })
+        
+        self.last_rebalance = datetime.now().isoformat()
+        return {
+            "status": "rebalancing_required",
+            "actions": rebalance_actions,
+            "timestamp": self.last_rebalance
+        }
+
+    # ----- Abstract Methods -----
     @abstractmethod
     def get_total_value(self) -> float:
         """Get total account value (cash + positions)"""
         pass
 
     @abstractmethod
-    def can_afford(
-        self, ticker: str, price: float, quantity: float
-    ) -> Tuple[bool, str]:
-        """Check if account can afford a purchase"""
+    def _get_position_value(self, ticker: str) -> float:
+        """Get current value of a position."""
         pass
 
     @abstractmethod
-    def can_sell(self, ticker: str, quantity: float) -> Tuple[bool, str]:
-        """Check if account can sell a position"""
-        pass
-
-    @abstractmethod
-    def execute_action(
-        self, action: ActionType, notes: str = ""
-    ) -> Tuple[bool, str, Optional[TransactionType]]:
-        """Execute a trading action"""
-        pass
-
-    @abstractmethod
-    def get_active_positions(self) -> Dict[str, PositionType]:
-        """Get all active positions"""
-        pass
-
-    @abstractmethod
-    def get_trading_summary(self) -> Dict[str, Any]:
-        """Get trading statistics summary"""
-        pass
-
-    @abstractmethod
-    def evaluate(self) -> Dict[str, Any]:
-        """Evaluate account and return detailed portfolio information"""
+    def get_active_positions(self) -> Dict[str, Any]:
+        """Get all active positions."""
         pass
 
     def calculate_commission(self, price: float, quantity: float) -> float:
-        """Calculate commission for a trade"""
+        """Calculate commission for a trade."""
         return price * quantity * self.commission_rate
-
-    def get_basic_summary(self) -> Dict[str, Any]:
-        """Get basic account summary (common to all account types)"""
-        return {
-            "cash_balance": self.cash_balance,
-            "initial_cash": self.initial_cash,
-            "account_age_days": self.account_age_days,
-            "commission_rate": self.commission_rate,
-            "created_at": self.created_at,
-            # Note: total_return and return_percentage not included here to avoid recursion
-            # They should be calculated separately where needed
-        }

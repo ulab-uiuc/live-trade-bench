@@ -1,9 +1,9 @@
 """
-Trading Bench - A comprehensive trading simulation framework
+Trading Bench - A comprehensive portfolio management framework
 
 This package provides tools for:
-- Multi-asset trading simulation (stocks, prediction markets)
-- AI-powered trading agents using LLMs
+- Multi-asset portfolio management (stocks, prediction markets)
+- AI-powered portfolio allocation using LLMs
 - Real-time data fetching from various sources
 - Portfolio management and performance tracking
 """
@@ -12,26 +12,31 @@ This package provides tools for:
 from .accounts import (
     BaseAccount,
     PolymarketAccount,
-    PolymarketAction,
     PolymarketPosition,
     PolymarketTransaction,
     StockAccount,
-    StockAction,
     StockPosition,
     StockTransaction,
     create_polymarket_account,
     create_stock_account,
+    # Portfolio models
+    PortfolioTarget,
+    AllocationChange,
+    PortfolioStatus,
+    RebalanceAction,
+    RebalancePlan,
+    PortfolioSummary,
 )
 from .agents import (
     BaseAgent,
     LLMPolyMarketAgent,
     LLMStockAgent,
-    PolymarketTradingSystem,
-    StockTradingSystem,
+    PolymarketPortfolioSystem,
+    StockPortfolioSystem,
     create_polymarket_agent,
-    create_polymarket_trading_system,
+    create_polymarket_portfolio_system,
     create_stock_agent,
-    create_stock_trading_system,
+    create_stock_portfolio_system,
 )
 from .fetchers import (
     BaseFetcher,
@@ -42,7 +47,7 @@ from .fetchers import (
     fetch_trending_markets,
     fetch_trending_stocks,
 )
-from .utils import call_llm, parse_trading_response
+from .utils import call_llm, parse_trading_response, parse_portfolio_response
 
 # Define what gets exported when importing *
 __all__ = [
@@ -51,23 +56,28 @@ __all__ = [
     "StockAccount",
     "StockPosition",
     "StockTransaction",
-    "StockAction",
     "create_stock_account",
     "PolymarketAccount",
     "PolymarketPosition",
     "PolymarketTransaction",
-    "PolymarketAction",
     "create_polymarket_account",
+    # Portfolio models
+    "PortfolioTarget",
+    "AllocationChange",
+    "PortfolioStatus",
+    "RebalanceAction",
+    "RebalancePlan",
+    "PortfolioSummary",
     # Agents
     "BaseAgent",
     "LLMStockAgent",
-    "StockTradingSystem",
+    "StockPortfolioSystem",
     "LLMPolyMarketAgent",
-    "PolymarketTradingSystem",
-    "create_polymarket_trading_system",
+    "PolymarketPortfolioSystem",
+    "create_polymarket_portfolio_system",
     "create_polymarket_agent",
     "create_stock_agent",
-    "create_stock_trading_system",
+    "create_stock_portfolio_system",
     # Fetchers
     "BaseFetcher",
     "NewsFetcher",
@@ -79,6 +89,7 @@ __all__ = [
     # Utils
     "call_llm",
     "parse_trading_response",
+    "parse_portfolio_response",
 ]
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"

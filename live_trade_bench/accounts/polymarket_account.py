@@ -12,9 +12,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 from .base_account import BaseAccount
-
-if TYPE_CHECKING:
-    from .action import PolymarketAction
+from .utils import PolymarketPosition, PolymarketTransaction
 
 
 # ----------------------------- Data Models -----------------------------
@@ -113,280 +111,235 @@ class PolymarketTransaction:
         )
 
 
-# ------------------------------- Account -------------------------------
+# ----------------------------------------------
+# Polymarket Account Implementation
+# ----------------------------------------------
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any, Dict, Optional, Tuple
+
+from .base_account import BaseAccount
+from .utils import PolymarketPosition, PolymarketTransaction
 
 
 @dataclass
 class PolymarketAccount(
-    BaseAccount[PolymarketPosition, PolymarketTransaction, "PolymarketAction"]
+    BaseAccount[PolymarketPosition, PolymarketTransaction]
 ):
-    """
-    Polymarket trading account.
-
-    Attributes expected from BaseAccount:
-      - cash_balance: float
-      - initial_cash: float
-      - commission_rate: float
-      - calculate_commission(price, quantity) -> float
-      - get_basic_summary() -> Dict[str, Any]
-    """
+    """Polymarket portfolio management account."""
 
     positions: Dict[str, PolymarketPosition] = field(default_factory=dict)
-    transactions: List[PolymarketTransaction] = field(default_factory=list)
-
-    # Optional: provide a callable to fetch current prices: (market_id, outcome) -> Optional[float]
-    price_provider: Optional[Callable[[str, str], Optional[float]]] = None
-
-    # ----------- Convenience -----------
+    price_provider: Optional[Any] = None  # For real-time pricing
 
     def _key(self, market_id: str, outcome: str) -> str:
-        return f"{market_id}_{outcome.lower()}"
-
-    def get_active_positions(self) -> Dict[str, PolymarketPosition]:
-        return {k: p for k, p in self.positions.items() if p.quantity > 0}
-
-    # ----------- Trading -----------
-
-    def can_afford(
-        self, ticker: str, price: float, quantity: float
-    ) -> Tuple[bool, str]:
-        commission = self.calculate_commission(price, quantity)
-        total_cost = price * quantity + commission
-        return (
-            (True, "Sufficient funds")
-            if total_cost <= self.cash_balance
-            else (
-                False,
-                f"Insufficient funds: need ${total_cost:.2f}, have ${self.cash_balance:.2f}",
-            )
-        )
-
-    def can_sell(self, ticker: str, quantity: float) -> Tuple[bool, str]:
-        # For polymarket, ticker format should be "market_id_outcome"
-        if "_" in ticker:
-            market_id, outcome = ticker.rsplit("_", 1)
-        else:
-            return (
-                False,
-                f"Invalid ticker format: {ticker}. Expected 'market_id_outcome'",
-            )
-        pos = self.positions.get(self._key(market_id, outcome))
-        if not pos or pos.quantity == 0:
-            return False, f"No position in {market_id} {outcome}"
-        if pos.quantity < quantity:
-            return False, f"Insufficient position: have {pos.quantity}, sell {quantity}"
-        return True, "Sufficient position"
-
-    def execute_action(
-        self, action: "PolymarketAction", notes: str = ""
-    ) -> Tuple[bool, str, Optional[PolymarketTransaction]]:
-        """
-        Execute a PolymarketAction. Returns (success, message, transaction).
-        """
-        market_id = action.market_id
-        outcome = action.outcome.lower()
-        trade_action = action.action.lower()
-        price = action.price
-        quantity = action.quantity
-        notes = notes or f"PolymarketAction from {action.timestamp}"
-
-        if trade_action not in {"buy", "sell"}:
-            return False, f"Invalid action: {trade_action}", None
-
-        if trade_action == "buy":
-            ok, why = self.can_afford(market_id, price, quantity)
-            if not ok:
-                return False, why, None
-        else:
-            ok, why = self.can_sell(market_id, quantity)
-            if not ok:
-                return False, why, None
-
-        commission = self.calculate_commission(price, quantity)
-        tx = PolymarketTransaction(
-            market_id=market_id,
-            outcome=outcome,
-            action=trade_action,
-            quantity=quantity,
-            price=price,
-            commission=commission,
-            timestamp=datetime.now().isoformat(),
-            notes=notes,
-        )
-
-        # Apply cash and position changes
-        try:
-            self.cash_balance += tx.cash_effect  # signed effect
-
-            key = self._key(market_id, outcome)
-            if trade_action == "buy":
-                if key in self.positions:
-                    self.positions[key].apply_buy(price, quantity)
-                else:
-                    self.positions[key] = PolymarketPosition(
-                        market_id=market_id,
-                        outcome=outcome,
-                        quantity=quantity,
-                        avg_price=price,
-                    )
-            else:  # sell
-                self.positions[key].apply_sell(quantity)
-                if self.positions[key].quantity <= 0:
-                    del self.positions[key]
-
-            self.transactions.append(tx)
-            return (
-                True,
-                f"{trade_action.title()} {quantity} {outcome} @ ${price:.3f} ({market_id})",
-                tx,
-            )
-
-        except Exception as e:
-            return False, f"Trade failed: {e}", None
-
-    # ----------- Valuation / Reporting -----------
+        """Generate position key."""
+        return f"{market_id}_{outcome}"
 
     def _current_price(self, market_id: str, outcome: str, fallback: float) -> float:
-        if self.price_provider is None:
-            return fallback
-        try:
-            p = self.price_provider(market_id, outcome.lower())
-            return fallback if p is None else p
-        except Exception:
-            return fallback
+        """Get current price for a market outcome."""
+        if self.price_provider:
+            try:
+                return self.price_provider.get_price(market_id, outcome)
+            except Exception:
+                pass
+        return fallback
 
-    def evaluate(self) -> Dict[str, Any]:
-        """
-        Evaluate portfolio with current prices (from price_provider if set, else avg_price).
-        """
+    def get_total_value(self) -> float:
+        """Get total account value (cash + positions)."""
+        position_value = sum(
+            pos.quantity * self._current_price(pos.market_id, pos.outcome, pos.avg_price)
+            for pos in self.positions.values()
+            if pos.quantity > 0
+        )
+        return self.cash_balance + position_value
+
+    def _get_position_value(self, ticker: str) -> float:
+        """Get current value of a position."""
+        # For polymarket, ticker format is "market_id_outcome"
+        if "_" not in ticker:
+            return 0.0
+        
+        market_id, outcome = ticker.rsplit("_", 1)
+        pos = self.positions.get(self._key(market_id, outcome))
+        if not pos or pos.quantity <= 0:
+            return 0.0
+        return pos.quantity * self._current_price(market_id, outcome, pos.avg_price)
+
+    def get_active_positions(self) -> Dict[str, Any]:
+        """Get all active positions."""
+        return {
+            self._key(pos.market_id, pos.outcome): pos
+            for pos in self.positions.values()
+            if pos.quantity > 0
+        }
+
+    def get_portfolio_summary(self) -> Dict[str, Any]:
+        """Get portfolio summary with allocations."""
         active = self.get_active_positions()
+        total_value = self.get_total_value()
+        
         if not active:
-            total = self.cash_balance
-            total_return = total - self.initial_cash
             return {
-                "total_asset_value": total,
-                "portfolio_assets": {},
-                "active_positions": 0,
-                "portfolio_summary": {
-                    "cash_balance": self.cash_balance,
-                    "position_value": 0.0,
-                    "total_value": total,
-                    "unrealized_pnl": 0.0,
-                    "total_return": total_return,
-                    "return_pct": (total_return / self.initial_cash * 100.0)
-                    if self.initial_cash > 0
-                    else 0.0,
-                },
-                "markets": [],
-                "account_summary": self.get_trading_summary(),
+                "total_value": total_value,
+                "cash_balance": self.cash_balance,
+                "positions": {},
+                "allocations": {},
+                "target_allocations": self.target_allocations,
+                "needs_rebalancing": self.needs_rebalancing()
             }
 
-        assets: Dict[str, Dict[str, Any]] = {}
-        position_value = 0.0
-        total_unrealized = 0.0
-
+        positions_summary = {}
+        current_allocations = {}
+        
         for key, pos in active.items():
-            cur_price = self._current_price(
-                pos.market_id, pos.outcome, fallback=pos.avg_price
-            )
-            cur_val = pos.quantity * cur_price
-            basis = pos.cost_basis
-            upl = cur_val - basis
-
-            assets[key] = {
+            current_price = self._current_price(pos.market_id, pos.outcome, pos.avg_price)
+            current_value = pos.quantity * current_price
+            current_ratio = current_value / total_value if total_value > 0 else 0.0
+            
+            positions_summary[key] = {
                 "market_id": pos.market_id,
                 "outcome": pos.outcome,
                 "quantity": pos.quantity,
                 "avg_price": pos.avg_price,
-                "current_price": cur_price,
-                "cost_basis": basis,
-                "current_value": cur_val,
-                "unrealized_pnl": upl,
-                "unrealized_pnl_pct": (upl / basis * 100.0) if basis > 0 else 0.0,
-                "portfolio_weight": 0.0,  # set below
-                "last_updated": pos.last_updated,
+                "current_price": current_price,
+                "current_value": current_value,
+                "current_allocation": current_ratio,
+                "target_allocation": self.get_target_allocation(key),
+                "allocation_difference": self.get_allocation_difference(key)
             }
-
-            position_value += cur_val
-            total_unrealized += upl
-
-        total_value = self.cash_balance + position_value
-        total_return = total_value - self.initial_cash
-        return_pct = (
-            (total_return / self.initial_cash * 100.0) if self.initial_cash > 0 else 0.0
-        )
-
-        if total_value > 0:
-            for k in assets:
-                assets[k]["portfolio_weight"] = (
-                    assets[k]["current_value"] / total_value * 100.0
-                )
+            
+            current_allocations[key] = current_ratio
 
         return {
-            "total_asset_value": total_value,
-            "portfolio_assets": assets,
-            "active_positions": len(active),
-            "portfolio_summary": {
-                "cash_balance": self.cash_balance,
-                "position_value": position_value,
-                "total_value": total_value,
-                "unrealized_pnl": total_unrealized,
-                "total_return": total_return,
-                "return_pct": return_pct,
-            },
-            "markets": list({p.market_id for p in active.values()}),
-            "account_summary": self.get_trading_summary(),
+            "total_value": total_value,
+            "cash_balance": self.cash_balance,
+            "positions": positions_summary,
+            "allocations": current_allocations,
+            "target_allocations": self.target_allocations,
+            "needs_rebalancing": self.needs_rebalancing(),
+            "last_rebalance": self.last_rebalance
         }
 
-    def _calculate_total_value_direct(self) -> float:
-        """Calculate total value directly without going through evaluate() to avoid recursion."""
-        active = self.get_active_positions()
-        position_value = 0.0
+    def execute_rebalancing(self, rebalance_plan: Dict[str, Any]) -> bool:
+        """Execute portfolio rebalancing based on plan."""
+        if rebalance_plan.get("status") != "rebalancing_required":
+            return False
+        
+        actions = rebalance_plan.get("actions", [])
+        success_count = 0
+        
+        for action in actions:
+            ticker = action["ticker"]
+            value_adjustment = action["value_adjustment"]
+            action_type = action["action"]
+            
+            if action_type == "buy" and value_adjustment > 0:
+                if self._execute_buy_adjustment(ticker, value_adjustment):
+                    success_count += 1
+            elif action_type == "sell" and value_adjustment < 0:
+                if self._execute_sell_adjustment(ticker, abs(value_adjustment)):
+                    success_count += 1
+        
+        return success_count == len(actions)
 
-        for pos in active.values():
-            current_price = self._current_price(
-                pos.market_id, pos.outcome, fallback=pos.avg_price
+    def _execute_buy_adjustment(self, ticker: str, value_adjustment: float) -> bool:
+        """Execute buy adjustment for rebalancing."""
+        if "_" not in ticker:
+            return False
+        
+        market_id, outcome = ticker.rsplit("_", 1)
+        current_price = self._current_price(market_id, outcome, 0.0)
+        if current_price <= 0:
+            return False
+        
+        quantity = value_adjustment / current_price
+        if quantity <= 0:
+            return False
+        
+        # Check if we can afford this
+        total_cost = value_adjustment + self.calculate_commission(current_price, quantity)
+        if total_cost > self.cash_balance:
+            return False
+        
+        # Execute the buy
+        self._add_position(market_id, outcome, quantity, current_price)
+        self.cash_balance -= total_cost
+        return True
+
+    def _execute_sell_adjustment(self, ticker: str, value_adjustment: float) -> bool:
+        """Execute sell adjustment for rebalancing."""
+        if "_" not in ticker:
+            return False
+        
+        market_id, outcome = ticker.rsplit("_", 1)
+        current_price = self._current_price(market_id, outcome, 0.0)
+        if current_price <= 0:
+            return False
+        
+        quantity = value_adjustment / current_price
+        if quantity <= 0:
+            return False
+        
+        # Check if we have enough shares
+        key = self._key(market_id, outcome)
+        pos = self.positions.get(key)
+        if not pos or pos.quantity < quantity:
+            return False
+        
+        # Execute the sell
+        self._reduce_position(market_id, outcome, quantity)
+        proceeds = value_adjustment - self.calculate_commission(current_price, quantity)
+        self.cash_balance += proceeds
+        return True
+
+    def _add_position(self, market_id: str, outcome: str, quantity: float, price: float) -> None:
+        """Add to existing position or create new one."""
+        key = self._key(market_id, outcome)
+        if key in self.positions:
+            pos = self.positions[key]
+            # Update average price
+            total_cost = pos.cost_basis + (quantity * price)
+            total_quantity = pos.quantity + quantity
+            pos.avg_price = total_cost / total_quantity
+            pos.quantity = total_quantity
+            pos.cost_basis = total_cost
+        else:
+            self.positions[key] = PolymarketPosition(
+                market_id=market_id,
+                outcome=outcome,
+                quantity=quantity,
+                avg_price=price,
+                cost_basis=quantity * price,
+                last_updated=datetime.now().isoformat()
             )
-            position_value += pos.quantity * current_price
 
-        return self.cash_balance + position_value
+    def _reduce_position(self, market_id: str, outcome: str, quantity: float) -> None:
+        """Reduce existing position."""
+        key = self._key(market_id, outcome)
+        if key in self.positions:
+            pos = self.positions[key]
+            if pos.quantity >= quantity:
+                pos.quantity -= quantity
+                pos.cost_basis = pos.avg_price * pos.quantity
+                pos.last_updated = datetime.now().isoformat()
+                
+                # Remove position if quantity becomes 0
+                if pos.quantity <= 0:
+                    del self.positions[key]
 
-    def get_total_value(self) -> float:
-        evaluation = self.evaluate()
-        portfolio_summary = evaluation["portfolio_summary"]
-        total_value = portfolio_summary["total_value"]
-        return float(total_value)
+    # ----- Backward Compatibility Methods -----
+    def evaluate(self) -> Dict[str, Any]:
+        """Backward compatibility - now returns portfolio summary."""
+        return self.get_portfolio_summary()
 
     def get_trading_summary(self) -> Dict[str, Any]:
-        buys = [t for t in self.transactions if t.action == "buy"]
-        sells = [t for t in self.transactions if t.action == "sell"]
-        total_commission = sum(t.commission for t in self.transactions)
-
-        base = self.get_basic_summary()
-
-        # Calculate total_return and return_percentage without recursion
-        current_total_value = self._calculate_total_value_direct()
-        total_return = current_total_value - self.initial_cash
-        return_percentage = (
-            (total_return / self.initial_cash * 100.0) if self.initial_cash > 0 else 0.0
-        )
-
+        """Backward compatibility - simplified trading summary."""
         return {
-            **base,
-            "total_return": total_return,
-            "return_percentage": return_percentage,
-            "total_trades": len(self.transactions),
-            "buy_trades": len(buys),
-            "sell_trades": len(sells),
-            "total_commission": total_commission,
-            "active_positions": len(self.get_active_positions()),
-            "markets_traded": len({t.market_id for t in self.transactions}),
+            "total_trades": 0,  # No longer tracking individual trades
+            "last_trade": None,
+            "commission_paid": 0.0
         }
-
-    def print_status(self) -> None:
-        print(
-            f"💰 Cash: ${self.cash_balance:.2f} | Positions: {len(self.get_active_positions())} | Total: ${self.get_total_value():.2f}"
-        )
 
 
 # --------------------------- Convenience ---------------------------

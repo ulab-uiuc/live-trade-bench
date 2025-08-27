@@ -5,12 +5,11 @@ from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
 
 from ..accounts import BaseAccount
 
-ActionType = TypeVar("ActionType")
-AccountType = TypeVar("AccountType", bound=BaseAccount[Any, Any, Any])
+AccountType = TypeVar("AccountType", bound=BaseAccount[Any, Any])
 DataType = TypeVar("DataType")
 
 
-class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
+class BaseAgent(ABC, Generic[AccountType, DataType]):
     price_epsilon: float = 0.01
     max_history: int = 10
 
@@ -21,14 +20,15 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
         self._history: Dict[str, List[float]] = {}
         self._last_price: Dict[str, float] = {}
 
-    def generate_action(
+    def generate_portfolio_allocation(
         self, data: DataType, account: AccountType
-    ) -> Optional[ActionType]:
+    ) -> Optional[Dict[str, float]]:
+        """Generate portfolio allocation ratios for assets instead of buy/sell actions."""
         _id, price = self._extract_id_price(data)
 
         last = self._last_price.get(_id)
         if last is not None and abs(price - last) < self.price_epsilon:
-            print(f"💤 no action for {_id} since no price change")
+            print(f"💤 no portfolio update for {_id} since no price change")
             return None
 
         self._last_price[_id] = price
@@ -48,20 +48,19 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
                 market_analysis, account_analysis, news_analysis
             )
 
-            messages = [{"role": "user", "content": self._get_prompt(full_analysis)}]
+            messages = [{"role": "user", "content": self._get_portfolio_prompt(full_analysis)}]
             llm_response = self._call_llm(messages)
-            parsed = self._parse_llm_response(llm_response)
+            parsed = self._parse_portfolio_response(llm_response)
 
             if parsed:
-                action = self._create_action_from_response(parsed, _id, price)
-                if action:
+                portfolio_allocation = self._create_portfolio_allocation_from_response(parsed, _id, price)
+                if portfolio_allocation:
                     print(
-                        f"🤖 {self.name} ({_id}): {getattr(action, 'action', '').upper()} {getattr(action, 'quantity', 0)} {getattr(action, 'outcome', 'shares').upper()}"
+                        f"🤖 {self.name} ({_id}): Portfolio allocation updated - {portfolio_allocation}"
                     )
                 else:
-                    # hold
-                    print(f"🤖 {self.name} ({_id}): HOLD")
-                return action
+                    print(f"🤖 {self.name} ({_id}): No portfolio changes")
+                return portfolio_allocation
             return None
         except Exception as e:
             self._log_error(f"LLM error for {_id}", str(e))
@@ -78,15 +77,15 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
         except Exception as e:
             return {"success": False, "content": "", "error": str(e)}
 
-    def _parse_llm_response(
+    def _parse_portfolio_response(
         self, llm_response: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         if not llm_response.get("success"):
             return None
         try:
-            from ..utils import parse_trading_response
+            from ..utils import parse_portfolio_response
 
-            return parse_trading_response(llm_response["content"])
+            return parse_portfolio_response(llm_response["content"])
         except Exception as e:
             self._log_error("parse error", str(e))
             return None
@@ -158,13 +157,15 @@ class BaseAgent(ABC, Generic[ActionType, AccountType, DataType]):
         ...
 
     @abstractmethod
-    def _create_action_from_response(
+    def _create_portfolio_allocation_from_response(
         self, parsed: Dict[str, Any], _id: str, price: float
-    ) -> Optional[ActionType]:
+    ) -> Optional[Dict[str, float]]:
+        """Create portfolio allocation from LLM response. Override in subclasses."""
         ...
 
     @abstractmethod
-    def _get_prompt(self, analysis: str) -> str:
+    def _get_portfolio_prompt(self, analysis: str) -> str:
+        """Get portfolio allocation prompt. Override in subclasses."""
         ...
 
     # ----- Helpers -----
