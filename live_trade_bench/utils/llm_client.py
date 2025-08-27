@@ -104,28 +104,44 @@ def parse_trading_response(content: str) -> Dict[str, Any]:
 def parse_portfolio_response(content: str) -> Dict[str, Any]:
     """Parse LLM response into portfolio allocation format"""
     try:
-        # Try to parse JSON response
-        parsed = json.loads(content)
-        if isinstance(parsed, dict):
-            return parsed
+        # Clean the content - remove extra whitespace and newlines
+        cleaned_content = content.strip()
+        
+        # Try to find JSON in the content
+        start_idx = cleaned_content.find('{')
+        end_idx = cleaned_content.rfind('}')
+        
+        if start_idx != -1 and end_idx != -1:
+            json_content = cleaned_content[start_idx:end_idx + 1]
+            parsed = json.loads(json_content)
+            
+            if isinstance(parsed, dict):
+                # Validate that we have allocations
+                if "allocations" in parsed and isinstance(parsed["allocations"], dict):
+                    return parsed
+                else:
+                    print("⚠️ No 'allocations' field found in response")
+                    return {"allocations": {}, "reasoning": "Invalid response format"}
+            else:
+                return {"allocations": {}, "reasoning": "Response is not a dictionary"}
         else:
-            # If parsed is not a dict, create a dict with the parsed value
-            return {"response": parsed}
-
-    except json.JSONDecodeError:
-        # Fallback parsing for non-JSON responses
+            print("⚠️ No JSON object found in response")
+            return {"allocations": {}, "reasoning": "No JSON object found"}
+            
+    except json.JSONDecodeError as e:
+        print(f"⚠️ JSON parse failed: {e}")
+        print(f"📝 Raw content: {content[:200]}...")
+        
+        # Try to extract allocation information from text
         content_lower = content.lower()
-
-        # Look for percentage or allocation patterns
         if "allocation" in content_lower or "weight" in content_lower:
-            # Try to extract allocation information
+            print("⚠️ Using default allocation due to JSON parse failure")
             return {
-                "allocation": 0.1,  # Default 10% allocation
+                "allocations": {"default": 1.0},
                 "reasoning": "Parsed from LLM response - default allocation",
             }
         else:
-            # Default to no change
             return {
-                "allocation": 0.0,
+                "allocations": {},
                 "reasoning": "Parsed from LLM response - no allocation change",
             }

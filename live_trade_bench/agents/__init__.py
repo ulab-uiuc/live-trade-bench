@@ -1,21 +1,24 @@
 """
-Agents Package - Trading agents and systems
+Agents Package - Portfolio management agents and systems
 """
 
 from .base_agent import BaseAgent
 from .polymarket_agent import LLMPolyMarketAgent, create_polymarket_agent
-from .polymarket_system import PolymarketTradingSystem, create_polymarket_trading_system
+from .polymarket_system import (
+    PolymarketPortfolioSystem,
+    create_polymarket_portfolio_system,
+)
 from .stock_agent import LLMStockAgent, create_stock_agent
-from .stock_system import StockTradingSystem, create_stock_trading_system
+from .stock_system import StockPortfolioSystem, create_stock_portfolio_system
 
 __all__ = [
     "BaseAgent",
     "LLMStockAgent",
     "LLMPolyMarketAgent",
-    "PolymarketTradingSystem",
-    "StockTradingSystem",
+    "PolymarketPortfolioSystem",
+    "StockPortfolioSystem",
     "create_polymarket_agent",
     "create_stock_agent",
-    "create_polymarket_trading_system",
-    "create_stock_trading_system",
+    "create_polymarket_portfolio_system",
+    "create_stock_portfolio_system",
 ]

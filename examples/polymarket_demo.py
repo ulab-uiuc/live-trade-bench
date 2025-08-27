@@ -6,14 +6,7 @@ This demo showcases the new portfolio management approach using AI agents
 to generate allocation targets and automatically rebalance portfolios for prediction markets.
 """
 
-import sys
-from pathlib import Path
-
-from live_trade_bench import PolymarketPortfolioSystem
-
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+from live_trade_bench.agents.polymarket_system import PolymarketPortfolioSystem
 
 
 def main() -> None:
@@ -25,8 +18,7 @@ def main() -> None:
     system = PolymarketPortfolioSystem()
 
     # Add AI agents for portfolio management
-    system.add_agent("Prediction_Manager", 1000.0, "gpt-4o-mini")
-    system.add_agent("Risk_Manager", 1000.0, "gpt-4o-mini")
+    system.add_agent("Portfolio_Manager", 2000.0, "gpt-4o-mini")
 
     print(f"✅ Created system with {len(system.universe)} markets")
     print(f"✅ Added agents: {list(system.agents.keys())}")

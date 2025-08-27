@@ -4,7 +4,7 @@ Simplified portfolio management data models
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -81,7 +81,7 @@ class RebalancePlan:
     """Complete portfolio rebalancing plan."""
 
     status: str  # "no_rebalancing_needed" or "rebalancing_required"
-    actions: list[RebalanceAction]
+    actions: List[RebalanceAction]
     timestamp: str
     total_adjustment_value: float = 0.0
 

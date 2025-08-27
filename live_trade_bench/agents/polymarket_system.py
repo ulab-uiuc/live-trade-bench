@@ -18,22 +18,25 @@ class PolymarketPortfolioSystem:
     def __init__(self, universe_size: int = 5) -> None:
         self.agents: Dict[str, LLMPolyMarketAgent] = {}
         self.accounts: Dict[str, PolymarketAccount] = {}
-        self.universe: List[Dict[str, Any]] = []
+        self.universe: List[str] = []  # List of market IDs
+        self.market_info: Dict[str, Dict[str, Any]] = {}  # Additional market info
+        self.cycle_count = 0
         self._init_universe(universe_size)
 
     def _init_universe(self, limit: int) -> None:
         """Initialize market universe."""
         markets = fetch_trending_markets(limit=limit)
-        self.universe = [
-            {
-                "id": m["id"],
-                "question": m.get("question", str(m["id"])),
-                "category": m.get("category", "Unknown"),
-                "token_ids": m.get("token_ids", []),
-            }
-            for m in markets
-            if m.get("token_ids")
-        ]
+        self.universe = []  # Store just the market IDs
+        
+        for m in markets:
+            if m.get("token_ids"):
+                market_id = m["id"]
+                self.universe.append(market_id)
+                self.market_info[market_id] = {
+                    "question": m.get("question", str(market_id)),
+                    "category": m.get("category", "Unknown"),
+                    "token_ids": m.get("token_ids", []),
+                }
 
     def add_agent(
         self, name: str, initial_cash: float = 500.0, model_name: str = "gpt-4o-mini"
@@ -45,21 +48,20 @@ class PolymarketPortfolioSystem:
     def _fetch_market_data(self) -> Dict[str, Dict[str, Any]]:
         """Fetch current market data for all markets."""
         market_data = {}
-        for market in self.universe:
-            market_id = market["id"]
+        for market_id in self.universe:
             try:
-                price_data = fetch_current_market_price(market["token_ids"])
+                price_data = fetch_current_market_price(self.market_info[market_id]["token_ids"])
                 if price_data and "yes" in price_data:
                     market_data[market_id] = {
                         "id": market_id,
-                        "question": market["question"],
-                        "category": market["category"],
+                        "question": self.market_info[market_id]["question"],
+                        "category": self.market_info[market_id]["category"],
                         "price": float(price_data["yes"]),
                         "yes_price": float(price_data["yes"]),
                         "no_price": float(
                             price_data.get("no", 1.0 - float(price_data["yes"]))
                         ),
-                        "token_ids": market["token_ids"],
+                        "token_ids": self.market_info[market_id]["token_ids"],
                         "timestamp": datetime.now().isoformat(),
                     }
             except Exception as e:
@@ -69,84 +71,60 @@ class PolymarketPortfolioSystem:
 
     def run_cycle(self) -> Dict[str, Any]:
         """Run one portfolio management cycle."""
-        print(
-            f"🔄 Running polymarket portfolio cycle at {datetime.now().strftime('%H:%M:%S')}"
-        )
+        print(f"\n🔄 Running portfolio cycle {self.cycle_count}...")
 
-        market_data = self._fetch_market_data()
-        if not market_data:
-            return {"status": "no_market_data", "timestamp": datetime.now().isoformat()}
+        try:
+            # Fetch market data for all markets
+            market_data = self._fetch_market_data()
+            
+            if not market_data:
+                print("❌ No market data available")
+                return {"success": False, "error": "No market data"}
 
-        cycle_results = {
-            "timestamp": datetime.now().isoformat(),
-            "market_data_count": len(market_data),
-            "agents_processed": 0,
-            "allocations_updated": 0,
-            "rebalancing_required": 0,
-            "errors": [],
-        }
+            print(f"📊 Fetched data for {len(market_data)} markets")
 
-        # Process each agent
-        for agent_name, agent in self.agents.items():
-            try:
-                account = self.accounts[agent_name]
-                cycle_results["agents_processed"] += 1
+            # Generate portfolio allocations for each agent
+            for agent_name, agent in self.agents.items():
+                try:
+                    print(f"\n🤖 {agent_name} generating portfolio allocation...")
 
-                # Generate portfolio allocations for each market
-                for market_id, market_info in market_data.items():
-                    try:
-                        allocation = agent.generate_portfolio_allocation(
-                            market_info, account
-                        )
-                        if allocation:
-                            # Update target allocation
-                            success = account.set_target_allocation(
-                                allocation["market_id"], allocation["allocation"]
-                            )
-                            if success:
-                                cycle_results["allocations_updated"] += 1
-                                print(
-                                    f"✅ {agent_name}: Updated {market_id} allocation to {allocation['allocation']:.1%}"
+                    # Generate complete portfolio allocation
+                    allocation = agent.generate_portfolio_allocation(
+                        market_data, agent.account
+                    )
+
+                    if allocation:
+                        # Update target allocations for all markets
+                        for market_id, target_ratio in allocation.items():
+                            if market_id in self.universe:
+                                agent.account.set_target_allocation(
+                                    market_id, target_ratio
                                 )
-                            else:
-                                cycle_results["errors"].append(
-                                    f"Failed to set allocation for {market_id}"
-                                )
-                    except Exception as e:
-                        error_msg = (
-                            f"Error processing {market_id} for {agent_name}: {e}"
-                        )
-                        cycle_results["errors"].append(error_msg)
-                        print(f"⚠️ {error_msg}")
+                                print(f"   📈 {market_id}: {target_ratio:.1%}")
 
-                # Check if rebalancing is needed
-                if account.needs_rebalancing():
-                    cycle_results["rebalancing_required"] += 1
-                    rebalance_plan = account.rebalance_portfolio()
-
-                    if rebalance_plan.get("status") == "rebalancing_required":
-                        print(f"🔄 {agent_name}: Rebalancing required")
-                        success = account.execute_rebalancing(rebalance_plan)
-                        if success:
-                            print(f"✅ {agent_name}: Portfolio rebalanced successfully")
-                        else:
-                            print(f"❌ {agent_name}: Portfolio rebalancing failed")
+                        print(f"   ✅ Portfolio allocation updated for {agent_name}")
                     else:
-                        print(f"💤 {agent_name}: No rebalancing needed")
+                        print(f"   ⚠️ No allocation generated for {agent_name}")
 
-            except Exception as e:
-                error_msg = f"Error processing agent {agent_name}: {e}"
-                cycle_results["errors"].append(error_msg)
-                print(f"⚠️ {error_msg}")
+                except Exception as e:
+                    print(f"❌ Error processing {agent_name}: {e}")
+                    import traceback
 
-        # Print cycle summary
-        print(
-            f"📊 Cycle Summary: {cycle_results['agents_processed']} agents, "
-            f"{cycle_results['allocations_updated']} allocations updated, "
-            f"{cycle_results['rebalancing_required']} rebalancing required"
-        )
+                    traceback.print_exc()
 
-        return cycle_results
+            self.cycle_count += 1
+            return {
+                "success": True,
+                "cycle": self.cycle_count,
+                "agents_processed": len(self.agents),
+            }
+
+        except Exception as e:
+            print(f"❌ Cycle error: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return {"success": False, "error": str(e)}
 
     def get_portfolio_summaries(self) -> Dict[str, Dict[str, Any]]:
         """Get portfolio summaries for all agents."""
