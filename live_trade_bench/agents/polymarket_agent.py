@@ -78,6 +78,11 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
                 )
                 allocations[market_id] = max(0.0, min(1.0, allocation))
 
+        # Ensure CASH is included
+        if "CASH" not in allocations:
+            print("⚠️ CASH allocation not found, adding default 20%")
+            allocations["CASH"] = 0.2
+
         return allocations
 
     def _get_portfolio_prompt(
@@ -94,24 +99,27 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             "- Consider market sentiment and probability estimates\n"
             "- Balance high-confidence and speculative positions\n"
             "- Maintain appropriate position sizes\n"
-            "- Total allocation must equal 100% (1.0)\n\n"
-            f"AVAILABLE MARKETS: {market_list}\n\n"
+            "- Total allocation must equal 100% (1.0)\n"
+            "- CASH is a valid asset that should be allocated based on market conditions\n\n"
+            f"AVAILABLE ASSETS: {market_list} + CASH\n\n"
             "CRITICAL: You must return ONLY valid JSON format. No additional text, explanations, or formatting.\n\n"
             "REQUIRED JSON FORMAT:\n"
             "{\n"
             ' "allocations": {\n'
-            f'   "{market_list[0]}": 0.4,\n'
-            f'   "{market_list[1]}": 0.3,\n'
-            f'   "{market_list[2]}": 0.3\n'
+            f'   "{market_list[0]}": 0.30,\n'
+            f'   "{market_list[1]}": 0.25,\n'
+            f'   "{market_list[2]}": 0.20,\n'
+            '   "CASH": 0.25\n'
             " },\n"
             ' "reasoning": "brief explanation"\n'
             "}\n\n"
             "IMPORTANT RULES:\n"
             "1. Return ONLY the JSON object\n"
-            "2. All allocations must sum to exactly 1.0\n"
-            "3. Use double quotes for strings\n"
-            "4. No trailing commas\n"
-            "5. No additional text before or after the JSON"
+            "2. All allocations must sum to exactly 1.0 (100%)\n"
+            "3. CASH allocation should reflect market conditions and risk tolerance\n"
+            "4. Use double quotes for strings\n"
+            "5. No trailing commas\n"
+            "6. No additional text before or after the JSON"
         )
 
 

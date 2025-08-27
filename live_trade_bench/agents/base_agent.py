@@ -30,6 +30,10 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             return None
 
         try:
+            # Display current portfolio value before generating new allocation
+            current_value = account.get_total_value()
+            print(f"💰 {self.name} current portfolio value: ${current_value:,.2f}")
+
             # Prepare comprehensive analysis
             market_analysis = self._prepare_market_analysis(market_data)
             account_analysis = self._prepare_account_analysis(account)
@@ -194,13 +198,13 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         """Update price history for an asset."""
         if asset_id not in self._history:
             self._history[asset_id] = []
-        
+
         self._history[asset_id].append(price)
-        
+
         # Keep only last 10 prices
         if len(self._history[asset_id]) > 10:
             self._history[asset_id] = self._history[asset_id][-10:]
-        
+
         self._last_price[asset_id] = price
 
     def _log_error(self, msg: str, ctx: str = "") -> None:
