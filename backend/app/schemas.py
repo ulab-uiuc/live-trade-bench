@@ -131,6 +131,14 @@ class Portfolio(BaseModel):
     holdings: dict[str, float]  # ticker -> quantity
 
 
+class PortfolioHistoryPoint(BaseModel):
+    timestamp: str
+    holdings: dict[str, float]
+    prices: dict[str, float]
+    cash: float
+    totalValue: float
+
+
 class PortfolioData(BaseModel):
     model_id: str
     model_name: str
@@ -143,6 +151,12 @@ class PortfolioData(BaseModel):
     unrealized_pnl: float
     market_data_available: bool
     last_updated: str
+    # Real-time data fields
+    total_value_realtime: float | None = None
+    return_pct_realtime: float | None = None
+    unrealized_pnl_realtime: float | None = None
+    # Portfolio history for area chart
+    portfolio_history: list[PortfolioHistoryPoint] | None = None
 
 
 class PortfolioAllocation(BaseModel):

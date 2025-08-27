@@ -1,9 +1,12 @@
+import logging
 from typing import Any, Dict, List
 
 from app.data import get_real_models_data
 from app.schemas import PortfolioData, TradingModel
 from app.trading_system import get_trading_system
 from fastapi import APIRouter, HTTPException, Query
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/models", tags=["models"])
 
@@ -317,70 +320,23 @@ async def get_model_portfolio(model_id: str) -> PortfolioData:
         # Get portfolio data - the trading system handles model ID validation
         portfolio_dict = trading_system.get_portfolio(model_id)
 
-        # Add portfolio history for area chart (from ui-v2)
-        model_actions = [
-            action
-            for action in trading_system.trading_history
-            if action.get("model_id") == model_id
-        ]
+        # Get real-time market data if available
+        try:
+            # Try to get real-time data from fetchers
+            realtime_data = trading_system._get_realtime_portfolio_data(model_id)
+            if realtime_data:
+                portfolio_dict["total_value_realtime"] = realtime_data.get(
+                    "total_value"
+                )
+                portfolio_dict["return_pct_realtime"] = realtime_data.get("return_pct")
+                portfolio_dict["unrealized_pnl_realtime"] = realtime_data.get(
+                    "unrealized_pnl"
+                )
+        except Exception as e:
+            logger.warning(f"Error getting real-time data for {model_id}: {e}")
 
-        # Generate portfolio history snapshots
-        portfolio_history = []
-        current_holdings = {}
-        current_cash = portfolio_dict.get("cash", 1000)
-
-        for action in model_actions[-20:]:  # Last 20 actions for history
-            if action.get("action") == "BUY":
-                ticker = action.get("symbol", "")
-                quantity = action.get("quantity", 0)
-                if ticker:
-                    current_holdings[ticker] = (
-                        current_holdings.get(ticker, 0) + quantity
-                    )
-            elif action.get("action") == "SELL":
-                ticker = action.get("symbol", "")
-                quantity = action.get("quantity", 0)
-                if ticker and ticker in current_holdings:
-                    current_holdings[ticker] = max(
-                        0, current_holdings[ticker] - quantity
-                    )
-                    if current_holdings[ticker] == 0:
-                        del current_holdings[ticker]
-
-            # Create portfolio snapshot
-            prices = {
-                ticker: action.get("price", 100) for ticker in current_holdings.keys()
-            }
-            total_value = current_cash + sum(
-                current_holdings.get(ticker, 0) * prices.get(ticker, 100)
-                for ticker in current_holdings.keys()
-            )
-
-            portfolio_history.append(
-                {
-                    "timestamp": action.get("timestamp", ""),
-                    "holdings": current_holdings.copy(),
-                    "prices": prices,
-                    "cash": current_cash,
-                    "totalValue": total_value,
-                }
-            )
-
-        # Add current state if no history
-        if not portfolio_history:
-            portfolio_history = [
-                {
-                    "timestamp": "2024-01-01T00:00:00Z",
-                    "holdings": portfolio_dict.get("holdings", {}),
-                    "prices": {
-                        ticker: 100
-                        for ticker in portfolio_dict.get("holdings", {}).keys()
-                    },
-                    "cash": current_cash,
-                    "totalValue": portfolio_dict.get("total_value", 1000),
-                }
-            ]
-
+        # Generate portfolio history from trading system
+        portfolio_history = trading_system.get_portfolio_history(model_id, limit=20)
         portfolio_dict["portfolio_history"] = portfolio_history
 
         # Convert to PortfolioData schema with portfolio history included

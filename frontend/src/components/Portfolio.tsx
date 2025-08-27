@@ -33,7 +33,6 @@ const Portfolio: React.FC<PortfolioProps> = ({ modelId, modelName }) => {
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const fetchPortfolio = async () => {
     setLoading(true);
@@ -45,7 +44,6 @@ const Portfolio: React.FC<PortfolioProps> = ({ modelId, modelName }) => {
       }
       const data = await response.json();
       setPortfolio(data);
-      setLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching portfolio:', error);
       setError('Failed to load portfolio data');
@@ -89,10 +87,6 @@ const Portfolio: React.FC<PortfolioProps> = ({ modelId, modelName }) => {
     );
   }
 
-  const useRealtimeData = portfolio.market_data_available && portfolio.total_value_realtime !== undefined;
-  const totalValue = useRealtimeData ? portfolio.total_value_realtime! : portfolio.total_value;
-  const returnPct = useRealtimeData ? portfolio.return_pct_realtime! : portfolio.return_pct;
-  const unrealizedPnl = useRealtimeData ? portfolio.unrealized_pnl_realtime! : portfolio.unrealized_pnl;
 
   return (
     <div className="portfolio-container">
