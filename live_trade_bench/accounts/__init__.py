@@ -1,5 +1,5 @@
 """
-Trading Bench Accounts Package
+Account management system for portfolio management
 """
 
 from .base_account import BaseAccount
@@ -20,12 +20,12 @@ from .stock_account import (
 __all__ = [
     # Base classes
     "BaseAccount",
-    # Stock portfolio management
+    # Stock account
     "StockAccount",
     "StockPosition",
     "StockTransaction",
     "create_stock_account",
-    # Polymarket portfolio management
+    # Polymarket account
     "PolymarketAccount",
     "PolymarketPosition",
     "PolymarketTransaction",

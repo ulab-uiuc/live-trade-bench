@@ -30,6 +30,10 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             return None
 
         try:
+            # Display current portfolio value before generating new allocation
+            current_value = account.get_total_value()
+            print(f"💰 {self.name} current portfolio value: ${current_value:,.2f}")
+
             # Prepare comprehensive analysis
             market_analysis = self._prepare_market_analysis(market_data)
             account_analysis = self._prepare_account_analysis(account)

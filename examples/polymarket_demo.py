@@ -33,12 +33,34 @@ def main() -> None:
 
         print("\n📊 Final Portfolio Summary:")
         summaries = system.get_portfolio_summaries()
+
+        # Display individual agent summaries
         for agent_name, summary in summaries.items():
-            print(f"\n🤖 {agent_name}:")
-            print(f"   Total Value: ${summary['total_value']:.2f}")
-            print(f"   Cash Balance: ${summary['cash_balance']:.2f}")
-            print(f"   Target Allocations: {summary['target_allocations']}")
-            print(f"   Needs Rebalancing: {summary['needs_rebalancing']}")
+            if agent_name != "OVERALL":
+                print(f"\n🤖 {agent_name}:")
+                print(f"   💰 Total Value: ${summary['total_value']:,.2f}")
+                print(
+                    f"   💵 Cash: ${summary['cash_value']:,.2f} ({summary['cash_allocation']:.1%})"
+                )
+                print(
+                    f"   📈 Positions: ${summary['positions_value']:,.2f} ({summary['positions_allocation']:.1%})"
+                )
+                print(f"   🎯 Target Allocations: {summary['target_allocations']}")
+                print(f"   📊 Current Allocations: {summary['current_allocations']}")
+                print(f"   🔄 Needs Rebalancing: {summary['needs_rebalancing']}")
+
+        # Display overall portfolio summary
+        if "OVERALL" in summaries:
+            overall = summaries["OVERALL"]
+            print("\n🏆 OVERALL PORTFOLIO:")
+            print(f"   💰 Total Portfolio Value: ${overall['total_value']:,.2f}")
+            print(
+                f"   💵 Total Cash: ${overall['cash_value']:,.2f} ({overall['cash_allocation']:.1%})"
+            )
+            print(
+                f"   📈 Total Positions: ${overall['positions_value']:,.2f} ({overall['positions_allocation']:.1%})"
+            )
+            print(f"   🔄 Overall Rebalancing Needed: {overall['needs_rebalancing']}")
 
     except KeyboardInterrupt:
         print("\n⏹️ Demo stopped by user")

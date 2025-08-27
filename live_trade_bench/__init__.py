@@ -9,7 +9,18 @@ This package provides tools for:
 """
 
 # Import core components
-from .accounts.portfolio_models import PortfolioSummary
+from .accounts import (
+    BaseAccount,
+    PolymarketAccount,
+    PolymarketPosition,
+    PolymarketTransaction,
+    PortfolioSummary,
+    StockAccount,
+    StockPosition,
+    StockTransaction,
+    create_polymarket_account,
+    create_stock_account,
+)
 from .agents import (
     BaseAgent,
     LLMPolyMarketAgent,
