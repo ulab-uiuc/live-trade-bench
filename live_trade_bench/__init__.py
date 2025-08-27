@@ -9,22 +9,8 @@ This package provides tools for:
 """
 
 # Import core components
-from .accounts import (  # Portfolio models
-    AllocationChange,
-    BaseAccount,
-    PolymarketAccount,
-    PolymarketPosition,
-    PolymarketTransaction,
-    PortfolioStatus,
+from .accounts.portfolio_models import (
     PortfolioSummary,
-    PortfolioTarget,
-    RebalanceAction,
-    RebalancePlan,
-    StockAccount,
-    StockPosition,
-    StockTransaction,
-    create_polymarket_account,
-    create_stock_account,
 )
 from .agents import (
     BaseAgent,
