@@ -46,7 +46,7 @@ from .fetchers import (
     fetch_trending_markets,
     fetch_trending_stocks,
 )
-from .utils import call_llm, parse_portfolio_response, parse_trading_response
+from .utils import call_llm, parse_portfolio_response
 
 # Define what gets exported when importing *
 __all__ = [
@@ -87,7 +87,6 @@ __all__ = [
     "fetch_current_stock_price",
     # Utils
     "call_llm",
-    "parse_trading_response",
     "parse_portfolio_response",
 ]
 

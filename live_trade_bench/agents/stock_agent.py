@@ -21,21 +21,7 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
             name = data.get("name", ticker)
             sector = data.get("sector", "Unknown")
 
-            # Get price history
-            prev = self.prev_price(ticker)
-            pct = 0.0 if prev is None else ((price - prev) / prev) * 100.0
-            trend = "up" if pct > 0 else ("down" if pct < 0 else "flat")
-            hist = ", ".join(f"{p:.2f}" for p in self.history_tail(ticker, 3))
-
-            analysis_parts.append(
-                f"{ticker} ({name}): ${price:.2f} | {pct:+.2f}% ({trend}) | Sector: {sector} | History: [{hist}]"
-            )
-
-            # Update price history
-            self._history.setdefault(ticker, []).append(price)
-            if len(self._history[ticker]) > self.max_history:
-                self._history[ticker] = self._history[ticker][-self.max_history :]
-            self._last_price[ticker] = price
+            analysis_parts.append(f"{ticker} ({name}): ${price:.2f} | Sector: {sector}")
 
         return "MARKET ANALYSIS:\n" + "\n".join(analysis_parts)
 

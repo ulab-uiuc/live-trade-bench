@@ -71,36 +71,6 @@ def call_llm(
         return {"success": False, "content": "", "error": str(e)}
 
 
-def parse_trading_response(content: str) -> Dict[str, Any]:
-    """Parse LLM response into trading decision format"""
-    try:
-        # Try to parse JSON response
-        parsed = json.loads(content)
-        if isinstance(parsed, dict):
-            return parsed
-        else:
-            # If parsed is not a dict, create a dict with the parsed value
-            return {"response": parsed}
-
-    except json.JSONDecodeError:
-        # Fallback parsing for non-JSON responses
-        content_lower = content.lower()
-
-        if "buy" in content_lower:
-            action = "buy"
-        elif "sell" in content_lower:
-            action = "sell"
-        else:
-            action = "hold"
-
-        return {
-            "action": action,
-            "quantity": 1,
-            "confidence": 0.5,
-            "reasoning": "Parsed from LLM response",
-        }
-
-
 def parse_portfolio_response(content: str) -> Dict[str, Any]:
     """Parse LLM response into portfolio allocation format"""
     try:

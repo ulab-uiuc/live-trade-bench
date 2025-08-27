@@ -23,21 +23,9 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             yes_price = data.get("yes_price", price)
             no_price = data.get("no_price", 1.0 - yes_price)
 
-            # Get price history
-            prev = self.prev_price(market_id)
-            pct = 0.0 if prev is None else ((price - prev) / prev) * 100.0
-            trend = "up" if pct > 0 else ("down" if pct < 0 else "flat")
-            hist = ", ".join(f"{p:.3f}" for p in self.history_tail(market_id, 3))
-
             analysis_parts.append(
-                f"{market_id}: {question[:50]}... | YES: {yes_price:.3f} NO: {no_price:.3f} | {pct:+.2f}% ({trend}) | Category: {category} | History: [{hist}]"
+                f"{market_id}: {question[:50]}... | YES: {yes_price:.3f} NO: {no_price:.3f} | Category: {category}"
             )
-
-            # Update price history
-            self._history.setdefault(market_id, []).append(price)
-            if len(self._history[market_id]) > self.max_history:
-                self._history[market_id] = self._history[market_id][-self.max_history :]
-            self._last_price[market_id] = price
 
         return "MARKET ANALYSIS:\n" + "\n".join(analysis_parts)
 

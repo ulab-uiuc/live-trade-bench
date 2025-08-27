@@ -17,8 +17,6 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         self.name = name
         self.model_name = model_name
         self.available = True
-        self._history: Dict[str, List[float]] = {}
-        self._last_price: Dict[str, float] = {}
 
     def generate_portfolio_allocation(
         self, market_data: Dict[str, DataType], account: AccountType
@@ -35,9 +33,8 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             # Prepare comprehensive analysis
             market_analysis = self._prepare_market_analysis(market_data)
             account_analysis = self._prepare_account_analysis(account)
-            news_analysis = self._prepare_news_analysis(market_data)
             full_analysis = self._combine_analysis_data(
-                market_analysis, account_analysis, news_analysis
+                market_analysis, account_analysis
             )
 
             messages = [
@@ -129,43 +126,11 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             f"  Current Allocations: {account.target_allocations}"
         )
 
-    def _prepare_news_analysis(self, market_data: Dict[str, DataType]) -> str:
-        """Prepare news analysis for all assets."""
-        try:
-            from datetime import datetime, timedelta
-
-            from ..fetchers.news_fetcher import fetch_news_data
-
-            # Get recent news (last 3 days)
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
-
-            news_summaries = []
-            for asset_id, data in list(market_data.items())[:3]:  # Top 3 assets
-                query = self._create_news_query(asset_id, data)
-                news = fetch_news_data(query, start_date, end_date, max_pages=1)
-
-                if news:
-                    # Summarize top news item
-                    snippet = news[0].get("snippet", "")
-                    news_summaries.append(f"• {asset_id}: {snippet[:100]}...")
-                else:
-                    news_summaries.append(f"• {asset_id}: No recent news")
-
-            return "RECENT NEWS:\n" + "\n".join(news_summaries)
-
-        except Exception as e:
-            return f"RECENT NEWS:\n• News fetch error: {str(e)}..."
-
-    def _create_news_query(self, asset_id: str, data: DataType) -> str:
-        """Create news search query. Override in subclasses for domain-specific queries."""
-        return asset_id
-
     def _combine_analysis_data(
-        self, market_analysis: str, account_analysis: str, news_analysis: str
+        self, market_analysis: str, account_analysis: str
     ) -> str:
         """Combine all analysis data into final format."""
-        return f"{market_analysis}\n\n{account_analysis}\n\n{news_analysis}"
+        return f"{market_analysis}\n\n{account_analysis}"
 
     # ----- Hooks -----
     @abstractmethod
@@ -181,14 +146,6 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
     ) -> str:
         """Get portfolio allocation prompt for all assets."""
         ...
-
-    # ----- Helpers -----
-    def history_tail(self, asset_id: str, k: int = 5) -> List[float]:
-        return self._history.get(asset_id, [])[-k:]
-
-    def prev_price(self, asset_id: str) -> Optional[float]:
-        hist = self._history.get(asset_id, [])
-        return hist[-2] if len(hist) >= 2 else None
 
     def _log_error(self, msg: str, ctx: str = "") -> None:
         if ctx:

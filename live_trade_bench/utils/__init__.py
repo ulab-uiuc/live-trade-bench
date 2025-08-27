@@ -1,11 +1,10 @@
 """
-Trading Bench Utils Package
+Utility functions for the live-trade-bench package
 """
 
-from .llm_client import call_llm, parse_portfolio_response, parse_trading_response
+from .llm_client import call_llm, parse_portfolio_response
 
 __all__ = [
     "call_llm",
-    "parse_trading_response",
     "parse_portfolio_response",
 ]
