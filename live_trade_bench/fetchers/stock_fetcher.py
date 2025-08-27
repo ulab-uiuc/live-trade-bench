@@ -29,30 +29,30 @@ class StockFetcher(BaseFetcher):
     def get_trending_stocks(self, limit: int = 15) -> List[str]:
         diversified_tickers = [
             # Technology (3 stocks)
-            "AAPL",    # Apple - Consumer Electronics
-            "MSFT",    # Microsoft - Software
-            "NVDA",    # NVIDIA - Semiconductor
+            "AAPL",  # Apple - Consumer Electronics
+            "MSFT",  # Microsoft - Software
+            "NVDA",  # NVIDIA - Semiconductor
             # Financial Services (2 stocks)
-            "JPM",     # JPMorgan Chase - Banking
-            "V",       # Visa - Payment Processing
+            "JPM",  # JPMorgan Chase - Banking
+            "V",  # Visa - Payment Processing
             # Healthcare (2 stocks)
-            "JNJ",     # Johnson & Johnson - Pharmaceuticals
-            "UNH",     # UnitedHealth - Health Insurance
+            "JNJ",  # Johnson & Johnson - Pharmaceuticals
+            "UNH",  # UnitedHealth - Health Insurance
             # Consumer Goods (2 stocks)
-            "PG",      # Procter & Gamble - Consumer Products
-            "KO",      # Coca-Cola - Beverages
+            "PG",  # Procter & Gamble - Consumer Products
+            "KO",  # Coca-Cola - Beverages
             # Energy (1 stock)
-            "XOM",     # ExxonMobil - Oil & Gas
+            "XOM",  # ExxonMobil - Oil & Gas
             # Industrial (1 stock)
-            "CAT",     # Caterpillar - Heavy Machinery
+            "CAT",  # Caterpillar - Heavy Machinery
             # Retail (1 stock)
-            "WMT",     # Walmart - Retail
+            "WMT",  # Walmart - Retail
             # Communication (1 stock)
-            "META",    # Meta - Social Media
+            "META",  # Meta - Social Media
             # Automotive (1 stock)
-            "TSLA",    # Tesla - Electric Vehicles
+            "TSLA",  # Tesla - Electric Vehicles
             # E-commerce (1 stock)
-            "AMZN",    # Amazon - Online Retail
+            "AMZN",  # Amazon - Online Retail
         ]
         return diversified_tickers[:limit]
 
