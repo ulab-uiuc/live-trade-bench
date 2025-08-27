@@ -1,9 +1,12 @@
+import logging
 from typing import Any, Dict, List
 
 from app.data import get_real_models_data
-from app.schemas import TradingModel
+from app.schemas import PortfolioData, TradingModel
 from app.trading_system import get_trading_system
 from fastapi import APIRouter, HTTPException, Query
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/models", tags=["models"])
 
@@ -308,20 +311,106 @@ async def deactivate_model(model_id: str) -> Dict[str, Any]:
         )
 
 
-@router.get("/{model_id}/portfolio")
-async def get_model_portfolio(model_id: str) -> Dict[str, Any]:
+@router.get("/{model_id}/portfolio", response_model=PortfolioData)
+async def get_model_portfolio(model_id: str) -> PortfolioData:
     """Get portfolio data for a specific model (both stock and polymarket)."""
     try:
         trading_system = get_trading_system()
 
         # Get portfolio data - the trading system handles model ID validation
-        portfolio_data = trading_system.get_portfolio(model_id)
+        portfolio_dict = trading_system.get_portfolio(model_id)
 
-        return portfolio_data
+        # Get real-time market data if available
+        try:
+            # Try to get real-time data from fetchers
+            realtime_data = trading_system._get_realtime_portfolio_data(model_id)
+            if realtime_data:
+                portfolio_dict["total_value_realtime"] = realtime_data.get(
+                    "total_value"
+                )
+                portfolio_dict["return_pct_realtime"] = realtime_data.get("return_pct")
+                portfolio_dict["unrealized_pnl_realtime"] = realtime_data.get(
+                    "unrealized_pnl"
+                )
+        except Exception as e:
+            logger.warning(f"Error getting real-time data for {model_id}: {e}")
+
+        # Generate portfolio history from trading system
+        portfolio_history = trading_system.get_portfolio_history(model_id, limit=20)
+        portfolio_dict["portfolio_history"] = portfolio_history
+
+        # Convert to PortfolioData schema with portfolio history included
+        return PortfolioData(**portfolio_dict)
 
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error fetching portfolio: {str(e)}"
+        )
+
+
+@router.get("/{model_id}/chart-data")
+async def get_model_chart_data(model_id: str) -> Dict[str, Any]:
+    """Get chart data (holdings allocation and profit history) for a specific model."""
+    try:
+        trading_system = get_trading_system()
+
+        # Get current portfolio for holdings allocation
+        portfolio_data = trading_system.get_portfolio(model_id)
+        holdings = portfolio_data.get("holdings", {})
+
+        # Get profit history from trading history
+        profit_history = []
+        model_actions = [
+            action
+            for action in trading_system.trading_history
+            if action.get("model_id") == model_id
+        ]
+
+        # Calculate cumulative profit over time
+        cumulative_profit = 0
+        total_value = portfolio_data.get("total_value", 1000)  # Start with initial cash
+
+        for i, action in enumerate(model_actions[-30:]):  # Last 30 actions for chart
+            if action.get("action") == "BUY":
+                # Buying reduces profit temporarily (cash to holdings)
+                pass
+            elif action.get("action") == "SELL":
+                # Selling realizes profit/loss
+                price = action.get("price", 0)
+                quantity = action.get("quantity", 0)
+                cumulative_profit += (price * quantity) - action.get(
+                    "cost_basis", price * quantity
+                )
+
+            profit_history.append(
+                {
+                    "timestamp": action.get("timestamp", ""),
+                    "profit": cumulative_profit,
+                    "totalValue": total_value + cumulative_profit,
+                }
+            )
+
+        # If no history, create a single point
+        if not profit_history:
+            profit_history = [
+                {
+                    "timestamp": "2024-01-01T00:00:00Z",
+                    "profit": 0,
+                    "totalValue": total_value,
+                }
+            ]
+
+        return {
+            "holdings": holdings,
+            "profit_history": profit_history,
+            "total_value": total_value,
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching chart data: {str(e)}"
         )

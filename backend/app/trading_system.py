@@ -90,19 +90,19 @@ def get_market_status() -> Dict[str, Any]:
 class MultiAssetTradingSystem:
     """
     Multi-asset trading system that uses the native .run() methods from
-    both TradingSystem (stock_agent.py) and PolymarketTradingSystem (polymarket_agent.py)
+    both StockPortfolioSystem and PolymarketPortfolioSystem for portfolio-based trading
     """
 
     def __init__(self) -> None:
-        # Import the native trading systems using factory functions
+        # Import the native portfolio systems using factory functions
         from live_trade_bench import (
-            create_polymarket_trading_system,
-            create_stock_trading_system,
+            create_polymarket_portfolio_system,
+            create_stock_portfolio_system,
         )
 
-        # Create the native trading systems using factory functions
-        self.stock_system = create_stock_trading_system()
-        self.polymarket_system = create_polymarket_trading_system()
+        # Create the native portfolio systems using factory functions
+        self.stock_system = create_stock_portfolio_system()
+        self.polymarket_system = create_polymarket_portfolio_system()
 
         # System control
         self.system_running = False
@@ -201,7 +201,7 @@ class MultiAssetTradingSystem:
         self._update_social_cache()
 
         logger.info(
-            "Multi-asset trading system initialized using native .run() methods"
+            "Multi-asset portfolio system initialized using native .run() methods"
         )
 
     @property
@@ -215,22 +215,22 @@ class MultiAssetTradingSystem:
         return list(self.active_polymarket_models.keys())
 
     def _initialize_models(self) -> None:
-        """Initialize agents in both native trading systems"""
+        """Initialize agents in both native portfolio systems"""
 
-        # Initialize stock agents using native TradingSystem.add_agent()
+        # Initialize stock agents using native StockPortfolioSystem.add_agent()
         for model_config in self.models_config:
             model_id = model_config["id"]
             model_name = model_config["name"]
             llm_model = model_config["llm_model"]
 
-            # Add agent to stock system using native method
+            # Add agent to stock portfolio system using native method
             self.stock_system.add_agent(
                 name=f"{model_name} (Stock)",
                 initial_cash=self.stock_initial_cash,
                 model_name=llm_model,
             )
 
-            # Add agent to polymarket system using native method
+            # Add agent to polymarket portfolio system using native method
             self.polymarket_system.add_agent(
                 name=f"{model_name} (Polymarket)",
                 initial_cash=self.polymarket_initial_cash,
@@ -248,62 +248,57 @@ class MultiAssetTradingSystem:
     def _update_news_cache(self) -> None:
         """Update the news cache in background"""
         try:
-            # Import here to avoid circular imports
-            from live_trade_bench.fetchers.news_fetcher import NewsFetcher
-            from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
-
             logger.info("Updating background news cache")
 
-            # Calculate date range (last 7 days)
+            # Import news fetcher directly to avoid circular imports
+            from live_trade_bench import fetch_trending_stocks
+            from live_trade_bench.fetchers.news_fetcher import fetch_news_data
+
+            # Calculate date range
             end_date = datetime.now()
             start_date = end_date - timedelta(days=7)
 
-            # Get trending stocks to use as search queries
-            trending_stocks = fetch_trending_stocks(limit=10)  # Get top 10 stocks
+            raw_news = []
+            try:
+                # Get trending stocks for news queries
+                trending_stocks = fetch_trending_stocks(limit=5)
 
-            # Use trending stocks as search terms
-            stock_queries = (
-                " ".join(trending_stocks[:3]) if trending_stocks else "stock market"
-            )
+                for ticker in trending_stocks[:3]:  # Limit to 3 stocks
+                    stock_query = f"{ticker} stock"
+                    try:
+                        stock_news = fetch_news_data(
+                            query=stock_query,
+                            start_date=start_date.strftime("%Y-%m-%d"),
+                            end_date=end_date.strftime("%Y-%m-%d"),
+                            max_pages=1,
+                        )
+                        raw_news.extend(stock_news[:5])  # Limit to 5 articles per stock
+                    except Exception as e:
+                        logger.warning(f"Error fetching news for {ticker}: {e}")
+                        continue
+            except Exception as e:
+                logger.warning(f"Error fetching trending stocks for news: {e}")
 
-            logger.info(f"Fetching news for trending stocks: {stock_queries}")
-
-            # Use NewsFetcher directly with correct method and parameters
-            news_fetcher = NewsFetcher()
-            news_articles = news_fetcher.fetch(
-                query=stock_queries,
-                start_date=start_date.strftime("%Y-%m-%d"),
-                end_date=end_date.strftime("%Y-%m-%d"),
-                max_pages=3,  # Limit to first 3 pages for faster fetching
-            )
-
-            # Transform to dict format for JSON serialization
+            # Transform raw news to dict format for JSON serialization
             self.cached_news = []
-            for i, article in enumerate(news_articles):
-                # Parse the date string to ISO format
+            for i, article in enumerate(raw_news[:15]):  # Limit to 15 articles total
                 try:
-                    published_at = (
-                        datetime.now().isoformat()
-                    )  # Default to now if parsing fails
-                    if article.get("date"):
-                        # Try to parse the date (Google News date format can vary)
-                        # For now, use current time - in production you'd parse the actual date
-                        published_at = datetime.now().isoformat()
-                except Exception:
-                    published_at = datetime.now().isoformat()
-
-                self.cached_news.append(
-                    {
-                        "id": f"news_{i}_{int(datetime.now().timestamp())}",
-                        "title": article.get("title", "No title"),
-                        "summary": article.get("snippet", "No summary"),
-                        "source": article.get("source", "Unknown"),
-                        "published_at": published_at,
-                        "impact": "medium",  # Default impact
-                        "category": "market",  # Default category
-                        "url": article.get("link", ""),
-                    }
-                )
+                    self.cached_news.append(
+                        {
+                            "id": str(i + 1),
+                            "title": article.get("title", "No title"),
+                            "summary": article.get("snippet", "No summary"),
+                            "source": article.get("source", "Unknown"),
+                            "published_at": datetime.now().isoformat(),
+                            "impact": "medium",
+                            "category": "market",
+                            "url": article.get("link", "#"),
+                            "stock_symbol": None,
+                        }
+                    )
+                except Exception as e:
+                    logger.warning(f"Error processing news article {i}: {e}")
+                    continue
 
             self.news_last_updated = datetime.now(timezone.utc)
             logger.info(f"News cache updated with {len(self.cached_news)} articles")
@@ -583,7 +578,7 @@ class MultiAssetTradingSystem:
         """Get actual stock tickers being traded by the stock system"""
         try:
             if hasattr(self.stock_system, "universe") and self.stock_system.universe:
-                return self.stock_system.universe
+                return list(self.stock_system.universe)
             else:
                 # Fallback: fetch trending stocks directly
                 from live_trade_bench import fetch_trending_stocks
@@ -595,9 +590,11 @@ class MultiAssetTradingSystem:
                     return []
                 first = trending_stocks[0]
                 if isinstance(first, str):
-                    return [s for s in trending_stocks]
+                    return trending_stocks
                 elif isinstance(first, dict):
-                    return [s.get("ticker", "") for s in trending_stocks]
+                    return [
+                        s.get("ticker", "") for s in trending_stocks if s.get("ticker")
+                    ]
                 else:
                     return []
         except Exception as e:
@@ -731,7 +728,7 @@ class MultiAssetTradingSystem:
             )
 
     def _run_stock_cycle_native(self) -> None:
-        """Run stock cycle using native StockTradingSystem.run() - adapted for backend service"""
+        """Run stock cycle using native StockPortfolioSystem.run() - adapted for backend service"""
         try:
             # Check if market is open before running stock trading
             if not is_market_hours():
@@ -757,7 +754,7 @@ class MultiAssetTradingSystem:
             logger.error(f"Error in stock system .run(): {e}")
 
     def _run_polymarket_cycle_native(self) -> None:
-        """Run polymarket cycle using native PolymarketTradingSystem.run() - matching polymarket_demo.py"""
+        """Run polymarket cycle using native PolymarketPortfolioSystem.run() - portfolio-based trading"""
         try:
             logger.info("Running polymarket system using native .run() method")
             # Short burst for backend service
@@ -870,6 +867,206 @@ class MultiAssetTradingSystem:
 
         raise ValueError(f"Invalid model_id format: {model_id}")
 
+    def _get_realtime_portfolio_data(self, model_id: str) -> Dict[str, Any]:
+        """Get real-time portfolio data using market fetchers"""
+        try:
+            # Import fetchers for real-time data
+            from live_trade_bench.fetchers.stock_fetcher import StockFetcher
+
+            # Get current portfolio
+            portfolio_data = self.get_portfolio(model_id)
+            holdings = portfolio_data.get("holdings", {})
+
+            if not holdings:
+                return {}
+
+            # Get real-time prices for holdings
+            stock_fetcher = StockFetcher()
+            realtime_prices = {}
+            total_realtime_value = portfolio_data.get("cash", 0)
+
+            for ticker, quantity in holdings.items():
+                try:
+                    # Get current price for ticker using stock data fetch
+                    from datetime import datetime, timedelta
+
+                    end_date = datetime.now()
+                    start_date = end_date - timedelta(days=1)
+
+                    price_data = stock_fetcher.fetch_stock_data(
+                        ticker=ticker,
+                        start_date=start_date.strftime("%Y-%m-%d"),
+                        end_date=end_date.strftime("%Y-%m-%d"),
+                        interval="1d",
+                    )
+
+                    if (
+                        price_data
+                        and hasattr(price_data, "iloc")
+                        and len(price_data) > 0
+                    ):
+                        # Get the most recent price from DataFrame
+                        current_price = price_data.iloc[-1]["close"]
+                        realtime_prices[ticker] = current_price
+                        total_realtime_value += quantity * current_price
+                    elif isinstance(price_data, dict) and price_data:
+                        # Handle dict format
+                        latest_date = max(price_data.keys())
+                        current_price = price_data[latest_date].get("close", 0)
+                        if current_price > 0:
+                            realtime_prices[ticker] = current_price
+                            total_realtime_value += quantity * current_price
+                except Exception as e:
+                    logger.warning(f"Error getting real-time price for {ticker}: {e}")
+                    continue
+
+            # Calculate real-time metrics
+            initial_value = (
+                self.stock_initial_cash
+                if model_id.endswith("_stock")
+                else self.polymarket_initial_cash
+            )
+            realtime_return_pct = (
+                ((total_realtime_value - initial_value) / initial_value * 100)
+                if initial_value > 0
+                else 0
+            )
+
+            # Calculate real-time unrealized P&L
+            base_unrealized_pnl = portfolio_data.get("unrealized_pnl", 0)
+            realtime_unrealized_pnl = total_realtime_value - portfolio_data.get(
+                "total_value", initial_value
+            )
+
+            return {
+                "total_value": total_realtime_value,
+                "return_pct": realtime_return_pct,
+                "unrealized_pnl": base_unrealized_pnl + realtime_unrealized_pnl,
+                "realtime_prices": realtime_prices,
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting real-time portfolio data for {model_id}: {e}")
+            return {}
+
+    def get_portfolio_history(
+        self, model_id: str, limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """Get portfolio history for area chart visualization"""
+        try:
+            # Get historical trading actions for this model
+            model_actions = [
+                action
+                for action in self.trading_history
+                if action.get("agent_id") == model_id
+                or action.get("model_id") == model_id
+            ]
+
+            if not model_actions:
+                # Return single point with current portfolio state
+                current_portfolio = self.get_portfolio(model_id)
+                return [
+                    {
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "holdings": current_portfolio.get("holdings", {}),
+                        "prices": {
+                            ticker: 100.0
+                            for ticker in current_portfolio.get("holdings", {}).keys()
+                        },
+                        "cash": current_portfolio.get("cash", 1000),
+                        "totalValue": current_portfolio.get("total_value", 1000),
+                    }
+                ]
+
+            # Build portfolio history from actions
+            portfolio_history = []
+            current_holdings = {}
+            initial_cash = (
+                self.stock_initial_cash
+                if model_id.endswith("_stock")
+                else self.polymarket_initial_cash
+            )
+            current_cash = initial_cash
+
+            for action in model_actions[-limit:]:
+                try:
+                    action_type = action.get("action", "")
+                    symbol = action.get("symbol", "")
+                    quantity = action.get("quantity", 0)
+                    price = action.get("price", 0)
+
+                    if action_type == "BUY" and symbol:
+                        current_holdings[symbol] = (
+                            current_holdings.get(symbol, 0) + quantity
+                        )
+                        current_cash -= quantity * price
+                    elif action_type == "SELL" and symbol:
+                        current_holdings[symbol] = max(
+                            0, current_holdings.get(symbol, 0) - quantity
+                        )
+                        current_cash += quantity * price
+                        if current_holdings[symbol] == 0:
+                            del current_holdings[symbol]
+                    elif action_type == "REBALANCE":
+                        # Handle portfolio rebalancing
+                        if "holdings" in action:
+                            current_holdings = action["holdings"].copy()
+                        if "cash_balance" in action:
+                            current_cash = action["cash_balance"]
+
+                    # Calculate prices and total value
+                    prices = {}
+                    total_holdings_value = 0
+
+                    for ticker, holding_qty in current_holdings.items():
+                        ticker_price = action.get("prices", {}).get(
+                            ticker, price if ticker == symbol else 100
+                        )
+                        prices[ticker] = ticker_price
+                        total_holdings_value += holding_qty * ticker_price
+
+                    total_value = current_cash + total_holdings_value
+
+                    portfolio_history.append(
+                        {
+                            "timestamp": action.get(
+                                "timestamp", datetime.now(timezone.utc).isoformat()
+                            ),
+                            "holdings": current_holdings.copy(),
+                            "prices": prices,
+                            "cash": current_cash,
+                            "totalValue": total_value,
+                        }
+                    )
+
+                except Exception as e:
+                    logger.warning(f"Error processing action in portfolio history: {e}")
+                    continue
+
+            # If still no history, add current state
+            if not portfolio_history:
+                current_portfolio = self.get_portfolio(model_id)
+                portfolio_history = [
+                    {
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "holdings": current_portfolio.get("holdings", {}),
+                        "prices": {
+                            ticker: 100.0
+                            for ticker in current_portfolio.get("holdings", {}).keys()
+                        },
+                        "cash": current_portfolio.get("cash", initial_cash),
+                        "totalValue": current_portfolio.get(
+                            "total_value", initial_cash
+                        ),
+                    }
+                ]
+
+            return portfolio_history
+
+        except Exception as e:
+            logger.error(f"Error generating portfolio history for {model_id}: {e}")
+            return []
+
     def get_system_metrics(self) -> Dict[str, Any]:
         """Get comprehensive system performance metrics"""
         total_stock_value = 0.0
@@ -879,7 +1076,7 @@ class MultiAssetTradingSystem:
             len(self.polymarket_system.agents) * self.polymarket_initial_cash
         )
 
-        # Calculate total system performance from native systems
+        # Calculate total system performance from native portfolio systems
         for agent_name in self.stock_system.agents.keys():
             try:
                 stock_account = self.stock_system.accounts[agent_name]
@@ -933,10 +1130,10 @@ class MultiAssetTradingSystem:
                 )
                 * 100,
             },
-            "native_systems": {
+            "portfolio_systems": {
                 "stock_agents": len(self.stock_system.agents),
                 "polymarket_agents": len(self.polymarket_system.agents),
-                "using_native_run": True,
+                "using_portfolio_run": True,
             },
         }
 
@@ -976,21 +1173,19 @@ class MultiAssetTradingSystem:
             target=self._background_trading_loop, daemon=True
         )
         self.trading_thread.start()
-        logger.info(
-            "Multi-asset background trading started using native .run() methods"
-        )
+        logger.info("Multi-asset portfolio system started using native .run() methods")
 
     def stop_background_trading(self) -> None:
         """Stop background trading"""
         self.system_running = False
         if self.trading_thread:
             self.trading_thread.join(timeout=5)
-        logger.info("Multi-asset background trading stopped")
+        logger.info("Multi-asset portfolio system stopped")
 
     def _background_trading_loop(self) -> None:
         """Background trading loop using native .run() methods"""
         logger.info(
-            f"Multi-asset trading loop started using native .run() methods with {self.cycle_interval//60} minute intervals"
+            f"Multi-asset portfolio loop started using native .run() methods with {self.cycle_interval//60} minute intervals"
         )
 
         while self.system_running:
@@ -1039,30 +1234,30 @@ class MultiAssetTradingSystem:
                     if wait_time % status_interval == 0 and self.system_running:
                         remaining_minutes = (self.cycle_interval - wait_time) // 60
                         logger.info(
-                            f"Multi-asset trading system running using native .run() - next cycle in {remaining_minutes} minutes"
+                            f"Multi-asset portfolio system running using native .run() - next cycle in {remaining_minutes} minutes"
                         )
 
             except Exception as e:
                 logger.error(f"Error in multi-asset trading loop: {e}")
                 time.sleep(60)
 
-        logger.info("Multi-asset trading loop stopped")
+        logger.info("Multi-asset portfolio loop stopped")
 
 
-# Global multi-asset trading system instance
+# Global multi-asset portfolio system instance
 trading_system = MultiAssetTradingSystem()
 
 
 def get_trading_system() -> MultiAssetTradingSystem:
-    """Get the global multi-asset trading system instance"""
+    """Get the global multi-asset portfolio system instance"""
     return trading_system
 
 
 def start_trading_system() -> None:
-    """Start the multi-asset trading system using native .run() methods"""
+    """Start the multi-asset portfolio system using native .run() methods"""
     trading_system.start_background_trading()
 
 
 def stop_trading_system() -> None:
-    """Stop the multi-asset trading system"""
+    """Stop the multi-asset portfolio system"""
     trading_system.stop_background_trading()

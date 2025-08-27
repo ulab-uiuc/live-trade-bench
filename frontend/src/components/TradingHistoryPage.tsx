@@ -146,86 +146,23 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
       <div className="refresh-indicator">
         <h1>Trading History</h1>
         {loading && <div className="spinner"></div>}
-        <span style={{ marginLeft: 'auto', fontSize: '0.875rem', color: '#666' }}>
+        <span style={{ marginLeft: 'auto', fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>
           Last updated: {lastRefresh.toLocaleTimeString()}
         </span>
       </div>
 
-      {/* Summary Statistics */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '15px',
-        marginBottom: '20px'
-      }}>
-        <div style={{
-          background: totalProfit >= 0 ? '#e8f5e8' : '#ffe8e8',
-          padding: '15px',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: totalProfit >= 0 ? '#28a745' : '#dc3545' }}>
-            ${totalProfit.toFixed(2)}
-          </div>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>Total P&L</div>
-        </div>
-        <div style={{
-          background: '#f8f9fa',
-          padding: '15px',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#007bff' }}>
-            {totalTrades}
-          </div>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>Total Trades</div>
-        </div>
-        <div style={{
-          background: '#e8f5e8',
-          padding: '15px',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#28a745' }}>
-            {buyTrades}
-          </div>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>Buy Trades</div>
-        </div>
-        <div style={{
-          background: '#ffe8e8',
-          padding: '15px',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
-            {sellTrades}
-          </div>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>Sell Trades</div>
-        </div>
-        <div style={{
-          background: '#fff3cd',
-          padding: '15px',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ffc107' }}>
-            ${totalFees.toFixed(2)}
-          </div>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>Total Fees</div>
-        </div>
-      </div>
 
       {/* Filters */}
       <div style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '15px' }}>
           <div>
-            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block', color: 'var(--text-secondary)' }}>
               Category
             </label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as any)}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
             >
               <option value="all">All Categories ({categoryStats.total})</option>
               <option value="polymarket">Polymarket ({categoryStats.polymarket})</option>
@@ -233,13 +170,13 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
             </select>
           </div>
           <div>
-            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block', color: 'var(--text-secondary)' }}>
               Type
             </label>
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value as any)}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
             >
               <option value="all">All Types ({typeStats.total})</option>
               <option value="buy">Buy ({typeStats.buy})</option>
@@ -247,13 +184,13 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
             </select>
           </div>
           <div>
-            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block', color: 'var(--text-secondary)' }}>
               Status
             </label>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value as any)}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
             >
               <option value="all">All Status</option>
               <option value="completed">Completed</option>
@@ -341,8 +278,8 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
         <div style={{
           textAlign: 'center',
           padding: '40px',
-          color: '#666',
-          background: '#f8f9fa',
+          color: 'var(--text-tertiary)',
+          background: 'var(--bg-card)',
           borderRadius: '8px'
         }}>
           <p>No trades found for the selected filters.</p>

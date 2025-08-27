@@ -1573,3 +1573,21 @@
   font-weight: 500;
   font-size: 0.875rem;
 }
+
+/* Portfolio Styles - Minimal for chart display only */
+.portfolio-container {
+  width: 100%;
+}
+
+.portfolio-area-chart {
+  width: 100%;
+}
+
+.no-data-message {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+/* Import chart styles */
+@import './components/charts/charts.css';

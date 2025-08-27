@@ -9,6 +9,7 @@ interface NewsItem {
   impact: 'high' | 'medium' | 'low';
   category: 'market' | 'economic' | 'company' | 'tech';
   url: string;
+  stock_symbol?: string;
 }
 
 interface NewsProps {
@@ -40,7 +41,8 @@ const News: React.FC<NewsProps> = ({ newsData, setNewsData, lastRefresh, setLast
         publishedAt: new Date(article.published_at),
         impact: article.impact,
         category: article.category,
-        url: article.url
+        url: article.url,
+        stock_symbol: article.stock_symbol
       }));
 
       setNewsData(transformedNews);
@@ -99,7 +101,7 @@ const News: React.FC<NewsProps> = ({ newsData, setNewsData, lastRefresh, setLast
   return (
     <div className="news-page">
       <div className="refresh-indicator">
-        <h1>Market News</h1>
+        <h1>Stocks News</h1>
         {loading && <div className="spinner"></div>}
         <span style={{ marginLeft: 'auto', fontSize: '0.875rem', color: '#666' }}>
           Last updated: {lastRefresh.toLocaleTimeString()}
@@ -112,32 +114,35 @@ const News: React.FC<NewsProps> = ({ newsData, setNewsData, lastRefresh, setLast
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
               <h3>{item.title}</h3>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <span
-                  style={{
-                    backgroundColor: getCategoryColor(item.category),
-                    color: 'white',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  {item.category}
-                </span>
-                <span
-                  style={{
-                    backgroundColor: getImpactColor(item.impact),
-                    color: 'white',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  {item.impact} impact
-                </span>
+                {item.stock_symbol ? (
+                  <span
+                    style={{
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    {item.stock_symbol}
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      backgroundColor: getCategoryColor(item.category),
+                      color: 'white',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    {item.category}
+                  </span>
+                )}
               </div>
             </div>
 

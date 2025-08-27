@@ -25,6 +25,7 @@ class ActionType(str, Enum):
     BUY = "BUY"
     SELL = "SELL"
     HOLD = "HOLD"
+    REBALANCE = "REBALANCE"
 
 
 class ActionStatus(str, Enum):
@@ -111,6 +112,7 @@ class NewsItem(BaseModel):
     impact: NewsImpact
     category: NewsCategory
     url: str
+    stock_symbol: str | None = None
 
 
 class NewsItemCreate(BaseModel):
@@ -121,11 +123,47 @@ class NewsItemCreate(BaseModel):
     impact: NewsImpact
     category: NewsCategory
     url: str
+    stock_symbol: str | None = None
 
 
 class Portfolio(BaseModel):
     cash: float
     holdings: dict[str, float]  # ticker -> quantity
+
+
+class PortfolioHistoryPoint(BaseModel):
+    timestamp: str
+    holdings: dict[str, float]
+    prices: dict[str, float]
+    cash: float
+    totalValue: float
+
+
+class PortfolioData(BaseModel):
+    model_id: str
+    model_name: str
+    category: str
+    cash: float
+    total_value: float
+    return_pct: float
+    holdings: dict[str, float]  # ticker/asset -> quantity
+    positions: dict[str, Dict[str, Any]]  # detailed position info
+    unrealized_pnl: float
+    market_data_available: bool
+    last_updated: str
+    # Real-time data fields
+    total_value_realtime: float | None = None
+    return_pct_realtime: float | None = None
+    unrealized_pnl_realtime: float | None = None
+    # Portfolio history for area chart
+    portfolio_history: list[PortfolioHistoryPoint] | None = None
+
+
+class PortfolioAllocation(BaseModel):
+    asset: str
+    target_allocation: float  # 0.0 to 1.0
+    confidence: float  # 0.0 to 1.0
+    reasoning: str
 
 
 class TradingAction(BaseModel):
