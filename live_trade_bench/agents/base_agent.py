@@ -46,30 +46,36 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                     "content": self._get_portfolio_prompt(full_analysis, market_data),
                 }
             ]
-            
+
             print(f"🔍 {self.name}: Calling LLM with {len(market_data)} assets...")
             llm_response = self._call_llm(messages)
-            
+
             if not llm_response.get("success"):
-                print(f"❌ {self.name}: LLM call failed: {llm_response.get('error', 'Unknown error')}")
+                print(
+                    f"❌ {self.name}: LLM call failed: {llm_response.get('error', 'Unknown error')}"
+                )
                 return None
-            
-            print(f"✅ {self.name}: LLM response received, length: {len(llm_response.get('content', ''))}")
-            
+
+            print(
+                f"✅ {self.name}: LLM response received, length: {len(llm_response.get('content', ''))}"
+            )
+
             parsed = self._parse_portfolio_response(llm_response)
-            
+
             if not parsed:
                 print(f"❌ {self.name}: Failed to parse LLM response")
                 return None
-            
+
             print(f"✅ {self.name}: Response parsed successfully: {parsed}")
-            
+
             portfolio_allocation = self._create_portfolio_allocation_from_response(
                 parsed, market_data
             )
-            
+
             if portfolio_allocation:
-                print(f"🤖 {self.name}: Generated portfolio allocation: {portfolio_allocation}")
+                print(
+                    f"🤖 {self.name}: Generated portfolio allocation: {portfolio_allocation}"
+                )
             else:
                 print(f"🤖 {self.name}: No portfolio allocation generated")
             return portfolio_allocation

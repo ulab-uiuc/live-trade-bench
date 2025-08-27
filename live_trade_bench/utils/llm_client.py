@@ -106,15 +106,15 @@ def parse_portfolio_response(content: str) -> Dict[str, Any]:
     try:
         # Clean the content - remove extra whitespace and newlines
         cleaned_content = content.strip()
-        
+
         # Try to find JSON in the content
-        start_idx = cleaned_content.find('{')
-        end_idx = cleaned_content.rfind('}')
-        
+        start_idx = cleaned_content.find("{")
+        end_idx = cleaned_content.rfind("}")
+
         if start_idx != -1 and end_idx != -1:
-            json_content = cleaned_content[start_idx:end_idx + 1]
+            json_content = cleaned_content[start_idx : end_idx + 1]
             parsed = json.loads(json_content)
-            
+
             if isinstance(parsed, dict):
                 # Validate that we have allocations
                 if "allocations" in parsed and isinstance(parsed["allocations"], dict):
@@ -127,11 +127,11 @@ def parse_portfolio_response(content: str) -> Dict[str, Any]:
         else:
             print("⚠️ No JSON object found in response")
             return {"allocations": {}, "reasoning": "No JSON object found"}
-            
+
     except json.JSONDecodeError as e:
         print(f"⚠️ JSON parse failed: {e}")
         print(f"📝 Raw content: {content[:200]}...")
-        
+
         # Try to extract allocation information from text
         content_lower = content.lower()
         if "allocation" in content_lower or "weight" in content_lower:

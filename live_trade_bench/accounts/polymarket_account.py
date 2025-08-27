@@ -7,7 +7,7 @@ Polymarket account management system (simplified)
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List
 
 from .base_account import BaseAccount

@@ -83,10 +83,12 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
 
         return allocations
 
-    def _get_portfolio_prompt(self, analysis: str, market_data: Dict[str, Dict[str, Any]]) -> str:
+    def _get_portfolio_prompt(
+        self, analysis: str, market_data: Dict[str, Dict[str, Any]]
+    ) -> str:
         """Get portfolio allocation prompt for all markets."""
         market_list = list(market_data.keys())
-        
+
         return (
             "You are a professional prediction market portfolio manager. Analyze the market data and generate a complete portfolio allocation.\n\n"
             f"Market Analysis:\n{analysis}\n\n"
@@ -104,7 +106,7 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             f'   "{market_list[0]}": 0.4,\n'
             f'   "{market_list[1]}": 0.3,\n'
             f'   "{market_list[2]}": 0.3\n'
-            ' },\n'
+            " },\n"
             ' "reasoning": "brief explanation"\n'
             "}\n\n"
             "IMPORTANT RULES:\n"

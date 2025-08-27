@@ -27,7 +27,7 @@ class PolymarketPortfolioSystem:
         """Initialize market universe."""
         markets = fetch_trending_markets(limit=limit)
         self.universe = []  # Store just the market IDs
-        
+
         for m in markets:
             if m.get("token_ids"):
                 market_id = m["id"]
@@ -50,7 +50,9 @@ class PolymarketPortfolioSystem:
         market_data = {}
         for market_id in self.universe:
             try:
-                price_data = fetch_current_market_price(self.market_info[market_id]["token_ids"])
+                price_data = fetch_current_market_price(
+                    self.market_info[market_id]["token_ids"]
+                )
                 if price_data and "yes" in price_data:
                     market_data[market_id] = {
                         "id": market_id,
@@ -76,7 +78,7 @@ class PolymarketPortfolioSystem:
         try:
             # Fetch market data for all markets
             market_data = self._fetch_market_data()
-            
+
             if not market_data:
                 print("❌ No market data available")
                 return {"success": False, "error": "No market data"}

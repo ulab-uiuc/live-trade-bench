@@ -72,10 +72,12 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
 
         return allocations
 
-    def _get_portfolio_prompt(self, analysis: str, market_data: Dict[str, Dict[str, Any]]) -> str:
+    def _get_portfolio_prompt(
+        self, analysis: str, market_data: Dict[str, Dict[str, Any]]
+    ) -> str:
         """Get portfolio allocation prompt for all stocks."""
         stock_list = list(market_data.keys())
-        
+
         return (
             "You are a professional portfolio manager. Analyze the market data and generate a complete portfolio allocation.\n\n"
             f"Market Analysis:\n{analysis}\n\n"
@@ -93,7 +95,7 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
             f'   "{stock_list[0]}": 0.3,\n'
             f'   "{stock_list[1]}": 0.3,\n'
             f'   "{stock_list[2]}": 0.4\n'
-            ' },\n'
+            " },\n"
             ' "reasoning": "brief explanation"\n'
             "}\n\n"
             "IMPORTANT RULES:\n"
