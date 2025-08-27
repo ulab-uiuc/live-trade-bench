@@ -583,7 +583,7 @@ class MultiAssetTradingSystem:
                 # Fallback: fetch trending stocks directly
                 from live_trade_bench import fetch_trending_stocks
 
-                trending_stocks = fetch_trending_stocks(limit=10)
+                trending_stocks = fetch_trending_stocks(limit=20)
                 # fetch_trending_stocks may return either a list of ticker strings
                 # or a list of dicts with 'ticker' keys depending on implementation.
                 if not trending_stocks:
