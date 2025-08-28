@@ -3,15 +3,15 @@ import React from 'react';
 // 使用any类型避免接口冲突，但保持功能
 const Dashboard: React.FC<any> = (props) => {
   console.log('🎯 Dashboard component is rendering!', props);
-  
+
   // 安全地访问props
   const modelsData = props?.modelsData || [];
   const modelsLastRefresh = props?.modelsLastRefresh || new Date();
-  
+
   // 分类模型数据
   const stockModels = modelsData.filter((model: any) => model?.category === 'stock');
   const polymarketModels = modelsData.filter((model: any) => model?.category === 'polymarket');
-  
+
   return (
     <div style={{
       padding: '2rem',
@@ -58,7 +58,7 @@ const Dashboard: React.FC<any> = (props) => {
           Real-time portfolio performance and market insights
         </p>
       </div>
-      
+
       {/* 统计信息卡片 */}
       <div style={{
         display: 'grid',
@@ -240,10 +240,10 @@ const Dashboard: React.FC<any> = (props) => {
               <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>No stock models available</p>
             </div>
           ) : (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'end', 
-              justifyContent: 'space-around', 
+            <div style={{
+              display: 'flex',
+              alignItems: 'end',
+              justifyContent: 'space-around',
               height: '250px',
               padding: '1rem 0'
             }}>
@@ -255,7 +255,7 @@ const Dashboard: React.FC<any> = (props) => {
                   const barHeight = Math.abs(performance) * 2;
                   const maxHeight = 180;
                   const height = Math.min(barHeight, maxHeight);
-                  
+
                   return (
                     <div key={model?.id || index} style={{
                       display: 'flex',
@@ -269,7 +269,7 @@ const Dashboard: React.FC<any> = (props) => {
                       <div style={{
                         width: '50px',
                         height: `${height}px`,
-                        background: performance >= 0 
+                        background: performance >= 0
                           ? 'linear-gradient(180deg, #10b981 0%, #059669 100%)'
                           : 'linear-gradient(180deg, #ef4444 0%, #dc2626 100%)',
                         borderRadius: '8px 8px 0 0',
@@ -287,7 +287,7 @@ const Dashboard: React.FC<any> = (props) => {
                           color: '#ffffff',
                           fontSize: '0.875rem',
                           fontWeight: '700',
-                          background: performance >= 0 
+                          background: performance >= 0
                             ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
                             : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                           padding: '4px 8px',
@@ -298,7 +298,7 @@ const Dashboard: React.FC<any> = (props) => {
                           {performance.toFixed(1)}%
                         </span>
                       </div>
-                      
+
                       {/* 模型名称 */}
                       <span style={{
                         color: '#ffffff',
@@ -362,10 +362,10 @@ const Dashboard: React.FC<any> = (props) => {
               <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>No polymarket models available</p>
             </div>
           ) : (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'end', 
-              justifyContent: 'space-around', 
+            <div style={{
+              display: 'flex',
+              alignItems: 'end',
+              justifyContent: 'space-around',
               height: '250px',
               padding: '1rem 0'
             }}>
@@ -377,7 +377,7 @@ const Dashboard: React.FC<any> = (props) => {
                   const barHeight = Math.abs(performance) * 2;
                   const maxHeight = 180;
                   const height = Math.min(barHeight, maxHeight);
-                  
+
                   return (
                     <div key={model?.id || index} style={{
                       display: 'flex',
@@ -391,7 +391,7 @@ const Dashboard: React.FC<any> = (props) => {
                       <div style={{
                         width: '50px',
                         height: `${height}px`,
-                        background: performance >= 0 
+                        background: performance >= 0
                           ? 'linear-gradient(180deg, #10b981 0%, #059669 100%)'
                           : 'linear-gradient(180deg, #ef4444 0%, #dc2626 100%)',
                         borderRadius: '8px 8px 0 0',
@@ -409,7 +409,7 @@ const Dashboard: React.FC<any> = (props) => {
                           color: '#ffffff',
                           fontSize: '0.875rem',
                           fontWeight: '700',
-                          background: performance >= 0 
+                          background: performance >= 0
                             ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
                             : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                           padding: '4px 8px',
@@ -420,7 +420,7 @@ const Dashboard: React.FC<any> = (props) => {
                           {performance.toFixed(1)}%
                         </span>
                       </div>
-                      
+
                       {/* 模型名称 */}
                       <span style={{
                         color: '#ffffff',
@@ -443,29 +443,6 @@ const Dashboard: React.FC<any> = (props) => {
         </div>
       </div>
 
-      {/* 底部提示 */}
-      <div style={{
-        textAlign: 'center',
-        padding: '2rem',
-        // 强制覆盖
-        position: 'relative',
-        zIndex: 1001,
-        overflow: 'visible'
-      }}>
-        <p style={{ 
-          color: '#94a3b8', 
-          margin: 0, 
-          fontSize: '1rem', 
-          fontWeight: '500',
-          background: '#1f2937',
-          border: '1px solid #374151',
-          borderRadius: '0.5rem',
-          padding: '1rem 2rem',
-          display: 'inline-block'
-        }}>
-          📱 Charts are responsive and will stack on mobile devices
-        </p>
-      </div>
     </div>
   );
 };

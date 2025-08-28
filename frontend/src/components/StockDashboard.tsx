@@ -33,7 +33,7 @@ const StockDashboard: React.FC<StockDashboardProps> = ({
   const fetchStockModelsData = useCallback(() => {
     try {
       setError(null);
-      
+
       // 股票模型静态数据
       const stockMockData = [
         {
@@ -67,7 +67,7 @@ const StockDashboard: React.FC<StockDashboardProps> = ({
           trades: 20
         }
       ];
-      
+
       setModelsData(stockMockData);
       setModelsLastRefresh(new Date());
     } catch (error) {
@@ -77,8 +77,8 @@ const StockDashboard: React.FC<StockDashboardProps> = ({
   }, [setModelsData, setModelsLastRefresh]);
 
   // 获取股票模型
-  const stockModels = useMemo(() => 
-    modelsData.filter(model => model.category === 'stock'), 
+  const stockModels = useMemo(() =>
+    modelsData.filter(model => model.category === 'stock'),
     [modelsData]
   );
 
@@ -92,16 +92,16 @@ const StockDashboard: React.FC<StockDashboardProps> = ({
     return (
       <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
         <span>⚠️ {error}</span>
-        <button 
-          onClick={fetchStockModelsData} 
-          style={{ 
-            marginLeft: '1rem', 
-            padding: '0.5rem 1rem', 
-            background: '#ef4444', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '0.25rem', 
-            cursor: 'pointer' 
+        <button
+          onClick={fetchStockModelsData}
+          style={{
+            marginLeft: '1rem',
+            padding: '0.5rem 1rem',
+            background: '#ef4444',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.25rem',
+            cursor: 'pointer'
           }}
         >
           Retry
@@ -113,7 +113,7 @@ const StockDashboard: React.FC<StockDashboardProps> = ({
   return (
     <div className="dashboard-ultra-simple">
       {/* 只显示股票模型卡片 - 没有统计条 */}
-      <ModelsDisplay 
+      <ModelsDisplay
         modelsData={stockModels}
         stockModels={stockModels}
         polymarketModels={[]}

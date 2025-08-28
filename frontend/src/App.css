@@ -1126,15 +1126,15 @@ p, span, div {
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .models-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
-  
+
   .news-grid {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
-  
+
   .social-grid {
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   }
@@ -1144,52 +1144,52 @@ p, span, div {
   .navigation {
     padding: 1rem;
   }
-  
+
   .nav-links {
     flex-wrap: wrap;
   }
-  
+
   .nav-link {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
   }
-  
+
   .dashboard {
     padding: 1rem;
     gap: 1rem;
   }
-  
+
   .dashboard-section {
     padding: 1rem;
   }
-  
+
   .models-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .trading-history-stats {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .trades-table {
     overflow-x: auto;
   }
-  
+
   .trades-table-header,
   .trade-row {
     min-width: 800px;
   }
-  
+
   .news-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .social-header {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
   }
-  
+
   .social-platforms {
     width: 100%;
     overflow-x: auto;

@@ -40,7 +40,7 @@ interface Trade {
 
 function App() {
   const [tradesData, setTradesData] = useState<Trade[]>([]);
-  
+
   // 添加测试数据
   const [modelsData, setModelsData] = useState<Model[]>([
     {
@@ -104,7 +104,7 @@ function App() {
       status: 'active'
     }
   ]);
-  
+
   const [tradesLastRefresh, setTradesLastRefresh] = useState<Date>(new Date());
   const [modelsLastRefresh, setModelsLastRefresh] = useState<Date>(new Date());
 

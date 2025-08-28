@@ -136,34 +136,34 @@
   .dashboard-ultra-simple {
     padding: 0.5rem;
   }
-  
+
   .stats-bar {
     margin-bottom: 1.5rem;
     padding: 1rem;
   }
-  
+
   .stats-bar .stat-item span {
     font-size: 1.25rem;
   }
-  
+
   .overview-charts {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .chart-section {
     padding: 1rem;
   }
-  
+
   .chart-section h3 {
     font-size: 1rem;
     margin-bottom: 1rem;
   }
-  
+
   .bar-info {
     font-size: 0.75rem;
   }
-  
+
   .model-name {
     margin-left: 0.5rem;
   }

@@ -32,22 +32,6 @@ const News: React.FC = () => {
         📰 Stocks News
       </h1>
 
-      <div style={{
-        marginBottom: '2rem',
-        padding: '1rem',
-        background: '#1f2937',
-        borderRadius: '0.5rem',
-        border: '1px solid #374151',
-        // 强制覆盖
-        position: 'relative',
-        zIndex: 1001,
-        overflow: 'visible'
-      }}>
-        <h2 style={{ color: '#ffffff', fontSize: '1.2rem', marginBottom: '1rem', fontWeight: 'bold' }}>🔍 Debug Info:</h2>
-        <p style={{ color: '#ffffff', margin: '0.5rem 0', fontWeight: 'bold' }}>✅ News component is rendering!</p>
-        <p style={{ color: '#ffffff', margin: '0.5rem 0', fontWeight: 'bold' }}>✅ Current time: {new Date().toLocaleString()}</p>
-        <p style={{ color: '#ffffff', margin: '0.5rem 0', fontWeight: 'bold' }}>✅ If you can see this, the component is working!</p>
-      </div>
 
       {/* 模拟新闻数据 */}
       <div style={{

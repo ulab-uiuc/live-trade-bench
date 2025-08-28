@@ -32,23 +32,6 @@ const SocialMedia: React.FC = () => {
         📱 Social Media Feed
       </h1>
 
-      <div style={{
-        marginBottom: '2rem',
-        padding: '1rem',
-        background: '#1f2937',
-        borderRadius: '0.5rem',
-        border: '1px solid #374151',
-        // 强制覆盖
-        position: 'relative',
-        zIndex: 1001,
-        overflow: 'visible'
-      }}>
-        <h2 style={{ color: '#ffffff', fontSize: '1.2rem', marginBottom: '1rem', fontWeight: 'bold' }}>🔍 Debug Info:</h2>
-        <p style={{ color: '#ffffff', margin: '0.5rem 0', fontWeight: 'bold' }}>✅ Social Media component is rendering!</p>
-        <p style={{ color: '#ffffff', margin: '0.5rem 0', fontWeight: 'bold' }}>✅ Current time: {new Date().toLocaleString()}</p>
-        <p style={{ color: '#ffffff', margin: '0.5rem 0', fontWeight: 'bold' }}>✅ If you can see this, the component is working!</p>
-      </div>
-
       {/* 平台过滤器 */}
       <div style={{
         marginBottom: '2rem',
@@ -147,7 +130,7 @@ const SocialMedia: React.FC = () => {
             </div>
           </div>
           <p style={{ color: '#ffffff', marginBottom: '1rem', lineHeight: '1.6' }}>
-            🚀 Tech stocks are showing incredible momentum! $AAPL, $MSFT, and $GOOGL all breaking resistance levels. 
+            🚀 Tech stocks are showing incredible momentum! $AAPL, $MSFT, and $GOOGL all breaking resistance levels.
             This could be the start of a major rally. #TechStocks #StockMarket #Investing
           </p>
           <div style={{ display: 'flex', gap: '1rem', color: '#9ca3af', fontSize: '0.875rem' }}>
@@ -188,8 +171,8 @@ const SocialMedia: React.FC = () => {
             </div>
           </div>
           <p style={{ color: '#ffffff', marginBottom: '1rem', lineHeight: '1.6' }}>
-            📊 Q4 earnings season is heating up! Companies are reporting strong results across multiple sectors. 
-            The market sentiment is turning bullish. What's your take on the current market conditions? 
+            📊 Q4 earnings season is heating up! Companies are reporting strong results across multiple sectors.
+            The market sentiment is turning bullish. What's your take on the current market conditions?
             #Earnings #Q4 #MarketAnalysis
           </p>
           <div style={{ display: 'flex', gap: '1rem', color: '#9ca3af', fontSize: '0.875rem' }}>
@@ -230,8 +213,8 @@ const SocialMedia: React.FC = () => {
             </div>
           </div>
           <p style={{ color: '#ffffff', marginBottom: '1rem', lineHeight: '1.6' }}>
-            🌍 European markets are showing signs of recovery! The ECB's latest policy decisions are creating 
-            positive momentum. This could be a great opportunity for international diversification. 
+            🌍 European markets are showing signs of recovery! The ECB's latest policy decisions are creating
+            positive momentum. This could be a great opportunity for international diversification.
             #EuropeanMarkets #ECB #GlobalInvesting
           </p>
           <div style={{ display: 'flex', gap: '1rem', color: '#9ca3af', fontSize: '0.875rem' }}>

@@ -40,7 +40,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     if (!showCategoryTabs) {
       return modelsData;
     }
-    
+
     switch (selectedCategory) {
       case 'stock': return stockModels;
       case 'polymarket': return polymarketModels;
@@ -76,7 +76,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     const history = [];
     let currentProfit = 0;
     const dailyVariance = Math.abs(model.profit) / days;
-    
+
     for (let i = 0; i < days; i++) {
       const change = (Math.random() - 0.5) * dailyVariance * 2;
       currentProfit += change;
@@ -86,10 +86,10 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
         date: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000).toLocaleDateString()
       });
     }
-    
+
     // 确保最后一天的利润接近实际利润
     history[days - 1].profit = model.profit;
-    
+
     return history;
   };
 
@@ -119,18 +119,18 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     const width = 400;
     const height = 200;
     const padding = 40;
-    
+
     const maxProfit = Math.max(...data.map(d => d.profit));
     const minProfit = Math.min(...data.map(d => d.profit));
     const range = maxProfit - minProfit || 100;
-    
+
     // 创建SVG路径
     const pathData = data.map((point, index) => {
       const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
       const y = padding + ((maxProfit - point.profit) / range) * (height - 2 * padding);
       return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
     }).join(' ');
-    
+
     return (
       <div className="profit-chart">
         <h3>30-Day Profit History</h3>
@@ -142,48 +142,48 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
-          
+
           {/* 零线 */}
           {minProfit < 0 && maxProfit > 0 && (
-            <line 
-              x1={padding} 
-              y1={padding + (maxProfit / range) * (height - 2 * padding)} 
-              x2={width - padding} 
-              y2={padding + (maxProfit / range) * (height - 2 * padding)} 
-              stroke="#6b7280" 
+            <line
+              x1={padding}
+              y1={padding + (maxProfit / range) * (height - 2 * padding)}
+              x2={width - padding}
+              y2={padding + (maxProfit / range) * (height - 2 * padding)}
+              stroke="#6b7280"
               strokeWidth="1"
               strokeDasharray="5,5"
             />
           )}
-          
+
           {/* 利润线 */}
-          <path 
-            d={pathData} 
-            fill="none" 
-            stroke={model.profit >= 0 ? '#10b981' : '#ef4444'} 
+          <path
+            d={pathData}
+            fill="none"
+            stroke={model.profit >= 0 ? '#10b981' : '#ef4444'}
             strokeWidth="2"
           />
-          
+
           {/* 数据点 */}
           {data.map((point, index) => {
             const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
             const y = padding + ((maxProfit - point.profit) / range) * (height - 2 * padding);
             return (
-              <circle 
+              <circle
                 key={index}
-                cx={x} 
-                cy={y} 
-                r="2" 
+                cx={x}
+                cy={y}
+                r="2"
                 fill={model.profit >= 0 ? '#10b981' : '#ef4444'}
               />
             );
           })}
-          
+
           {/* Y轴标签 */}
           <text x="10" y={padding} fill="#9ca3af" fontSize="12">${maxProfit.toFixed(0)}</text>
           <text x="10" y={height - padding + 5} fill="#9ca3af" fontSize="12">${minProfit.toFixed(0)}</text>
         </svg>
-        
+
         {/* 图表说明 */}
         <div className="chart-info">
           <div className="chart-stat">
@@ -206,11 +206,11 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   // 资产分配横条图组件
   const AssetAllocationBar = ({ model }: { model: Model }) => {
     const allocations = generateAssetAllocation(model);
-    
+
     return (
       <div className="asset-allocation">
         <h3>Asset Allocation</h3>
-        
+
         {/* 横条图 */}
         <div className="allocation-bar">
           {allocations.map((asset, index) => (
@@ -225,13 +225,13 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
             />
           ))}
         </div>
-        
+
         {/* 图例 */}
         <div className="allocation-legend">
           {allocations.map((asset) => (
             <div key={asset.name} className="legend-item">
-              <div 
-                className="legend-color" 
+              <div
+                className="legend-color"
                 style={{ backgroundColor: asset.color }}
               />
               <span className="legend-name">{asset.name}</span>
@@ -241,7 +241,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
             </div>
           ))}
         </div>
-        
+
         {/* 总计验证 */}
         <div className="allocation-total">
           <span>Total: {(allocations.reduce((sum, asset) => sum + asset.allocation, 0) * 100).toFixed(1)}%</span>
@@ -287,9 +287,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
         {filteredModels.map(model => {
           const allocations = generateAssetAllocation(model);
           return (
-            <div 
-              key={model.id} 
-              className="model-card-square" 
+            <div
+              key={model.id}
+              className="model-card-square"
               onClick={() => handleModelClick(model)}
             >
                             {/* 紧凑头部 */}
@@ -297,8 +297,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 <h3>{model.name}</h3>
                 <div className="top-right-badges">
                   <div className={`category-tag ${model.category}`}>{model.category}</div>
-                  <span 
-                    className="status-dot-small" 
+                  <span
+                    className="status-dot-small"
                     style={{ backgroundColor: getStatusColor(model.status) }}
                   />
                 </div>
@@ -331,8 +331,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 <div className="allocation-legend-mini">
                   {allocations.slice(0, 3).map((asset) => (
                     <div key={asset.name} className="legend-item-mini">
-                      <div 
-                        className="legend-dot" 
+                      <div
+                        className="legend-dot"
                         style={{ backgroundColor: asset.color }}
                       />
                       <span>{asset.name} {(asset.allocation * 100).toFixed(0)}%</span>
@@ -380,12 +380,12 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                   <span>{selectedModel.accuracy.toFixed(1)}%</span>
                 </div>
               </div>
-              
-              <ProfitChart 
-                data={generateProfitHistory(selectedModel)} 
-                model={selectedModel} 
+
+              <ProfitChart
+                data={generateProfitHistory(selectedModel)}
+                model={selectedModel}
               />
-              
+
               <AssetAllocationBar model={selectedModel} />
             </div>
           </div>

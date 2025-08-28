@@ -33,7 +33,7 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({
   const fetchPolymarketModelsData = useCallback(() => {
     try {
       setError(null);
-      
+
       // Polymarket模型静态数据
       const polymarketMockData = [
         {
@@ -67,7 +67,7 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({
           trades: 8
         }
       ];
-      
+
       setModelsData(polymarketMockData);
       setModelsLastRefresh(new Date());
     } catch (error) {
@@ -81,13 +81,13 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({
     const polymarketModels = modelsData.filter(model => model.category === 'polymarket');
     const totalProfit = polymarketModels.reduce((sum, model) => sum + model.profit, 0);
     const activeModels = polymarketModels.filter(model => model.status === 'active').length;
-    
+
     return { totalProfit, activeModels, totalModels: polymarketModels.length };
   }, [modelsData]);
 
   // 只获取Polymarket模型
-  const polymarketModels = useMemo(() => 
-    modelsData.filter(model => model.category === 'polymarket'), 
+  const polymarketModels = useMemo(() =>
+    modelsData.filter(model => model.category === 'polymarket'),
     [modelsData]
   );
 
@@ -101,16 +101,16 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({
     return (
       <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
         <span>⚠️ {error}</span>
-        <button 
-          onClick={fetchPolymarketModelsData} 
-          style={{ 
-            marginLeft: '1rem', 
-            padding: '0.5rem 1rem', 
-            background: '#ef4444', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '0.25rem', 
-            cursor: 'pointer' 
+        <button
+          onClick={fetchPolymarketModelsData}
+          style={{
+            marginLeft: '1rem',
+            padding: '0.5rem 1rem',
+            background: '#ef4444',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.25rem',
+            cursor: 'pointer'
           }}
         >
           Retry
@@ -124,7 +124,7 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({
 
 
       {/* 只显示Polymarket模型 */}
-      <ModelsDisplay 
+      <ModelsDisplay
         modelsData={polymarketModels}
         stockModels={[]}
         polymarketModels={polymarketModels}

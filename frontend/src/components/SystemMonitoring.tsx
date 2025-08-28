@@ -14,7 +14,7 @@ const SystemMonitoring: React.FC = () => {
     const uptimeMinutes = Math.floor(Math.random() * 300) + 120; // 2-7小时
     const hours = Math.floor(uptimeMinutes / 60);
     const minutes = uptimeMinutes % 60;
-    
+
     setStatus({
       running: true,
       agents: 3,
