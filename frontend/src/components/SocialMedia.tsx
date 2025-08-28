@@ -1,375 +1,246 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
-interface SocialPost {
-  id: string;
-  platform: 'reddit' | 'twitter' | 'discord' | 'telegram';
-  author: string;
-  content: string;
-  title?: string;
-  postedAt: Date;
-  engagement: {
-    upvotes?: number;
-    downvotes?: number;
-    likes?: number;
-    retweets?: number;
-    comments?: number;
-    shares?: number;
-  };
-  sentiment: 'positive' | 'negative' | 'neutral';
-  category: 'market' | 'stock' | 'tech' | 'polymarket';
-  ticker?: string;
-  url?: string;
-  subreddit?: string;
-  hashtags?: string[];
-}
-
-interface SocialMediaProps {
-  socialData: SocialPost[];
-  setSocialData: (posts: SocialPost[]) => void;
-  lastRefresh: Date;
-  setLastRefresh: (date: Date) => void;
-}
-
-const SocialMedia: React.FC<SocialMediaProps> = ({
-  socialData,
-  setSocialData,
-  lastRefresh,
-  setLastRefresh
-}) => {
-  const [loading, setLoading] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState<'all' | 'reddit' | 'twitter' | 'discord' | 'telegram'>('all');
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'market' | 'stock' | 'tech' | 'polymarket'>('all');
-
-  const fetchSocialPosts = async () => {
-    setLoading(true);
-    try {
-      // Fetch real social media data from Reddit - get 5 posts from each category
-      const response = await fetch('/api/social/?category=all');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-
-      // Transform backend data to frontend format
-      const transformedPosts: SocialPost[] = data.map((post: any) => ({
-        id: post.id,
-        platform: post.platform as 'reddit' | 'twitter' | 'discord' | 'telegram',
-        author: post.author,
-        content: post.content,
-        title: post.title,
-        postedAt: new Date(post.created_utc * 1000), // Convert Unix timestamp to Date
-        engagement: {
-          upvotes: post.score,
-          comments: post.num_comments,
-        },
-        sentiment: post.sentiment as 'positive' | 'negative' | 'neutral',
-        category: 'market' as const, // Default to market category
-        ticker: post.ticker,
-        url: post.url,
-        subreddit: post.subreddit,
-      }));
-
-      setSocialData(transformedPosts);
-      setLastRefresh(new Date());
-    } catch (error) {
-      console.error('Error fetching social posts:', error);
-      // Keep existing social data on error, don't clear it
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // Always fetch immediately - backend returns cached data instantly
-    fetchSocialPosts();
-
-    // Auto-refresh every hour to get updated cached data
-    const interval = setInterval(fetchSocialPosts, 60 * 60 * 1000);
-
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const getPlatformColor = (platform: string) => {
-    switch (platform) {
-      case 'reddit': return '#ff4500';
-      case 'twitter': return '#1da1f2';
-      case 'discord': return '#7289da';
-      case 'telegram': return '#0088cc';
-      default: return '#6c757d';
-    }
-  };
-
-  const getPlatformIcon = (platform: string) => {
-    switch (platform) {
-      case 'reddit': return '🔴';
-      case 'twitter': return '🐦';
-      case 'discord': return '💬';
-      case 'telegram': return '📱';
-      default: return '📄';
-    }
-  };
-
-  const getSentimentColor = (sentiment: string) => {
-    switch (sentiment) {
-      case 'positive': return '#28a745';
-      case 'negative': return '#dc3545';
-      case 'neutral': return '#6c757d';
-      default: return '#6c757d';
-    }
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'market': return '#007bff';
-      case 'stock': return '#28a745';
-      case 'tech': return '#17a2b8';
-      case 'polymarket': return '#6f42c1';
-      default: return '#6c757d';
-    }
-  };
-
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes}m ago`;
-    } else if (diffInMinutes < 1440) {
-      return `${Math.floor(diffInMinutes / 60)}h ago`;
-    } else {
-      return `${Math.floor(diffInMinutes / 1440)}d ago`;
-    }
-  };
-
-  const getTotalEngagement = (engagement: any) => {
-    return (engagement.upvotes || 0) + (engagement.likes || 0) +
-      (engagement.retweets || 0) + (engagement.comments || 0) +
-      (engagement.shares || 0) - (engagement.downvotes || 0);
-  };
-
-  const filteredPosts = socialData.filter(post => {
-    const platformMatch = selectedPlatform === 'all' || post.platform === selectedPlatform;
-    const categoryMatch = selectedCategory === 'all' || post.category === selectedCategory;
-    return platformMatch && categoryMatch;
-  });
-
-  const platformStats = {
-    reddit: socialData.filter(p => p.platform === 'reddit').length,
-    twitter: socialData.filter(p => p.platform === 'twitter').length,
-    discord: socialData.filter(p => p.platform === 'discord').length,
-    telegram: socialData.filter(p => p.platform === 'telegram').length,
-    total: socialData.length
-  };
-
-  const categoryStats = {
-    market: socialData.filter(p => p.category === 'market').length,
-    stock: socialData.filter(p => p.category === 'stock').length,
-    tech: socialData.filter(p => p.category === 'tech').length,
-    polymarket: socialData.filter(p => p.category === 'polymarket').length,
-    total: socialData.length
-  };
-
-  const sortedPosts = filteredPosts.sort((a, b) => b.postedAt.getTime() - a.postedAt.getTime());
-
-  const sentimentStats = {
-    positive: socialData.filter(p => p.sentiment === 'positive').length,
-    negative: socialData.filter(p => p.sentiment === 'negative').length,
-    neutral: socialData.filter(p => p.sentiment === 'neutral').length,
-    total: socialData.length
-  };
-
-  const totalEngagement = socialData.reduce((sum, post) => sum + getTotalEngagement(post.engagement), 0);
-  const avgEngagement = socialData.length > 0 ? (totalEngagement / socialData.length) : 0;
+const SocialMedia: React.FC = () => {
+  console.log('📱 Social Media component is rendering!');
 
   return (
-    <div className="social-media-page">
-      <div className="refresh-indicator">
-        <h1>Social Media Sentiment</h1>
-        {loading && <div className="spinner"></div>}
-        <span style={{ marginLeft: 'auto', fontSize: '0.875rem', color: '#666' }}>
-          Last updated: {lastRefresh.toLocaleTimeString()}
-        </span>
+    <div style={{
+      padding: '2rem',
+      background: '#1f2937',
+      color: '#ffffff',
+      minHeight: '100vh',
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '16px',
+      // 强制覆盖CSS问题
+      position: 'relative',
+      zIndex: 1000,
+      overflow: 'visible',
+      display: 'block'
+    }}>
+      <h1 style={{
+        fontSize: '2.5rem',
+        color: '#ffffff',
+        marginBottom: '2rem',
+        borderBottom: '3px solid #6366f1',
+        paddingBottom: '1rem',
+        textAlign: 'center',
+        // 强制覆盖
+        position: 'relative',
+        zIndex: 1001,
+        display: 'block'
+      }}>
+        📱 Social Media Feed
+      </h1>
+
+      <div style={{
+        marginBottom: '2rem',
+        padding: '1rem',
+        background: '#1f2937',
+        borderRadius: '0.5rem',
+        border: '1px solid #374151',
+        // 强制覆盖
+        position: 'relative',
+        zIndex: 1001,
+        overflow: 'visible'
+      }}>
+        <h2 style={{ color: '#ffffff', fontSize: '1.2rem', marginBottom: '1rem', fontWeight: 'bold' }}>🔍 Debug Info:</h2>
+        <p style={{ color: '#ffffff', margin: '0.5rem 0', fontWeight: 'bold' }}>✅ Social Media component is rendering!</p>
+        <p style={{ color: '#ffffff', margin: '0.5rem 0', fontWeight: 'bold' }}>✅ Current time: {new Date().toLocaleString()}</p>
+        <p style={{ color: '#ffffff', margin: '0.5rem 0', fontWeight: 'bold' }}>✅ If you can see this, the component is working!</p>
       </div>
 
-
-      {/* Filters */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '15px' }}>
-          <div>
-            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block', color: 'var(--text-secondary)' }}>
-              Platform
-            </label>
-            <select
-              value={selectedPlatform}
-              onChange={(e) => setSelectedPlatform(e.target.value as any)}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-            >
-              <option value="all">All Platforms ({platformStats.total})</option>
-              <option value="reddit">Reddit ({platformStats.reddit})</option>
-              <option value="twitter">Twitter ({platformStats.twitter})</option>
-              <option value="discord">Discord ({platformStats.discord})</option>
-              <option value="telegram">Telegram ({platformStats.telegram})</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block', color: 'var(--text-secondary)' }}>
-              Category
-            </label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value as any)}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-            >
-              <option value="all">All Categories ({categoryStats.total})</option>
-              <option value="market">Market ({categoryStats.market})</option>
-              <option value="stock">Stock ({categoryStats.stock})</option>
-              <option value="tech">Tech ({categoryStats.tech})</option>
-              <option value="polymarket">Polymarket ({categoryStats.polymarket})</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Posts List */}
-      <div style={{ display: 'grid', gap: '1rem' }}>
-        {sortedPosts.map(post => (
-          <div key={post.id} className="news-item" style={{
-            borderLeft: `4px solid ${getPlatformColor(post.platform)}`
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '20px' }}>{getPlatformIcon(post.platform)}</span>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{post.title || post.content.substring(0, 100)}...</h3>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
-                    <span style={{ color: '#666', fontSize: '0.9rem' }}>by {post.author}</span>
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                {post.subreddit ? (
-                  <span
-                    style={{
-                      backgroundColor: 'var(--bg-card)',
-                      color: 'var(--text-secondary)',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                      fontSize: '0.75rem',
-                      fontWeight: 'bold',
-                      border: '1px solid var(--border-color)'
-                    }}
-                  >
-                    r/{post.subreddit}
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      backgroundColor: getCategoryColor(post.category),
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                      fontSize: '0.75rem',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase'
-                    }}
-                  >
-                    {post.category}
-                  </span>
-                )}
-                <span
-                  style={{
-                    backgroundColor: getSentimentColor(post.sentiment),
-                    color: 'white',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  {post.sentiment}
-                </span>
-              </div>
-            </div>
-
-            <p style={{ margin: '0.5rem 0', lineHeight: '1.5' }}>{post.content}</p>
-
-            {post.ticker && (
-              <div style={{ marginBottom: '0.5rem' }}>
-                <span style={{
-                  background: '#e3f2fd',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontSize: '0.8rem',
-                  color: '#1976d2',
-                  fontWeight: 'bold'
-                }}>
-                  ${post.ticker}
-                </span>
-              </div>
-            )}
-
-            {post.hashtags && post.hashtags.length > 0 && (
-              <div style={{ marginBottom: '0.5rem' }}>
-                {post.hashtags.map((tag, index) => (
-                  <span key={index} style={{
-                    background: '#f0f0f0',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontSize: '0.8rem',
-                    color: '#666',
-                    marginRight: '4px'
-                  }}>
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-              <div style={{ display: 'flex', gap: '16px', fontSize: '0.9rem', color: '#666' }}>
-                {post.engagement.upvotes !== undefined && (
-                  <span>👍 {post.engagement.upvotes}</span>
-                )}
-                {post.engagement.downvotes !== undefined && (
-                  <span>👎 {post.engagement.downvotes}</span>
-                )}
-                {post.engagement.likes !== undefined && (
-                  <span>❤️ {post.engagement.likes}</span>
-                )}
-                {post.engagement.retweets !== undefined && (
-                  <span>🔄 {post.engagement.retweets}</span>
-                )}
-                {post.engagement.comments !== undefined && (
-                  <span>💬 {post.engagement.comments}</span>
-                )}
-                {post.engagement.shares !== undefined && (
-                  <span>📤 {post.engagement.shares}</span>
-                )}
-                <span style={{ fontWeight: 'bold', color: getPlatformColor(post.platform) }}>
-                  Total: {getTotalEngagement(post.engagement)}
-                </span>
-              </div>
-              <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                {formatTimeAgo(post.postedAt)}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {sortedPosts.length === 0 && !loading && (
-        <div style={{
-          textAlign: 'center',
-          padding: '40px',
-          color: '#666',
-          background: '#f8f9fa',
-          borderRadius: '8px'
+      {/* 平台过滤器 */}
+      <div style={{
+        marginBottom: '2rem',
+        display: 'flex',
+        gap: '1rem',
+        flexWrap: 'wrap',
+        // 强制覆盖
+        position: 'relative',
+        zIndex: 1001,
+        overflow: 'visible'
+      }}>
+        <button style={{
+          background: '#6366f1',
+          color: '#ffffff',
+          border: 'none',
+          padding: '0.75rem 1.5rem',
+          borderRadius: '0.5rem',
+          fontWeight: 'bold',
+          cursor: 'pointer'
         }}>
-          <p>No social media posts found for the selected filters.</p>
+          🐦 Twitter
+        </button>
+        <button style={{
+          background: '#1f2937',
+          color: '#9ca3af',
+          border: '1px solid #374151',
+          padding: '0.75rem 1.5rem',
+          borderRadius: '0.5rem',
+          fontWeight: 'bold',
+          cursor: 'pointer'
+        }}>
+          💼 LinkedIn
+        </button>
+        <button style={{
+          background: '#1f2937',
+          color: '#9ca3af',
+          border: '1px solid #374151',
+          padding: '0.75rem 1.5rem',
+          borderRadius: '0.5rem',
+          fontWeight: 'bold',
+          cursor: 'pointer'
+        }}>
+          📘 Facebook
+        </button>
+        <button style={{
+          background: '#1f2937',
+          color: '#9ca3af',
+          border: '1px solid #374151',
+          padding: '0.75rem 1.5rem',
+          borderRadius: '0.5rem',
+          fontWeight: 'bold',
+          cursor: 'pointer'
+        }}>
+          📷 Instagram
+        </button>
+      </div>
+
+      {/* 社交媒体帖子 */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.5rem',
+        // 强制覆盖
+        position: 'relative',
+        zIndex: 1001,
+        overflow: 'visible'
+      }}>
+        {/* 帖子1 */}
+        <div style={{
+          background: '#1f2937',
+          border: '1px solid #374151',
+          borderRadius: '0.5rem',
+          padding: '1.5rem',
+          // 强制覆盖
+          position: 'relative',
+          zIndex: 1001,
+          overflow: 'visible'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: '#6366f1',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '1rem',
+              fontSize: '1.5rem'
+            }}>
+              🐦
+            </div>
+            <div>
+              <h3 style={{ color: '#ffffff', margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>Market Analyst Pro</h3>
+              <p style={{ color: '#9ca3af', margin: 0, fontSize: '0.875rem' }}>@marketanalyst • 2 hours ago</p>
+            </div>
+          </div>
+          <p style={{ color: '#ffffff', marginBottom: '1rem', lineHeight: '1.6' }}>
+            🚀 Tech stocks are showing incredible momentum! $AAPL, $MSFT, and $GOOGL all breaking resistance levels. 
+            This could be the start of a major rally. #TechStocks #StockMarket #Investing
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', color: '#9ca3af', fontSize: '0.875rem' }}>
+            <span>❤️ 245</span>
+            <span>🔄 89</span>
+            <span>💬 23</span>
+          </div>
         </div>
-      )}
+
+        {/* 帖子2 */}
+        <div style={{
+          background: '#1f2937',
+          border: '1px solid #374151',
+          borderRadius: '0.5rem',
+          padding: '1.5rem',
+          // 强制覆盖
+          position: 'relative',
+          zIndex: 1001,
+          overflow: 'visible'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: '#10b981',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '1rem',
+              fontSize: '1.5rem'
+            }}>
+              💼
+            </div>
+            <div>
+              <h3 style={{ color: '#ffffff', margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>Finance Insights</h3>
+              <p style={{ color: '#9ca3af', margin: 0, fontSize: '0.875rem' }}>@financeinsights • 4 hours ago</p>
+            </div>
+          </div>
+          <p style={{ color: '#ffffff', marginBottom: '1rem', lineHeight: '1.6' }}>
+            📊 Q4 earnings season is heating up! Companies are reporting strong results across multiple sectors. 
+            The market sentiment is turning bullish. What's your take on the current market conditions? 
+            #Earnings #Q4 #MarketAnalysis
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', color: '#9ca3af', fontSize: '0.875rem' }}>
+            <span>❤️ 189</span>
+            <span>🔄 67</span>
+            <span>💬 45</span>
+          </div>
+        </div>
+
+        {/* 帖子3 */}
+        <div style={{
+          background: '#1f2937',
+          border: '1px solid #374151',
+          borderRadius: '0.5rem',
+          padding: '1.5rem',
+          // 强制覆盖
+          position: 'relative',
+          zIndex: 1001,
+          overflow: 'visible'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: '#f59e0b',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '1rem',
+              fontSize: '1.5rem'
+            }}>
+              🌍
+            </div>
+            <div>
+              <h3 style={{ color: '#ffffff', margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>Global Markets</h3>
+              <p style={{ color: '#9ca3af', margin: 0, fontSize: '0.875rem' }}>@globalmarkets • 6 hours ago</p>
+            </div>
+          </div>
+          <p style={{ color: '#ffffff', marginBottom: '1rem', lineHeight: '1.6' }}>
+            🌍 European markets are showing signs of recovery! The ECB's latest policy decisions are creating 
+            positive momentum. This could be a great opportunity for international diversification. 
+            #EuropeanMarkets #ECB #GlobalInvesting
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', color: '#9ca3af', fontSize: '0.875rem' }}>
+            <span>❤️ 156</span>
+            <span>🔄 34</span>
+            <span>💬 12</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -28,7 +28,6 @@
   padding: 0.5rem;
   border-radius: 0.375rem;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .refresh-btn:hover {
@@ -50,7 +49,6 @@
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
   cursor: pointer;
-  transition: all 0.2s ease;
   font-size: 0.875rem;
 }
 
@@ -78,7 +76,6 @@
   border: 1px solid #374151;
   border-radius: 0.5rem;
   padding: 0.75rem;
-  transition: border-color 0.2s ease;
 }
 
 .model-item:hover {
@@ -199,7 +196,6 @@
   border-radius: 0.75rem;
   padding: 0.75rem;
   cursor: pointer;
-  transition: all 0.2s ease;
   aspect-ratio: 1;
   display: flex;
   flex-direction: column;
@@ -210,7 +206,6 @@
 .model-card-square:hover {
   border-color: #6366f1;
   background: #2d3748;
-  transform: translateY(-2px);
 }
 
 /* 紧凑卡片头部 */
@@ -322,11 +317,6 @@
 
 .allocation-segment-mini {
   height: 100%;
-  transition: opacity 0.2s ease;
-}
-
-.allocation-segment-mini:hover {
-  opacity: 0.8;
 }
 
 .allocation-legend-mini {

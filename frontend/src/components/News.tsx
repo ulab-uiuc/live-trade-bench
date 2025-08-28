@@ -1,160 +1,132 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
-interface NewsItem {
-  id: string;
-  title: string;
-  summary: string;
-  source: string;
-  publishedAt: Date;
-  impact: 'high' | 'medium' | 'low';
-  category: 'market' | 'economic' | 'company' | 'tech';
-  url: string;
-  stock_symbol?: string;
-}
-
-interface NewsProps {
-  newsData: NewsItem[];
-  setNewsData: (news: NewsItem[]) => void;
-  lastRefresh: Date;
-  setLastRefresh: (date: Date) => void;
-}
-
-const News: React.FC<NewsProps> = ({ newsData, setNewsData, lastRefresh, setLastRefresh }) => {
-  const [loading, setLoading] = useState(false);
-
-  const fetchNews = async () => {
-    setLoading(true);
-    try {
-      // Fetch real news data instead of sample data
-      const response = await fetch('/api/news/?query=stock%20market&days=7');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-
-      // Transform backend data to frontend format
-      const transformedNews: NewsItem[] = data.map((article: any) => ({
-        id: article.id,
-        title: article.title,
-        summary: article.summary,
-        source: article.source,
-        publishedAt: new Date(article.published_at),
-        impact: article.impact,
-        category: article.category,
-        url: article.url,
-        stock_symbol: article.stock_symbol
-      }));
-
-      setNewsData(transformedNews);
-      setLastRefresh(new Date());
-    } catch (error) {
-      console.error('Error fetching news:', error);
-      // Keep existing news data on error, don't clear it
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // Always fetch immediately - backend returns cached data instantly
-    fetchNews();
-
-    // Auto-refresh every hour to get updated cached data
-    const interval = setInterval(fetchNews, 60 * 60 * 1000);
-
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const getImpactColor = (impact: string) => {
-    switch (impact) {
-      case 'high': return '#dc3545';
-      case 'medium': return '#ffc107';
-      case 'low': return '#28a745';
-      default: return '#6c757d';
-    }
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'market': return '#007bff';
-      case 'economic': return '#6f42c1';
-      case 'company': return '#fd7e14';
-      case 'tech': return '#20c997';
-      default: return '#6c757d';
-    }
-  };
-
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes}m ago`;
-    } else if (diffInMinutes < 1440) {
-      return `${Math.floor(diffInMinutes / 60)}h ago`;
-    } else {
-      return `${Math.floor(diffInMinutes / 1440)}d ago`;
-    }
-  };
+const News: React.FC = () => {
+  console.log('📰 News component is rendering!');
 
   return (
-    <div className="news-page">
-      <div className="refresh-indicator">
-        <h1>Stocks News</h1>
-        {loading && <div className="spinner"></div>}
-        <span style={{ marginLeft: 'auto', fontSize: '0.875rem', color: '#666' }}>
-          Last updated: {lastRefresh.toLocaleTimeString()}
-        </span>
+    <div style={{
+      padding: '2rem',
+      background: '#1f2937',
+      color: '#ffffff',
+      minHeight: '100vh',
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '16px',
+      // 强制覆盖CSS问题
+      position: 'relative',
+      zIndex: 1000,
+      overflow: 'visible',
+      display: 'block'
+    }}>
+      <h1 style={{
+        fontSize: '2.5rem',
+        color: '#ffffff',
+        marginBottom: '2rem',
+        borderBottom: '3px solid #6366f1',
+        paddingBottom: '1rem',
+        textAlign: 'center',
+        // 强制覆盖
+        position: 'relative',
+        zIndex: 1001,
+        display: 'block'
+      }}>
+        📰 Stocks News
+      </h1>
+
+      <div style={{
+        marginBottom: '2rem',
+        padding: '1rem',
+        background: '#1f2937',
+        borderRadius: '0.5rem',
+        border: '1px solid #374151',
+        // 强制覆盖
+        position: 'relative',
+        zIndex: 1001,
+        overflow: 'visible'
+      }}>
+        <h2 style={{ color: '#ffffff', fontSize: '1.2rem', marginBottom: '1rem', fontWeight: 'bold' }}>🔍 Debug Info:</h2>
+        <p style={{ color: '#ffffff', margin: '0.5rem 0', fontWeight: 'bold' }}>✅ News component is rendering!</p>
+        <p style={{ color: '#ffffff', margin: '0.5rem 0', fontWeight: 'bold' }}>✅ Current time: {new Date().toLocaleString()}</p>
+        <p style={{ color: '#ffffff', margin: '0.5rem 0', fontWeight: 'bold' }}>✅ If you can see this, the component is working!</p>
       </div>
 
-      <div style={{ display: 'grid', gap: '1rem' }}>
-        {newsData.map(item => (
-          <div key={item.id} className="news-item">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-              <h3>{item.title}</h3>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                {item.stock_symbol ? (
-                  <span
-                    style={{
-                      backgroundColor: '#3b82f6',
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                      fontSize: '0.75rem',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase'
-                    }}
-                  >
-                    {item.stock_symbol}
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      backgroundColor: getCategoryColor(item.category),
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                      fontSize: '0.75rem',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase'
-                    }}
-                  >
-                    {item.category}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <p>{item.summary}</p>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-              <div className="date">
-                <strong>{item.source}</strong> • {formatTimeAgo(item.publishedAt)}
-              </div>
-            </div>
+      {/* 模拟新闻数据 */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: '1.5rem',
+        // 强制覆盖
+        position: 'relative',
+        zIndex: 1001,
+        overflow: 'visible'
+      }}>
+        {/* 新闻项目1 */}
+        <div style={{
+          background: '#1f2937',
+          border: '1px solid #374151',
+          borderRadius: '0.5rem',
+          padding: '1.5rem',
+          // 强制覆盖
+          position: 'relative',
+          zIndex: 1001,
+          overflow: 'visible'
+        }}>
+          <h3 style={{ color: '#ffffff', fontSize: '1.25rem', marginBottom: '1rem', fontWeight: 'bold' }}>
+            🚀 Tech Stocks Rally on AI Breakthrough
+          </h3>
+          <p style={{ color: '#9ca3af', marginBottom: '1rem', lineHeight: '1.6' }}>
+            Major technology companies saw significant gains following the announcement of a new artificial intelligence breakthrough that could revolutionize the industry.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: '#6366f1', fontSize: '0.875rem', fontWeight: 'bold' }}>Technology</span>
+            <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>2 hours ago</span>
           </div>
-        ))}
+        </div>
+
+        {/* 新闻项目2 */}
+        <div style={{
+          background: '#1f2937',
+          border: '1px solid #374151',
+          borderRadius: '0.5rem',
+          padding: '1.5rem',
+          // 强制覆盖
+          position: 'relative',
+          zIndex: 1001,
+          overflow: 'visible'
+        }}>
+          <h3 style={{ color: '#ffffff', fontSize: '1.25rem', marginBottom: '1rem', fontWeight: 'bold' }}>
+            📈 Market Analysis: Q4 Earnings Preview
+          </h3>
+          <p style={{ color: '#9ca3af', marginBottom: '1rem', lineHeight: '1.6' }}>
+            Analysts predict strong Q4 earnings across multiple sectors, with particular focus on consumer goods and financial services companies.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: '#10b981', fontSize: '0.875rem', fontWeight: 'bold' }}>Analysis</span>
+            <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>4 hours ago</span>
+          </div>
+        </div>
+
+        {/* 新闻项目3 */}
+        <div style={{
+          background: '#1f2937',
+          border: '1px solid #374151',
+          borderRadius: '0.5rem',
+          padding: '1.5rem',
+          // 强制覆盖
+          position: 'relative',
+          zIndex: 1001,
+          overflow: 'visible'
+        }}>
+          <h3 style={{ color: '#ffffff', fontSize: '1.25rem', marginBottom: '1rem', fontWeight: 'bold' }}>
+            🌍 Global Markets: European Recovery
+          </h3>
+          <p style={{ color: '#9ca3af', marginBottom: '1rem', lineHeight: '1.6' }}>
+            European markets show signs of recovery as economic indicators improve and central banks maintain supportive monetary policies.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: '#f59e0b', fontSize: '0.875rem', fontWeight: 'bold' }}>Global</span>
+            <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>6 hours ago</span>
+          </div>
+        </div>
       </div>
     </div>
   );

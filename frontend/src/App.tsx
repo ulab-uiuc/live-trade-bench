@@ -9,15 +9,18 @@ import TradingHistoryPage from './components/TradingHistoryPage';
 import Navigation from './components/Navigation';
 import './App.css';
 
-interface NewsItem {
+interface Model {
   id: string;
-  title: string;
-  summary: string;
-  source: string;
-  publishedAt: Date;
-  impact: 'high' | 'medium' | 'low';
-  category: 'market' | 'economic' | 'company' | 'tech';
-  url: string;
+  name: string;
+  category: 'polymarket' | 'stock';
+  performance: number;
+  accuracy: number;
+  trades: number;
+  profit: number;
+  status: 'active' | 'inactive' | 'training';
+  market_type?: string;
+  ticker?: string;
+  strategy?: string;
 }
 
 interface Trade {
@@ -35,52 +38,75 @@ interface Trade {
   totalValue: number;
 }
 
-interface Model {
-  id: string;
-  name: string;
-  category: 'polymarket' | 'stock';
-  performance: number;
-  accuracy: number;
-  trades: number;
-  profit: number;
-  status: 'active' | 'inactive' | 'training';
-  market_type?: string;
-  ticker?: string;
-  strategy?: string;
-}
-
-interface SocialPost {
-  id: string;
-  platform: 'reddit' | 'twitter' | 'discord' | 'telegram';
-  author: string;
-  content: string;
-  title?: string;
-  postedAt: Date;
-  engagement: {
-    upvotes?: number;
-    downvotes?: number;
-    likes?: number;
-    retweets?: number;
-    comments?: number;
-    shares?: number;
-  };
-  sentiment: 'positive' | 'negative' | 'neutral';
-  category: 'market' | 'stock' | 'tech' | 'polymarket';
-  ticker?: string;
-  url?: string;
-  subreddit?: string;
-  hashtags?: string[];
-}
-
 function App() {
-  const [newsData, setNewsData] = useState<NewsItem[]>([]);
   const [tradesData, setTradesData] = useState<Trade[]>([]);
-  const [modelsData, setModelsData] = useState<Model[]>([]);
-  const [socialData, setSocialData] = useState<SocialPost[]>([]);
-  const [newsLastRefresh, setNewsLastRefresh] = useState<Date>(new Date());
+  
+  // 添加测试数据
+  const [modelsData, setModelsData] = useState<Model[]>([
+    {
+      id: '1',
+      name: 'Growth Stock Model',
+      category: 'stock',
+      performance: 15.5,
+      accuracy: 0.78,
+      trades: 45,
+      profit: 2500,
+      status: 'active'
+    },
+    {
+      id: '2',
+      name: 'Value Stock Model',
+      category: 'stock',
+      performance: 8.2,
+      accuracy: 0.82,
+      trades: 32,
+      profit: 1800,
+      status: 'active'
+    },
+    {
+      id: '3',
+      name: 'Tech Stock Model',
+      category: 'stock',
+      performance: 22.1,
+      accuracy: 0.75,
+      trades: 28,
+      profit: 3200,
+      status: 'active'
+    },
+    {
+      id: '4',
+      name: 'Polymarket Predictor',
+      category: 'polymarket',
+      performance: 12.8,
+      accuracy: 0.68,
+      trades: 15,
+      profit: 950,
+      status: 'active'
+    },
+    {
+      id: '5',
+      name: 'Election Tracker',
+      category: 'polymarket',
+      performance: 18.3,
+      accuracy: 0.72,
+      trades: 22,
+      profit: 1400,
+      status: 'active'
+    },
+    {
+      id: '6',
+      name: 'Sports Predictor',
+      category: 'polymarket',
+      performance: -2.1,
+      accuracy: 0.65,
+      trades: 18,
+      profit: -300,
+      status: 'active'
+    }
+  ]);
+  
   const [tradesLastRefresh, setTradesLastRefresh] = useState<Date>(new Date());
   const [modelsLastRefresh, setModelsLastRefresh] = useState<Date>(new Date());
-  const [socialLastRefresh, setSocialLastRefresh] = useState<Date>(new Date());
 
   return (
     <Router>
@@ -111,22 +137,8 @@ function App() {
               setModelsLastRefresh={setModelsLastRefresh}
             />
           } />
-          <Route path="/news" element={
-            <News
-              newsData={newsData}
-              setNewsData={setNewsData}
-              lastRefresh={newsLastRefresh}
-              setLastRefresh={setNewsLastRefresh}
-            />
-          } />
-          <Route path="/social" element={
-            <SocialMedia
-              socialData={socialData}
-              setSocialData={setSocialData}
-              lastRefresh={socialLastRefresh}
-              setLastRefresh={setSocialLastRefresh}
-            />
-          } />
+          <Route path="/news" element={<News />} />
+          <Route path="/social" element={<SocialMedia />} />
           <Route path="/trading-history" element={
             <TradingHistoryPage
               tradesData={tradesData}
