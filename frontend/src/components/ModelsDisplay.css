@@ -1,0 +1,671 @@
+/* 简化的模型显示样式 */
+.models-container {
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* 简化的标题 */
+.models-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #374151;
+}
+
+.models-header h2 {
+  font-size: 1.5rem;
+  color: #ffffff;
+  margin: 0;
+}
+
+.refresh-btn {
+  background: none;
+  border: 1px solid #374151;
+  color: #9ca3af;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+/* 简化的分类标签 */
+.category-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.category-tabs button {
+  background: #1f2937;
+  border: 1px solid #374151;
+  color: #9ca3af;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.category-tabs button:hover {
+  background: #374151;
+  color: #ffffff;
+}
+
+.category-tabs button.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #ffffff;
+}
+
+/* 方形模型网格 */
+.models-grid-square {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+/* 简化的模型卡片 */
+.model-item {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  transition: border-color 0.2s ease;
+}
+
+.model-item:hover {
+  border-color: #6366f1;
+}
+
+.model-item.clickable {
+  cursor: pointer;
+}
+
+.model-item.clickable:hover {
+  border-color: #6366f1;
+  background: #2d3748;
+}
+
+/* 模型信息区域 */
+.model-info {
+  margin-bottom: 0.75rem;
+}
+
+.model-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.model-name-row h3 {
+  font-size: 1.125rem;
+  color: #ffffff;
+  margin: 0;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.model-category {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* 简化的统计信息 */
+.model-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat .label {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+.stat .value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.stat .value.positive {
+  color: #10b981;
+}
+
+.stat .value.negative {
+  color: #ef4444;
+}
+
+/* 迷你统计信息 */
+.model-stats-mini {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.stat-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.stat-mini .label-mini {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-bottom: 0.25rem;
+}
+
+.stat-mini .value-mini {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.stat-mini .value-mini.positive {
+  color: #10b981;
+}
+
+.stat-mini .value-mini.negative {
+  color: #ef4444;
+}
+
+/* 紧凑方形模型卡片样式 */
+.model-card-square {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+
+.model-card-square:hover {
+  border-color: #6366f1;
+  background: #2d3748;
+  transform: translateY(-2px);
+}
+
+/* 紧凑卡片头部 */
+.card-header-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.card-header-compact h3 {
+  font-size: 1rem;
+  color: #ffffff;
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.2;
+  flex: 1;
+  padding-right: 0.5rem;
+}
+
+.top-right-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.category-tag {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: white;
+}
+
+.category-tag.stock {
+  background: #6366f1;
+}
+
+.category-tag.polymarket {
+  background: #8b5cf6;
+}
+
+.status-dot-small {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* 只显示回报率 - 紧凑版 */
+.card-return-only {
+  margin-bottom: 0.5rem;
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 60px;
+}
+
+.return-label {
+  display: block;
+  font-size: 0.625rem;
+  color: #9ca3af;
+  margin-bottom: 0.125rem;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.return-value-large {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.1;
+}
+
+.return-value-large.positive {
+  color: #10b981;
+}
+
+.return-value-large.negative {
+  color: #ef4444;
+}
+
+/* 卡片内资产分配 */
+.card-allocation {
+  margin-top: 0;
+}
+
+.allocation-label {
+  font-size: 0.625rem;
+  color: #9ca3af;
+  margin-bottom: 0.375rem;
+  text-transform: uppercase;
+  font-weight: 500;
+  text-align: center;
+}
+
+.allocation-bar-mini {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+  border: 1px solid #374151;
+}
+
+.allocation-segment-mini {
+  height: 100%;
+  transition: opacity 0.2s ease;
+}
+
+.allocation-segment-mini:hover {
+  opacity: 0.8;
+}
+
+.allocation-legend-mini {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  font-size: 0.625rem;
+}
+
+.legend-item-mini {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #9ca3af;
+}
+
+.legend-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* 模态框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 0.75rem;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #374151;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.5rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: #ffffff;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+/* 模型详情样式 */
+.model-details-modal {
+  margin-bottom: 2rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #374151;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-row span:first-child {
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.category-badge {
+  background: #6366f1;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background: #10b981;
+  color: white;
+}
+
+.status-badge.inactive {
+  background: #ef4444;
+  color: white;
+}
+
+.status-badge.training {
+  background: #f59e0b;
+  color: white;
+}
+
+/* 图表样式 */
+.profit-chart {
+  text-align: center;
+}
+
+.profit-chart h3 {
+  margin-bottom: 1rem;
+  color: #ffffff;
+  font-size: 1.25rem;
+}
+
+.chart-info {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.chart-stat {
+  background: #374151;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chart-stat span:first-child {
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+.chart-stat span:last-child {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+/* 资产分配样式 */
+.asset-allocation {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #374151;
+}
+
+.asset-allocation h3 {
+  margin-bottom: 1rem;
+  color: #ffffff;
+  font-size: 1.25rem;
+  text-align: center;
+}
+
+/* 横条图 */
+.allocation-bar {
+  display: flex;
+  width: 100%;
+  height: 40px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  border: 1px solid #374151;
+}
+
+.allocation-segment {
+  height: 100%;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.allocation-segment:hover {
+  opacity: 0.8;
+}
+
+.allocation-segment:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 图例 */
+.allocation-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #374151;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-name {
+  color: #ffffff;
+  font-weight: 500;
+  flex: 1;
+}
+
+.legend-percentage {
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+/* 总计 */
+.allocation-total {
+  text-align: center;
+  padding: 0.75rem;
+  background: #374151;
+  border-radius: 0.5rem;
+  border: 1px solid #4b5563;
+}
+
+.allocation-total span {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .models-grid-square {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+  
+  .model-card-square {
+    padding: 0.75rem;
+    aspect-ratio: 1.1;
+  }
+  
+  .card-header-compact h3 {
+    font-size: 0.875rem;
+  }
+  
+  .category-tag {
+    font-size: 0.5rem;
+    padding: 0.125rem 0.375rem;
+  }
+  
+  .return-value-large {
+    font-size: 1.5rem;
+  }
+  
+  .allocation-legend-mini {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+  
+  .category-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .models-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .model-item {
+    padding: 0.5rem;
+  }
+  
+  .model-stats-mini {
+    gap: 0.5rem;
+  }
+  
+  .stat-mini .value-mini {
+    font-size: 0.875rem;
+  }
+  
+  .modal-content {
+    margin: 0.5rem;
+    max-height: 95vh;
+  }
+  
+  .profit-chart svg {
+    width: 100%;
+    height: auto;
+  }
+  
+  .chart-info {
+    grid-template-columns: 1fr;
+  }
+  
+  .allocation-legend {
+    grid-template-columns: 1fr;
+  }
+  
+  .allocation-bar {
+    height: 30px;
+  }
+  
+  .legend-item {
+    padding: 0.375rem;
+    font-size: 0.8rem;
+  }
+}

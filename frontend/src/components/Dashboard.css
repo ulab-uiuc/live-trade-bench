@@ -1,0 +1,170 @@
+/* 极简Dashboard样式 */
+.dashboard-ultra-simple {
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #111827;
+  min-height: 100vh;
+}
+
+/* 简化统计条 */
+.stats-bar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #1f2937;
+  border-radius: 0.75rem;
+  border: 1px solid #374151;
+}
+
+.stats-bar .stat-item {
+  text-align: center;
+}
+
+.stats-bar .stat-item span {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.stats-bar .stat-item span.profit {
+  color: #10b981;
+}
+
+.stats-bar .stat-item span.loss {
+  color: #ef4444;
+}
+
+/* 总览条形图样式 */
+.overview-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.chart-section {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.chart-section h3 {
+  margin: 0 0 1.5rem 0;
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bar-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.rank {
+  background: #374151;
+  color: #ffffff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: bold;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.model-name {
+  color: #ffffff;
+  font-weight: 500;
+  flex: 1;
+  margin-left: 0.75rem;
+}
+
+.performance {
+  font-weight: bold;
+  min-width: 4rem;
+  text-align: right;
+}
+
+.performance.positive {
+  color: #10b981;
+}
+
+.performance.negative {
+  color: #ef4444;
+}
+
+.bar-container {
+  height: 8px;
+  background: #374151;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.bar {
+  height: 100%;
+  border-radius: 4px;
+  min-width: 2px;
+}
+
+.positive-bar {
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.negative-bar {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .dashboard-ultra-simple {
+    padding: 0.5rem;
+  }
+  
+  .stats-bar {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+  }
+  
+  .stats-bar .stat-item span {
+    font-size: 1.25rem;
+  }
+  
+  .overview-charts {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .chart-section {
+    padding: 1rem;
+  }
+  
+  .chart-section h3 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .bar-info {
+    font-size: 0.75rem;
+  }
+  
+  .model-name {
+    margin-left: 0.5rem;
+  }
+}

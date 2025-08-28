@@ -16,7 +16,19 @@ const Navigation: React.FC = () => {
             className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
             onClick={() => navigate('/')}
           >
-            Dashboard
+            Overview
+          </button>
+          <button
+            className={`nav-link ${location.pathname === '/stocks' ? 'active' : ''}`}
+            onClick={() => navigate('/stocks')}
+          >
+            📈 Stocks
+          </button>
+          <button
+            className={`nav-link ${location.pathname === '/polymarket' ? 'active' : ''}`}
+            onClick={() => navigate('/polymarket')}
+          >
+            📊 Polymarket
           </button>
           <button
             className={`nav-link ${location.pathname === '/news' ? 'active' : ''}`}

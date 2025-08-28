@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import Portfolio from './Portfolio';
-import { PieChart, LineChart } from './charts';
+import React, { useState, useMemo } from 'react';
+import './ModelsDisplay.css';
 
 interface Model {
   id: string;
@@ -11,248 +10,385 @@ interface Model {
   trades: number;
   profit: number;
   status: 'active' | 'inactive' | 'training';
-  // Enhanced fields from Phase 2
-  total_value?: number;
-  cash_balance?: number;
-  active_positions?: number;
-  is_activated?: boolean;
-  recent_performance?: {
-    daily_actions: number;
-    weekly_actions: number;
-    recent_win_rate: number;
-    last_action_time?: string;
-  };
-  llm_available?: boolean;
-  // Category-specific fields
-  market_type?: string; // For polymarket models
-  ticker?: string; // For stock models
-  strategy?: string;
-  // Chart data
-  holdings?: { [ticker: string]: number };
-  profit_history?: Array<{
-    timestamp: string;
-    profit: number;
-    totalValue: number;
-  }>;
 }
 
 interface ModelsDisplayProps {
   modelsData: Model[];
-  setModelsData: (models: Model[]) => void;
-  lastRefresh: Date;
-  setLastRefresh: (date: Date) => void;
+  stockModels: Model[];
+  polymarketModels: Model[];
+  onRefresh: () => void;
 }
 
 const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   modelsData,
-  setModelsData,
-  lastRefresh,
-  setLastRefresh
+  stockModels,
+  polymarketModels,
+  onRefresh
 }) => {
-  const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock'>('all');
-  const [expandedModel, setExpandedModel] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
-  const fetchModels = async () => {
-    setLoading(true);
-    try {
-      // Fetch real LLM models data
-      const response = await fetch('/api/models/');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
+  // 检查是否需要显示分类标签
+  const showCategoryTabs = useMemo(() => {
+    return stockModels.length > 0 && polymarketModels.length > 0;
+  }, [stockModels.length, polymarketModels.length]);
 
-      // Transform backend data to frontend format with enhanced fields
-      const transformedModels: Model[] = await Promise.all(
-        data.map(async (model: any) => {
-          // Fetch chart data for each model
-          let chartData = { holdings: {}, profit_history: [] };
-          try {
-            const chartResponse = await fetch(`/api/models/${model.id}/chart-data`);
-            if (chartResponse.ok) {
-              chartData = await chartResponse.json();
-            }
-          } catch (chartError) {
-            console.warn(`Failed to fetch chart data for model ${model.id}:`, chartError);
-          }
+  // 简化的过滤逻辑
+  const filteredModels = useMemo(() => {
+    // 如果不显示分类标签，直接返回所有数据
+    if (!showCategoryTabs) {
+      return modelsData;
+    }
+    
+    switch (selectedCategory) {
+      case 'stock': return stockModels;
+      case 'polymarket': return polymarketModels;
+      default: return modelsData;
+    }
+  }, [selectedCategory, stockModels, polymarketModels, modelsData, showCategoryTabs]);
 
-          return {
-            id: model.id,
-            name: model.name,
-            category: model.category || 'stock',
-            performance: model.performance,
-            accuracy: model.accuracy,
-            trades: model.trades,
-            profit: model.profit,
-            status: model.status,
-            // Enhanced Phase 2 fields
-            total_value: model.total_value,
-            cash_balance: model.cash_balance,
-            active_positions: model.active_positions,
-            is_activated: model.is_activated,
-            recent_performance: model.recent_performance,
-            llm_available: model.llm_available,
-            // Category-specific fields
-            market_type: model.market_type,
-            ticker: model.ticker,
-            strategy: model.strategy,
-            // Chart data
-            holdings: chartData.holdings,
-            profit_history: chartData.profit_history
-          };
-        })
-      );
-
-      setModelsData(transformedModels);
-      setLastRefresh(new Date());
-    } catch (error) {
-      console.error('Error fetching models:', error);
-      // Keep existing models data on error, don't clear it
-    } finally {
-      setLoading(false);
+  // 简化的状态颜色
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return '#10b981';
+      case 'inactive': return '#ef4444';
+      case 'training': return '#f59e0b';
+      default: return '#6b7280';
     }
   };
 
-  useEffect(() => {
-    // Only fetch if we don't have data or if it's been more than a day
-    const shouldFetch = modelsData.length === 0 ||
-      (Date.now() - lastRefresh.getTime()) > 24 * 60 * 60 * 1000;
+  // 点击模型卡片处理
+  const handleModelClick = (model: Model) => {
+    setSelectedModel(model);
+    setShowModal(true);
+  };
 
-    if (shouldFetch) {
-      fetchModels();
+  // 关闭模态框
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedModel(null);
+  };
+
+  // 生成模拟利润历史数据
+  const generateProfitHistory = (model: Model) => {
+    const days = 30;
+    const history = [];
+    let currentProfit = 0;
+    const dailyVariance = Math.abs(model.profit) / days;
+    
+    for (let i = 0; i < days; i++) {
+      const change = (Math.random() - 0.5) * dailyVariance * 2;
+      currentProfit += change;
+      history.push({
+        day: i + 1,
+        profit: currentProfit,
+        date: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000).toLocaleDateString()
+      });
     }
+    
+    // 确保最后一天的利润接近实际利润
+    history[days - 1].profit = model.profit;
+    
+    return history;
+  };
 
-    // Auto-refresh every 30 seconds for real-time data
-    const interval = setInterval(fetchModels, 30 * 1000);
-
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'polymarket': return '📊';
-      case 'stock': return '📈';
-      default: return '📋';
+  // 生成模拟资产分配数据
+  const generateAssetAllocation = (model: Model) => {
+    if (model.category === 'stock') {
+      return [
+        { name: 'AAPL', allocation: 0.25, color: '#3b82f6' },
+        { name: 'MSFT', allocation: 0.20, color: '#10b981' },
+        { name: 'NVDA', allocation: 0.15, color: '#f59e0b' },
+        { name: 'GOOGL', allocation: 0.10, color: '#ef4444' },
+        { name: 'TSLA', allocation: 0.10, color: '#8b5cf6' },
+        { name: 'CASH', allocation: 0.20, color: '#6b7280' }
+      ];
+    } else {
+      return [
+        { name: 'Election 2024', allocation: 0.35, color: '#3b82f6' },
+        { name: 'Sports Betting', allocation: 0.25, color: '#10b981' },
+        { name: 'Crypto Markets', allocation: 0.20, color: '#f59e0b' },
+        { name: 'CASH', allocation: 0.20, color: '#6b7280' }
+      ];
     }
   };
 
-  const filteredModels = selectedCategory === 'all'
-    ? modelsData
-    : modelsData.filter(model => model.category === selectedCategory);
+  // 简单的SVG折线图组件
+  const ProfitChart = ({ data, model }: { data: any[], model: Model }) => {
+    const width = 400;
+    const height = 200;
+    const padding = 40;
+    
+    const maxProfit = Math.max(...data.map(d => d.profit));
+    const minProfit = Math.min(...data.map(d => d.profit));
+    const range = maxProfit - minProfit || 100;
+    
+    // 创建SVG路径
+    const pathData = data.map((point, index) => {
+      const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
+      const y = padding + ((maxProfit - point.profit) / range) * (height - 2 * padding);
+      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+    }).join(' ');
+    
+    return (
+      <div className="profit-chart">
+        <h3>30-Day Profit History</h3>
+        <svg width={width} height={height} style={{ border: '1px solid #374151', borderRadius: '0.5rem', background: '#1f2937' }}>
+          {/* 网格线 */}
+          <defs>
+            <pattern id="grid" width="40" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 20" fill="none" stroke="#374151" strokeWidth="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+          
+          {/* 零线 */}
+          {minProfit < 0 && maxProfit > 0 && (
+            <line 
+              x1={padding} 
+              y1={padding + (maxProfit / range) * (height - 2 * padding)} 
+              x2={width - padding} 
+              y2={padding + (maxProfit / range) * (height - 2 * padding)} 
+              stroke="#6b7280" 
+              strokeWidth="1"
+              strokeDasharray="5,5"
+            />
+          )}
+          
+          {/* 利润线 */}
+          <path 
+            d={pathData} 
+            fill="none" 
+            stroke={model.profit >= 0 ? '#10b981' : '#ef4444'} 
+            strokeWidth="2"
+          />
+          
+          {/* 数据点 */}
+          {data.map((point, index) => {
+            const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
+            const y = padding + ((maxProfit - point.profit) / range) * (height - 2 * padding);
+            return (
+              <circle 
+                key={index}
+                cx={x} 
+                cy={y} 
+                r="2" 
+                fill={model.profit >= 0 ? '#10b981' : '#ef4444'}
+              />
+            );
+          })}
+          
+          {/* Y轴标签 */}
+          <text x="10" y={padding} fill="#9ca3af" fontSize="12">${maxProfit.toFixed(0)}</text>
+          <text x="10" y={height - padding + 5} fill="#9ca3af" fontSize="12">${minProfit.toFixed(0)}</text>
+        </svg>
+        
+        {/* 图表说明 */}
+        <div className="chart-info">
+          <div className="chart-stat">
+            <span>Current Profit: </span>
+            <span className={model.profit >= 0 ? 'positive' : 'negative'}>
+              ${model.profit.toFixed(2)}
+            </span>
+          </div>
+          <div className="chart-stat">
+            <span>Performance: </span>
+            <span className={model.performance >= 0 ? 'positive' : 'negative'}>
+              {model.performance.toFixed(1)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
-  const categoryStats = {
-    polymarket: modelsData.filter(m => m.category === 'polymarket').length,
-    stock: modelsData.filter(m => m.category === 'stock').length,
-    total: modelsData.length
+  // 资产分配横条图组件
+  const AssetAllocationBar = ({ model }: { model: Model }) => {
+    const allocations = generateAssetAllocation(model);
+    
+    return (
+      <div className="asset-allocation">
+        <h3>Asset Allocation</h3>
+        
+        {/* 横条图 */}
+        <div className="allocation-bar">
+          {allocations.map((asset, index) => (
+            <div
+              key={asset.name}
+              className="allocation-segment"
+              style={{
+                width: `${asset.allocation * 100}%`,
+                backgroundColor: asset.color
+              }}
+              title={`${asset.name}: ${(asset.allocation * 100).toFixed(1)}%`}
+            />
+          ))}
+        </div>
+        
+        {/* 图例 */}
+        <div className="allocation-legend">
+          {allocations.map((asset) => (
+            <div key={asset.name} className="legend-item">
+              <div 
+                className="legend-color" 
+                style={{ backgroundColor: asset.color }}
+              />
+              <span className="legend-name">{asset.name}</span>
+              <span className="legend-percentage">
+                {(asset.allocation * 100).toFixed(1)}%
+              </span>
+            </div>
+          ))}
+        </div>
+        
+        {/* 总计验证 */}
+        <div className="allocation-total">
+          <span>Total: {(allocations.reduce((sum, asset) => sum + asset.allocation, 0) * 100).toFixed(1)}%</span>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div>
+    <div className="models-container">
+      {/* 简化的标题 */}
       <div className="models-header">
-        <h2 className="models-title">Trading Models</h2>
-        <div className="refresh-indicator">
-          {loading && <div className="spinner"></div>}
-          <span>
-            Last updated: {lastRefresh.toLocaleTimeString()}
-          </span>
-        </div>
+        <h2>Trading Models</h2>
+        <button onClick={onRefresh} className="refresh-btn">🔄</button>
       </div>
 
-      {/* Category Filter */}
-      <div className="news-filters" style={{ marginBottom: '1.5rem' }}>
+      {/* 只在有多种类型时显示过滤器 */}
+      {showCategoryTabs && (
+        <div className="category-tabs">
         <button
           onClick={() => setSelectedCategory('all')}
-          className={`filter-button ${selectedCategory === 'all' ? 'active' : ''}`}
+            className={selectedCategory === 'all' ? 'active' : ''}
         >
-          All ({categoryStats.total})
+            All ({modelsData.length})
         </button>
         <button
-          onClick={() => setSelectedCategory('polymarket')}
-          className={`filter-button ${selectedCategory === 'polymarket' ? 'active' : ''}`}
+            onClick={() => setSelectedCategory('stock')}
+            className={selectedCategory === 'stock' ? 'active' : ''}
         >
-          📊 Polymarket ({categoryStats.polymarket})
+            Stock ({stockModels.length})
         </button>
         <button
-          onClick={() => setSelectedCategory('stock')}
-          className={`filter-button ${selectedCategory === 'stock' ? 'active' : ''}`}
+            onClick={() => setSelectedCategory('polymarket')}
+            className={selectedCategory === 'polymarket' ? 'active' : ''}
         >
-          📈 Stock ({categoryStats.stock})
+            Polymarket ({polymarketModels.length})
         </button>
-      </div>
+        </div>
+      )}
 
-      <div className="models-grid">
-        {filteredModels.map(model => (
-          <div key={model.id} className="model-card">
-            <div className="model-header">
-              <div className="model-title-row">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h3 className="model-name">{model.name}</h3>
-                  <span className={`model-category ${model.category}`}>
-                    {getCategoryIcon(model.category)} {model.category}
+            {/* 方形模型卡片，显示资产分配 */}
+      <div className="models-grid-square">
+        {filteredModels.map(model => {
+          const allocations = generateAssetAllocation(model);
+          return (
+            <div 
+              key={model.id} 
+              className="model-card-square" 
+              onClick={() => handleModelClick(model)}
+            >
+                            {/* 紧凑头部 */}
+              <div className="card-header-compact">
+                <h3>{model.name}</h3>
+                <div className="top-right-badges">
+                  <div className={`category-tag ${model.category}`}>{model.category}</div>
+                  <span 
+                    className="status-dot-small" 
+                    style={{ backgroundColor: getStatusColor(model.status) }}
+                  />
+                </div>
+              </div>
+
+              {/* 只显示回报率 */}
+              <div className="card-return-only">
+                <span className="return-label">Return</span>
+                <span className={`return-value-large ${model.performance >= 0 ? 'positive' : 'negative'}`}>
+                  {model.performance.toFixed(1)}%
                   </span>
-                  <span className={`status-indicator ${model.status}`} style={{ marginLeft: '8px' }}></span>
-                  <span className="status-text" style={{ fontSize: '0.8rem', textTransform: 'capitalize' }}>{model.status}</span>
-                </div>
               </div>
-              <button
-                onClick={() => setExpandedModel(expandedModel === model.id ? null : model.id)}
-                className="portfolio-toggle"
-              >
-                {expandedModel === model.id ? 'Hide Portfolio' : 'View Portfolio'}
-              </button>
-            </div>
 
-
-            {/* Category-specific information */}
-            <div style={{ marginBottom: '1rem' }}>
-              {model.category === 'stock' && model.ticker && (
-                <div className="metric-item">
-                  <span className="metric-label">Ticker</span>
-                  <span className="metric-value">{model.ticker}</span>
+              {/* 资产分配横条 */}
+              <div className="card-allocation">
+                <div className="allocation-label">Asset Allocation</div>
+                <div className="allocation-bar-mini">
+                  {allocations.map((asset) => (
+                    <div
+                      key={asset.name}
+                      className="allocation-segment-mini"
+                      style={{
+                        width: `${asset.allocation * 100}%`,
+                        backgroundColor: asset.color
+                      }}
+                      title={`${asset.name}: ${(asset.allocation * 100).toFixed(1)}%`}
+                    />
+                  ))}
                 </div>
-              )}
-            </div>
-
-            {/* Model Charts Layout */}
-            <div className="model-charts-layout">
-              {/* Charts Section */}
-              <div className="charts-section">
-                <div className="chart-container">
-                  <PieChart
-                    holdings={model.holdings || {}}
-                    totalValue={model.total_value || 1000}
-                    title="Allocation"
-                    size="small"
-                  />
-                </div>
-                <div className="chart-container">
-                  <LineChart
-                    profitHistory={model.profit_history || []}
-                    title="Profit Trend"
-                    size="small"
-                  />
+                <div className="allocation-legend-mini">
+                  {allocations.slice(0, 3).map((asset) => (
+                    <div key={asset.name} className="legend-item-mini">
+                      <div 
+                        className="legend-dot" 
+                        style={{ backgroundColor: asset.color }}
+                      />
+                      <span>{asset.name} {(asset.allocation * 100).toFixed(0)}%</span>
+                    </div>
+                  ))}
+                  {allocations.length > 3 && (
+                    <div className="legend-item-mini">
+                      <span>+{allocations.length - 3} more</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-
-
-            {/* Expanded Portfolio View - Area Chart Only */}
-            {expandedModel === model.id && (
-              <div className="portfolio-section">
-                <Portfolio modelId={model.id} modelName={model.name} />
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {filteredModels.length === 0 && !loading && (
-        <div className="empty-state">
-          <div className="empty-state-icon">📊</div>
-          <p className="empty-state-text">No models found for the selected category.</p>
+      {/* 模态框 */}
+      {showModal && selectedModel && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{selectedModel.name}</h2>
+              <button className="modal-close" onClick={closeModal}>×</button>
+            </div>
+
+            <div className="modal-body">
+              <div className="model-details-modal">
+                <div className="detail-row">
+                  <span>Category:</span>
+                  <span className="category-badge">{selectedModel.category}</span>
+                </div>
+                <div className="detail-row">
+                  <span>Status:</span>
+                  <span className={`status-badge ${selectedModel.status}`}>
+                    {selectedModel.status}
+                  </span>
+            </div>
+                <div className="detail-row">
+                  <span>Total Trades:</span>
+                  <span>{selectedModel.trades}</span>
+                </div>
+                <div className="detail-row">
+                  <span>Accuracy:</span>
+                  <span>{selectedModel.accuracy.toFixed(1)}%</span>
+                </div>
+              </div>
+              
+              <ProfitChart 
+                data={generateProfitHistory(selectedModel)} 
+                model={selectedModel} 
+              />
+              
+              <AssetAllocationBar model={selectedModel} />
+            </div>
+          </div>
         </div>
       )}
     </div>

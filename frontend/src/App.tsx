@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
+import StockDashboard from './components/StockDashboard';
+import PolymarketDashboard from './components/PolymarketDashboard';
 import News from './components/News';
 import SocialMedia from './components/SocialMedia';
 import TradingHistoryPage from './components/TradingHistoryPage';
@@ -87,6 +89,22 @@ function App() {
         <Routes>
           <Route path="/" element={
             <Dashboard
+              modelsData={modelsData}
+              setModelsData={setModelsData}
+              modelsLastRefresh={modelsLastRefresh}
+              setModelsLastRefresh={setModelsLastRefresh}
+            />
+          } />
+          <Route path="/stocks" element={
+            <StockDashboard
+              modelsData={modelsData}
+              setModelsData={setModelsData}
+              modelsLastRefresh={modelsLastRefresh}
+              setModelsLastRefresh={setModelsLastRefresh}
+            />
+          } />
+          <Route path="/polymarket" element={
+            <PolymarketDashboard
               modelsData={modelsData}
               setModelsData={setModelsData}
               modelsLastRefresh={modelsLastRefresh}
