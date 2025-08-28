@@ -22,13 +22,13 @@ const Navigation: React.FC = () => {
             className={`nav-link ${location.pathname === '/stocks' ? 'active' : ''}`}
             onClick={() => navigate('/stocks')}
           >
-            📈 Stocks
+            Stocks
           </button>
           <button
             className={`nav-link ${location.pathname === '/polymarket' ? 'active' : ''}`}
             onClick={() => navigate('/polymarket')}
           >
-            📊 Polymarket
+            Polymarket
           </button>
           <button
             className={`nav-link ${location.pathname === '/news' ? 'active' : ''}`}
