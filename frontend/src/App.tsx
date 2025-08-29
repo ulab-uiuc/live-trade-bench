@@ -1,21 +1,26 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
+import StockDashboard from './components/StockDashboard';
+import PolymarketDashboard from './components/PolymarketDashboard';
 import News from './components/News';
 import SocialMedia from './components/SocialMedia';
 import TradingHistoryPage from './components/TradingHistoryPage';
 import Navigation from './components/Navigation';
 import './App.css';
 
-interface NewsItem {
+interface Model {
   id: string;
-  title: string;
-  summary: string;
-  source: string;
-  publishedAt: Date;
-  impact: 'high' | 'medium' | 'low';
-  category: 'market' | 'economic' | 'company' | 'tech';
-  url: string;
+  name: string;
+  category: 'polymarket' | 'stock';
+  performance: number;
+  accuracy: number;
+  trades: number;
+  profit: number;
+  status: 'active' | 'inactive' | 'training';
+  market_type?: string;
+  ticker?: string;
+  strategy?: string;
 }
 
 interface Trade {
@@ -33,52 +38,13 @@ interface Trade {
   totalValue: number;
 }
 
-interface Model {
-  id: string;
-  name: string;
-  category: 'polymarket' | 'stock';
-  performance: number;
-  accuracy: number;
-  trades: number;
-  profit: number;
-  status: 'active' | 'inactive' | 'training';
-  market_type?: string;
-  ticker?: string;
-  strategy?: string;
-}
-
-interface SocialPost {
-  id: string;
-  platform: 'reddit' | 'twitter' | 'discord' | 'telegram';
-  author: string;
-  content: string;
-  title?: string;
-  postedAt: Date;
-  engagement: {
-    upvotes?: number;
-    downvotes?: number;
-    likes?: number;
-    retweets?: number;
-    comments?: number;
-    shares?: number;
-  };
-  sentiment: 'positive' | 'negative' | 'neutral';
-  category: 'market' | 'stock' | 'tech' | 'polymarket';
-  ticker?: string;
-  url?: string;
-  subreddit?: string;
-  hashtags?: string[];
-}
-
 function App() {
-  const [newsData, setNewsData] = useState<NewsItem[]>([]);
   const [tradesData, setTradesData] = useState<Trade[]>([]);
+
   const [modelsData, setModelsData] = useState<Model[]>([]);
-  const [socialData, setSocialData] = useState<SocialPost[]>([]);
-  const [newsLastRefresh, setNewsLastRefresh] = useState<Date>(new Date());
+
   const [tradesLastRefresh, setTradesLastRefresh] = useState<Date>(new Date());
   const [modelsLastRefresh, setModelsLastRefresh] = useState<Date>(new Date());
-  const [socialLastRefresh, setSocialLastRefresh] = useState<Date>(new Date());
 
   return (
     <Router>
@@ -93,22 +59,24 @@ function App() {
               setModelsLastRefresh={setModelsLastRefresh}
             />
           } />
-          <Route path="/news" element={
-            <News
-              newsData={newsData}
-              setNewsData={setNewsData}
-              lastRefresh={newsLastRefresh}
-              setLastRefresh={setNewsLastRefresh}
+          <Route path="/stocks" element={
+            <StockDashboard
+              modelsData={modelsData}
+              setModelsData={setModelsData}
+              modelsLastRefresh={modelsLastRefresh}
+              setModelsLastRefresh={setModelsLastRefresh}
             />
           } />
-          <Route path="/social" element={
-            <SocialMedia
-              socialData={socialData}
-              setSocialData={setSocialData}
-              lastRefresh={socialLastRefresh}
-              setLastRefresh={setSocialLastRefresh}
+          <Route path="/polymarket" element={
+            <PolymarketDashboard
+              modelsData={modelsData}
+              setModelsData={setModelsData}
+              modelsLastRefresh={modelsLastRefresh}
+              setModelsLastRefresh={setModelsLastRefresh}
             />
           } />
+          <Route path="/news" element={<News />} />
+          <Route path="/social" element={<SocialMedia />} />
           <Route path="/trading-history" element={
             <TradingHistoryPage
               tradesData={tradesData}

@@ -1,0 +1,49 @@
+/* 极简系统监控样式 */
+.system-monitor-simple {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.system-monitor-simple h3 {
+  margin: 0 0 1rem 0;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.status-grid {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.running {
+  background: #10b981;
+  box-shadow: 0 0 4px #10b981;
+}
+/* 响应式 */
+@media (max-width: 768px) {
+  .status-grid {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}

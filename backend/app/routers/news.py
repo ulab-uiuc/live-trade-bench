@@ -23,7 +23,7 @@ async def get_news(
 ) -> List[Dict[str, Any]]:
     """Get cached news articles with optional filtering and pagination."""
     try:
-        # Get cached news from trading system instead of fetching on-demand
+        # Get cached news from trading system (now includes stock symbols)
         trading_system = get_trading_system()
         news_data = trading_system.get_cached_news()
 
