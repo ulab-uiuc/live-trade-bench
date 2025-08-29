@@ -9,17 +9,24 @@ const SystemMonitoring: React.FC = () => {
   });
 
   // 极简的状态更新
-  const updateStatus = useCallback(() => {
-    const now = new Date();
-    const uptimeMinutes = Math.floor(Math.random() * 300) + 120; // 2-7小时
-    const hours = Math.floor(uptimeMinutes / 60);
-    const minutes = uptimeMinutes % 60;
+  const updateStatus = useCallback(async () => {
+    try {
+      const response = await fetch('/api/models/system-status');
+      if (response.ok) {
+        const data = await response.json();
+        const uptimeMinutes = Math.floor(Math.random() * 300) + 120; // 2-7小时
+        const hours = Math.floor(uptimeMinutes / 60);
+        const minutes = uptimeMinutes % 60;
 
-    setStatus({
-      running: true,
-      agents: 3,
-      uptime: `${hours}h ${minutes}m`
-    });
+        setStatus({
+          running: data.system_running,
+          agents: data.active_agents,
+          uptime: `${hours}h ${minutes}m`
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching system status:', error);
+    }
   }, []);
 
   useEffect(() => {

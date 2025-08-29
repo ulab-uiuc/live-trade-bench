@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './ModelsDisplay.css';
 
 interface Model {
@@ -70,27 +70,40 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     setSelectedModel(null);
   };
 
-  // 生成模拟利润历史数据
-  const generateProfitHistory = (model: Model) => {
-    const days = 30;
-    const history = [];
-    let currentProfit = 0;
-    const dailyVariance = Math.abs(model.profit) / days;
+  // Fetch real profit history data from backend
+  const [profitHistoryData, setProfitHistoryData] = useState<{[key: string]: any[]}>({});
 
-    for (let i = 0; i < days; i++) {
-      const change = (Math.random() - 0.5) * dailyVariance * 2;
-      currentProfit += change;
-      history.push({
-        day: i + 1,
-        profit: currentProfit,
-        date: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000).toLocaleDateString()
-      });
+  const fetchProfitHistory = async (model: Model) => {
+    if (profitHistoryData[model.id]) {
+      return profitHistoryData[model.id]; // Return cached data
     }
 
-    // 确保最后一天的利润接近实际利润
-    history[days - 1].profit = model.profit;
+    try {
+      const response = await fetch(`/api/models/${model.id}/chart-data`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const chartData = await response.json();
 
-    return history;
+      // Convert the profit history to the expected format
+      const history = chartData.profit_history.map((item: any, index: number) => ({
+        day: index + 1,
+        profit: item.profit || 0,
+        date: new Date(item.timestamp || Date.now()).toLocaleDateString()
+      }));
+
+      // Cache the data
+      setProfitHistoryData(prev => ({ ...prev, [model.id]: history }));
+      return history;
+    } catch (error) {
+      console.error('Error fetching profit history:', error);
+      // Fallback to a simple history with current profit
+      return [{
+        day: 1,
+        profit: model.profit,
+        date: new Date().toLocaleDateString()
+      }];
+    }
   };
 
   // 生成模拟资产分配数据
@@ -115,6 +128,31 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   };
 
   // 简单的SVG折线图组件
+  const ProfitChartWithData = ({ model, fetchProfitHistory }: { model: Model, fetchProfitHistory: (model: Model) => Promise<any[]> }) => {
+    const [chartData, setChartData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const loadData = async () => {
+        setLoading(true);
+        const data = await fetchProfitHistory(model);
+        setChartData(data);
+        setLoading(false);
+      };
+      loadData();
+    }, [model.id, fetchProfitHistory]);
+
+    if (loading) {
+      return (
+        <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
+          Loading chart data...
+        </div>
+      );
+    }
+
+    return <ProfitChart data={chartData} model={model} />;
+  };
+
   const ProfitChart = ({ data, model }: { data: any[], model: Model }) => {
     const width = 400;
     const height = 200;
@@ -381,9 +419,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 </div>
               </div>
 
-              <ProfitChart
-                data={generateProfitHistory(selectedModel)}
+              <ProfitChartWithData
                 model={selectedModel}
+                fetchProfitHistory={fetchProfitHistory}
               />
 
               <AssetAllocationBar model={selectedModel} />

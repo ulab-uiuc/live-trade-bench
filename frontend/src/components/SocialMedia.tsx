@@ -1,95 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+interface SocialPost {
+  id: string;
+  platform: string;
+  username: string;
+  displayName: string;
+  content: string;
+  time: string;
+  likes: number;
+  retweets: number;
+  replies: number;
+  sentiment: string;
+  avatar: string;
+}
 
 const SocialMedia: React.FC = () => {
   console.log('📱 Social Media component is rendering!');
-  
-  const [selectedMarket, setSelectedMarket] = useState<'all' | 'stock' | 'polymarket'>('all');
 
-  // 模拟社交媒体数据 - 按市场分类
-  const socialData = {
-    stock: [
-      {
-        id: '1',
-        platform: 'Twitter',
-        username: '@marketanalyst',
-        displayName: 'Market Analyst Pro',
-        content: '🚀 Tech stocks are showing incredible momentum! $AAPL, $MSFT, and $GOOGL all breaking resistance levels. This could be the start of a major rally. #TechStocks #StockMarket #Investing',
-        time: '2 hours ago',
-        likes: 245,
-        retweets: 89,
-        replies: 23,
-        sentiment: 'positive',
-        avatar: '🐦'
-      },
-      {
-        id: '2',
-        platform: 'LinkedIn',
-        username: '@financeinsights',
-        displayName: 'Finance Insights',
-        content: '📊 Q4 earnings season is heating up! Companies are reporting strong results across multiple sectors. The market sentiment is turning bullish. What\'s your take on the current market conditions? #Earnings #Q4 #MarketAnalysis',
-        time: '4 hours ago',
-        likes: 189,
-        retweets: 67,
-        replies: 45,
-        sentiment: 'positive',
-        avatar: '💼'
-      },
-      {
-        id: '3',
-        platform: 'Reddit',
-        username: 'u/stocktrader123',
-        displayName: 'Stock Trader 123',
-        content: 'Just bought more $TSLA after their earnings call! The EV market is exploding and Tesla is leading the charge. Anyone else bullish on electric vehicles? 🚗⚡ #Tesla #EV #Investing',
-        time: '6 hours ago',
-        likes: 156,
-        retweets: 34,
-        replies: 67,
-        sentiment: 'positive',
-        avatar: '📈'
+  const [selectedMarket, setSelectedMarket] = useState<'all' | 'stock' | 'polymarket'>('all');
+  const [socialData, setSocialData] = useState<{
+    stock: SocialPost[];
+    polymarket: SocialPost[];
+  }>({
+    stock: [],
+    polymarket: []
+  });
+
+  useEffect(() => {
+    const fetchSocialData = async () => {
+      try {
+        const response = await fetch('/api/social/');
+        if (response.ok) {
+          const allPosts = await response.json();
+
+          const transformedPosts: SocialPost[] = allPosts.slice(0, 10).map((post: any, index: number) => ({
+            id: post.id || index.toString(),
+            platform: 'Reddit',
+            username: `u/${post.author}`,
+            displayName: `u/${post.author}`,
+            content: post.title + (post.content ? ` - ${post.content.slice(0, 200)}...` : ''),
+            time: '2 hours ago',
+            likes: post.score || Math.floor(Math.random() * 300),
+            retweets: post.num_comments || Math.floor(Math.random() * 100),
+            replies: Math.floor(Math.random() * 50),
+            sentiment: post.score > 50 ? 'positive' : post.score > 10 ? 'neutral' : 'negative',
+            avatar: '📈'
+          }));
+
+          setSocialData({
+            stock: transformedPosts,
+            polymarket: []
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching social data:', error);
       }
-    ],
-    polymarket: [
-      {
-        id: '4',
-        platform: 'Discord',
-        username: '@polytrader',
-        displayName: 'Poly Trader',
-        content: '🗳️ Election predictions are heating up! The market is showing interesting patterns. I\'m betting on some surprising outcomes. What do you think about the current odds? #Polymarket #Elections #Predictions',
-        time: '1 hour ago',
-        likes: 98,
-        retweets: 23,
-        replies: 12,
-        sentiment: 'neutral',
-        avatar: '🎯'
-      },
-      {
-        id: '5',
-        platform: 'Telegram',
-        username: '@sportsbettor',
-        displayName: 'Sports Bettor Pro',
-        content: '⚽ Championship finals are here! The prediction markets are going crazy. I\'ve placed some high-stakes bets on underdogs. High risk, high reward! #Sports #Betting #Championship',
-        time: '3 hours ago',
-        likes: 134,
-        retweets: 45,
-        replies: 28,
-        sentiment: 'positive',
-        avatar: '⚽'
-      },
-      {
-        id: '6',
-        platform: 'Twitter',
-        username: '@climateinvestor',
-        displayName: 'Climate Investor',
-        content: '🌍 New climate policies are creating amazing opportunities in carbon trading! The prediction markets are showing strong support for green initiatives. Time to go green! #Climate #CarbonTrading #GreenInvesting',
-        time: '5 hours ago',
-        likes: 89,
-        retweets: 32,
-        replies: 15,
-        sentiment: 'positive',
-        avatar: '🌍'
-      }
-    ]
-  };
+    };
+
+    fetchSocialData();
+  }, []);
 
   const getPlatformColor = (platform: string) => {
     switch (platform.toLowerCase()) {
@@ -111,7 +80,7 @@ const SocialMedia: React.FC = () => {
     }
   };
 
-  const filteredSocial = selectedMarket === 'all' 
+  const filteredSocial: SocialPost[] = selectedMarket === 'all'
     ? [...socialData.stock, ...socialData.polymarket]
     : socialData[selectedMarket];
 
@@ -156,7 +125,7 @@ const SocialMedia: React.FC = () => {
         zIndex: 1001,
         overflow: 'visible'
       }}>
-        <button 
+        <button
           onClick={() => setSelectedMarket('all')}
           style={{
             background: selectedMarket === 'all' ? '#6366f1' : '#1f2937',
@@ -171,7 +140,7 @@ const SocialMedia: React.FC = () => {
         >
           🌍 All Markets ({socialData.stock.length + socialData.polymarket.length})
         </button>
-        <button 
+        <button
           onClick={() => setSelectedMarket('stock')}
           style={{
             background: selectedMarket === 'stock' ? '#10b981' : '#1f2937',
@@ -186,7 +155,7 @@ const SocialMedia: React.FC = () => {
         >
           📈 Stock Market ({socialData.stock.length})
         </button>
-        <button 
+        <button
           onClick={() => setSelectedMarket('polymarket')}
           style={{
             background: selectedMarket === 'polymarket' ? '#a78bfa' : '#1f2937',

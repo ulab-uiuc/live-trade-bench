@@ -41,69 +41,7 @@ interface Trade {
 function App() {
   const [tradesData, setTradesData] = useState<Trade[]>([]);
 
-  // 添加测试数据
-  const [modelsData, setModelsData] = useState<Model[]>([
-    {
-      id: '1',
-      name: 'Growth Stock Model',
-      category: 'stock',
-      performance: 15.5,
-      accuracy: 0.78,
-      trades: 45,
-      profit: 2500,
-      status: 'active'
-    },
-    {
-      id: '2',
-      name: 'Value Stock Model',
-      category: 'stock',
-      performance: 8.2,
-      accuracy: 0.82,
-      trades: 32,
-      profit: 1800,
-      status: 'active'
-    },
-    {
-      id: '3',
-      name: 'Tech Stock Model',
-      category: 'stock',
-      performance: 22.1,
-      accuracy: 0.75,
-      trades: 28,
-      profit: 3200,
-      status: 'active'
-    },
-    {
-      id: '4',
-      name: 'Polymarket Predictor',
-      category: 'polymarket',
-      performance: 12.8,
-      accuracy: 0.68,
-      trades: 15,
-      profit: 950,
-      status: 'active'
-    },
-    {
-      id: '5',
-      name: 'Election Tracker',
-      category: 'polymarket',
-      performance: 18.3,
-      accuracy: 0.72,
-      trades: 22,
-      profit: 1400,
-      status: 'active'
-    },
-    {
-      id: '6',
-      name: 'Sports Predictor',
-      category: 'polymarket',
-      performance: -2.1,
-      accuracy: 0.65,
-      trades: 18,
-      profit: -300,
-      status: 'active'
-    }
-  ]);
+  const [modelsData, setModelsData] = useState<Model[]>([]);
 
   const [tradesLastRefresh, setTradesLastRefresh] = useState<Date>(new Date());
   const [modelsLastRefresh, setModelsLastRefresh] = useState<Date>(new Date());

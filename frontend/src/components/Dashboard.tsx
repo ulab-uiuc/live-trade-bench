@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 
 // 使用any类型避免接口冲突，但保持功能
 const Dashboard: React.FC<any> = (props) => {
@@ -7,6 +7,31 @@ const Dashboard: React.FC<any> = (props) => {
   // 安全地访问props
   const modelsData = props?.modelsData || [];
   const modelsLastRefresh = props?.modelsLastRefresh || new Date();
+  const setModelsData = props?.setModelsData;
+  const setModelsLastRefresh = props?.setModelsLastRefresh;
+
+  // Fetch all models data from backend
+  const fetchModelsData = useCallback(async () => {
+    try {
+      const response = await fetch('/api/models/');
+      if (response.ok) {
+        const allModels = await response.json();
+        if (setModelsData) {
+          setModelsData(allModels);
+        }
+        if (setModelsLastRefresh) {
+          setModelsLastRefresh(new Date());
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching models data:', error);
+    }
+  }, [setModelsData, setModelsLastRefresh]);
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchModelsData();
+  }, [fetchModelsData]);
 
   // 分类模型数据
   const stockModels = modelsData.filter((model: any) => model?.category === 'stock');
