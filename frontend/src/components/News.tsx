@@ -1,93 +1,158 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+interface NewsItem {
+  id: string;
+  title: string;
+  summary: string;
+  source: string;
+  published_at: string;
+  impact: string;
+  category: string;
+  url: string;
+  stock_symbol: string | null;
+}
 
 const News: React.FC = () => {
   console.log('📰 News component is rendering!');
-  
-  const [selectedMarket, setSelectedMarket] = useState<'all' | 'stock' | 'polymarket'>('all');
 
-  // 模拟新闻数据 - 按市场分类
-  const newsData = {
-    stock: [
-      {
-        id: '1',
-        title: '🚀 Tech Stocks Rally on AI Breakthrough',
-        content: 'Major technology companies saw significant gains following the announcement of a new artificial intelligence breakthrough that could revolutionize the industry.',
-        category: 'Technology',
-        time: '2 hours ago',
-        source: 'Reuters',
-        sentiment: 'positive'
-      },
-      {
-        id: '2',
-        title: '📈 Market Analysis: Q4 Earnings Preview',
-        content: 'Analysts predict strong Q4 earnings across multiple sectors, with particular focus on consumer goods and financial services companies.',
-        category: 'Analysis',
-        time: '4 hours ago',
-        source: 'Bloomberg',
-        sentiment: 'positive'
-      },
-      {
-        id: '3',
-        title: '🏦 Federal Reserve Signals Potential Rate Cuts',
-        content: 'The Federal Reserve indicated it may consider interest rate reductions in the coming months amid economic uncertainty.',
-        category: 'Economic',
-        time: '6 hours ago',
-        source: 'CNBC',
-        sentiment: 'neutral'
+  const [selectedMarket, setSelectedMarket] = useState<'all' | 'stock' | 'polymarket'>('all');
+  const [newsData, setNewsData] = useState<{
+    stock: NewsItem[];
+    polymarket: NewsItem[];
+  }>({
+    stock: [],
+    polymarket: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchNews = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch news data from backend
+      const response = await fetch('/api/news/?limit=50');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    ],
-    polymarket: [
-      {
-        id: '4',
-        title: '🗳️ Election Predictions: Market Impact',
-        content: 'Polymarket traders are placing bets on election outcomes, with significant implications for market volatility.',
-        category: 'Politics',
-        time: '1 hour ago',
-        source: 'Polymarket',
-        sentiment: 'neutral'
-      },
-      {
-        id: '5',
-        title: '⚽ Sports Betting: Championship Finals',
-        content: 'High-stakes betting on championship finals is driving significant trading volume in prediction markets.',
-        category: 'Sports',
-        time: '3 hours ago',
-        source: 'SportsBook',
-        sentiment: 'positive'
-      },
-      {
-        id: '6',
-        title: '🌍 Climate Policy: Carbon Trading',
-        content: 'New climate policies are creating opportunities in carbon trading and environmental prediction markets.',
-        category: 'Environment',
-        time: '5 hours ago',
-        source: 'ClimateWire',
-        sentiment: 'positive'
-      }
-    ]
+
+      const allNews: NewsItem[] = await response.json();
+
+      // Categorize news items (for now, all real news will be considered "stock" related)
+      const stockNews = allNews.filter(news =>
+        news.category === 'market' ||
+        news.category === 'technology' ||
+        news.category === 'economy' ||
+        news.stock_symbol !== null
+      );
+
+      // For now, we don't have polymarket-specific news from the API
+      const polymarketNews: NewsItem[] = [];
+
+      setNewsData({
+        stock: stockNews,
+        polymarket: polymarketNews
+      });
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      setError('Failed to load news data');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getSentimentColor = (sentiment: string) => {
-    switch (sentiment) {
-      case 'positive': return '#10b981';
-      case 'negative': return '#ef4444';
-      case 'neutral': return '#6b7280';
+  useEffect(() => {
+    fetchNews();
+  }, []);
+
+  const getImpactColor = (impact: string) => {
+    switch (impact) {
+      case 'high': return '#ef4444';
+      case 'medium': return '#f59e0b';
+      case 'low': return '#10b981';
       default: return '#6b7280';
     }
   };
 
-  const getSentimentIcon = (sentiment: string) => {
-    switch (sentiment) {
-      case 'positive': return '📈';
-      case 'negative': return '📉';
-      case 'neutral': return '➡️';
-      default: return '➡️';
+  const getImpactIcon = (impact: string) => {
+    switch (impact) {
+      case 'high': return '🔥';
+      case 'medium': return '📊';
+      case 'low': return '📰';
+      default: return '📰';
     }
   };
 
-  const filteredNews = selectedMarket === 'all' 
+  const formatTimeAgo = (publishedAt: string) => {
+    const now = new Date();
+    const published = new Date(publishedAt);
+    const diffInHours = Math.floor((now.getTime() - published.getTime()) / (1000 * 60 * 60));
+
+    if (diffInHours < 1) return 'Less than 1 hour ago';
+    if (diffInHours === 1) return '1 hour ago';
+    if (diffInHours < 24) return `${diffInHours} hours ago`;
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays === 1) return '1 day ago';
+    return `${diffInDays} days ago`;
+  };
+
+  const filteredNews = selectedMarket === 'all'
     ? [...newsData.stock, ...newsData.polymarket]
     : newsData[selectedMarket];
+
+  if (loading) {
+    return (
+      <div style={{
+        padding: '2rem',
+        background: '#1f2937',
+        color: '#ffffff',
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
+          <p style={{ fontSize: '1.125rem' }}>Loading news...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        padding: '2rem',
+        background: '#1f2937',
+        color: '#ffffff',
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
+          <p style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>{error}</p>
+          <button
+            onClick={fetchNews}
+            style={{
+              background: '#6366f1',
+              color: 'white',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '0.5rem',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -130,7 +195,7 @@ const News: React.FC = () => {
         zIndex: 1001,
         overflow: 'visible'
       }}>
-        <button 
+        <button
           onClick={() => setSelectedMarket('all')}
           style={{
             background: selectedMarket === 'all' ? '#6366f1' : '#1f2937',
@@ -145,7 +210,7 @@ const News: React.FC = () => {
         >
           🌍 All Markets ({newsData.stock.length + newsData.polymarket.length})
         </button>
-        <button 
+        <button
           onClick={() => setSelectedMarket('stock')}
           style={{
             background: selectedMarket === 'stock' ? '#10b981' : '#1f2937',
@@ -160,7 +225,7 @@ const News: React.FC = () => {
         >
           📈 Stock Market ({newsData.stock.length})
         </button>
-        <button 
+        <button
           onClick={() => setSelectedMarket('polymarket')}
           style={{
             background: selectedMarket === 'polymarket' ? '#a78bfa' : '#1f2937',
@@ -177,30 +242,31 @@ const News: React.FC = () => {
         </button>
       </div>
 
-      {/* 新闻模块网格 */}
+      {/* News grid */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-        gap: '1.5rem',
-        // 强制覆盖
-        position: 'relative',
-        zIndex: 1001,
-        overflow: 'visible'
+        gap: '1.5rem'
       }}>
         {filteredNews.map((news) => (
-          <div key={news.id} style={{
-            background: '#1f2937',
-            border: '1px solid #374151',
-            borderRadius: '0.5rem',
-            padding: '1.5rem',
-            // 强制覆盖
-            position: 'relative',
-            zIndex: 1001,
-            overflow: 'visible',
-            transition: 'all 0.2s ease',
-            cursor: 'pointer'
-          }}>
-            {/* 新闻头部 */}
+          <a
+            key={news.id}
+            href={news.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              background: '#1f2937',
+              border: '1px solid #374151',
+              borderRadius: '0.5rem',
+              padding: '1.5rem',
+              transition: 'all 0.2s ease',
+              cursor: 'pointer',
+              textDecoration: 'none',
+              color: 'inherit',
+              display: 'block'
+            }}
+          >
+            {/* News header */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -213,14 +279,14 @@ const News: React.FC = () => {
                 gap: '0.5rem'
               }}>
                 <span style={{
-                  background: getSentimentColor(news.sentiment),
+                  background: getImpactColor(news.impact),
                   color: '#ffffff',
                   padding: '0.25rem 0.5rem',
                   borderRadius: '0.25rem',
                   fontSize: '0.75rem',
                   fontWeight: 'bold'
                 }}>
-                  {getSentimentIcon(news.sentiment)} {news.category}
+                  {getImpactIcon(news.impact)} {news.stock_symbol}
                 </span>
               </div>
               <span style={{
@@ -228,11 +294,11 @@ const News: React.FC = () => {
                 fontSize: '0.75rem',
                 fontWeight: '500'
               }}>
-                {news.time}
+                {formatTimeAgo(news.published_at)}
               </span>
             </div>
 
-            {/* 新闻标题 */}
+            {/* News title */}
             <h3 style={{
               color: '#ffffff',
               fontSize: '1.125rem',
@@ -243,17 +309,17 @@ const News: React.FC = () => {
               {news.title}
             </h3>
 
-            {/* 新闻内容 */}
+            {/* News content */}
             <p style={{
               color: '#9ca3af',
               marginBottom: '1rem',
               lineHeight: '1.6',
               fontSize: '0.875rem'
             }}>
-              {news.content}
+              {news.summary}
             </p>
 
-            {/* 新闻底部 */}
+            {/* News footer */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -274,19 +340,19 @@ const News: React.FC = () => {
                 gap: '0.5rem'
               }}>
                 <span style={{
-                  color: getSentimentColor(news.sentiment),
+                  color: getImpactColor(news.impact),
                   fontSize: '0.75rem',
                   fontWeight: '600'
                 }}>
-                  {news.sentiment.charAt(0).toUpperCase() + news.sentiment.slice(1)}
+                  {news.impact.charAt(0).toUpperCase() + news.impact.slice(1)} Impact
                 </span>
               </div>
             </div>
-          </div>
+          </a>
         ))}
       </div>
 
-      {/* 空状态 */}
+      {/* Empty state */}
       {filteredNews.length === 0 && (
         <div style={{
           textAlign: 'center',

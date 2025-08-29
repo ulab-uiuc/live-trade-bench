@@ -30,45 +30,22 @@ const StockDashboard: React.FC<StockDashboardProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // 获取股票模型数据
-  const fetchStockModelsData = useCallback(() => {
+  const fetchStockModelsData = useCallback(async () => {
     try {
       setError(null);
 
-      // 股票模型静态数据
-      const stockMockData = [
-        {
-          id: '1',
-          name: 'Claude 3.7 Sonnet',
-          category: 'stock' as const,
-          status: 'active' as const,
-          profit: 1500.00,
-          performance: 15.0,
-          accuracy: 75.5,
-          trades: 25
-        },
-        {
-          id: '2',
-          name: 'GPT-5',
-          category: 'stock' as const,
-          status: 'active' as const,
-          profit: -500.00,
-          performance: -5.0,
-          accuracy: 68.2,
-          trades: 18
-        },
-        {
-          id: '4',
-          name: 'GPT-4o',
-          category: 'stock' as const,
-          status: 'active' as const,
-          profit: 800.00,
-          performance: 8.0,
-          accuracy: 72.1,
-          trades: 20
-        }
-      ];
+      // Fetch real data from backend API
+      const response = await fetch('/api/models/');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      setModelsData(stockMockData);
+      const allModels = await response.json();
+
+      // Filter for stock models only
+      const stockModels = allModels.filter((model: any) => model.category === 'stock');
+
+      setModelsData(stockModels);
       setModelsLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching stock models data:', error);

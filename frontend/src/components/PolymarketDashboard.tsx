@@ -30,45 +30,22 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // 只获取Polymarket模型数据
-  const fetchPolymarketModelsData = useCallback(() => {
+  const fetchPolymarketModelsData = useCallback(async () => {
     try {
       setError(null);
 
-      // Polymarket模型静态数据
-      const polymarketMockData = [
-        {
-          id: '3',
-          name: 'Polymarket Agent',
-          category: 'polymarket' as const,
-          status: 'active' as const,
-          profit: 800.00,
-          performance: 8.0,
-          accuracy: 82.1,
-          trades: 12
-        },
-        {
-          id: '5',
-          name: 'Election Predictor',
-          category: 'polymarket' as const,
-          status: 'active' as const,
-          profit: 1200.00,
-          performance: 12.0,
-          accuracy: 85.3,
-          trades: 15
-        },
-        {
-          id: '6',
-          name: 'Sports Betting AI',
-          category: 'polymarket' as const,
-          status: 'active' as const,
-          profit: -300.00,
-          performance: -3.0,
-          accuracy: 65.8,
-          trades: 8
-        }
-      ];
+      // Fetch real data from backend API
+      const response = await fetch('/api/models/');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      setModelsData(polymarketMockData);
+      const allModels = await response.json();
+
+      // Filter for polymarket models only
+      const polymarketModels = allModels.filter((model: any) => model.category === 'polymarket');
+
+      setModelsData(polymarketModels);
       setModelsLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching polymarket models data:', error);

@@ -272,7 +272,10 @@ class MultiAssetTradingSystem:
                             end_date=end_date.strftime("%Y-%m-%d"),
                             max_pages=1,
                         )
-                        raw_news.extend(stock_news[:5])  # Limit to 5 articles per stock
+                        # Add stock_symbol metadata to each article
+                        for article in stock_news[:5]:  # Limit to 5 articles per stock
+                            article["stock_symbol"] = ticker
+                        raw_news.extend(stock_news[:5])
                     except Exception as e:
                         logger.warning(f"Error fetching news for {ticker}: {e}")
                         continue
@@ -293,7 +296,7 @@ class MultiAssetTradingSystem:
                             "impact": "medium",
                             "category": "market",
                             "url": article.get("link", "#"),
-                            "stock_symbol": None,
+                            "stock_symbol": article.get("stock_symbol"),
                         }
                     )
                 except Exception as e:
