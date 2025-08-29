@@ -80,7 +80,8 @@ def get_real_trades_data(ticker: str = "NVDA", days: int = 7) -> list[Trade]:
     sys.path.insert(0, project_root)
 
     try:
-        from live_trade_bench.fetchers.stock_fetcher import StockFetcher
+        # Use simulated stock fetcher for testing
+        from examples.stock_price_simulator import StockFetcher
 
         # Calculate date range
         end_date = datetime.now() - timedelta(days=1)  # Yesterday
@@ -181,7 +182,8 @@ def get_real_news_data(query: str = "stock market", days: int = 7) -> list[NewsI
     sys.path.insert(0, project_root)
 
     try:
-        from live_trade_bench import fetch_trending_stocks
+        # Use simulated stock fetcher for trending stocks
+        from examples.stock_price_simulator import fetch_trending_stocks
         from live_trade_bench.fetchers.news_fetcher import fetch_news_data
 
         # Calculate date range
