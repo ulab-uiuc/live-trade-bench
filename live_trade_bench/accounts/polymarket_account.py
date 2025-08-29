@@ -48,7 +48,7 @@ class PolymarketTransaction:
 class PolymarketAccount(BaseAccount[PolymarketPosition, PolymarketTransaction]):
     """Polymarket portfolio management account."""
 
-    def __init__(self, cash_balance: float = 1000.0):
+    def __init__(self, cash_balance: float = 500.0):
         super().__init__(cash_balance=cash_balance)
         self.positions: Dict[str, PolymarketPosition] = {}
         self.transactions: List[PolymarketTransaction] = []
@@ -93,7 +93,7 @@ class PolymarketAccount(BaseAccount[PolymarketPosition, PolymarketTransaction]):
         total_value = self.get_total_value()
 
         # Calculate return percentage (assuming initial cash as baseline)
-        initial_cash = 1000.0  # Default initial cash
+        initial_cash = 500.0  # Default initial cash
         return_pct = (
             ((total_value - initial_cash) / initial_cash * 100)
             if initial_cash > 0
@@ -125,6 +125,6 @@ class PolymarketAccount(BaseAccount[PolymarketPosition, PolymarketTransaction]):
             self.positions[market_id].current_price = current_price
 
 
-def create_polymarket_account(initial_cash: float = 1000.0) -> PolymarketAccount:
+def create_polymarket_account(initial_cash: float = 500.0) -> PolymarketAccount:
     """Create a new polymarket account."""
     return PolymarketAccount(cash_balance=initial_cash)
