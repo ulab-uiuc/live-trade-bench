@@ -46,7 +46,7 @@ class StockTransaction:
 class StockAccount(BaseAccount[StockPosition, StockTransaction]):
     """Stock portfolio management account."""
 
-    def __init__(self, cash_balance: float = 10000.0):
+    def __init__(self, cash_balance: float = 1000.0):
         super().__init__(cash_balance=cash_balance)
         self.positions: Dict[str, StockPosition] = {}
         self.transactions: List[StockTransaction] = []
@@ -90,7 +90,7 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
         total_value = self.get_total_value()
 
         # Calculate return percentage (assuming initial cash as baseline)
-        initial_cash = 10000.0  # Default initial cash for stock accounts
+        initial_cash = 1000.0  # Default initial cash for stock accounts
         return_pct = (
             ((total_value - initial_cash) / initial_cash * 100)
             if initial_cash > 0
@@ -122,6 +122,6 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
             self.positions[ticker].current_price = current_price
 
 
-def create_stock_account(initial_cash: float = 10000.0) -> StockAccount:
+def create_stock_account(initial_cash: float = 1000.0) -> StockAccount:
     """Create a new stock account."""
     return StockAccount(cash_balance=initial_cash)
