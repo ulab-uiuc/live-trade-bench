@@ -142,27 +142,65 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
   };
 
   return (
-    <div className="trading-history-page">
-      <div className="refresh-indicator">
-        <h1>Trading History</h1>
-        {loading && <div className="spinner"></div>}
-        <span style={{ marginLeft: 'auto', fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>
+    <div style={{
+      padding: '2rem',
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
+      color: '#ffffff',
+      minHeight: '100vh',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+      position: 'relative',
+      zIndex: 1000
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '2rem',
+        borderBottom: '1px solid #374151',
+        paddingBottom: '1rem'
+      }}>
+        <h1 style={{
+          fontSize: '2.5rem',
+          color: '#ffffff',
+          margin: 0,
+          fontWeight: '800',
+          background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>Trading History</h1>
+        {loading && <div style={{
+          width: '24px',
+          height: '24px',
+          border: '3px solid #374151',
+          borderTop: '3px solid #60a5fa',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>}
+        <span style={{ fontSize: '0.875rem', color: '#94a3b8' }}>
           Last updated: {lastRefresh.toLocaleTimeString()}
         </span>
       </div>
 
 
       {/* Filters */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '15px' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
           <div>
-            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block', color: 'var(--text-secondary)' }}>
+            <label style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', display: 'block', color: '#d1d5db' }}>
               Category
             </label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as any)}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+              style={{ 
+                padding: '0.5rem 0.75rem', 
+                borderRadius: '0.375rem', 
+                border: '1px solid #374151', 
+                background: '#1f2937', 
+                color: '#ffffff',
+                fontSize: '0.875rem'
+              }}
             >
               <option value="all">All Categories ({categoryStats.total})</option>
               <option value="polymarket">Polymarket ({categoryStats.polymarket})</option>
@@ -170,13 +208,20 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
             </select>
           </div>
           <div>
-            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block', color: 'var(--text-secondary)' }}>
+            <label style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', display: 'block', color: '#d1d5db' }}>
               Type
             </label>
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value as any)}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+              style={{ 
+                padding: '0.5rem 0.75rem', 
+                borderRadius: '0.375rem', 
+                border: '1px solid #374151', 
+                background: '#1f2937', 
+                color: '#ffffff',
+                fontSize: '0.875rem'
+              }}
             >
               <option value="all">All Types ({typeStats.total})</option>
               <option value="buy">Buy ({typeStats.buy})</option>
@@ -184,13 +229,20 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
             </select>
           </div>
           <div>
-            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px', display: 'block', color: 'var(--text-secondary)' }}>
+            <label style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', display: 'block', color: '#d1d5db' }}>
               Status
             </label>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value as any)}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+              style={{ 
+                padding: '0.5rem 0.75rem', 
+                borderRadius: '0.375rem', 
+                border: '1px solid #374151', 
+                background: '#1f2937', 
+                color: '#ffffff',
+                fontSize: '0.875rem'
+              }}
             >
               <option value="all">All Status</option>
               <option value="completed">Completed</option>
@@ -205,8 +257,15 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
       {/* Trades List */}
       <div style={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto' }}>
         {sortedTrades.map(trade => (
-          <div key={trade.id} className="news-item" style={{
-            borderLeft: `4px solid ${getTypeColor(trade.type)}`
+          <div key={trade.id} style={{
+            borderLeft: `4px solid ${getTypeColor(trade.type)}`,
+            background: '#1f2937',
+            border: '1px solid #374151',
+            borderRadius: '0.5rem',
+            padding: '1.5rem',
+            marginBottom: '1rem',
+            transition: 'all 0.2s ease',
+            cursor: 'pointer'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
               <div>
@@ -252,19 +311,23 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
                     {trade.status}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                <div style={{ fontSize: '0.9rem', color: '#94a3b8' }}>
                   {trade.amount} shares @ ${trade.price.toFixed(2)} = ${trade.totalValue.toFixed(2)}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#999' }}>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
                   {formatDate(trade.timestamp)} at {formatTime(trade.timestamp)} • {trade.model}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div className={`trade-amount ${trade.profit >= 0 ? 'profit' : 'loss'}`} style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
+                <div style={{ 
+                  fontSize: '1.2rem', 
+                  fontWeight: 'bold',
+                  color: trade.profit >= 0 ? '#10b981' : '#ef4444'
+                }}>
                   {trade.profit >= 0 ? '+' : ''}${trade.profit.toFixed(2)}
                 </div>
                 {trade.fees > 0 && (
-                  <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
                     Fees: ${trade.fees.toFixed(2)}
                   </div>
                 )}
@@ -277,12 +340,14 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
       {sortedTrades.length === 0 && !loading && (
         <div style={{
           textAlign: 'center',
-          padding: '40px',
-          color: 'var(--text-tertiary)',
-          background: 'var(--bg-card)',
-          borderRadius: '8px'
+          padding: '3rem',
+          color: '#6b7280',
+          background: '#1f2937',
+          borderRadius: '0.5rem',
+          border: '1px solid #374151'
         }}>
-          <p>No trades found for the selected filters.</p>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
+          <p style={{ fontSize: '1.125rem', margin: 0 }}>No trades found for the selected filters.</p>
         </div>
       )}
     </div>

@@ -225,14 +225,14 @@ class MultiAssetTradingSystem:
 
             # Add agent to stock portfolio system using native method
             self.stock_system.add_agent(
-                name=f"{model_name} (Stock)",
+                name=f"{model_name}",
                 initial_cash=self.stock_initial_cash,
                 model_name=llm_model,
             )
 
             # Add agent to polymarket portfolio system using native method
             self.polymarket_system.add_agent(
-                name=f"{model_name} (Polymarket)",
+                name=f"{model_name}",
                 initial_cash=self.polymarket_initial_cash,
                 model_name=llm_model,
             )
@@ -422,7 +422,7 @@ class MultiAssetTradingSystem:
         for model_id, model_config in zip(
             self.active_stock_models.keys(), self.models_config
         ):
-            agent_name = f"{model_config['name']} (Stock)"
+            agent_name = f"{model_config['name']}"
             if agent_name in self.stock_system.agents:
                 stock_agent: Any = self.stock_system.agents[agent_name]
                 stock_account: Any = self.stock_system.accounts[agent_name]
@@ -461,7 +461,7 @@ class MultiAssetTradingSystem:
         for model_id, model_config in zip(
             self.active_polymarket_models.keys(), self.models_config
         ):
-            agent_name = f"{model_config['name']} (Polymarket)"
+            agent_name = f"{model_config['name']}"
             if agent_name in self.polymarket_system.agents:
                 polymarket_agent: Any = self.polymarket_system.agents[agent_name]
                 polymarket_account: Any = self.polymarket_system.accounts[agent_name]
@@ -777,7 +777,7 @@ class MultiAssetTradingSystem:
                 (m for m in self.models_config if m["id"] == base_model_id), None
             )
             if model_config:
-                agent_name = f"{model_config['name']} (Stock)"
+                agent_name = f"{model_config['name']}"
                 if agent_name in self.stock_system.agents:
                     agent_stock: Any = self.stock_system.agents[agent_name]
                     account_stock: Any = self.stock_system.accounts[agent_name]

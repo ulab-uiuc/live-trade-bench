@@ -63,10 +63,7 @@ p, span, div {
   color: #6366f1;
 }
 
-.nav-logo::before {
-  content: '📈';
-  font-size: 1.75rem;
-}
+
 
 .nav-links {
   display: flex;

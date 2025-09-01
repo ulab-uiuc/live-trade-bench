@@ -75,13 +75,45 @@ const News: React.FC = () => {
     }
   };
 
-  const getImpactIcon = (impact: string) => {
-    switch (impact) {
-      case 'high': return '🔥';
-      case 'medium': return '📊';
-      case 'low': return '📰';
-      default: return '📰';
+  // Generate unique color for each stock symbol
+  const getStockColor = (stockSymbol: string | null) => {
+    if (!stockSymbol) return '#6b7280';
+    
+    // Predefined color palette for better visual distinction
+    const colorPalette = [
+      '#3b82f6', // Blue
+      '#10b981', // Green
+      '#f59e0b', // Yellow
+      '#ef4444', // Red
+      '#8b5cf6', // Purple
+      '#06b6d4', // Cyan
+      '#84cc16', // Lime
+      '#f97316', // Orange
+      '#ec4899', // Pink
+      '#6366f1', // Indigo
+      '#14b8a6', // Teal
+      '#a855f7', // Violet
+      '#22c55e', // Green-500
+      '#eab308', // Yellow-500
+      '#dc2626', // Red-600
+      '#7c3aed', // Violet-600
+      '#0891b2', // Cyan-600
+      '#65a30d', // Lime-600
+      '#ea580c', // Orange-600
+      '#be185d'  // Pink-600
+    ];
+    
+    // Generate a consistent hash from the stock symbol
+    let hash = 0;
+    for (let i = 0; i < stockSymbol.length; i++) {
+      const char = stockSymbol.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
     }
+    
+    // Use absolute value and modulo to get a color index
+    const colorIndex = Math.abs(hash) % colorPalette.length;
+    return colorPalette[colorIndex];
   };
 
   const formatTimeAgo = (publishedAt: string) => {
@@ -106,7 +138,7 @@ const News: React.FC = () => {
     return (
       <div style={{
         padding: '2rem',
-        background: '#1f2937',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
         color: '#ffffff',
         minHeight: '100vh',
         display: 'flex',
@@ -125,7 +157,7 @@ const News: React.FC = () => {
     return (
       <div style={{
         padding: '2rem',
-        background: '#1f2937',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
         color: '#ffffff',
         minHeight: '100vh',
         display: 'flex',
@@ -273,22 +305,36 @@ const News: React.FC = () => {
               alignItems: 'flex-start',
               marginBottom: '1rem'
             }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                <span style={{
-                  background: getImpactColor(news.impact),
-                  color: '#ffffff',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '0.25rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold'
-                }}>
-                  {getImpactIcon(news.impact)} {news.stock_symbol}
-                </span>
-              </div>
+                             <div style={{
+                 display: 'flex',
+                 alignItems: 'center',
+                 gap: '0.5rem'
+               }}>
+                 {/* Stock Symbol Tag */}
+                 {news.stock_symbol && (
+                   <span style={{
+                     background: getStockColor(news.stock_symbol),
+                     color: '#ffffff',
+                     padding: '0.25rem 0.5rem',
+                     borderRadius: '0.25rem',
+                     fontSize: '0.75rem',
+                     fontWeight: 'bold'
+                   }}>
+                     {news.stock_symbol}
+                   </span>
+                 )}
+                 {/* Impact Tag */}
+                 <span style={{
+                   background: getImpactColor(news.impact),
+                   color: '#ffffff',
+                   padding: '0.25rem 0.5rem',
+                   borderRadius: '0.25rem',
+                   fontSize: '0.75rem',
+                   fontWeight: 'bold'
+                 }}>
+                   {news.impact}
+                 </span>
+               </div>
               <span style={{
                 color: '#9ca3af',
                 fontSize: '0.75rem',
@@ -319,35 +365,22 @@ const News: React.FC = () => {
               {news.summary}
             </p>
 
-            {/* News footer */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingTop: '0.75rem',
-              borderTop: '1px solid #374151'
-            }}>
-              <span style={{
-                color: '#6366f1',
-                fontSize: '0.75rem',
-                fontWeight: '600'
-              }}>
-                📰 {news.source}
-              </span>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                <span style={{
-                  color: getImpactColor(news.impact),
-                  fontSize: '0.75rem',
-                  fontWeight: '600'
-                }}>
-                  {news.impact.charAt(0).toUpperCase() + news.impact.slice(1)} Impact
-                </span>
-              </div>
-            </div>
+                         {/* News footer */}
+             <div style={{
+               display: 'flex',
+               justifyContent: 'space-between',
+               alignItems: 'center',
+               paddingTop: '0.75rem',
+               borderTop: '1px solid #374151'
+             }}>
+               <span style={{
+                 color: '#fffffff',
+                 fontSize: '0.75rem',
+                 fontWeight: '600'
+               }}>
+                 {news.source}
+               </span>
+             </div>
           </a>
         ))}
       </div>
