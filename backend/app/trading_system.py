@@ -109,7 +109,7 @@ class MultiAssetTradingSystem:
         self.trading_thread: Optional[threading.Thread] = None
 
         # Trading configuration matching demo patterns
-        self.cycle_interval = 1 * 60  # 1 minute between cycles
+        self.cycle_interval = 5 * 60  # 5 minutes between cycles
         self.stock_initial_cash = 1000.0
         self.polymarket_initial_cash = 500.0
 
