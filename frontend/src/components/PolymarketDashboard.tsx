@@ -118,7 +118,7 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({
           position: 'relative',
           zIndex: 1000
         }}>
-          🎯 Polymarket Models
+          🎯 Polymarket Model
         </h1>
         <p style={{
           color: '#ffffff',
