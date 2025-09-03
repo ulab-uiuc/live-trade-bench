@@ -256,7 +256,77 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
   // 资产分配横条图组件
   const AssetAllocationBar = ({ model }: { model: Model }) => {
-    const allocations = generateAssetAllocation(model);
+    const [portfolioAllocations, setPortfolioAllocations] = useState<any[]>([]);
+
+    useEffect(() => {
+      const fetchPortfolioData = async () => {
+        try {
+          const response = await fetch(`/api/models/${model.id}/portfolio`);
+          if (response.ok) {
+            const portfolio = await response.json();
+            const total = portfolio.total_value || 1000;
+            const allocations = [];
+
+            // Convert holdings to allocations
+            if (portfolio.holdings && Object.keys(portfolio.holdings).length > 0) {
+              Object.entries(portfolio.holdings).forEach(([ticker, quantity]: [string, any]) => {
+                const position = portfolio.positions[ticker];
+                const value = position?.current_value || 0;
+                const allocation = value / total;
+                if (allocation > 0) {
+                  allocations.push({
+                    name: ticker,
+                    allocation: allocation,
+                    color: getColorForTicker(ticker),
+                    price: `$${position?.current_price?.toFixed(2) || '0.00'}`,
+                    change: '0.0%'
+                  });
+                }
+              });
+            }
+
+            // Add cash allocation
+            const cashRatio = (portfolio.cash || 0) / total;
+            if (cashRatio > 0) {
+              allocations.push({
+                name: 'CASH',
+                allocation: cashRatio,
+                color: '#6b7280',
+                price: '$1.00',
+                change: '0.0%'
+              });
+            }
+
+            setPortfolioAllocations(allocations.length > 0 ? allocations : generateAssetAllocation(model));
+          } else {
+            setPortfolioAllocations(generateAssetAllocation(model));
+          }
+        } catch (error) {
+          console.error('Error fetching portfolio:', error);
+          setPortfolioAllocations(generateAssetAllocation(model));
+        }
+      };
+
+      fetchPortfolioData();
+      const interval = setInterval(fetchPortfolioData, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }, [model.id]);
+
+    const allocations = portfolioAllocations;
+
+    // Helper function to get colors for tickers
+    function getColorForTicker(ticker: string): string {
+      const colors = {
+        'AAPL': '#3b82f6',
+        'MSFT': '#10b981',
+        'NVDA': '#f59e0b',
+        'GOOGL': '#ef4444',
+        'TSLA': '#8b5cf6',
+        'META': '#06b6d4',
+        'AMZN': '#f97316'
+      };
+      return colors[ticker as keyof typeof colors] || '#64748b';
+    }
 
     return (
       <div className="asset-allocation">
@@ -345,7 +415,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
             {/* 方形模型卡片，显示资产分配 */}
       <div className="models-grid-square">
         {filteredModels.map(model => {
-          const allocations = generateAssetAllocation(model);
+          const allocations = generateAssetAllocation(model); // This will be overridden by real data in AssetAllocationBar
           return (
             <div
               key={model.id}

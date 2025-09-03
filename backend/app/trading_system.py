@@ -109,7 +109,7 @@ class MultiAssetTradingSystem:
         self.trading_thread: Optional[threading.Thread] = None
 
         # Trading configuration matching demo patterns
-        self.cycle_interval = 30 * 60  # 30 minutes between cycles
+        self.cycle_interval = 1 * 60  # 1 minute between cycles
         self.stock_initial_cash = 1000.0
         self.polymarket_initial_cash = 500.0
 
@@ -251,7 +251,7 @@ class MultiAssetTradingSystem:
             logger.info("Updating background news cache")
 
             # Import news fetcher directly to avoid circular imports
-            from live_trade_bench import fetch_trending_stocks
+            from examples.stock_price_simulator import fetch_trending_stocks
             from live_trade_bench.fetchers.news_fetcher import fetch_news_data
 
             # Calculate date range
@@ -584,7 +584,7 @@ class MultiAssetTradingSystem:
                 return list(self.stock_system.universe)
             else:
                 # Fallback: fetch trending stocks directly
-                from live_trade_bench import fetch_trending_stocks
+                from examples.stock_price_simulator import fetch_trending_stocks
 
                 trending_stocks = fetch_trending_stocks(limit=20)
                 # fetch_trending_stocks may return either a list of ticker strings
@@ -733,13 +733,8 @@ class MultiAssetTradingSystem:
     def _run_stock_cycle_native(self) -> None:
         """Run stock cycle using native StockPortfolioSystem.run() - adapted for backend service"""
         try:
-            # Check if market is open before running stock trading
-            if not is_market_hours():
-                market_status = get_market_status()
-                logger.info(
-                    f"Stock market is closed. Market will open at {market_status['next_open']} ET. Skipping stock trading cycle."
-                )
-                return
+            # Using stock price simulator - no market hours restriction
+            # Market simulation runs 24/7 for testing
 
             logger.info(
                 "Running stock system using native .run() method (market is open)"
@@ -791,13 +786,13 @@ class MultiAssetTradingSystem:
                 try:
                     active_positions = account_stock.get_active_positions()
                     for ticker, position in active_positions.items():
-                        holdings[ticker] = position.quantity
+                        holdings[ticker] = position["quantity"]
                         positions[ticker] = {
-                            "current_price": getattr(position, "current_price", 0.0),
-                            "avg_price": getattr(position, "avg_price", 0.0),
-                            "unrealized_pnl": getattr(position, "unrealized_pnl", 0.0),
-                            "current_value": position.quantity
-                            * getattr(position, "current_price", 0.0),
+                            "current_price": position.get("current_price", 0.0),
+                            "avg_price": position.get("average_price", 0.0),
+                            "unrealized_pnl": position.get("unrealized_pnl", 0.0),
+                            "current_value": position["quantity"]
+                            * position.get("current_price", 0.0),
                         }
                 except Exception as e:
                     logger.warning(f"Error getting positions for {model_id}: {e}")
@@ -838,14 +833,14 @@ class MultiAssetTradingSystem:
                 try:
                     active_positions = account_poly.get_active_positions()
                     for market_id, position in active_positions.items():
-                        holdings[market_id] = position.quantity
+                        holdings[market_id] = position["quantity"]
                         positions[market_id] = {
-                            "current_price": getattr(position, "current_price", 0.0),
-                            "avg_price": getattr(position, "avg_price", 0.0),
-                            "unrealized_pnl": getattr(position, "unrealized_pnl", 0.0),
-                            "current_value": position.quantity
-                            * getattr(position, "current_price", 0.0),
-                            "outcome": getattr(position, "outcome", "unknown"),
+                            "current_price": position.get("current_price", 0.0),
+                            "avg_price": position.get("average_price", 0.0),
+                            "unrealized_pnl": position.get("unrealized_pnl", 0.0),
+                            "current_value": position["quantity"]
+                            * position.get("current_price", 0.0),
+                            "outcome": position.get("outcome", "unknown"),
                         }
                 except Exception as e:
                     logger.warning(
@@ -874,7 +869,7 @@ class MultiAssetTradingSystem:
         """Get real-time portfolio data using market fetchers"""
         try:
             # Import fetchers for real-time data
-            from live_trade_bench.fetchers.stock_fetcher import StockFetcher
+            from examples.stock_price_simulator import StockFetcher
 
             # Get current portfolio
             portfolio_data = self.get_portfolio(model_id)
