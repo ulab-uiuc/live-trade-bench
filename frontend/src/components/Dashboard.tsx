@@ -249,7 +249,7 @@ const Dashboard: React.FC<any> = (props) => {
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text'
             }}>
-              Stock Models Leaderboard
+              Stock Model Leaderboard
             </span>
           </h2>
 

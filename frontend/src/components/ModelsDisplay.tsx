@@ -435,18 +435,19 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
         <div
           style={{
             position: 'fixed',
-            top: tooltip.y,
+            top: tooltip.y - 40,
             left: tooltip.x,
             transform: 'translateX(-50%)',
             background: 'rgba(0, 0, 0, 0.9)',
             color: 'white',
             padding: '8px 12px',
-            borderRadius: '4px',
-            fontSize: '12px',
+            borderRadius: '6px',
+            fontSize: '14px',
+            fontWeight: '600',
             zIndex: 10000,
             pointerEvents: 'none',
             whiteSpace: 'nowrap',
-            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
             border: '1px solid #374151'
           }}
         >
@@ -487,7 +488,25 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
               <AssetAllocationBar model={selectedModel} />
 
+              {/* 分割线 */}
+              <div style={{
+                height: '1px',
+                background: 'linear-gradient(90deg, transparent 0%, #374151 50%, transparent 100%)',
+                margin: '2rem 0',
+                position: 'relative'
+              }}>
+            </div>
+
               <AssetRatioChart model={selectedModel} />
+
+              {/* 分割线 */}
+              <div style={{
+                height: '1px',
+                background: 'linear-gradient(90deg, transparent 0%, #374151 50%, transparent 100%)',
+                margin: '2rem 0',
+                position: 'relative'
+              }}>
+              </div>
 
               <ProfitChartWithData
                 model={selectedModel}
