@@ -856,6 +856,7 @@ class MultiAssetTradingSystem:
                     "return_pct": evaluation["portfolio_summary"]["return_pct"],
                     "holdings": holdings,
                     "positions": positions,
+                    "target_allocations": account_poly.target_allocations,
                     "unrealized_pnl": evaluation["portfolio_summary"].get(
                         "unrealized_pnl", 0.0
                     ),
