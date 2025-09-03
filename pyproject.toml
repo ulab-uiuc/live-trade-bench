@@ -21,6 +21,7 @@ praw = "*"
 fastapi = "*"
 uvicorn = "*"
 spacy = "^3.8.7"
+litellm = "*"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.3.0"
