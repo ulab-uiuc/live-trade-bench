@@ -127,15 +127,55 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     }
   };
 
+  // Generate dynamic color for any ticker/asset
+  const getColorForTicker = (ticker: string) => {
+    // Special case for CASH
+    if (ticker === 'CASH') {
+      return '#6b7280'; // Gray for cash
+    }
+    
+    const colors = [
+      '#3b82f6', // Blue
+      '#ef4444', // Red  
+      '#10b981', // Green
+      '#f59e0b', // Amber
+      '#8b5cf6', // Purple
+      '#06b6d4', // Cyan
+      '#84cc16', // Lime
+      '#f97316', // Orange
+      '#ec4899', // Pink
+      '#6366f1', // Indigo
+      '#14b8a6', // Teal
+      '#f43f5e', // Rose
+      '#a855f7', // Violet
+      '#22c55e', // Green-500
+      '#eab308', // Yellow-500
+      '#0ea5e9', // Sky-500
+      '#dc2626', // Red-600
+      '#16a34a', // Green-600
+      '#ca8a04', // Yellow-600
+      '#2563eb'  // Blue-600
+    ];
+    
+    // Generate consistent hash for the ticker
+    let hash = 0;
+    for (let i = 0; i < ticker.length; i++) {
+      hash = ticker.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Always return the same color for the same ticker
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   // 生成模拟资产分配数据（包含价格信息）
   const generateAssetAllocation = (model: Model) => {
     if (model.category === 'stock') {
       return [
-        { name: 'CASH', allocation: 1.00, color: '#6b7280', price: '$1.00', change: '0.0%' }
+        { name: 'CASH', allocation: 1.00, color: getColorForTicker('CASH'), price: '$1.00', change: '0.0%' }
       ];
     } else {
       return [
-        { name: 'CASH', allocation: 1.00, color: '#6b7280', price: '$1.00', change: '0.0%' }
+        { name: 'CASH', allocation: 1.00, color: getColorForTicker('CASH'), price: '$1.00', change: '0.0%' }
       ];
     }
   };
@@ -299,19 +339,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
     const allocations = portfolioAllocations;
 
-    // Helper function to get colors for tickers
-    function getColorForTicker(ticker: string): string {
-      const colors = {
-        'AAPL': '#3b82f6',
-        'MSFT': '#10b981',
-        'NVDA': '#f59e0b',
-        'GOOGL': '#ef4444',
-        'TSLA': '#8b5cf6',
-        'META': '#06b6d4',
-        'AMZN': '#f97316'
-      };
-      return colors[ticker as keyof typeof colors] || '#64748b';
-    }
+
 
     return (
       <div className="asset-allocation">
