@@ -95,13 +95,10 @@ class MultiAssetTradingSystem:
 
     def __init__(self) -> None:
         # Import the native portfolio systems using factory functions
-        from live_trade_bench import (
-            create_polymarket_portfolio_system,
-            create_stock_portfolio_system,
-        )
+        from live_trade_bench import create_polymarket_portfolio_system
 
-        # Create the native portfolio systems using factory functions
-        self.stock_system = create_stock_portfolio_system()
+        # Create stock system with simulated fetcher
+        self.stock_system = self._create_stock_portfolio_system_with_simulator()
         self.polymarket_system = create_polymarket_portfolio_system()
 
         # System control
@@ -116,39 +113,9 @@ class MultiAssetTradingSystem:
         # Model configurations for multiple LLM models
         self.models_config = [
             {
-                "id": "claude-3.7-sonnet",
-                "name": "Claude 3.7 Sonnet",
-                "llm_model": "claude-3-7-sonnet-20250219",
-            },
-            {
-                "id": "gpt-5",
-                "name": "GPT-5",
-                "llm_model": "openai/gpt-5",
-            },
-            {
-                "id": "gpt-4o",
-                "name": "GPT-4o",
-                "llm_model": "openai/gpt-4o",
-            },
-            {
-                "id": "gemini-2.5-flash",
-                "name": "Gemini 2.5 Flash",
-                "llm_model": "gemini/gemini-2.5-flash",
-            },
-            {
-                "id": "claude-4-sonnet",
-                "name": "Claude 4 Sonnet",
-                "llm_model": "claude-sonnet-4-20250514",
-            },
-            {
-                "id": "grok-4",
-                "name": "Grok 4",
-                "llm_model": "xai/grok-4-0709",
-            },
-            {
-                "id": "deepseek-chat",
-                "name": "Deepseek V3 (Chat)",
-                "llm_model": "deepseek/deepseek-chat",
+                "id": "gpt-4o-mini",
+                "name": "GPT-4o Mini",
+                "llm_model": "openai/gpt-4o-mini",
             },
         ]
 
@@ -201,8 +168,54 @@ class MultiAssetTradingSystem:
         self._update_social_cache()
 
         logger.info(
-            "Multi-asset portfolio system initialized using native .run() methods"
+            "Multi-asset portfolio system initialized using native .run() methods with simulated stock data"
         )
+
+    def _create_stock_portfolio_system_with_simulator(self):
+        """Create a stock portfolio system that uses our price simulator instead of real fetchers"""
+        try:
+            # Import our simulator functions first
+            # Monkey patch the entire live_trade_bench module to use our simulator
+            import live_trade_bench
+            import live_trade_bench.fetchers
+            import live_trade_bench.fetchers.stock_fetcher
+            from examples.stock_price_simulator import (
+                StockFetcher,
+                fetch_current_stock_price,
+                fetch_trending_stocks,
+            )
+
+            # Replace the functions at all levels
+            live_trade_bench.fetch_trending_stocks = fetch_trending_stocks
+            live_trade_bench.fetch_current_stock_price = fetch_current_stock_price
+            live_trade_bench.fetchers.fetch_trending_stocks = fetch_trending_stocks
+            live_trade_bench.fetchers.fetch_current_stock_price = (
+                fetch_current_stock_price
+            )
+            live_trade_bench.fetchers.stock_fetcher.fetch_trending_stocks = (
+                fetch_trending_stocks
+            )
+            live_trade_bench.fetchers.stock_fetcher.fetch_current_stock_price = (
+                fetch_current_stock_price
+            )
+            live_trade_bench.fetchers.stock_fetcher.StockFetcher = StockFetcher
+
+            # Now create the system - it should use our patched functions
+            from live_trade_bench import create_stock_portfolio_system
+
+            system = create_stock_portfolio_system()
+
+            logger.info(
+                "✅ Created stock portfolio system with monkey-patched simulator fetchers"
+            )
+            return system
+
+        except Exception as e:
+            logger.error(f"❌ Failed to create stock system with simulator: {e}")
+            # Fallback to original system if needed
+            from live_trade_bench import create_stock_portfolio_system
+
+            return create_stock_portfolio_system()
 
     @property
     def stock_agents(self) -> List[str]:
@@ -251,7 +264,8 @@ class MultiAssetTradingSystem:
             logger.info("Updating background news cache")
 
             # Import news fetcher directly to avoid circular imports
-            from live_trade_bench import fetch_trending_stocks
+            # Use simulated stock fetcher for trending stocks
+            from examples.stock_price_simulator import fetch_trending_stocks
             from live_trade_bench.fetchers.news_fetcher import fetch_news_data
 
             # Calculate date range
@@ -584,7 +598,8 @@ class MultiAssetTradingSystem:
                 return list(self.stock_system.universe)
             else:
                 # Fallback: fetch trending stocks directly
-                from live_trade_bench import fetch_trending_stocks
+                # Use simulated stock fetcher for trending stocks
+                from examples.stock_price_simulator import fetch_trending_stocks
 
                 trending_stocks = fetch_trending_stocks(limit=20)
                 # fetch_trending_stocks may return either a list of ticker strings
@@ -874,7 +889,8 @@ class MultiAssetTradingSystem:
         """Get real-time portfolio data using market fetchers"""
         try:
             # Import fetchers for real-time data
-            from live_trade_bench.fetchers.stock_fetcher import StockFetcher
+            # Use simulated stock fetcher for real-time data
+            from examples.stock_price_simulator import StockFetcher
 
             # Get current portfolio
             portfolio_data = self.get_portfolio(model_id)
