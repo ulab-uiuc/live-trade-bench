@@ -2,7 +2,6 @@ import React, { useEffect, useCallback } from 'react';
 
 // 使用any类型避免接口冲突，但保持功能
 const Dashboard: React.FC<any> = (props) => {
-  console.log('🎯 Dashboard component is rendering!', props);
 
   // 安全地访问props
   const modelsData = props?.modelsData || [];
@@ -302,11 +301,10 @@ const Dashboard: React.FC<any> = (props) => {
                     display: 'flex', 
                     alignItems: 'end', 
                     justifyContent: 'space-around',
-                    gap: '0.5rem'
+                    gap: '0.3rem'
                   }}>
                     {stockModels
                       .sort((a: any, b: any) => (b?.performance || 0) - (a?.performance || 0))
-                      .slice(0, 5)
                       .map((model: any, index: number) => {
                         const performance = model?.performance || 0;
                         const height = Math.max(Math.abs(performance) * 2.2, 8);
@@ -315,7 +313,7 @@ const Dashboard: React.FC<any> = (props) => {
                         return (
                           <div key={model?.id || index} style={{ 
                             flex: 1, 
-                            maxWidth: '70px',
+                            maxWidth: '50px',
                             display: 'flex', 
                             flexDirection: 'column', 
                             alignItems: 'center'
@@ -474,11 +472,10 @@ const Dashboard: React.FC<any> = (props) => {
                     display: 'flex', 
                     alignItems: 'end', 
                     justifyContent: 'space-around',
-                    gap: '0.5rem'
+                    gap: '0.3rem'
                   }}>
                     {polymarketModels
                       .sort((a: any, b: any) => (b?.performance || 0) - (a?.performance || 0))
-                      .slice(0, 5)
                       .map((model: any, index: number) => {
                         const performance = model?.performance || 0;
                         const height = Math.max(Math.abs(performance) * 2.2, 8);
@@ -487,7 +484,7 @@ const Dashboard: React.FC<any> = (props) => {
                         return (
                           <div key={model?.id || index} style={{ 
                             flex: 1, 
-                            maxWidth: '70px',
+                            maxWidth: '50px',
                             display: 'flex', 
                             flexDirection: 'column', 
                             alignItems: 'center'
