@@ -118,7 +118,7 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({
           position: 'relative',
           zIndex: 1000
         }}>
-          🎯 Polymarket Prediction Models
+          🎯 Polymarket Models
         </h1>
         <p style={{
           color: '#ffffff',
@@ -131,7 +131,7 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({
           position: 'relative',
           zIndex: 1000
         }}>
-          AI-powered prediction market strategies and outcome forecasting
+          AI-powered prediction market portfolio management
         </p>
       </div>
 
