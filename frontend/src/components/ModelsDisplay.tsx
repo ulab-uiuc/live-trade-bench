@@ -28,7 +28,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock'>('all');
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [tooltip, setTooltip] = useState<{show: boolean; content: string; x: number; y: number}>({
+  const [tooltip, setTooltip] = useState<{ show: boolean; content: string; x: number; y: number }>({
     show: false,
     content: '',
     x: 0,
@@ -92,7 +92,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   };
 
   // Fetch real profit history data from backend
-  const [profitHistoryData, setProfitHistoryData] = useState<{[key: string]: any[]}>({});
+  const [profitHistoryData, setProfitHistoryData] = useState<{ [key: string]: any[] }>({});
 
   const fetchProfitHistory = async (model: Model) => {
     if (profitHistoryData[model.id]) {
@@ -189,7 +189,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           {/* 网格线 */}
           <defs>
             <pattern id="grid" width="40" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 20" fill="none" stroke="#374151" strokeWidth="0.5"/>
+              <path d="M 40 0 L 0 0 0 20" fill="none" stroke="#374151" strokeWidth="0.5" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
@@ -264,40 +264,25 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           const response = await fetch(`/api/models/${model.id}/portfolio`);
           if (response.ok) {
             const portfolio = await response.json();
-            const total = portfolio.total_value || 1000;
-            const allocations = [];
+            // Prefer backend-provided target allocations (already includes CASH)
+            if (portfolio.target_allocations && Object.keys(portfolio.target_allocations).length > 0) {
+              const entries = Object.entries(portfolio.target_allocations) as Array<[string, number]>;
+              const allocations = entries
+                .filter(([, ratio]) => typeof ratio === 'number' && ratio > 0)
+                .map(([name, ratio]) => ({
+                  name,
+                  allocation: ratio,
+                  color: name === 'CASH' ? '#6b7280' : getColorForTicker(name)
+                }))
+                // sort desc for nicer visuals
+                .sort((a, b) => b.allocation - a.allocation);
 
-            // Convert holdings to allocations
-            if (portfolio.holdings && Object.keys(portfolio.holdings).length > 0) {
-              Object.entries(portfolio.holdings).forEach(([ticker, quantity]: [string, any]) => {
-                const position = portfolio.positions[ticker];
-                const value = position?.current_value || 0;
-                const allocation = value / total;
-                if (allocation > 0) {
-                  allocations.push({
-                    name: ticker,
-                    allocation: allocation,
-                    color: getColorForTicker(ticker),
-                    price: `$${position?.current_price?.toFixed(2) || '0.00'}`,
-                    change: '0.0%'
-                  });
-                }
-              });
+              setPortfolioAllocations(allocations);
+              return;
             }
 
-            // Add cash allocation
-            const cashRatio = (portfolio.cash || 0) / total;
-            if (cashRatio > 0) {
-              allocations.push({
-                name: 'CASH',
-                allocation: cashRatio,
-                color: '#6b7280',
-                price: '$1.00',
-                change: '0.0%'
-              });
-            }
-
-            setPortfolioAllocations(allocations.length > 0 ? allocations : generateAssetAllocation(model));
+            // Lightweight fallback: if no target_allocations, show default placeholder
+            setPortfolioAllocations(generateAssetAllocation(model));
           } else {
             setPortfolioAllocations(generateAssetAllocation(model));
           }
@@ -391,28 +376,28 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       {/* 只在有多种类型时显示过滤器 */}
       {showCategoryTabs && (
         <div className="category-tabs">
-        <button
-          onClick={() => setSelectedCategory('all')}
+          <button
+            onClick={() => setSelectedCategory('all')}
             className={selectedCategory === 'all' ? 'active' : ''}
-        >
+          >
             All ({modelsData.length})
-        </button>
-        <button
+          </button>
+          <button
             onClick={() => setSelectedCategory('stock')}
             className={selectedCategory === 'stock' ? 'active' : ''}
-        >
+          >
             Stock ({stockModels.length})
-        </button>
-        <button
+          </button>
+          <button
             onClick={() => setSelectedCategory('polymarket')}
             className={selectedCategory === 'polymarket' ? 'active' : ''}
-        >
+          >
             Polymarket ({polymarketModels.length})
-        </button>
+          </button>
         </div>
       )}
 
-            {/* 方形模型卡片，显示资产分配 */}
+      {/* 方形模型卡片，显示资产分配 */}
       <div className="models-grid-square">
         {filteredModels.map(model => {
           const allocations = generateAssetAllocation(model); // This will be overridden by real data in AssetAllocationBar
@@ -422,7 +407,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               className="model-card-square"
               onClick={() => handleModelClick(model)}
             >
-                                                        {/* 紧凑头部 */}
+              {/* 紧凑头部 */}
               <div className="card-header-compact">
                 <h3 style={{
                   color: '#ffffff',
@@ -438,7 +423,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                     style={{ backgroundColor: getStatusColor(model.status) }}
                   />
                 </div>
-      </div>
+              </div>
 
               {/* 只显示回报率 */}
               <div className="card-return-only">
@@ -459,7 +444,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                   zIndex: 1000
                 }}>
                   {model.performance.toFixed(1)}%
-                  </span>
+                </span>
               </div>
 
               {/* 资产分配横条 - 自定义悬停显示 */}
@@ -537,7 +522,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                   <span className={`status-badge ${selectedModel.status}`}>
                     {selectedModel.status}
                   </span>
-            </div>
+                </div>
                 <div className="detail-row">
                   <span>Total Trades:</span>
                   <span>{selectedModel.trades}</span>
@@ -557,7 +542,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 margin: '2rem 0',
                 position: 'relative'
               }}>
-            </div>
+              </div>
 
               <AssetRatioChart model={selectedModel} />
 
@@ -692,8 +677,8 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
           {/* Background grid with gradient */}
           <defs>
             <linearGradient id="chartBackground" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#334155" stopOpacity="0.1"/>
-              <stop offset="100%" stopColor="#1e293b" stopOpacity="0.3"/>
+              <stop offset="0%" stopColor="#334155" stopOpacity="0.1" />
+              <stop offset="100%" stopColor="#1e293b" stopOpacity="0.3" />
             </linearGradient>
           </defs>
 
@@ -772,8 +757,8 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
                   {/* Gradient definition for this asset */}
                   <defs>
                     <linearGradient id={`gradient-${asset}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor={color} stopOpacity="0.8"/>
-                      <stop offset="100%" stopColor={color} stopOpacity="0.3"/>
+                      <stop offset="0%" stopColor={color} stopOpacity="0.8" />
+                      <stop offset="100%" stopColor={color} stopOpacity="0.3" />
                     </linearGradient>
                   </defs>
 
