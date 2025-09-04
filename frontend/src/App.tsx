@@ -8,35 +8,7 @@ import SocialMedia from './components/SocialMedia';
 import TradingHistoryPage from './components/TradingHistoryPage';
 import Navigation from './components/Navigation';
 import './App.css';
-
-interface Model {
-  id: string;
-  name: string;
-  category: 'polymarket' | 'stock';
-  performance: number;
-  accuracy: number;
-  trades: number;
-  profit: number;
-  status: 'active' | 'inactive' | 'training';
-  market_type?: string;
-  ticker?: string;
-  strategy?: string;
-}
-
-interface Trade {
-  id: string;
-  timestamp: Date;
-  symbol: string;
-  type: 'buy' | 'sell';
-  amount: number;
-  price: number;
-  profit: number;
-  model: string;
-  category: 'polymarket' | 'stock';
-  status: 'completed' | 'pending' | 'cancelled' | 'failed';
-  fees: number;
-  totalValue: number;
-}
+import type { Model, Trade } from './types';
 
 function App() {
   const [tradesData, setTradesData] = useState<Trade[]>([]);

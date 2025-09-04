@@ -294,6 +294,13 @@
   color: #ef4444;
 }
 
+/* Chart container styles extracted from inline */
+.chart-svg {
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  background: #1f2937;
+}
+
 /* 卡片内资产分配 */
 .card-allocation {
   margin-top: 0;

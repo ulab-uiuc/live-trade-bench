@@ -1,15 +1,27 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import './ModelsDisplay.css';
+import type { Model } from '../types';
 
-interface Model {
-  id: string;
-  name: string;
-  category: 'polymarket' | 'stock';
-  performance: number;
-  accuracy: number;
-  trades: number;
-  profit: number;
-  status: 'active' | 'inactive' | 'training';
+// Pure helpers hoisted to module scope to avoid re-creation every render
+const COLORS = [
+  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316',
+  '#ec4899', '#6366f1', '#14b8a6', '#f43f5e', '#a855f7', '#22c55e', '#eab308', '#0ea5e9',
+  '#dc2626', '#16a34a', '#ca8a04', '#2563eb'
+] as const;
+
+function getColorForTicker(ticker: string): string {
+  if (ticker === 'CASH') return '#6b7280';
+  let hash = 0;
+  for (let i = 0; i < ticker.length; i++) {
+    hash = ticker.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return COLORS[Math.abs(hash) % COLORS.length];
+}
+
+function generateAssetAllocation(model: Pick<Model, 'category'>) {
+  return [
+    { name: 'CASH', allocation: 1.0, color: getColorForTicker('CASH'), price: '$1.00', change: '0.0%' }
+  ];
 }
 
 interface ModelsDisplayProps {
@@ -28,12 +40,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock'>('all');
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [tooltip, setTooltip] = useState<{ show: boolean; content: string; x: number; y: number }>({
-    show: false,
-    content: '',
-    x: 0,
-    y: 0
-  });
 
   // 检查是否需要显示分类标签
   const showCategoryTabs = useMemo(() => {
@@ -55,145 +61,68 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   }, [selectedCategory, stockModels, polymarketModels, modelsData, showCategoryTabs]);
 
   // 简化的状态颜色
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return '#10b981';
-      case 'inactive': return '#ef4444';
-      case 'training': return '#f59e0b';
-      default: return '#6b7280';
-    }
-  };
+  const getStatusColor = (status: string) => ({
+    active: '#10b981',
+    inactive: '#ef4444',
+    training: '#f59e0b'
+  } as const)[status as 'active' | 'inactive' | 'training'] || '#6b7280';
 
   // 点击模型卡片处理
-  const handleModelClick = (model: Model) => {
+  const handleModelClick = useCallback((model: Model) => {
     setSelectedModel(model);
     setShowModal(true);
-  };
+  }, []);
 
   // 关闭模态框
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setShowModal(false);
     setSelectedModel(null);
-  };
+  }, []);
 
-  // 处理悬停提示
-  const handleMouseEnter = (asset: any, event: React.MouseEvent) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setTooltip({
-      show: true,
-      content: `${asset.name}: ${(asset.allocation * 100).toFixed(1)}% | Price: ${asset.price} (${asset.change})`,
-      x: rect.left + rect.width / 2,
-      y: rect.top - 10
-    });
-  };
-
-  const handleMouseLeave = () => {
-    setTooltip({ show: false, content: '', x: 0, y: 0 });
-  };
+  // Removed unused tooltip hover handlers for simplicity
 
   // Fetch real profit history data from backend
   const [profitHistoryData, setProfitHistoryData] = useState<{ [key: string]: any[] }>({});
 
-  const fetchProfitHistory = async (model: Model) => {
-    if (profitHistoryData[model.id]) {
-      return profitHistoryData[model.id]; // Return cached data
-    }
-
+  const fetchProfitHistoryById = useCallback(async (modelId: string, fallbackProfit: number) => {
+    if (profitHistoryData[modelId]) return profitHistoryData[modelId];
     try {
-      const response = await fetch(`/api/models/${model.id}/chart-data`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const response = await fetch(`/api/models/${modelId}/chart-data`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const chartData = await response.json();
-
-      // Convert the profit history to the expected format
       const history = chartData.profit_history.map((item: any, index: number) => ({
         day: index + 1,
         profit: item.profit || 0,
         date: new Date(item.timestamp || Date.now()).toLocaleDateString()
       }));
-
-      // Cache the data
-      setProfitHistoryData(prev => ({ ...prev, [model.id]: history }));
+      setProfitHistoryData(prev => ({ ...prev, [modelId]: history }));
       return history;
     } catch (error) {
       console.error('Error fetching profit history:', error);
-      // Fallback to a simple history with current profit
-      return [{
-        day: 1,
-        profit: model.profit,
-        date: new Date().toLocaleDateString()
-      }];
+      return [{ day: 1, profit: fallbackProfit, date: new Date().toLocaleDateString() }];
     }
-  };
+  }, [profitHistoryData]);
 
-  // Generate dynamic color for any ticker/asset
-  const getColorForTicker = (ticker: string) => {
-    // Special case for CASH
-    if (ticker === 'CASH') {
-      return '#6b7280'; // Gray for cash
-    }
-    
-    const colors = [
-      '#3b82f6', // Blue
-      '#ef4444', // Red  
-      '#10b981', // Green
-      '#f59e0b', // Amber
-      '#8b5cf6', // Purple
-      '#06b6d4', // Cyan
-      '#84cc16', // Lime
-      '#f97316', // Orange
-      '#ec4899', // Pink
-      '#6366f1', // Indigo
-      '#14b8a6', // Teal
-      '#f43f5e', // Rose
-      '#a855f7', // Violet
-      '#22c55e', // Green-500
-      '#eab308', // Yellow-500
-      '#0ea5e9', // Sky-500
-      '#dc2626', // Red-600
-      '#16a34a', // Green-600
-      '#ca8a04', // Yellow-600
-      '#2563eb'  // Blue-600
-    ];
-    
-    // Generate consistent hash for the ticker
-    let hash = 0;
-    for (let i = 0; i < ticker.length; i++) {
-      hash = ticker.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    // Always return the same color for the same ticker
-    return colors[Math.abs(hash) % colors.length];
-  };
-
-  // 生成模拟资产分配数据（包含价格信息）
-  const generateAssetAllocation = (model: Model) => {
-    if (model.category === 'stock') {
-      return [
-        { name: 'CASH', allocation: 1.00, color: getColorForTicker('CASH'), price: '$1.00', change: '0.0%' }
-      ];
-    } else {
-      return [
-        { name: 'CASH', allocation: 1.00, color: getColorForTicker('CASH'), price: '$1.00', change: '0.0%' }
-      ];
-    }
-  };
+  // generateAssetAllocation and getColorForTicker moved to module scope
 
   // 简单的SVG折线图组件
-  const ProfitChartWithData = ({ model, fetchProfitHistory }: { model: Model, fetchProfitHistory: (model: Model) => Promise<any[]> }) => {
+  const ProfitChartWithData = memo(({ modelId, profit, performance }: { modelId: string; profit: number; performance: number }) => {
     const [chartData, setChartData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+      let mounted = true;
       const loadData = async () => {
         setLoading(true);
-        const data = await fetchProfitHistory(model);
-        setChartData(data);
-        setLoading(false);
+        const data = await fetchProfitHistoryById(modelId, profit);
+        if (mounted) {
+          setChartData(data);
+          setLoading(false);
+        }
       };
       loadData();
-    }, [model.id, fetchProfitHistory]);
+      return () => { mounted = false; };
+    }, [modelId, profit, fetchProfitHistoryById]);
 
     if (loading) {
       return (
@@ -203,29 +132,30 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       );
     }
 
-    return <ProfitChart data={chartData} model={model} />;
-  };
+    return <ProfitChart data={chartData} profit={profit} performance={performance} />;
+  });
 
-  const ProfitChart = ({ data, model }: { data: any[], model: Model }) => {
+  const ProfitChart = memo(({ data, profit, performance }: { data: any[]; profit: number; performance: number }) => {
     const width = 400;
     const height = 200;
     const padding = 40;
 
-    const maxProfit = Math.max(...data.map(d => d.profit));
-    const minProfit = Math.min(...data.map(d => d.profit));
-    const range = maxProfit - minProfit || 100;
-
-    // 创建SVG路径
-    const pathData = data.map((point, index) => {
-      const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
-      const y = padding + ((maxProfit - point.profit) / range) * (height - 2 * padding);
-      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-    }).join(' ');
+    const { maxProfit, minProfit, range, pathData } = useMemo(() => {
+      const maxP = Math.max(...data.map(d => d.profit));
+      const minP = Math.min(...data.map(d => d.profit));
+      const r = maxP - minP || 100;
+      const path = data.map((point, index) => {
+        const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
+        const y = padding + ((maxP - point.profit) / r) * (height - 2 * padding);
+        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+      }).join(' ');
+      return { maxProfit: maxP, minProfit: minP, range: r, pathData: path };
+    }, [data]);
 
     return (
       <div className="profit-chart">
         <h3>30-Day Profit History</h3>
-        <svg width={width} height={height} style={{ border: '1px solid #374151', borderRadius: '0.5rem', background: '#1f2937' }}>
+        <svg width={width} height={height} className="chart-svg">
           {/* 网格线 */}
           <defs>
             <pattern id="grid" width="40" height="20" patternUnits="userSpaceOnUse">
@@ -251,7 +181,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           <path
             d={pathData}
             fill="none"
-            stroke={model.profit >= 0 ? '#10b981' : '#ef4444'}
+            stroke={profit >= 0 ? '#10b981' : '#ef4444'}
             strokeWidth="2"
           />
 
@@ -265,7 +195,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 cx={x}
                 cy={y}
                 r="2"
-                fill={model.profit >= 0 ? '#10b981' : '#ef4444'}
+                fill={profit >= 0 ? '#10b981' : '#ef4444'}
               />
             );
           })}
@@ -279,29 +209,29 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
         <div className="chart-info">
           <div className="chart-stat">
             <span>Current Profit: </span>
-            <span className={model.profit >= 0 ? 'positive' : 'negative'}>
-              ${model.profit.toFixed(2)}
+            <span className={profit >= 0 ? 'positive' : 'negative'}>
+              ${profit.toFixed(2)}
             </span>
           </div>
           <div className="chart-stat">
             <span>Performance: </span>
-            <span className={model.performance >= 0 ? 'positive' : 'negative'}>
-              {model.performance.toFixed(1)}%
+            <span className={performance >= 0 ? 'positive' : 'negative'}>
+              {performance.toFixed(1)}%
             </span>
           </div>
         </div>
       </div>
     );
-  };
+  });
 
   // 资产分配横条图组件
-  const AssetAllocationBar = ({ model }: { model: Model }) => {
+  const AssetAllocationBar = memo(({ modelId, category }: { modelId: string; category: 'stock' | 'polymarket' }) => {
     const [portfolioAllocations, setPortfolioAllocations] = useState<any[]>([]);
 
     useEffect(() => {
       const fetchPortfolioData = async () => {
         try {
-          const response = await fetch(`/api/models/${model.id}/portfolio`);
+          const response = await fetch(`/api/models/${modelId}/portfolio`);
           if (response.ok) {
             const portfolio = await response.json();
             // Prefer backend-provided target allocations (already includes CASH)
@@ -322,20 +252,20 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
             }
 
             // Lightweight fallback: if no target_allocations, show default placeholder
-            setPortfolioAllocations(generateAssetAllocation(model));
+            setPortfolioAllocations(generateAssetAllocation({ id: modelId, category } as Model));
           } else {
-            setPortfolioAllocations(generateAssetAllocation(model));
+            setPortfolioAllocations(generateAssetAllocation({ id: modelId, category } as Model));
           }
         } catch (error) {
           console.error('Error fetching portfolio:', error);
-          setPortfolioAllocations(generateAssetAllocation(model));
+          setPortfolioAllocations(generateAssetAllocation({ id: modelId, category } as Model));
         }
       };
 
       fetchPortfolioData();
       const interval = setInterval(fetchPortfolioData, 30000); // Refresh every 30 seconds
       return () => clearInterval(interval);
-    }, [model.id]);
+    }, [modelId]);
 
     const allocations = portfolioAllocations;
 
@@ -379,26 +309,14 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
       </div>
     );
-  };
+  });
 
   return (
     <div className="models-container">
       {/* 简化的标题 */}
       <div className="models-header">
-        <h2 style={{
-          color: '#ffffff',
-          display: 'block',
-          visibility: 'visible',
-          opacity: 1,
-          position: 'relative',
-          zIndex: 1000
-        }}>Trading Models</h2>
-        <button onClick={onRefresh} className="refresh-btn" style={{
-          color: '#9ca3af',
-          display: 'block',
-          visibility: 'visible',
-          opacity: 1
-        }}>🔄</button>
+        <h2>Trading Models</h2>
+        <button onClick={onRefresh} className="refresh-btn">🔄</button>
       </div>
 
       {/* 只在有多种类型时显示过滤器 */}
@@ -437,14 +355,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
             >
               {/* 紧凑头部 */}
               <div className="card-header-compact">
-                <h3 style={{
-                  color: '#ffffff',
-                  display: 'block',
-                  visibility: 'visible',
-                  opacity: 1,
-                  position: 'relative',
-                  zIndex: 1000
-                }}>{model.name}</h3>
+                <h3>{model.name}</h3>
                 <div className="top-right-badges">
                   <span
                     className="status-dot-small"
@@ -455,36 +366,15 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
               {/* 只显示回报率 */}
               <div className="card-return-only">
-                <span className="return-label" style={{
-                  color: '#9ca3af',
-                  display: 'block',
-                  visibility: 'visible',
-                  opacity: 1,
-                  position: 'relative',
-                  zIndex: 1000
-                }}>Return</span>
-                <span className={`return-value-large ${model.performance >= 0 ? 'positive' : 'negative'}`} style={{
-                  color: model.performance >= 0 ? '#10b981' : '#ef4444',
-                  display: 'block',
-                  visibility: 'visible',
-                  opacity: 1,
-                  position: 'relative',
-                  zIndex: 1000
-                }}>
+                <span className="return-label">Return</span>
+                <span className={`return-value-large ${model.performance >= 0 ? 'positive' : 'negative'}`}>
                   {model.performance.toFixed(1)}%
                 </span>
               </div>
 
               {/* 资产分配横条 - 自定义悬停显示 */}
               <div className="card-allocation">
-                <div className="allocation-label" style={{
-                  color: '#9ca3af',
-                  display: 'block',
-                  visibility: 'visible',
-                  opacity: 1,
-                  position: 'relative',
-                  zIndex: 1000
-                }}>Asset Allocation</div>
+                <div className="allocation-label">Asset Allocation</div>
                 <div className="allocation-bar-mini">
                   {allocations.map((asset) => (
                     <div
@@ -494,8 +384,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                         width: `${asset.allocation * 100}%`,
                         backgroundColor: asset.color
                       }}
-                      onMouseEnter={(e) => handleMouseEnter(asset, e)}
-                      onMouseLeave={handleMouseLeave}
                     />
                   ))}
                 </div>
@@ -504,31 +392,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           );
         })}
       </div>
-
-      {/* 自定义悬停提示 */}
-      {tooltip.show && (
-        <div
-          style={{
-            position: 'fixed',
-            top: tooltip.y - 40,
-            left: tooltip.x,
-            transform: 'translateX(-50%)',
-            background: 'rgba(0, 0, 0, 0.9)',
-            color: 'white',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            fontSize: '14px',
-            fontWeight: '600',
-            zIndex: 10000,
-            pointerEvents: 'none',
-            whiteSpace: 'nowrap',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-            border: '1px solid #374151'
-          }}
-        >
-          {tooltip.content}
-        </div>
-      )}
 
       {/* 模态框 */}
       {showModal && selectedModel && (
@@ -561,7 +424,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 </div>
               </div>
 
-              <AssetAllocationBar model={selectedModel} />
+              <AssetAllocationBar modelId={selectedModel.id} category={selectedModel.category} />
 
               {/* 分割线 */}
               <div style={{
@@ -572,7 +435,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               }}>
               </div>
 
-              <AssetRatioChart model={selectedModel} />
+              <AssetRatioChart category={selectedModel.category} />
 
               {/* 分割线 */}
               <div style={{
@@ -584,8 +447,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               </div>
 
               <ProfitChartWithData
-                model={selectedModel}
-                fetchProfitHistory={fetchProfitHistory}
+                modelId={selectedModel.id}
+                profit={selectedModel.profit}
+                performance={selectedModel.performance}
               />
             </div>
           </div>
@@ -597,10 +461,10 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
 // Asset Ratio Chart Component
 interface AssetRatioChartProps {
-  model: Model;
+  category: 'stock' | 'polymarket';
 }
 
-const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
+const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ category }) => {
   const [ratioHistory, setRatioHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -609,7 +473,7 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
       try {
         setLoading(true);
         // Generate mock historical ratio data for demonstration
-        const mockData = generateMockRatioHistory(model);
+        const mockData = generateMockRatioHistory(category);
         setRatioHistory(mockData);
       } catch (error) {
         console.error('Error fetching ratio history:', error);
@@ -619,12 +483,12 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
     };
 
     fetchRatioHistory();
-  }, [model]);
+  }, [category]);
 
-  const generateMockRatioHistory = (model: Model) => {
+  const generateMockRatioHistory = (categoryInput: 'stock' | 'polymarket') => {
     const days = 30;
     const data = [];
-    const assets = model.category === 'stock'
+    const assets = categoryInput === 'stock'
       ? ['AAPL', 'GOOGL', 'MSFT', 'CASH']
       : ['Market1', 'Market2', 'Market3', 'CASH'];
 
@@ -633,7 +497,7 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
       date.setDate(date.getDate() - (days - i));
 
       // Generate realistic allocation changes over time
-      const baseAllocations = model.category === 'stock'
+      const baseAllocations = categoryInput === 'stock'
         ? [0.3, 0.25, 0.25, 0.2]  // Stock allocations
         : [0.4, 0.3, 0.2, 0.1];   // Polymarket allocations
 
@@ -873,4 +737,4 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
   );
 };
 
-export default ModelsDisplay;
+export default memo(ModelsDisplay);
