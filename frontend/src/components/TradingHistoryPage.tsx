@@ -1,19 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-interface Trade {
-  id: string;
-  timestamp: Date;
-  symbol: string;
-  type: 'buy' | 'sell';
-  amount: number;
-  price: number;
-  profit: number;
-  model: string;
-  category: 'polymarket' | 'stock';
-  status: 'completed' | 'pending' | 'cancelled' | 'failed';
-  fees: number;
-  totalValue: number;
-}
+import type { Trade } from '../types';
 
 interface TradingHistoryProps {
   tradesData: Trade[];
@@ -193,11 +179,11 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as any)}
-              style={{ 
-                padding: '0.5rem 0.75rem', 
-                borderRadius: '0.375rem', 
-                border: '1px solid #374151', 
-                background: '#1f2937', 
+              style={{
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #374151',
+                background: '#1f2937',
                 color: '#ffffff',
                 fontSize: '0.875rem'
               }}
@@ -214,11 +200,11 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value as any)}
-              style={{ 
-                padding: '0.5rem 0.75rem', 
-                borderRadius: '0.375rem', 
-                border: '1px solid #374151', 
-                background: '#1f2937', 
+              style={{
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #374151',
+                background: '#1f2937',
                 color: '#ffffff',
                 fontSize: '0.875rem'
               }}
@@ -235,11 +221,11 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value as any)}
-              style={{ 
-                padding: '0.5rem 0.75rem', 
-                borderRadius: '0.375rem', 
-                border: '1px solid #374151', 
-                background: '#1f2937', 
+              style={{
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #374151',
+                background: '#1f2937',
                 color: '#ffffff',
                 fontSize: '0.875rem'
               }}
@@ -319,8 +305,8 @@ const TradingHistoryPage: React.FC<TradingHistoryProps> = ({ tradesData, setTrad
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ 
-                  fontSize: '1.2rem', 
+                <div style={{
+                  fontSize: '1.2rem',
                   fontWeight: 'bold',
                   color: trade.profit >= 0 ? '#10b981' : '#ef4444'
                 }}>

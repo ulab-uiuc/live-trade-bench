@@ -1,76 +1,18 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React from 'react';
 import ModelsDisplay from './ModelsDisplay';
 import SystemMonitoring from './SystemMonitoring';
 import './Dashboard.css';
+import { useModelsByCategory } from '../hooks/useModels';
 
-interface Model {
-  id: string;
-  name: string;
-  category: 'polymarket' | 'stock';
-  performance: number;
-  accuracy: number;
-  trades: number;
-  profit: number;
-  status: 'active' | 'inactive' | 'training';
-}
-
-interface StockDashboardProps {
-  modelsData: Model[];
-  setModelsData: (data: Model[]) => void;
-  modelsLastRefresh: Date;
-  setModelsLastRefresh: (date: Date) => void;
-}
-
-const StockDashboard: React.FC<StockDashboardProps> = ({
-  modelsData,
-  setModelsData,
-  modelsLastRefresh,
-  setModelsLastRefresh
-}) => {
-  const [error, setError] = useState<string | null>(null);
-
-  // 获取股票模型数据
-  const fetchStockModelsData = useCallback(async () => {
-    try {
-      setError(null);
-
-      // Fetch real data from backend API
-      const response = await fetch('/api/models/');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const allModels = await response.json();
-
-      // Filter for stock models only
-      const stockModels = allModels.filter((model: any) => model.category === 'stock');
-
-      setModelsData(stockModels);
-      setModelsLastRefresh(new Date());
-    } catch (error) {
-      console.error('Error fetching stock models data:', error);
-      setError('Failed to load stock models data');
-    }
-  }, [setModelsData, setModelsLastRefresh]);
-
-  // 获取股票模型
-  const stockModels = useMemo(() =>
-    modelsData.filter(model => model.category === 'stock'),
-    [modelsData]
-  );
-
-  useEffect(() => {
-    if (modelsData.length === 0 || modelsData.every(model => model.category !== 'stock')) {
-      fetchStockModelsData();
-    }
-  }, [fetchStockModelsData, modelsData]);
+const StockDashboard: React.FC<any> = () => {
+  const { models, error, refresh } = useModelsByCategory('stock');
 
   if (error) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
         <span>⚠️ {error}</span>
         <button
-          onClick={fetchStockModelsData}
+          onClick={refresh}
           style={{
             marginLeft: '1rem',
             padding: '0.5rem 1rem',
@@ -128,10 +70,10 @@ const StockDashboard: React.FC<StockDashboardProps> = ({
 
       {/* 只显示股票模型卡片 - 没有统计条 */}
       <ModelsDisplay
-        modelsData={stockModels}
-        stockModels={stockModels}
+        modelsData={models}
+        stockModels={models}
         polymarketModels={[]}
-        onRefresh={fetchStockModelsData}
+        onRefresh={refresh}
       />
 
       {/* 系统监控 */}
