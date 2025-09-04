@@ -1,33 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ModelsDisplay from './ModelsDisplay';
 import SystemMonitoring from './SystemMonitoring';
 import './Dashboard.css';
-import { useModelsByCategory } from '../hooks/useModels';
+import { Model } from '../types';
 
-const PolymarketDashboard: React.FC<any> = () => {
-  const { models, error, refresh } = useModelsByCategory('polymarket');
+interface PolymarketDashboardProps {
+  modelsData: Model[];
+  modelsLastRefresh: Date;
+}
 
-  if (error) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
-        <span>⚠️ {error}</span>
-        <button
-          onClick={refresh}
-          style={{
-            marginLeft: '1rem',
-            padding: '0.5rem 1rem',
-            background: '#ef4444',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.25rem',
-            cursor: 'pointer'
-          }}
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
+const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({ modelsData, modelsLastRefresh }) => {
+  const polymarketModels = useMemo(() =>
+    modelsData.filter(m => m.category === 'polymarket'),
+    [modelsData]
+  );
 
   return (
     <div className="dashboard-ultra-simple">
@@ -51,7 +37,7 @@ const PolymarketDashboard: React.FC<any> = () => {
           position: 'relative',
           zIndex: 1000
         }}>
-          🎯 Polymarket Model
+          🎯 Polymarket Models
         </h1>
         <p style={{
           color: '#ffffff',
@@ -70,10 +56,10 @@ const PolymarketDashboard: React.FC<any> = () => {
 
       {/* 只显示Polymarket模型 */}
       <ModelsDisplay
-        modelsData={models}
+        modelsData={polymarketModels}
         stockModels={[]}
-        polymarketModels={models}
-        onRefresh={refresh}
+        polymarketModels={polymarketModels}
+        onRefresh={undefined}
       />
 
       {/* 系统监控 */}

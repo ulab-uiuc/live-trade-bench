@@ -131,6 +131,9 @@ class StockPortfolioSystem:
                                 )
                                 print(f"   📈 {ticker}: {target_ratio:.1%}")
 
+                        # After updating allocations, record a snapshot of the new state
+                        agent.account._record_allocation_snapshot()
+
                         print(f"   ✅ Portfolio allocation updated for {agent_name}")
                     else:
                         print(f"   ⚠️ No allocation generated for {agent_name}")

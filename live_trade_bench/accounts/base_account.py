@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import Any, Dict, Generic, List, Optional, TypeVar
 
 # Generic type for different position and transaction types
 PositionType = TypeVar("PositionType")
@@ -19,7 +19,24 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
 
     cash_balance: float = 0.0
     target_allocations: Dict[str, float] = field(default_factory=dict)
+    allocation_history: List[Dict[str, Any]] = field(default_factory=list)
     last_rebalance: Optional[str] = None
+
+    def _record_allocation_snapshot(self):
+        """Records the current portfolio state to allocation_history."""
+        from datetime import datetime
+
+        snapshot = {
+            "timestamp": datetime.now().isoformat(),
+            "total_value": self.get_total_value(),
+            "allocations": self.get_portfolio_value_breakdown().get(
+                "current_allocations", {}
+            ),
+        }
+        self.allocation_history.append(snapshot)
+        print(
+            f"📸 Recorded portfolio snapshot. History now has {len(self.allocation_history)} entries."
+        )
 
     def set_target_allocation(self, ticker: str, target_ratio: float) -> bool:
         """Set target allocation for an asset (including CASH)."""
@@ -90,6 +107,26 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
             "current_allocations": current_allocations,
             "target_allocations": self.target_allocations.copy(),
         }
+
+    @abstractmethod
+    def _simulate_rebalance_to_target(self, target_allocations: Dict[str, float]):
+        """
+        Simulates rebalancing to a target allocation.
+        This method MUST be implemented by subclasses to handle specific logic
+        for price fluctuation, transaction generation, and position updates.
+        """
+        pass
+
+    def _update_positions(self, new_allocations: Dict[str, float]):
+        """
+        Updates the portfolio holdings to match the new_allocations.
+        This is a placeholder for the actual position update logic.
+        """
+        # In a real system, this would involve buying/selling assets
+        # to adjust holdings to match new_allocations.
+        print(f"Simulating position update to: {new_allocations}")
+        # For demonstration, we'll just print the new allocations
+        # self.cash_balance -= (sum(new_allocations.values()) - 1.0) * self.get_total_value() # Example cash adjustment
 
     @abstractmethod
     def _get_position_value(self, ticker: str) -> float:

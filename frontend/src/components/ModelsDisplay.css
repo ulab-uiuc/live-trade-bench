@@ -280,10 +280,28 @@
 
 .return-value-large {
   display: block;
-  font-size: 1.5rem;
-  font-weight: 800;
+  font-size: 2rem;
+  font-weight: 700;
   color: #ffffff;
   line-height: 1.1;
+}
+
+/* Custom Tooltip */
+.custom-tooltip {
+  position: fixed;
+  background-color: #111827;
+  color: #e5e7eb;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #374151;
+  font-size: 0.875rem;
+  z-index: 9999;
+  pointer-events: none; /* Important: prevents the tooltip from blocking mouse events */
+  white-space: nowrap;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transform: translate(-50%, -140%);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  opacity: 1;
 }
 
 .return-value-large.positive {

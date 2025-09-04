@@ -1,33 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ModelsDisplay from './ModelsDisplay';
 import SystemMonitoring from './SystemMonitoring';
 import './Dashboard.css';
-import { useModelsByCategory } from '../hooks/useModels';
+import { Model } from '../types';
 
-const StockDashboard: React.FC<any> = () => {
-  const { models, error, refresh } = useModelsByCategory('stock');
+interface StockDashboardProps {
+  modelsData: Model[];
+  modelsLastRefresh: Date;
+}
 
-  if (error) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
-        <span>⚠️ {error}</span>
-        <button
-          onClick={refresh}
-          style={{
-            marginLeft: '1rem',
-            padding: '0.5rem 1rem',
-            background: '#ef4444',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.25rem',
-            cursor: 'pointer'
-          }}
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
+const StockDashboard: React.FC<StockDashboardProps> = ({ modelsData, modelsLastRefresh }) => {
+  const stockModels = useMemo(() =>
+    modelsData.filter(m => m.category === 'stock'),
+    [modelsData]
+  );
 
   return (
     <div className="dashboard-ultra-simple">
@@ -51,7 +37,7 @@ const StockDashboard: React.FC<any> = () => {
           position: 'relative',
           zIndex: 1000
         }}>
-          📈 Stock Model
+          📈 Stock Models
         </h1>
         <p style={{
           color: '#ffffff',
@@ -70,10 +56,10 @@ const StockDashboard: React.FC<any> = () => {
 
       {/* 只显示股票模型卡片 - 没有统计条 */}
       <ModelsDisplay
-        modelsData={models}
-        stockModels={models}
+        modelsData={stockModels}
+        stockModels={stockModels}
         polymarketModels={[]}
-        onRefresh={refresh}
+        onRefresh={undefined}
       />
 
       {/* 系统监控 */}
