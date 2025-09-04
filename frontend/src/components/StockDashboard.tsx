@@ -109,7 +109,7 @@ const StockDashboard: React.FC<StockDashboardProps> = ({
           position: 'relative',
           zIndex: 1000
         }}>
-          📈 Stock Trading Models
+          📈 Stock Model
         </h1>
         <p style={{
           color: '#ffffff',
@@ -122,7 +122,7 @@ const StockDashboard: React.FC<StockDashboardProps> = ({
           position: 'relative',
           zIndex: 1000
         }}>
-          AI-powered stock trading strategies and portfolio management
+          AI-powered stock portfolio management
         </p>
       </div>
 

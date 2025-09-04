@@ -148,6 +148,8 @@ class PortfolioData(BaseModel):
     return_pct: float
     holdings: dict[str, float]  # ticker/asset -> quantity
     positions: dict[str, Dict[str, Any]]  # detailed position info
+    # Target allocations proposed by the agent (e.g., {"AAPL": 0.15, ... , "CASH": 0.1})
+    target_allocations: dict[str, float] | None = None
     unrealized_pnl: float
     market_data_available: bool
     last_updated: str

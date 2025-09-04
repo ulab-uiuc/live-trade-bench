@@ -28,7 +28,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock'>('all');
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [tooltip, setTooltip] = useState<{show: boolean; content: string; x: number; y: number}>({
+  const [tooltip, setTooltip] = useState<{ show: boolean; content: string; x: number; y: number }>({
     show: false,
     content: '',
     x: 0,
@@ -92,7 +92,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   };
 
   // Fetch real profit history data from backend
-  const [profitHistoryData, setProfitHistoryData] = useState<{[key: string]: any[]}>({});
+  const [profitHistoryData, setProfitHistoryData] = useState<{ [key: string]: any[] }>({});
 
   const fetchProfitHistory = async (model: Model) => {
     if (profitHistoryData[model.id]) {
@@ -127,23 +127,55 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     }
   };
 
+  // Generate dynamic color for any ticker/asset
+  const getColorForTicker = (ticker: string) => {
+    // Special case for CASH
+    if (ticker === 'CASH') {
+      return '#6b7280'; // Gray for cash
+    }
+    
+    const colors = [
+      '#3b82f6', // Blue
+      '#ef4444', // Red  
+      '#10b981', // Green
+      '#f59e0b', // Amber
+      '#8b5cf6', // Purple
+      '#06b6d4', // Cyan
+      '#84cc16', // Lime
+      '#f97316', // Orange
+      '#ec4899', // Pink
+      '#6366f1', // Indigo
+      '#14b8a6', // Teal
+      '#f43f5e', // Rose
+      '#a855f7', // Violet
+      '#22c55e', // Green-500
+      '#eab308', // Yellow-500
+      '#0ea5e9', // Sky-500
+      '#dc2626', // Red-600
+      '#16a34a', // Green-600
+      '#ca8a04', // Yellow-600
+      '#2563eb'  // Blue-600
+    ];
+    
+    // Generate consistent hash for the ticker
+    let hash = 0;
+    for (let i = 0; i < ticker.length; i++) {
+      hash = ticker.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Always return the same color for the same ticker
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   // 生成模拟资产分配数据（包含价格信息）
   const generateAssetAllocation = (model: Model) => {
     if (model.category === 'stock') {
       return [
-        { name: 'AAPL', allocation: 0.25, color: '#3b82f6', price: '$175.84', change: '+2.3%' },
-        { name: 'MSFT', allocation: 0.20, color: '#10b981', price: '$378.91', change: '+1.8%' },
-        { name: 'NVDA', allocation: 0.15, color: '#f59e0b', price: '$887.52', change: '+4.2%' },
-        { name: 'GOOGL', allocation: 0.10, color: '#ef4444', price: '$139.67', change: '-0.5%' },
-        { name: 'TSLA', allocation: 0.10, color: '#8b5cf6', price: '$248.19', change: '+1.2%' },
-        { name: 'CASH', allocation: 0.20, color: '#6b7280', price: '$1.00', change: '0.0%' }
+        { name: 'CASH', allocation: 1.00, color: getColorForTicker('CASH'), price: '$1.00', change: '0.0%' }
       ];
     } else {
       return [
-        { name: 'Election 2024', allocation: 0.35, color: '#3b82f6', price: '$0.65', change: '+5.2%' },
-        { name: 'Sports Betting', allocation: 0.25, color: '#10b981', price: '$0.78', change: '-2.1%' },
-        { name: 'Crypto Markets', allocation: 0.20, color: '#f59e0b', price: '$0.42', change: '+8.7%' },
-        { name: 'CASH', allocation: 0.20, color: '#6b7280', price: '$1.00', change: '0.0%' }
+        { name: 'CASH', allocation: 1.00, color: getColorForTicker('CASH'), price: '$1.00', change: '0.0%' }
       ];
     }
   };
@@ -197,7 +229,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           {/* 网格线 */}
           <defs>
             <pattern id="grid" width="40" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 20" fill="none" stroke="#374151" strokeWidth="0.5"/>
+              <path d="M 40 0 L 0 0 0 20" fill="none" stroke="#374151" strokeWidth="0.5" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
@@ -264,7 +296,50 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
   // 资产分配横条图组件
   const AssetAllocationBar = ({ model }: { model: Model }) => {
-    const allocations = generateAssetAllocation(model);
+    const [portfolioAllocations, setPortfolioAllocations] = useState<any[]>([]);
+
+    useEffect(() => {
+      const fetchPortfolioData = async () => {
+        try {
+          const response = await fetch(`/api/models/${model.id}/portfolio`);
+          if (response.ok) {
+            const portfolio = await response.json();
+            // Prefer backend-provided target allocations (already includes CASH)
+            if (portfolio.target_allocations && Object.keys(portfolio.target_allocations).length > 0) {
+              const entries = Object.entries(portfolio.target_allocations) as Array<[string, number]>;
+              const allocations = entries
+                .filter(([, ratio]) => typeof ratio === 'number' && ratio > 0)
+                .map(([name, ratio]) => ({
+                  name,
+                  allocation: ratio,
+                  color: name === 'CASH' ? '#6b7280' : getColorForTicker(name)
+                }))
+                // sort desc for nicer visuals
+                .sort((a, b) => b.allocation - a.allocation);
+
+              setPortfolioAllocations(allocations);
+              return;
+            }
+
+            // Lightweight fallback: if no target_allocations, show default placeholder
+            setPortfolioAllocations(generateAssetAllocation(model));
+          } else {
+            setPortfolioAllocations(generateAssetAllocation(model));
+          }
+        } catch (error) {
+          console.error('Error fetching portfolio:', error);
+          setPortfolioAllocations(generateAssetAllocation(model));
+        }
+      };
+
+      fetchPortfolioData();
+      const interval = setInterval(fetchPortfolioData, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }, [model.id]);
+
+    const allocations = portfolioAllocations;
+
+
 
     return (
       <div className="asset-allocation">
@@ -329,38 +404,38 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       {/* 只在有多种类型时显示过滤器 */}
       {showCategoryTabs && (
         <div className="category-tabs">
-        <button
-          onClick={() => setSelectedCategory('all')}
+          <button
+            onClick={() => setSelectedCategory('all')}
             className={selectedCategory === 'all' ? 'active' : ''}
-        >
+          >
             All ({modelsData.length})
-        </button>
-        <button
+          </button>
+          <button
             onClick={() => setSelectedCategory('stock')}
             className={selectedCategory === 'stock' ? 'active' : ''}
-        >
+          >
             Stock ({stockModels.length})
-        </button>
-        <button
+          </button>
+          <button
             onClick={() => setSelectedCategory('polymarket')}
             className={selectedCategory === 'polymarket' ? 'active' : ''}
-        >
+          >
             Polymarket ({polymarketModels.length})
-        </button>
+          </button>
         </div>
       )}
 
-            {/* 方形模型卡片，显示资产分配 */}
+      {/* 方形模型卡片，显示资产分配 */}
       <div className="models-grid-square">
         {filteredModels.map(model => {
-          const allocations = generateAssetAllocation(model);
+          const allocations = generateAssetAllocation(model); // This will be overridden by real data in AssetAllocationBar
           return (
             <div
               key={model.id}
               className="model-card-square"
               onClick={() => handleModelClick(model)}
             >
-                                                        {/* 紧凑头部 */}
+              {/* 紧凑头部 */}
               <div className="card-header-compact">
                 <h3 style={{
                   color: '#ffffff',
@@ -376,7 +451,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                     style={{ backgroundColor: getStatusColor(model.status) }}
                   />
                 </div>
-      </div>
+              </div>
 
               {/* 只显示回报率 */}
               <div className="card-return-only">
@@ -397,7 +472,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                   zIndex: 1000
                 }}>
                   {model.performance.toFixed(1)}%
-                  </span>
+                </span>
               </div>
 
               {/* 资产分配横条 - 自定义悬停显示 */}
@@ -475,7 +550,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                   <span className={`status-badge ${selectedModel.status}`}>
                     {selectedModel.status}
                   </span>
-            </div>
+                </div>
                 <div className="detail-row">
                   <span>Total Trades:</span>
                   <span>{selectedModel.trades}</span>
@@ -495,7 +570,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 margin: '2rem 0',
                 position: 'relative'
               }}>
-            </div>
+              </div>
 
               <AssetRatioChart model={selectedModel} />
 
@@ -549,14 +624,14 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
   const generateMockRatioHistory = (model: Model) => {
     const days = 30;
     const data = [];
-    const assets = model.category === 'stock' 
+    const assets = model.category === 'stock'
       ? ['AAPL', 'GOOGL', 'MSFT', 'CASH']
       : ['Market1', 'Market2', 'Market3', 'CASH'];
 
     for (let i = 0; i < days; i++) {
       const date = new Date();
       date.setDate(date.getDate() - (days - i));
-      
+
       // Generate realistic allocation changes over time
       const baseAllocations = model.category === 'stock'
         ? [0.3, 0.25, 0.25, 0.2]  // Stock allocations
@@ -589,8 +664,8 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
 
   if (loading) {
     return (
-      <div style={{ 
-        padding: '2rem', 
+      <div style={{
+        padding: '2rem',
         textAlign: 'center',
         background: '#1f2937',
         borderRadius: '0.5rem',
@@ -621,8 +696,8 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
         Asset Allocation History (Past 30 Days)
       </h3>
 
-      <div style={{ 
-        display: 'flex', 
+      <div style={{
+        display: 'flex',
         justifyContent: 'center',
         overflowX: 'auto'
       }}>
@@ -630,21 +705,21 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
           {/* Background grid with gradient */}
           <defs>
             <linearGradient id="chartBackground" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#334155" stopOpacity="0.1"/>
-              <stop offset="100%" stopColor="#1e293b" stopOpacity="0.3"/>
+              <stop offset="0%" stopColor="#334155" stopOpacity="0.1" />
+              <stop offset="100%" stopColor="#1e293b" stopOpacity="0.3" />
             </linearGradient>
           </defs>
-          
+
           {/* Subtle background */}
-          <rect 
-            x={margin.left} 
-            y={margin.top} 
-            width={chartWidth - margin.left - margin.right} 
+          <rect
+            x={margin.left}
+            y={margin.top}
+            width={chartWidth - margin.left - margin.right}
             height={chartHeight}
             fill="url(#chartBackground)"
             rx="8"
           />
-          
+
           {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map((value, index) => {
             const y = margin.top + chartHeight - (value * chartHeight);
             return (
@@ -689,7 +764,7 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
 
             return assets.map((asset, assetIndex) => {
               const color = colors[assetIndex % colors.length];
-              
+
               // Create path for stacked area
               const topPoints = stackedData.map((entry, index) => {
                 const x = margin.left + (index / (stackedData.length - 1)) * (chartWidth - margin.left - margin.right);
@@ -710,22 +785,22 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
                   {/* Gradient definition for this asset */}
                   <defs>
                     <linearGradient id={`gradient-${asset}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor={color} stopOpacity="0.8"/>
-                      <stop offset="100%" stopColor={color} stopOpacity="0.3"/>
+                      <stop offset="0%" stopColor={color} stopOpacity="0.8" />
+                      <stop offset="100%" stopColor={color} stopOpacity="0.3" />
                     </linearGradient>
                   </defs>
-                  
+
                   {/* Stacked area with gradient */}
                   <path
                     d={pathData}
                     fill={`url(#gradient-${asset})`}
                     stroke="none"
-                    style={{ 
+                    style={{
                       filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))',
                       transition: 'all 0.3s ease'
                     }}
                   />
-                  
+
                   {/* Subtle top border line */}
                   {assetIndex < assets.length - 1 && (
                     <polyline
@@ -734,7 +809,7 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
                       stroke={color}
                       strokeWidth="0.5"
                       strokeOpacity="0.3"
-                      style={{ 
+                      style={{
                         filter: 'blur(0.5px)',
                         mixBlendMode: 'multiply'
                       }}
@@ -799,4 +874,3 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ model }) => {
 };
 
 export default ModelsDisplay;
-
