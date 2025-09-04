@@ -84,6 +84,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   // Fetch real profit history data from backend
   const [profitHistoryData, setProfitHistoryData] = useState<{ [key: string]: any[] }>({});
 
+
   const fetchProfitHistoryById = useCallback(async (modelId: string, fallbackProfit: number) => {
     if (profitHistoryData[modelId]) return profitHistoryData[modelId];
     try {
@@ -102,8 +103,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       return [{ day: 1, profit: fallbackProfit, date: new Date().toLocaleDateString() }];
     }
   }, [profitHistoryData]);
-
-  // generateAssetAllocation and getColorForTicker moved to module scope
 
   // 简单的SVG折线图组件
   const ProfitChartWithData = memo(({ modelId, profit, performance }: { modelId: string; profit: number; performance: number }) => {
@@ -226,6 +225,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
   // 资产分配横条图组件
   const AssetAllocationBar = memo(({ modelId, category }: { modelId: string; category: 'stock' | 'polymarket' }) => {
+
     const [portfolioAllocations, setPortfolioAllocations] = useState<any[]>([]);
 
     useEffect(() => {
@@ -489,6 +489,7 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ category }) => {
     const days = 30;
     const data = [];
     const assets = categoryInput === 'stock'
+
       ? ['AAPL', 'GOOGL', 'MSFT', 'CASH']
       : ['Market1', 'Market2', 'Market3', 'CASH'];
 

@@ -8,8 +8,30 @@ const Navigation: React.FC = () => {
   return (
     <nav className="navigation">
       <div className="navigation-container">
-        <div className="nav-logo">
-          Live Trading Benchmark
+        <div className="nav-logo" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            backgroundColor: '#ef4444',
+            color: '#ffffff',
+            padding: '0.3rem 0.6rem',
+            borderRadius: '0.3rem',
+            fontSize: '0.8rem',
+            fontWeight: '700',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            position: 'relative'
+          }}>
+            <div style={{
+              width: '0.4rem',
+              height: '0.4rem',
+              backgroundColor: '#ffffff',
+              borderRadius: '50%',
+              marginRight: '0.4rem'
+            }}></div>
+            LIVE
+          </div>
+          <span>Trading Benchmark</span>
         </div>
         <div className="nav-links">
           <button
