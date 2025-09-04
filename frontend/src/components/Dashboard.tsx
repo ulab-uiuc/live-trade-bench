@@ -1,36 +1,19 @@
 import React, { useEffect, useCallback } from 'react';
 
-// 使用any类型避免接口冲突，但保持功能
-const Dashboard: React.FC<any> = (props) => {
+interface DashboardProps {
+  modelsData: any[];
+  modelsLastRefresh: Date;
+  systemStatus: any;
+  systemLastRefresh: Date;
+}
 
-  // 安全地访问props
-  const modelsData = props?.modelsData || [];
-  const modelsLastRefresh = props?.modelsLastRefresh || new Date();
-  const setModelsData = props?.setModelsData;
-  const setModelsLastRefresh = props?.setModelsLastRefresh;
-
-  // Fetch all models data from backend
-  const fetchModelsData = useCallback(async () => {
-    try {
-      const response = await fetch('/api/models/');
-      if (response.ok) {
-        const allModels = await response.json();
-        if (setModelsData) {
-          setModelsData(allModels);
-        }
-        if (setModelsLastRefresh) {
-          setModelsLastRefresh(new Date());
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching models data:', error);
-    }
-  }, [setModelsData, setModelsLastRefresh]);
-
-  // Fetch data on component mount
-  useEffect(() => {
-    fetchModelsData();
-  }, [fetchModelsData]);
+const Dashboard: React.FC<DashboardProps> = ({ 
+  modelsData, 
+  modelsLastRefresh, 
+  systemStatus, 
+  systemLastRefresh 
+}) => {
+  console.log('📊 Dashboard rendering with background data!');
 
   // 分类模型数据
   const stockModels = modelsData.filter((model: any) => model?.category === 'stock');
@@ -262,136 +245,123 @@ const Dashboard: React.FC<any> = (props) => {
               <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>No stock models available</p>
             </div>
           ) : (
-            <div style={{ padding: '1rem 0' }}>
-              {/* 现代化柱状图容器 */}
-              <div style={{ 
-                padding: '2rem 1rem'
-              }}>
-                {/* 网格和柱状图 */}
-                <div style={{ position: 'relative', height: '280px', marginBottom: '1rem' }}>
-                  {/* Y轴网格线 */}
-                  {[0, 25, 50, 75, 100].map(value => (
-                    <div key={value} style={{
-                      position: 'absolute',
-                      left: '40px',
-                      right: '20px',
-                      top: `${260 - (value * 2.2)}px`,
-                      height: '1px',
-                      background: value === 0 ? '#64748b' : 'rgba(148, 163, 184, 0.15)',
-                      borderTop: value === 0 ? '2px solid #64748b' : '1px dashed rgba(148, 163, 184, 0.1)'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        left: '-35px',
-                        top: '-8px',
-                        fontSize: '0.75rem',
-                        color: '#94a3b8',
-                        fontWeight: '500'
-                      }}>{value}%</span>
-                    </div>
-                  ))}
-                  
-                  {/* 柱状图 */}
-                  <div style={{ 
-                    position: 'absolute',
-                    bottom: '0',
-                    left: '50px',
-                    right: '30px',
-                    height: '100%',
-                    display: 'flex', 
-                    alignItems: 'end', 
-                    justifyContent: 'space-around',
-                    gap: '0.3rem'
-                  }}>
-                    {stockModels
-                      .sort((a: any, b: any) => (b?.performance || 0) - (a?.performance || 0))
-                      .map((model: any, index: number) => {
-                        const performance = model?.performance || 0;
-                        const height = Math.max(Math.abs(performance) * 2.2, 8);
-                        const isPositive = performance >= 0;
-                        
+            (() => {
+              const stockPerformances = stockModels.map((m: any) => m?.performance || 0);
+              const maxStockPerf = Math.ceil(Math.max(...stockPerformances.map(Math.abs), 25) / 5) * 5;
+
+              return (
+                <div style={{ padding: '1rem 0' }}>
+                  <div style={{ padding: '2rem 1rem' }}>
+                    <div style={{ position: 'relative', height: '320px', marginBottom: '1rem' }}>
+                      {/* Y轴网格线 - centered */}
+                      {[maxStockPerf, maxStockPerf / 2, 0, -maxStockPerf / 2, -maxStockPerf].map(value => {
+                        const topPercentage = 50 - (value / maxStockPerf) * 50;
                         return (
-                          <div key={model?.id || index} style={{ 
-                            flex: 1, 
-                            maxWidth: '50px',
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            alignItems: 'center'
+                          <div key={value} style={{
+                            position: 'absolute',
+                            left: '40px',
+                            right: '20px',
+                            top: `${topPercentage}%`,
+                            height: '1px',
+                            background: value === 0 ? '#64748b' : 'rgba(148, 163, 184, 0.15)',
+                            borderTop: value === 0 ? '2px solid #64748b' : '1px dashed rgba(148, 163, 184, 0.1)',
+                            transform: 'translateY(-50%)'
                           }}>
-                            {/* 柱子 */}
-                            <div style={{
-                              width: '100%',
-                              height: `${height}px`,
-                              background: isPositive 
-                                ? 'linear-gradient(180deg, #34d399 0%, #10b981 50%, #059669 100%)'
-                                : 'linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%)',
-                              borderRadius: '8px 8px 4px 4px',
-                              position: 'relative',
-                              boxShadow: isPositive 
-                                ? '0 6px 20px rgba(16, 185, 129, 0.4)'
-                                : '0 6px 20px rgba(239, 68, 68, 0.4)',
-                              transition: 'all 0.3s ease',
-                              cursor: 'pointer'
-                            }}>
-                              {/* 光泽效果 */}
-                              <div style={{
-                                position: 'absolute',
-                                top: '0',
-                                left: '0',
-                                right: '0',
-                                height: '30%',
-                                background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, transparent 100%)',
-                                borderRadius: '8px 8px 0 0'
-                              }}/>
-                              
-                              {/* 数值标签 */}
-                              <div style={{
-                                position: 'absolute',
-                                top: '-40px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                background: isPositive 
-                                  ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                                  : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                                color: '#ffffff',
-                                padding: '4px 10px',
-                                borderRadius: '16px',
-                                fontSize: '0.75rem',
-                                fontWeight: '700',
-                                whiteSpace: 'nowrap',
-                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
-                                border: '1px solid rgba(255, 255, 255, 0.2)'
-                              }}>
-                                {isPositive ? '+' : ''}{performance.toFixed(1)}%
-                              </div>
-                            </div>
-                            
-                            {/* 模型名称 */}
-                            <div style={{
-                              marginTop: '0.75rem',
-                              padding: '0rem 0.5rem'
-                            }}>
-                              <span style={{ 
-                                color: '#ffffff', 
-                                fontSize: '0.6rem', 
-                                fontWeight: '600',
-                                textAlign: 'center',
-                                display: 'block',
-                                maxWidth: '100%',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                {model?.name || 'Unknown'}
-                              </span>
-                            </div>
+                            <span style={{
+                              position: 'absolute',
+                              left: '-40px',
+                              top: '-8px',
+                              fontSize: '0.75rem',
+                              color: '#94a3b8',
+                              fontWeight: '500'
+                            }}>{value.toFixed(0)}%</span>
                           </div>
                         );
                       })}
+                      
+                      {/* 柱状图 */}
+                      <div style={{ 
+                        position: 'absolute',
+                        top: 0,
+                        bottom: 0,
+                        left: '50px',
+                        right: '30px',
+                        display: 'flex', 
+                        justifyContent: 'space-around',
+                        gap: '0.3rem'
+                      }}>
+                        {stockModels
+                          .sort((a: any, b: any) => (b?.performance || 0) - (a?.performance || 0))
+                          .map((model: any, index: number) => {
+                            const performance = model?.performance || 0;
+                            const isPositive = performance >= 0;
+                            const barHeight = Math.min((Math.abs(performance) / maxStockPerf) * 150, 150);
+
+                            return (
+                              <div key={model?.id || index} style={{ 
+                                flex: 1, 
+                                maxWidth: '80px',
+                                position: 'relative',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'flex-end'
+                              }}>
+                                {/* Performance Label */}
+                                <div style={{
+                                  position: 'absolute',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  ...(isPositive 
+                                    ? { bottom: `calc(50% + ${barHeight}px + 5px)` }
+                                    : { top: `calc(50% + ${barHeight}px + 5px)` }),
+                                  color: isPositive ? '#10b981' : '#ef4444',
+                                  fontSize: '0.75rem',
+                                  fontWeight: '700',
+                                  whiteSpace: 'nowrap',
+                                }}>
+                                  {isPositive ? '+' : ''}{performance.toFixed(1)}%
+                                </div>
+                                
+                                {/* Bar */}
+                                <div style={{
+                                  position: 'absolute',
+                                  left: '10%',
+                                  right: '10%',
+                                  ...(isPositive 
+                                    ? { bottom: '50%', height: `${barHeight}px` } 
+                                    : { top: '50%', height: `${barHeight}px` }),
+                                  background: isPositive ? '#10b981' : '#ef4444',
+                                  transition: 'all 0.3s ease',
+                                  cursor: 'pointer'
+                                }}>
+                                </div>
+
+                                {/* 模型名称和排名 */}
+                                <div style={{
+                                  height: '40px', // Reserve space at the bottom
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}>
+                                  <span style={{ 
+                                    color: '#ffffff', 
+                                    fontSize: '0.6rem', 
+                                    fontWeight: '600',
+                                    textAlign: 'center',
+                                    wordBreak: 'break-word',
+                                  }}>
+                                    {model?.name || 'Unknown'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()
           )}
         </div>
 
@@ -433,136 +403,123 @@ const Dashboard: React.FC<any> = (props) => {
               <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>No polymarket models available</p>
             </div>
           ) : (
-            <div style={{ padding: '1rem 0' }}>
-              {/* 现代化柱状图容器 */}
-              <div style={{ 
-                padding: '2rem 1rem'
-              }}>
-                {/* 网格和柱状图 */}
-                <div style={{ position: 'relative', height: '280px', marginBottom: '1rem' }}>
-                  {/* Y轴网格线 */}
-                  {[0, 25, 50, 75, 100].map(value => (
-                    <div key={value} style={{
-                      position: 'absolute',
-                      left: '40px',
-                      right: '20px',
-                      top: `${260 - (value * 2.2)}px`,
-                      height: '1px',
-                      background: value === 0 ? '#8b5cf6' : 'rgba(167, 139, 250, 0.15)',
-                      borderTop: value === 0 ? '2px solid #8b5cf6' : '1px dashed rgba(167, 139, 250, 0.1)'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        left: '-35px',
-                        top: '-8px',
-                        fontSize: '0.75rem',
-                        color: '#c4b5fd',
-                        fontWeight: '500'
-                      }}>{value}%</span>
-                    </div>
-                  ))}
-                  
-                  {/* 柱状图 */}
-                  <div style={{ 
-                    position: 'absolute',
-                    bottom: '0',
-                    left: '50px',
-                    right: '30px',
-                    height: '100%',
-                    display: 'flex', 
-                    alignItems: 'end', 
-                    justifyContent: 'space-around',
-                    gap: '0.3rem'
-                  }}>
-                    {polymarketModels
-                      .sort((a: any, b: any) => (b?.performance || 0) - (a?.performance || 0))
-                      .map((model: any, index: number) => {
-                        const performance = model?.performance || 0;
-                        const height = Math.max(Math.abs(performance) * 2.2, 8);
-                        const isPositive = performance >= 0;
-                        
+            (() => {
+              const polyPerformances = polymarketModels.map((m: any) => m?.performance || 0);
+              const maxPolyPerf = Math.ceil(Math.max(...polyPerformances.map(Math.abs), 25) / 5) * 5;
+
+              return (
+                <div style={{ padding: '1rem 0' }}>
+                  <div style={{ padding: '2rem 1rem' }}>
+                    <div style={{ position: 'relative', height: '320px', marginBottom: '1rem' }}>
+                      {/* Y轴网格线 - centered */}
+                      {[maxPolyPerf, maxPolyPerf / 2, 0, -maxPolyPerf / 2, -maxPolyPerf].map(value => {
+                        const topPercentage = 50 - (value / maxPolyPerf) * 50;
                         return (
-                          <div key={model?.id || index} style={{ 
-                            flex: 1, 
-                            maxWidth: '50px',
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            alignItems: 'center'
+                          <div key={value} style={{
+                            position: 'absolute',
+                            left: '40px',
+                            right: '20px',
+                            top: `${topPercentage}%`,
+                            height: '1px',
+                            background: value === 0 ? '#8b5cf6' : 'rgba(167, 139, 250, 0.15)',
+                            borderTop: value === 0 ? '2px solid #8b5cf6' : '1px dashed rgba(167, 139, 250, 0.1)',
+                            transform: 'translateY(-50%)'
                           }}>
-                            {/* 柱子 */}
-                            <div style={{
-                              width: '100%',
-                              height: `${height}px`,
-                              background: isPositive 
-                                ? 'linear-gradient(180deg, #c4b5fd 0%, #a78bfa 50%, #8b5cf6 100%)'
-                                : 'linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%)',
-                              borderRadius: '8px 8px 4px 4px',
-                              position: 'relative',
-                              boxShadow: isPositive 
-                                ? '0 6px 20px rgba(139, 92, 246, 0.5)'
-                                : '0 6px 20px rgba(239, 68, 68, 0.4)',
-                              transition: 'all 0.3s ease',
-                              cursor: 'pointer'
-                            }}>
-                              {/* 光泽效果 */}
-                              <div style={{
-                                position: 'absolute',
-                                top: '0',
-                                left: '0',
-                                right: '0',
-                                height: '30%',
-                                background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%)',
-                                borderRadius: '8px 8px 0 0'
-                              }}/>
-                              
-                              {/* 数值标签 */}
-                              <div style={{
-                                position: 'absolute',
-                                top: '-40px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                background: isPositive 
-                                  ? 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'
-                                  : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                                color: '#ffffff',
-                                padding: '4px 10px',
-                                borderRadius: '16px',
-                                fontSize: '0.75rem',
-                                fontWeight: '700',
-                                whiteSpace: 'nowrap',
-                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
-                                border: '1px solid rgba(255, 255, 255, 0.2)'
-                              }}>
-                                {isPositive ? '+' : ''}{performance.toFixed(1)}%
-                              </div>
-                            </div>
-                            
-                            {/* 模型名称 */}
-                            <div style={{
-                              marginTop: '0.75rem',
-                              padding: '0rem 0.5rem'
-                            }}>
-                              <span style={{ 
-                                color: '#ffffff', 
-                                fontSize: '0.6rem', 
-                                fontWeight: '600',
-                                textAlign: 'center',
-                                display: 'block',
-                                maxWidth: '100%',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                {model?.name || 'Unknown'}
-                              </span>
-                            </div>
+                            <span style={{
+                              position: 'absolute',
+                              left: '-40px',
+                              top: '-8px',
+                              fontSize: '0.75rem',
+                              color: '#c4b5fd',
+                              fontWeight: '500'
+                            }}>{value.toFixed(0)}%</span>
                           </div>
                         );
                       })}
+                      
+                      {/* 柱状图 */}
+                      <div style={{ 
+                        position: 'absolute',
+                        top: 0,
+                        bottom: 0,
+                        left: '50px',
+                        right: '30px',
+                        display: 'flex', 
+                        justifyContent: 'space-around',
+                        gap: '0.3rem'
+                      }}>
+                        {polymarketModels
+                          .sort((a: any, b: any) => (b?.performance || 0) - (a?.performance || 0))
+                          .map((model: any, index: number) => {
+                            const performance = model?.performance || 0;
+                            const isPositive = performance >= 0;
+                            const barHeight = Math.min((Math.abs(performance) / maxPolyPerf) * 150, 150);
+
+                            return (
+                              <div key={model?.id || index} style={{ 
+                                flex: 1, 
+                                maxWidth: '80px',
+                                position: 'relative',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'flex-end'
+                              }}>
+                                {/* Performance Label */}
+                                <div style={{
+                                  position: 'absolute',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  ...(isPositive 
+                                    ? { bottom: `calc(50% + ${barHeight}px + 5px)` }
+                                    : { top: `calc(50% + ${barHeight}px + 5px)` }),
+                                  color: isPositive ? '#a78bfa' : '#ef4444',
+                                  fontSize: '0.75rem',
+                                  fontWeight: '700',
+                                  whiteSpace: 'nowrap',
+                                }}>
+                                  {isPositive ? '+' : ''}{performance.toFixed(1)}%
+                                </div>
+
+                                {/* Bar */}
+                                <div style={{
+                                  position: 'absolute',
+                                  left: '10%',
+                                  right: '10%',
+                                  ...(isPositive 
+                                    ? { bottom: '50%', height: `${barHeight}px` } 
+                                    : { top: '50%', height: `${barHeight}px` }),
+                                  background: isPositive ? '#a78bfa' : '#ef4444',
+                                  transition: 'all 0.3s ease',
+                                  cursor: 'pointer'
+                                }}>
+                                </div>
+
+                                {/* 模型名称和排名 */}
+                                <div style={{
+                                  height: '40px', // Reserve space at the bottom
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}>
+                                  <span style={{ 
+                                    color: '#ffffff', 
+                                    fontSize: '0.6rem', 
+                                    fontWeight: '600',
+                                    textAlign: 'center',
+                                    wordBreak: 'break-word',
+                                  }}>
+                                    {model?.name || 'Unknown'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()
           )}
         </div>
       </div>

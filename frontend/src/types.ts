@@ -5,29 +5,18 @@ export type Category = 'polymarket' | 'stock';
 export interface Model {
   id: string;
   name: string;
-  category: Category;
+  category: string;
+  status: string;
   performance: number;
-  accuracy: number;
-  trades: number;
   profit: number;
-  status: 'active' | 'inactive' | 'training';
-  // Optional fields seen in some components
-  market_type?: string;
-  ticker?: string;
-  strategy?: string;
+  trades: number;
+  asset_allocation: { [key: string]: number };
+  // Detailed data, fetched once and passed around
+  portfolio: any;
+  chartData: any;
+  allocationHistory: any;
 }
 
-export interface Trade {
-  id: string;
-  timestamp: Date;
-  symbol: string;
-  type: 'buy' | 'sell';
-  amount: number;
-  price: number;
-  profit: number;
-  model: string;
-  category: Category;
-  status: 'completed' | 'pending' | 'cancelled' | 'failed';
-  fees: number;
-  totalValue: number;
+export interface NewsArticle {
+  // ... existing code ...
 }

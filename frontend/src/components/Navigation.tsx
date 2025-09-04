@@ -64,12 +64,6 @@ const Navigation: React.FC = () => {
           >
             Social Media
           </button>
-          <button
-            className={`nav-link ${location.pathname === '/trading-history' ? 'active' : ''}`}
-            onClick={() => navigate('/trading-history')}
-          >
-            Trading History
-          </button>
           
           {/* GitHub Link */}
           <a

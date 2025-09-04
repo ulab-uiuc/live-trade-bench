@@ -268,10 +268,6 @@ p, span, div {
   color: #ef4444;
 }
 
-.model-actions {
-  display: flex;
-  gap: 0.5rem;
-}
 
 .action-button {
   flex: 1;

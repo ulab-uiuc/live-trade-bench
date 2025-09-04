@@ -2,6 +2,13 @@ import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import './ModelsDisplay.css';
 import type { Model } from '../types';
 
+// Custom Tooltip State
+type TooltipInfo = {
+  content: string;
+  x: number;
+  y: number;
+};
+
 // Pure helpers hoisted to module scope to avoid re-creation every render
 const COLORS = [
   '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316',
@@ -28,7 +35,7 @@ interface ModelsDisplayProps {
   modelsData: Model[];
   stockModels: Model[];
   polymarketModels: Model[];
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
@@ -40,6 +47,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock'>('all');
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [tooltip, setTooltip] = useState<TooltipInfo | null>(null);
 
   // 检查是否需要显示分类标签
   const showCategoryTabs = useMemo(() => {
@@ -73,87 +81,76 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     setShowModal(true);
   }, []);
 
+  // Tooltip handlers
+  const handleMouseMove = (e: React.MouseEvent, content: string) => {
+    setTooltip({ content, x: e.clientX + 15, y: e.clientY + 15 });
+  };
+
+  const handleMouseLeave = () => {
+    setTooltip(null);
+  };
+
   // 关闭模态框
   const closeModal = useCallback(() => {
     setShowModal(false);
     setSelectedModel(null);
   }, []);
 
-  // Removed unused tooltip hover handlers for simplicity
-
-  // Fetch real profit history data from backend
-  const [profitHistoryData, setProfitHistoryData] = useState<{ [key: string]: any[] }>({});
-
-
-  const fetchProfitHistoryById = useCallback(async (modelId: string, fallbackProfit: number) => {
-    if (profitHistoryData[modelId]) return profitHistoryData[modelId];
-    try {
-      const response = await fetch(`/api/models/${modelId}/chart-data`);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const chartData = await response.json();
-      const history = chartData.profit_history.map((item: any, index: number) => ({
-        day: index + 1,
-        profit: item.profit || 0,
-        date: new Date(item.timestamp || Date.now()).toLocaleDateString()
-      }));
-      setProfitHistoryData(prev => ({ ...prev, [modelId]: history }));
-      return history;
-    } catch (error) {
-      console.error('Error fetching profit history:', error);
-      return [{ day: 1, profit: fallbackProfit, date: new Date().toLocaleDateString() }];
-    }
-  }, [profitHistoryData]);
-
-  // 简单的SVG折线图组件
-  const ProfitChartWithData = memo(({ modelId, profit, performance }: { modelId: string; profit: number; performance: number }) => {
-    const [chartData, setChartData] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-      let mounted = true;
-      const loadData = async () => {
-        setLoading(true);
-        const data = await fetchProfitHistoryById(modelId, profit);
-        if (mounted) {
-          setChartData(data);
-          setLoading(false);
-        }
-      };
-      loadData();
-      return () => { mounted = false; };
-    }, [modelId, profit, fetchProfitHistoryById]);
-
-    if (loading) {
-      return (
-        <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
-          Loading chart data...
-        </div>
-      );
-    }
-
-    return <ProfitChart data={chartData} profit={profit} performance={performance} />;
-  });
-
-  const ProfitChart = memo(({ data, profit, performance }: { data: any[]; profit: number; performance: number }) => {
+  // Simplified "dumb" chart components that receive all data via props
+  
+  // Profit Chart
+  const ProfitChart = memo(({ data, profit, performance, onMouseMove, onMouseLeave }: { 
+    data: any[]; 
+    profit: number; 
+    performance: number;
+    onMouseMove: (e: React.MouseEvent, content: string) => void;
+    onMouseLeave: () => void;
+  }) => {
     const width = 400;
     const height = 200;
     const padding = 40;
 
+    const chartData = useMemo(() => Array.isArray(data) ? data.slice(-30) : [], [data]);
+
     const { maxProfit, minProfit, range, pathData } = useMemo(() => {
-      const maxP = Math.max(...data.map(d => d.profit));
-      const minP = Math.min(...data.map(d => d.profit));
+      // Ensure data is an array before mapping
+      const validData = chartData;
+      const profits = validData.map(d => d.profit);
+      
+      const maxP = profits.length > 0 ? Math.max(...profits) : 0;
+      const minP = profits.length > 0 ? Math.min(...profits) : 0;
       const r = maxP - minP || 100;
-      const path = data.map((point, index) => {
-        const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
-        const y = padding + ((maxP - point.profit) / r) * (height - 2 * padding);
-        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-      }).join(' ');
+
+      let path;
+      if (validData.length === 1) {
+        // If only one point, draw a horizontal line across the chart
+        const y = padding + ((maxP - validData[0].profit) / r) * (height - 2 * padding);
+        path = `M ${padding},${y} L ${width - padding},${y}`;
+      } else {
+        path = validData.map((point, index) => {
+          const x = padding + (index / (validData.length - 1)) * (width - 2 * padding);
+          const y = padding + ((maxP - point.profit) / r) * (height - 2 * padding);
+          return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+        }).join(' ');
+      }
+
       return { maxProfit: maxP, minProfit: minP, range: r, pathData: path };
-    }, [data]);
+    }, [chartData]);
+
+    if (chartData.length === 0) {
+      return (
+        <div className="profit-chart">
+          <h3>Profit History</h3>
+          <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
+            No profit history available.
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="profit-chart">
-        <h3>30-Day Profit History</h3>
+        <h3>Profit History</h3>
         <svg width={width} height={height} className="chart-svg">
           {/* 网格线 */}
           <defs>
@@ -185,16 +182,26 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           />
 
           {/* 数据点 */}
-          {data.map((point, index) => {
-            const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
+          {chartData.map((point, index) => {
+            const x = padding + (index / (chartData.length - 1)) * (width - 2 * padding);
             const y = padding + ((maxProfit - point.profit) / range) * (height - 2 * padding);
             return (
               <circle
                 key={index}
                 cx={x}
                 cy={y}
-                r="2"
+                r="4"
                 fill={profit >= 0 ? '#10b981' : '#ef4444'}
+                style={{ cursor: 'pointer', transition: 'r 0.2s' }}
+                onMouseMove={(e) => {
+                  const date = new Date(point.date).toLocaleDateString();
+                  onMouseMove(e, `Date: ${date} | Profit: $${point.profit.toFixed(2)}`);
+                }}
+                onMouseEnter={(e) => e.currentTarget.setAttribute('r', '6')}
+                onMouseLeave={(e) => {
+                  e.currentTarget.setAttribute('r', '4');
+                  onMouseLeave();
+                }}
               />
             );
           })}
@@ -223,53 +230,19 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     );
   });
 
-  // 资产分配横条图组件
-  const AssetAllocationBar = memo(({ modelId, category }: { modelId: string; category: 'stock' | 'polymarket' }) => {
-
-    const [portfolioAllocations, setPortfolioAllocations] = useState<any[]>([]);
-
-    useEffect(() => {
-      const fetchPortfolioData = async () => {
-        try {
-          const response = await fetch(`/api/models/${modelId}/portfolio`);
-          if (response.ok) {
-            const portfolio = await response.json();
-            // Prefer backend-provided target allocations (already includes CASH)
-            if (portfolio.target_allocations && Object.keys(portfolio.target_allocations).length > 0) {
-              const entries = Object.entries(portfolio.target_allocations) as Array<[string, number]>;
-              const allocations = entries
-                .filter(([, ratio]) => typeof ratio === 'number' && ratio > 0)
-                .map(([name, ratio]) => ({
-                  name,
-                  allocation: ratio,
-                  color: name === 'CASH' ? '#6b7280' : getColorForTicker(name)
-                }))
-                // sort desc for nicer visuals
-                .sort((a, b) => b.allocation - a.allocation);
-
-              setPortfolioAllocations(allocations);
-              return;
-            }
-
-            // Lightweight fallback: if no target_allocations, show default placeholder
-            setPortfolioAllocations(generateAssetAllocation({ id: modelId, category } as Model));
-          } else {
-            setPortfolioAllocations(generateAssetAllocation({ id: modelId, category } as Model));
-          }
-        } catch (error) {
-          console.error('Error fetching portfolio:', error);
-          setPortfolioAllocations(generateAssetAllocation({ id: modelId, category } as Model));
-        }
-      };
-
-      fetchPortfolioData();
-      const interval = setInterval(fetchPortfolioData, 30000); // Refresh every 30 seconds
-      return () => clearInterval(interval);
-    }, [modelId]);
-
-    const allocations = portfolioAllocations;
-
-
+  // Asset Allocation Bar (for modal)
+  const AssetAllocationBar = memo(({ portfolioData }: { portfolioData: any }) => {
+    const allocations = useMemo(() => {
+      const target = portfolioData?.target_allocations || {};
+      return Object.entries(target)
+        .map(([name, ratio]) => ({
+          name,
+          allocation: ratio as number,
+          color: getColorForTicker(name)
+        }))
+        .filter(item => item.allocation > 0)
+        .sort((a, b) => b.allocation - a.allocation);
+    }, [portfolioData]);
 
     return (
       <div className="asset-allocation">
@@ -316,37 +289,48 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       {/* 简化的标题 */}
       <div className="models-header">
         <h2>Trading Models</h2>
-        <button onClick={onRefresh} className="refresh-btn">🔄</button>
+        {/* Refresh button is now conditional */}
+        {onRefresh && <button onClick={onRefresh} className="refresh-btn">🔄</button>}
       </div>
 
       {/* 只在有多种类型时显示过滤器 */}
       {showCategoryTabs && (
         <div className="category-tabs">
-          <button
-            onClick={() => setSelectedCategory('all')}
+        <button
+          onClick={() => setSelectedCategory('all')}
             className={selectedCategory === 'all' ? 'active' : ''}
-          >
+        >
             All ({modelsData.length})
-          </button>
-          <button
+        </button>
+        <button
             onClick={() => setSelectedCategory('stock')}
             className={selectedCategory === 'stock' ? 'active' : ''}
-          >
+        >
             Stock ({stockModels.length})
-          </button>
-          <button
+        </button>
+        <button
             onClick={() => setSelectedCategory('polymarket')}
             className={selectedCategory === 'polymarket' ? 'active' : ''}
-          >
+        >
             Polymarket ({polymarketModels.length})
-          </button>
-        </div>
+        </button>
+      </div>
       )}
 
       {/* 方形模型卡片，显示资产分配 */}
       <div className="models-grid-square">
         {filteredModels.map(model => {
-          const allocations = generateAssetAllocation(model); // This will be overridden by real data in AssetAllocationBar
+          // Use the real (mocked) asset allocation from the model prop
+          const allocations = model.asset_allocation 
+            ? Object.entries(model.asset_allocation)
+                .map(([name, allocation]) => ({
+                  name,
+                  allocation,
+                  color: getColorForTicker(name)
+                }))
+                .sort((a, b) => b.allocation - a.allocation)
+            : []; // Default to empty if no allocation data
+
           return (
             <div
               key={model.id}
@@ -370,7 +354,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 <span className={`return-value-large ${model.performance >= 0 ? 'positive' : 'negative'}`}>
                   {model.performance.toFixed(1)}%
                 </span>
-              </div>
+            </div>
 
               {/* 资产分配横条 - 自定义悬停显示 */}
               <div className="card-allocation">
@@ -384,6 +368,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                         width: `${asset.allocation * 100}%`,
                         backgroundColor: asset.color
                       }}
+                      onMouseMove={(e) => handleMouseMove(e, `${asset.name}: ${(asset.allocation * 100).toFixed(1)}%`)}
+                      onMouseLeave={handleMouseLeave}
                     />
                   ))}
                 </div>
@@ -392,6 +378,19 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           );
         })}
       </div>
+
+      {/* Custom Tooltip Renderer */}
+      {tooltip && (
+        <div
+          className="custom-tooltip"
+          style={{
+            left: `${tooltip.x}px`,
+            top: `${tooltip.y}px`,
+          }}
+        >
+          {tooltip.content}
+                </div>
+              )}
 
       {/* 模态框 */}
       {showModal && selectedModel && (
@@ -418,13 +417,24 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                   <span>Total Trades:</span>
                   <span>{selectedModel.trades}</span>
                 </div>
-                <div className="detail-row">
-                  <span>Accuracy:</span>
-                  <span>{selectedModel.accuracy.toFixed(1)}%</span>
-                </div>
               </div>
 
-              <AssetAllocationBar modelId={selectedModel.id} category={selectedModel.category} />
+              <AssetAllocationBar portfolioData={selectedModel.portfolio} />
+
+              {/* 分割线 */}
+              <div style={{
+                height: '1px',
+                background: 'linear-gradient(90deg, transparent 0%, #374151 50%, transparent 100%)',
+                margin: '2rem 0',
+                position: 'relative'
+              }}>
+            </div>
+
+              <AssetRatioChart 
+                allocationHistory={selectedModel.allocationHistory} 
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              />
 
               {/* 分割线 */}
               <div style={{
@@ -435,21 +445,12 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               }}>
               </div>
 
-              <AssetRatioChart category={selectedModel.category} />
-
-              {/* 分割线 */}
-              <div style={{
-                height: '1px',
-                background: 'linear-gradient(90deg, transparent 0%, #374151 50%, transparent 100%)',
-                margin: '2rem 0',
-                position: 'relative'
-              }}>
-              </div>
-
-              <ProfitChartWithData
-                modelId={selectedModel.id}
+              <ProfitChart
+                data={selectedModel.chartData.profit_history}
                 profit={selectedModel.profit}
                 performance={selectedModel.performance}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
               />
             </div>
           </div>
@@ -459,75 +460,49 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   );
 };
 
-// Asset Ratio Chart Component
-interface AssetRatioChartProps {
-  category: 'stock' | 'polymarket';
-}
+// Asset Ratio Chart Component (now a "dumb" component)
+const AssetRatioChart: React.FC<{ 
+  allocationHistory: any[];
+  onMouseMove: (e: React.MouseEvent, content: string) => void;
+  onMouseLeave: () => void;
+}> = ({ allocationHistory, onMouseMove, onMouseLeave }) => {
+  
+  const chartData = useMemo(() => {
+    if (!Array.isArray(allocationHistory) || allocationHistory.length === 0) return [];
+    // Slice to the last 30 entries and extract just the allocations object
+    return allocationHistory.slice(-30).map(snapshot => snapshot.allocations || {});
+  }, [allocationHistory]);
 
-const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ category }) => {
-  const [ratioHistory, setRatioHistory] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchRatioHistory = async () => {
-      try {
-        setLoading(true);
-        // Generate mock historical ratio data for demonstration
-        const mockData = generateMockRatioHistory(category);
-        setRatioHistory(mockData);
-      } catch (error) {
-        console.error('Error fetching ratio history:', error);
-      } finally {
-        setLoading(false);
+  const allAssets = useMemo(() => {
+      const assetSet = new Set<string>();
+      chartData.forEach(allocations => {
+          Object.keys(allocations).forEach(asset => assetSet.add(asset));
+      });
+      // Ensure CASH is last for stacking order if it exists
+      const sortedAssets = Array.from(assetSet).sort();
+      if (assetSet.has('CASH')) {
+        return ['CASH', ...sortedAssets.filter(a => a !== 'CASH')];
       }
-    };
+      return sortedAssets;
+  }, [chartData]);
+  
+  const stackedData = useMemo(() => {
+    return chartData.map(allocations => {
+        let cumulative = 0;
+        const stacked: { [key: string]: number } = {};
+        allAssets.forEach(asset => {
+            const value = allocations[asset] || 0; // Default to 0 if asset not in this snapshot
+            stacked[asset + '_start'] = cumulative;
+            cumulative += value;
+            stacked[asset + '_end'] = cumulative;
+        });
+        return stacked;
+    });
+  }, [chartData, allAssets]);
 
-    fetchRatioHistory();
-  }, [category]);
+  const colors = ['#60a5fa', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#6b7280'];
 
-  const generateMockRatioHistory = (categoryInput: 'stock' | 'polymarket') => {
-    const days = 30;
-    const data = [];
-    const assets = categoryInput === 'stock'
-
-      ? ['AAPL', 'GOOGL', 'MSFT', 'CASH']
-      : ['Market1', 'Market2', 'Market3', 'CASH'];
-
-    for (let i = 0; i < days; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() - (days - i));
-
-      // Generate realistic allocation changes over time
-      const baseAllocations = categoryInput === 'stock'
-        ? [0.3, 0.25, 0.25, 0.2]  // Stock allocations
-        : [0.4, 0.3, 0.2, 0.1];   // Polymarket allocations
-
-      const entry: any = {
-        date: date.toISOString().split('T')[0],
-        timestamp: date.getTime()
-      };
-
-      assets.forEach((asset, index) => {
-        // Add some variation to the base allocation
-        const variation = (Math.sin(i * 0.2) * 0.1) + (Math.random() * 0.1 - 0.05);
-        entry[asset] = Math.max(0.05, Math.min(0.6, baseAllocations[index] + variation));
-      });
-
-      // Normalize to ensure sum equals 1
-      const total = assets.reduce((sum, asset) => sum + entry[asset], 0);
-      assets.forEach(asset => {
-        entry[asset] = entry[asset] / total;
-      });
-
-      data.push(entry);
-    }
-
-    return data;
-  };
-
-  const colors = ['#60a5fa', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-
-  if (loading) {
+  if (chartData.length === 0 || allAssets.length === 0) {
     return (
       <div style={{
         padding: '2rem',
@@ -536,77 +511,37 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ category }) => {
         borderRadius: '0.5rem',
         margin: '1rem 0'
       }}>
-        <div style={{ fontSize: '1rem', color: '#9ca3af' }}>Loading asset ratio history...</div>
+        <div style={{ fontSize: '1rem', color: '#9ca3af' }}>No asset ratio history available.</div>
       </div>
     );
   }
 
-  const assets = ratioHistory.length > 0 ? Object.keys(ratioHistory[0]).filter(key => key !== 'date' && key !== 'timestamp') : [];
-  const maxRatio = Math.max(...ratioHistory.flatMap(entry => assets.map(asset => entry[asset])));
   const chartHeight = 300;
   const chartWidth = 600;
   const margin = { top: 20, right: 80, bottom: 40, left: 50 };
 
   return (
-    <div style={{
-      margin: '1rem 0'
-    }}>
-      <h3 style={{
-        color: '#ffffff',
-        fontSize: '1.125rem',
-        fontWeight: '600',
-        marginBottom: '1rem',
-        textAlign: 'center'
-      }}>
-        Asset Allocation History (Past 30 Days)
+    <div style={{ margin: '1rem 0' }}>
+      <h3 style={{ color: '#ffffff', fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', textAlign: 'center' }}>
+        Asset Allocation History
       </h3>
 
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        overflowX: 'auto'
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
         <svg width={chartWidth} height={chartHeight + margin.top + margin.bottom}>
-          {/* Background grid with gradient */}
+          {/* Background and Y-Axis Grid */}
           <defs>
             <linearGradient id="chartBackground" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#334155" stopOpacity="0.1" />
               <stop offset="100%" stopColor="#1e293b" stopOpacity="0.3" />
             </linearGradient>
           </defs>
-
-          {/* Subtle background */}
-          <rect
-            x={margin.left}
-            y={margin.top}
-            width={chartWidth - margin.left - margin.right}
-            height={chartHeight}
-            fill="url(#chartBackground)"
-            rx="8"
-          />
-
+          <rect x={margin.left} y={margin.top} width={chartWidth - margin.left - margin.right} height={chartHeight} fill="url(#chartBackground)" rx="8" />
           {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map((value, index) => {
             const y = margin.top + chartHeight - (value * chartHeight);
             return (
               <g key={index}>
-                <line
-                  x1={margin.left}
-                  y1={y}
-                  x2={chartWidth - margin.right}
-                  y2={y}
-                  stroke={value === 0 ? "#475569" : "#374151"}
-                  strokeWidth={value === 0 ? "1.5" : "0.5"}
-                  strokeOpacity={value === 0 ? "0.8" : "0.3"}
-                  strokeDasharray={value === 0 ? "none" : "3,3"}
-                />
-                <text
-                  x={margin.left - 15}
-                  y={y + 4}
-                  fill="#d1d5db"
-                  fontSize="11"
-                  fontWeight="500"
-                  textAnchor="end"
-                >
+                <line x1={margin.left} y1={y} x2={chartWidth - margin.right} y2={y} stroke={value === 0 ? "#475569" : "#374151"} strokeWidth={value === 0 ? "1.5" : "0.5"} strokeOpacity={value === 0 ? "0.8" : "0.3"} strokeDasharray={value === 0 ? "none" : "3,3"} />
+                <text x={margin.left - 15} y={y + 4} fill="#d1d5db" fontSize="11" fontWeight="500" textAnchor="end">
                   {(value * 100).toFixed(0)}%
                 </text>
               </g>
@@ -614,121 +549,72 @@ const AssetRatioChart: React.FC<AssetRatioChartProps> = ({ category }) => {
           })}
 
           {/* Stacked Areas */}
-          {(() => {
-            // Calculate cumulative data for stacking
-            const stackedData = ratioHistory.map(entry => {
-              let cumulative = 0;
-              const stacked: any = { date: entry.date };
-              assets.forEach(asset => {
-                stacked[asset + '_start'] = cumulative;
-                cumulative += entry[asset];
-                stacked[asset + '_end'] = cumulative;
-              });
-              return stacked;
-            });
+          {allAssets.map((asset, assetIndex) => {
+              const color = asset === 'CASH' ? '#6b7280' : colors[assetIndex % colors.length];
 
-            return assets.map((asset, assetIndex) => {
-              const color = colors[assetIndex % colors.length];
+              let pathData;
+              if (stackedData.length === 1) {
+                const y_end = margin.top + chartHeight - (stackedData[0][asset + '_end'] * chartHeight);
+                const y_start = margin.top + chartHeight - (stackedData[0][asset + '_start'] * chartHeight);
+                const x_start = margin.left;
+                const x_end = chartWidth - margin.right;
+                pathData = `M ${x_start},${y_end} L ${x_end},${y_end} L ${x_end},${y_start} L ${x_start},${y_start} Z`;
+              } else {
+                  const topPoints = stackedData.map((entry, index) => {
+                    const x = margin.left + (index / (stackedData.length - 1)) * (chartWidth - margin.left - margin.right);
+                    const y = margin.top + chartHeight - (entry[asset + '_end'] * chartHeight);
+                    return `${x},${y}`;
+                  }).join(' ');
 
-              // Create path for stacked area
-              const topPoints = stackedData.map((entry, index) => {
-                const x = margin.left + (index / (stackedData.length - 1)) * (chartWidth - margin.left - margin.right);
-                const y = margin.top + chartHeight - (entry[asset + '_end'] * chartHeight);
-                return `${x},${y}`;
-              }).join(' ');
+                  const bottomPoints = stackedData.map((entry, index) => {
+                    const x = margin.left + (index / (stackedData.length - 1)) * (chartWidth - margin.left - margin.right);
+                    const y = margin.top + chartHeight - (entry[asset + '_start'] * chartHeight);
+                    return `${x},${y}`;
+                  }).reverse().join(' ');
 
-              const bottomPoints = stackedData.map((entry, index) => {
-                const x = margin.left + (index / (stackedData.length - 1)) * (chartWidth - margin.left - margin.right);
-                const y = margin.top + chartHeight - (entry[asset + '_start'] * chartHeight);
-                return `${x},${y}`;
-              }).reverse().join(' ');
-
-              const pathData = `M ${topPoints} L ${bottomPoints} Z`;
+                  pathData = `M ${topPoints} L ${bottomPoints} Z`;
+              }
 
               return (
-                <g key={asset}>
-                  {/* Gradient definition for this asset */}
+                <g 
+                  key={asset}
+                  onMouseMove={(e) => onMouseMove(e, `${asset}`)}
+                  onMouseLeave={onMouseLeave}
+                >
                   <defs>
                     <linearGradient id={`gradient-${asset}`} x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor={color} stopOpacity="0.8" />
                       <stop offset="100%" stopColor={color} stopOpacity="0.3" />
                     </linearGradient>
                   </defs>
-
-                  {/* Stacked area with gradient */}
-                  <path
-                    d={pathData}
-                    fill={`url(#gradient-${asset})`}
-                    stroke="none"
-                    style={{
-                      filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))',
-                      transition: 'all 0.3s ease'
-                    }}
-                  />
-
-                  {/* Subtle top border line */}
-                  {assetIndex < assets.length - 1 && (
-                    <polyline
-                      points={topPoints}
-                      fill="none"
-                      stroke={color}
-                      strokeWidth="0.5"
-                      strokeOpacity="0.3"
-                      style={{
-                        filter: 'blur(0.5px)',
-                        mixBlendMode: 'multiply'
-                      }}
-                    />
-                  )}
+                  <path d={pathData} fill={`url(#gradient-${asset})`} stroke="none" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))', transition: 'all 0.3s ease' }} />
                 </g>
               );
-            });
-          })()}
+            })}
 
-          {/* X-axis labels */}
-          {ratioHistory.filter((_, index) => index % 5 === 0).map((entry, index) => {
-            const x = margin.left + (index * 5 / (ratioHistory.length - 1)) * (chartWidth - margin.left - margin.right);
-            return (
-              <text
-                key={index}
-                x={x}
-                y={chartHeight + margin.top + 20}
-                fill="#9ca3af"
-                fontSize="10"
-                textAnchor="middle"
-              >
-                {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </text>
-            );
-          })}
+          {/* X-axis labels (using index) */}
+          {chartData.map((_, index) => {
+              // Show fewer labels if there are many data points
+              if (chartData.length > 10 && index % Math.floor(chartData.length / 5) !== 0) {
+                  return null;
+              }
+              const xRatio = chartData.length > 1 ? index / (chartData.length - 1) : 0.5;
+              const x = margin.left + xRatio * (chartWidth - margin.left - margin.right);
+              return (
+                <text key={index} x={x} y={chartHeight + margin.top + 20} fill="#9ca3af" fontSize="10" textAnchor="middle">
+                  {index + 1}
+                </text>
+              );
+            })}
         </svg>
       </div>
 
       {/* Legend */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        marginTop: '1rem'
-      }}>
-        {assets.map((asset, index) => (
-          <div key={asset} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              backgroundColor: colors[index % colors.length],
-              borderRadius: '50%'
-            }}></div>
-            <span style={{
-              color: '#d1d5db',
-              fontSize: '0.875rem',
-              fontWeight: '500'
-            }}>
+      <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem' }}>
+        {allAssets.map((asset, index) => (
+          <div key={asset} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: '12px', height: '12px', backgroundColor: asset === 'CASH' ? '#6b7280' : colors[index % colors.length], borderRadius: '50%' }}></div>
+            <span style={{ color: '#d1d5db', fontSize: '0.875rem', fontWeight: '500' }}>
               {asset}
             </span>
           </div>

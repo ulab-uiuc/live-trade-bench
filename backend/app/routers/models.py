@@ -1,8 +1,10 @@
 import logging
 from typing import Any, Dict, List
 
-from app.models_data import get_models_data, get_system_status, trigger_cycle, get_portfolio
-from fastapi import APIRouter, HTTPException, Query
+from app.models_data import (
+    get_models_data, get_system_status, trigger_cycle
+)
+from fastapi import APIRouter, HTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -51,30 +53,3 @@ async def system_status() -> Dict[str, Any]:
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting system status: {str(e)}")
-
-
-@router.get("/{model_id}/portfolio")
-async def get_model_portfolio(model_id: str) -> Dict[str, Any]:
-    """Get portfolio data for a specific model (both stock and polymarket)."""
-    try:
-        portfolio_data = get_portfolio(model_id)
-        if not portfolio_data:
-            raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
-        
-        return portfolio_data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting portfolio: {str(e)}")
-
-
-@router.get("/{model_id}")
-async def get_model_simple(model_id: str) -> Dict[str, Any]:
-    """Get a specific model by ID."""
-    try:
-        models = get_models_data()
-        for model in models:
-            if model["id"] == model_id:
-                return model
-        
-        raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting model: {str(e)}")

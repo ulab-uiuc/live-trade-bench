@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Dict, List
+import random
 
 from .base_account import BaseAccount
 
@@ -120,6 +121,53 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
         """Update current price for a position."""
         if ticker in self.positions:
             self.positions[ticker].current_price = current_price
+
+    def _simulate_rebalance_to_target(self, target_allocations: Dict[str, float]):
+        """
+        Simulates market fluctuations and then rebalances to a target allocation.
+        This provides a more realistic mock behavior.
+        """
+        # 1. Simulate market price fluctuation for existing positions
+        for position in self.positions.values():
+            # Simulate a small price change (+/- 2%)
+            fluctuation = 1 + (random.random() - 0.5) * 0.04 
+            position.current_price *= fluctuation
+
+        # 2. Get the new total value after market fluctuation, and set the target
+        total_value = self.get_total_value()
+        self.target_allocations = target_allocations # <-- THIS IS THE FIX
+
+        # 3. Rebalance to the new target allocation based on the new total value
+        self.positions.clear()
+        
+        # Generate stable mock prices based on ticker hash for consistency
+        mock_prices = {
+            ticker: 100 + (hash(ticker) % 400) + (hash(ticker[::-1]) % 100) / 100.0
+            for ticker in target_allocations.keys() if ticker != "CASH"
+        }
+
+        for ticker, ratio in target_allocations.items():
+            if ticker == "CASH":
+                continue
+            
+            # Use the newly generated mock price for rebalancing calculations
+            price = mock_prices.get(ticker)
+            if price is None or price == 0:
+                continue
+
+            target_value = total_value * ratio
+            quantity = target_value / price
+            
+            self.positions[ticker] = StockPosition(
+                ticker=ticker,
+                quantity=quantity,
+                average_price=price,
+                current_price=price
+            )
+
+        # 4. Update cash balance based on the new positions
+        positions_value = sum(p.market_value for p in self.positions.values())
+        self.cash_balance = total_value - positions_value
 
 
 def create_stock_account(initial_cash: float = 1000.0) -> StockAccount:
