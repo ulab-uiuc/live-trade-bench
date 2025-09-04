@@ -10,7 +10,7 @@ interface StockDashboardProps {
 }
 
 const StockDashboard: React.FC<StockDashboardProps> = ({ modelsData, modelsLastRefresh }) => {
-  const stockModels = useMemo(() => 
+  const stockModels = useMemo(() =>
     modelsData.filter(m => m.category === 'stock'),
     [modelsData]
   );

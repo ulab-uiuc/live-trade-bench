@@ -97,11 +97,11 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   }, []);
 
   // Simplified "dumb" chart components that receive all data via props
-  
+
   // Profit Chart
-  const ProfitChart = memo(({ data, profit, performance, onMouseMove, onMouseLeave }: { 
-    data: any[]; 
-    profit: number; 
+  const ProfitChart = memo(({ data, profit, performance, onMouseMove, onMouseLeave }: {
+    data: any[];
+    profit: number;
     performance: number;
     onMouseMove: (e: React.MouseEvent, content: string) => void;
     onMouseLeave: () => void;
@@ -116,7 +116,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       // Ensure data is an array before mapping
       const validData = chartData;
       const profits = validData.map(d => d.profit);
-      
+
       const maxP = profits.length > 0 ? Math.max(...profits) : 0;
       const minP = profits.length > 0 ? Math.min(...profits) : 0;
       const r = maxP - minP || 100;
@@ -321,7 +321,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       <div className="models-grid-square">
         {filteredModels.map(model => {
           // Use the real (mocked) asset allocation from the model prop
-          const allocations = model.asset_allocation 
+          const allocations = model.asset_allocation
             ? Object.entries(model.asset_allocation)
                 .map(([name, allocation]) => ({
                   name,
@@ -430,8 +430,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               }}>
             </div>
 
-              <AssetRatioChart 
-                allocationHistory={selectedModel.allocationHistory} 
+              <AssetRatioChart
+                allocationHistory={selectedModel.allocationHistory}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
               />
@@ -461,12 +461,12 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 };
 
 // Asset Ratio Chart Component (now a "dumb" component)
-const AssetRatioChart: React.FC<{ 
+const AssetRatioChart: React.FC<{
   allocationHistory: any[];
   onMouseMove: (e: React.MouseEvent, content: string) => void;
   onMouseLeave: () => void;
 }> = ({ allocationHistory, onMouseMove, onMouseLeave }) => {
-  
+
   const chartData = useMemo(() => {
     if (!Array.isArray(allocationHistory) || allocationHistory.length === 0) return [];
     // Slice to the last 30 entries and extract just the allocations object
@@ -485,7 +485,7 @@ const AssetRatioChart: React.FC<{
       }
       return sortedAssets;
   }, [chartData]);
-  
+
   const stackedData = useMemo(() => {
     return chartData.map(allocations => {
         let cumulative = 0;
@@ -576,7 +576,7 @@ const AssetRatioChart: React.FC<{
               }
 
               return (
-                <g 
+                <g
                   key={asset}
                   onMouseMove={(e) => onMouseMove(e, `${asset}`)}
                   onMouseLeave={onMouseLeave}

@@ -1,21 +1,15 @@
-import atexit
 import logging
 import os
-import time
 import threading
-import asyncio
+import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Dict
 from contextlib import asynccontextmanager
+from typing import Any, Callable, Dict
 
-from app.routers import (
-    models,
-    news,
-    social,
-    system_logs,
-)
+from app.routers import models, news, social, system_logs
+
 # Removed complex trading system - now just simple data provider
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -87,71 +81,115 @@ app.include_router(system_logs.router)
 _parallel_fetcher_running = False
 _parallel_fetcher_thread = None
 
+
 def _parallel_background_fetcher():
     """Background thread that fetches news and social media data in parallel"""
     global _parallel_fetcher_running
-    
+
     while _parallel_fetcher_running:
         try:
             print("🔄 Starting parallel background data fetch...")
             start_time = time.time()
-            
+
             # Use a simpler approach - trigger the endpoints that will do parallel fetching
             import requests
-            
+
             # Use ThreadPoolExecutor for parallel endpoint calls
             with ThreadPoolExecutor(max_workers=4) as executor:
                 # Submit all fetch tasks in parallel via HTTP calls
                 futures = [
-                    executor.submit(lambda: requests.get("http://localhost:5001/api/news/stock?limit=15", timeout=60)),
-                    executor.submit(lambda: requests.get("http://localhost:5001/api/news/polymarket?limit=15", timeout=60)),
-                    executor.submit(lambda: requests.get("http://localhost:5001/api/social/stock?limit=15", timeout=60)),
-                    executor.submit(lambda: requests.get("http://localhost:5001/api/social/polymarket?limit=15", timeout=60))
+                    executor.submit(
+                        lambda: requests.get(
+                            "http://localhost:5001/api/news/stock?limit=15", timeout=60
+                        )
+                    ),
+                    executor.submit(
+                        lambda: requests.get(
+                            "http://localhost:5001/api/news/polymarket?limit=15",
+                            timeout=60,
+                        )
+                    ),
+                    executor.submit(
+                        lambda: requests.get(
+                            "http://localhost:5001/api/social/stock?limit=15",
+                            timeout=60,
+                        )
+                    ),
+                    executor.submit(
+                        lambda: requests.get(
+                            "http://localhost:5001/api/social/polymarket?limit=15",
+                            timeout=60,
+                        )
+                    ),
                 ]
-                
+
                 # Wait for all tasks to complete
                 results = []
                 for i, future in enumerate(futures):
                     try:
-                        response = future.result(timeout=70)  # 70 second timeout per task
+                        response = future.result(
+                            timeout=70
+                        )  # 70 second timeout per task
                         if response.status_code == 200:
                             data = response.json()
                             results.append(data)
-                            task_names = ["Stock News", "Polymarket News", "Stock Social", "Polymarket Social"]
+                            task_names = [
+                                "Stock News",
+                                "Polymarket News",
+                                "Stock Social",
+                                "Polymarket Social",
+                            ]
                             print(f"   ✅ {task_names[i]}: {len(data)} items")
                         else:
-                            task_names = ["Stock News", "Polymarket News", "Stock Social", "Polymarket Social"]
-                            print(f"   ❌ {task_names[i]} failed: HTTP {response.status_code}")
+                            task_names = [
+                                "Stock News",
+                                "Polymarket News",
+                                "Stock Social",
+                                "Polymarket Social",
+                            ]
+                            print(
+                                f"   ❌ {task_names[i]} failed: HTTP {response.status_code}"
+                            )
                             results.append([])
                     except Exception as e:
-                        task_names = ["Stock News", "Polymarket News", "Stock Social", "Polymarket Social"]
+                        task_names = [
+                            "Stock News",
+                            "Polymarket News",
+                            "Stock Social",
+                            "Polymarket Social",
+                        ]
                         print(f"   ❌ {task_names[i]} failed: {e}")
                         results.append([])
-            
+
             elapsed = time.time() - start_time
             total_items = sum(len(r) for r in results)
             print(f"🎉 Parallel fetch completed: {total_items} items in {elapsed:.2f}s")
-            
+
             # Wait 30 minutes before next fetch
             time.sleep(30 * 60)
-            
+
         except Exception as e:
             print(f"❌ Parallel background fetcher error: {e}")
             import traceback
+
             traceback.print_exc()
             time.sleep(5 * 60)  # Wait 5 minutes on error
+
 
 def start_parallel_background_fetchers():
     """Start the parallel background fetcher"""
     global _parallel_fetcher_running, _parallel_fetcher_thread
-    
+
     if _parallel_fetcher_running:
         return
-    
+
     _parallel_fetcher_running = True
-    _parallel_fetcher_thread = threading.Thread(target=_parallel_background_fetcher, daemon=True)
+    _parallel_fetcher_thread = threading.Thread(
+        target=_parallel_background_fetcher, daemon=True
+    )
     _parallel_fetcher_thread.start()
     print("🚀 Parallel background data fetcher started")
+
 
 def stop_parallel_background_fetchers():
     """Stop the parallel background fetcher"""
@@ -159,34 +197,39 @@ def stop_parallel_background_fetchers():
     _parallel_fetcher_running = False
     print("⏹️ Parallel background data fetcher stopped")
 
+
 # Background trading task
 _trading_cycle_running = False
 _trading_cycle_thread = None
+
 
 def _background_trading_cycle_runner():
     """Background thread that periodically runs the trading cycle."""
     global _trading_cycle_running
     print("🚀 Background trading cycle runner started")
-    
+
     while _trading_cycle_running:
         try:
             print("AUTOMATION: 🤖 Triggering 15-minute automatic trading cycle...")
             from app.models_data import trigger_cycle
+
             trigger_cycle()
             print("AUTOMATION: ✅ Trading cycle finished. Waiting for 15 minutes.")
-            
+
             # Wait for 15 minutes, but check for shutdown every second
             for _ in range(15 * 60):
                 if not _trading_cycle_running:
                     break
                 time.sleep(1)
-                
+
         except Exception as e:
             print(f"AUTOMATION: ❌ Error in background trading cycle: {e}")
             import traceback
+
             traceback.print_exc()
             # Wait 5 minutes on error before retrying
             time.sleep(5 * 60)
+
 
 def start_background_trader():
     """Start the background trading cycle runner."""
@@ -194,8 +237,11 @@ def start_background_trader():
     if _trading_cycle_running:
         return
     _trading_cycle_running = True
-    _trading_cycle_thread = threading.Thread(target=_background_trading_cycle_runner, daemon=True)
+    _trading_cycle_thread = threading.Thread(
+        target=_background_trading_cycle_runner, daemon=True
+    )
     _trading_cycle_thread.start()
+
 
 def stop_background_trader():
     """Stop the background trading cycle runner."""
@@ -203,6 +249,7 @@ def stop_background_trader():
     if _trading_cycle_running:
         _trading_cycle_running = False
         print("⏹️ Background trading cycle runner stopped")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -213,9 +260,9 @@ async def lifespan(app: FastAPI):
         logger.info("🚀 Automatic trading cycle enabled (15-minute interval)")
     except Exception as e:
         logger.warning(f"Failed to start background trader: {e}")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down Live Trade Bench API")
     try:
@@ -254,7 +301,7 @@ async def health_check() -> Dict[str, Any]:
 async def startup_event() -> None:
     """Initialize API on startup."""
     logger.info("Starting Live Trade Bench API")
-    
+
     # Disable background fetchers completely for now
     try:
         # start_parallel_background_fetchers()  # Completely disabled
@@ -267,13 +314,14 @@ async def startup_event() -> None:
 async def shutdown_event() -> None:
     """Cleanup on shutdown."""
     logger.info("Shutting down API")
-    
+
     # Stop parallel background data fetcher
     try:
         stop_parallel_background_fetchers()
         logger.info("Parallel background data fetcher stopped")
     except Exception as e:
         logger.warning(f"Failed to stop background fetchers: {e}")
+
 
 frontend_build_path = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "..", "frontend", "build"

@@ -7,11 +7,11 @@ interface DashboardProps {
   systemLastRefresh: Date;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ 
-  modelsData, 
-  modelsLastRefresh, 
-  systemStatus, 
-  systemLastRefresh 
+const Dashboard: React.FC<DashboardProps> = ({
+  modelsData,
+  modelsLastRefresh,
+  systemStatus,
+  systemLastRefresh
 }) => {
   console.log('📊 Dashboard rendering with background data!');
 
@@ -165,10 +165,10 @@ const Dashboard: React.FC<DashboardProps> = ({
           }}>
             LAST UPDATED
           </div>
-                      <p style={{ 
-              color: '#f59e0b', 
+                      <p style={{
+              color: '#f59e0b',
               margin: '0 0 0.5rem 0',
-              fontSize: '2.5rem', 
+              fontSize: '2.5rem',
               fontWeight: '800',
               fontFamily: 'monospace',
               letterSpacing: '-0.025em',
@@ -180,10 +180,10 @@ const Dashboard: React.FC<DashboardProps> = ({
                 hour12: false
               })}
             </p>
-            <p style={{ 
-              color: '#94a3b8', 
-              margin: '0.25rem 0 0 0', 
-              fontSize: '0.75rem', 
+            <p style={{
+              color: '#94a3b8',
+              margin: '0.25rem 0 0 0',
+              fontSize: '0.75rem',
               fontWeight: '500',
               textTransform: 'uppercase',
               letterSpacing: '0.05em'
@@ -278,15 +278,15 @@ const Dashboard: React.FC<DashboardProps> = ({
                           </div>
                         );
                       })}
-                      
+
                       {/* 柱状图 */}
-                      <div style={{ 
+                      <div style={{
                         position: 'absolute',
                         top: 0,
                         bottom: 0,
                         left: '50px',
                         right: '30px',
-                        display: 'flex', 
+                        display: 'flex',
                         justifyContent: 'space-around',
                         gap: '0.3rem'
                       }}>
@@ -298,8 +298,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                             const barHeight = Math.min((Math.abs(performance) / maxStockPerf) * 150, 150);
 
                             return (
-                              <div key={model?.id || index} style={{ 
-                                flex: 1, 
+                              <div key={model?.id || index} style={{
+                                flex: 1,
                                 maxWidth: '80px',
                                 position: 'relative',
                                 display: 'flex',
@@ -311,7 +311,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                   position: 'absolute',
                                   left: '50%',
                                   transform: 'translateX(-50%)',
-                                  ...(isPositive 
+                                  ...(isPositive
                                     ? { bottom: `calc(50% + ${barHeight}px + 5px)` }
                                     : { top: `calc(50% + ${barHeight}px + 5px)` }),
                                   color: isPositive ? '#10b981' : '#ef4444',
@@ -321,14 +321,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 }}>
                                   {isPositive ? '+' : ''}{performance.toFixed(1)}%
                                 </div>
-                                
+
                                 {/* Bar */}
                                 <div style={{
                                   position: 'absolute',
                                   left: '10%',
                                   right: '10%',
-                                  ...(isPositive 
-                                    ? { bottom: '50%', height: `${barHeight}px` } 
+                                  ...(isPositive
+                                    ? { bottom: '50%', height: `${barHeight}px` }
                                     : { top: '50%', height: `${barHeight}px` }),
                                   background: isPositive ? '#10b981' : '#ef4444',
                                   transition: 'all 0.3s ease',
@@ -343,9 +343,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                 }}>
-                                  <span style={{ 
-                                    color: '#ffffff', 
-                                    fontSize: '0.6rem', 
+                                  <span style={{
+                                    color: '#ffffff',
+                                    fontSize: '0.6rem',
                                     fontWeight: '600',
                                     textAlign: 'center',
                                     wordBreak: 'break-word',
@@ -436,15 +436,15 @@ const Dashboard: React.FC<DashboardProps> = ({
                           </div>
                         );
                       })}
-                      
+
                       {/* 柱状图 */}
-                      <div style={{ 
+                      <div style={{
                         position: 'absolute',
                         top: 0,
                         bottom: 0,
                         left: '50px',
                         right: '30px',
-                        display: 'flex', 
+                        display: 'flex',
                         justifyContent: 'space-around',
                         gap: '0.3rem'
                       }}>
@@ -456,8 +456,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                             const barHeight = Math.min((Math.abs(performance) / maxPolyPerf) * 150, 150);
 
                             return (
-                              <div key={model?.id || index} style={{ 
-                                flex: 1, 
+                              <div key={model?.id || index} style={{
+                                flex: 1,
                                 maxWidth: '80px',
                                 position: 'relative',
                                 display: 'flex',
@@ -469,7 +469,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                   position: 'absolute',
                                   left: '50%',
                                   transform: 'translateX(-50%)',
-                                  ...(isPositive 
+                                  ...(isPositive
                                     ? { bottom: `calc(50% + ${barHeight}px + 5px)` }
                                     : { top: `calc(50% + ${barHeight}px + 5px)` }),
                                   color: isPositive ? '#a78bfa' : '#ef4444',
@@ -485,8 +485,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                                   position: 'absolute',
                                   left: '10%',
                                   right: '10%',
-                                  ...(isPositive 
-                                    ? { bottom: '50%', height: `${barHeight}px` } 
+                                  ...(isPositive
+                                    ? { bottom: '50%', height: `${barHeight}px` }
                                     : { top: '50%', height: `${barHeight}px` }),
                                   background: isPositive ? '#a78bfa' : '#ef4444',
                                   transition: 'all 0.3s ease',
@@ -501,9 +501,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                 }}>
-                                  <span style={{ 
-                                    color: '#ffffff', 
-                                    fontSize: '0.6rem', 
+                                  <span style={{
+                                    color: '#ffffff',
+                                    fontSize: '0.6rem',
                                     fontWeight: '600',
                                     textAlign: 'center',
                                     wordBreak: 'break-word',

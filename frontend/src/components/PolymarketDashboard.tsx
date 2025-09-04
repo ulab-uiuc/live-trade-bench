@@ -10,7 +10,7 @@ interface PolymarketDashboardProps {
 }
 
 const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({ modelsData, modelsLastRefresh }) => {
-  const polymarketModels = useMemo(() => 
+  const polymarketModels = useMemo(() =>
     modelsData.filter(m => m.category === 'polymarket'),
     [modelsData]
   );

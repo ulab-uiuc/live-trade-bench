@@ -1,9 +1,7 @@
 import logging
 from typing import Any, Dict, List
 
-from app.models_data import (
-    get_models_data, get_system_status, trigger_cycle
-)
+from app.models_data import get_models_data, get_system_status, trigger_cycle
 from fastapi import APIRouter, HTTPException
 
 logger = logging.getLogger(__name__)
@@ -49,7 +47,9 @@ async def system_status() -> Dict[str, Any]:
             "running": status["running"],
             "total_agents": status["total_agents"],
             "stock_agents": status["stock_agents"],
-            "polymarket_agents": status["polymarket_agents"]
+            "polymarket_agents": status["polymarket_agents"],
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting system status: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error getting system status: {str(e)}"
+        )

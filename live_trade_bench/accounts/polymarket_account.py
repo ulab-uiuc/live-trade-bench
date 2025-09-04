@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Dict, List
-import random
 
 from .base_account import BaseAccount
 
@@ -57,7 +56,7 @@ class PolymarketAccount(BaseAccount[PolymarketPosition, PolymarketTransaction]):
 
     def _get_allocations(self) -> Dict[str, float]:
         return self.target_allocations
-    
+
     def _update_positions(self, new_allocations: Dict[str, float]):
         self.target_allocations = new_allocations
 
@@ -66,12 +65,12 @@ class PolymarketAccount(BaseAccount[PolymarketPosition, PolymarketTransaction]):
         total_value = self.get_total_value()
         if total_value == 0:
             return {"CASH": 1.0}
-        
+
         allocations = {"CASH": self.cash_balance / total_value}
-        
+
         for market_id, position in self.positions.items():
             allocations[market_id] = position.market_value / total_value
-            
+
         return allocations
 
     def _simulate_rebalance_to_target(self, target_allocations: Dict[str, float]):
@@ -79,12 +78,13 @@ class PolymarketAccount(BaseAccount[PolymarketPosition, PolymarketTransaction]):
         Simulates market fluctuations, generates transactions, and then rebalances.
         """
         from datetime import datetime
-        import random
 
         # 1. Simulate market price fluctuation for existing positions
         for position in self.positions.values():
             fluctuation = 1 + (random.random() - 0.5) * 0.10  # +/- 5%
-            position.current_price = max(0.01, min(0.99, position.current_price * fluctuation))
+            position.current_price = max(
+                0.01, min(0.99, position.current_price * fluctuation)
+            )
 
         # 2. Get current allocations BEFORE rebalancing to calculate trades
         current_allocations = self.get_current_allocations()
@@ -97,12 +97,16 @@ class PolymarketAccount(BaseAccount[PolymarketPosition, PolymarketTransaction]):
             if current_ratio > target_ratio:
                 position = self.positions.get(asset)
                 price = position.current_price if position else 0.5
-                self.transactions.append({
-                    'asset': asset, 'action': 'sell',
-                    'shares': (current_ratio - target_ratio) * self.get_total_value(),
-                    'price': price,
-                    'timestamp': datetime.now().isoformat()
-                })
+                self.transactions.append(
+                    {
+                        "asset": asset,
+                        "action": "sell",
+                        "shares": (current_ratio - target_ratio)
+                        * self.get_total_value(),
+                        "price": price,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
         for asset, target_ratio in target_allocations.items():
             if asset == "CASH":
                 continue
@@ -110,36 +114,48 @@ class PolymarketAccount(BaseAccount[PolymarketPosition, PolymarketTransaction]):
             if target_ratio > current_ratio:
                 position = self.positions.get(asset)
                 # For new buys, position is None. Use a mock price consistent with rebalance logic
-                price = position.current_price if position else (hash(asset) % 100) / 100.0
-                self.transactions.append({
-                    'asset': asset, 'action': 'buy',
-                    'shares': (target_ratio - current_ratio) * self.get_total_value(),
-                    'price': price,
-                    'timestamp': datetime.now().isoformat()
-                })
-        
+                price = (
+                    position.current_price if position else (hash(asset) % 100) / 100.0
+                )
+                self.transactions.append(
+                    {
+                        "asset": asset,
+                        "action": "buy",
+                        "shares": (target_ratio - current_ratio)
+                        * self.get_total_value(),
+                        "price": price,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
+
         # 4. Now, rebalance to the new target allocation
         total_value = self.get_total_value()
         self.target_allocations = target_allocations
         self.positions.clear()
-        
+
         mock_prices = {
             market: (hash(market) % 100) / 100.0
-            for market in target_allocations.keys() if market != "CASH"
+            for market in target_allocations.keys()
+            if market != "CASH"
         }
 
         for market_id, ratio in target_allocations.items():
-            if market_id == "CASH": continue
-            
+            if market_id == "CASH":
+                continue
+
             price = mock_prices.get(market_id, 0.5)
-            if price <= 0: continue
+            if price <= 0:
+                continue
 
             target_value = total_value * ratio
             quantity = target_value / price
-            
+
             self.positions[market_id] = PolymarketPosition(
-                market_id=market_id, outcome="yes", quantity=quantity,
-                average_price=price, current_price=price
+                market_id=market_id,
+                outcome="yes",
+                quantity=quantity,
+                average_price=price,
+                current_price=price,
             )
 
         # 5. Update cash balance

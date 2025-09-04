@@ -108,7 +108,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh }) =>
         }}>
           📱 Social Media Sentiment
         </h1>
-        
+
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -139,12 +139,12 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh }) =>
                   fontWeight: selectedMarket === market ? 'bold' : 'normal'
                 }}
               >
-                {market === 'all' ? 'All Markets' : 
+                {market === 'all' ? 'All Markets' :
                  market === 'stock' ? 'Stock Market' : 'Polymarket'}
               </button>
             ))}
           </div>
-          
+
           <div style={{
             fontSize: '0.875rem',
             color: '#9ca3af'
@@ -203,7 +203,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh }) =>
                   </div>
                 </div>
               </div>
-              
+
               <div style={{
                 display: 'flex',
                 alignItems: 'center',

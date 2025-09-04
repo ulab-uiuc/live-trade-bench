@@ -79,7 +79,7 @@ function App() {
       if (stockResponse.ok && polymarketResponse.ok) {
         const stockNews = await stockResponse.json();
         const polymarketNews = await polymarketResponse.json();
-        
+
         setNewsData({
           stock: stockNews,
           polymarket: polymarketNews
@@ -153,7 +153,7 @@ function App() {
         // --- RANKING LOGIC ---
         // 1. Sort models by performance to determine rank
         const sortedModels = [...currentModels].sort((a, b) => b.performance - a.performance);
-        
+
         // 2. Create a map of model.id -> rank
         const newRanks: { [key: string]: number } = {};
         sortedModels.forEach((model, index) => {
@@ -180,7 +180,7 @@ function App() {
           rank: newRanks[model.id],
           rank_change: newRankChanges[model.id] || 0,
         }));
-        
+
         // 5. Update state and store current ranks for the next fetch
         setModelsData(modelsWithRanks);
         setModelsLastRefresh(new Date());
@@ -212,7 +212,7 @@ function App() {
   const fetchAllDataInParallel = useCallback(async () => {
     console.log('🔄 Starting parallel data fetch...');
     const startTime = Date.now();
-    
+
     try {
       // Execute all fetch functions in parallel
       await Promise.all([
@@ -221,7 +221,7 @@ function App() {
         fetchSocialData(),
         fetchSystemStatus()
       ]);
-      
+
       const elapsed = Date.now() - startTime;
       console.log(`✅ Parallel fetch completed in ${elapsed}ms`);
     } catch (error) {
@@ -239,19 +239,19 @@ function App() {
     initialFetchComplete.current = true;
 
     console.log('🚀 Starting unified background data management for the first time...');
-    
+
     // Fetch all data immediately on app start in parallel
     fetchAllDataInParallel();
 
     // Smart parallel interval management
     // Group updates that can happen together to maximize parallel efficiency
-    
+
     // High frequency: Models + System (every 1 minute for debugging)
     const highFreqInterval = setInterval(async () => {
       console.log('🔄 High frequency parallel update (1 min)...');
       await Promise.all([fetchModelsData(), fetchSystemStatus()]);
     }, 1 * 60 * 1000);
-    
+
     // Medium frequency: News + Social (every 10 minutes, parallel)
     const lowFreqInterval = setInterval(async () => {
       console.log('🔄 Low frequency parallel update...');
@@ -295,13 +295,13 @@ function App() {
             />
           } />
           <Route path="/news" element={
-            <News 
+            <News
               newsData={newsData}
               lastRefresh={newsLastRefresh}
             />
           } />
           <Route path="/social" element={
-            <SocialMedia 
+            <SocialMedia
               socialData={socialData}
               lastRefresh={socialLastRefresh}
             />

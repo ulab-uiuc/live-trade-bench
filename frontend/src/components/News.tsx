@@ -37,21 +37,21 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh }) => {
   // Generate unique color for each stock symbol
   const getStockColor = (stockSymbol: string | null) => {
     if (!stockSymbol) return '#6b7280';
-    
+
     const colorPalette = [
       '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4',
       '#84cc16', '#f97316', '#ec4899', '#6366f1', '#14b8a6', '#a855f7',
       '#22c55e', '#eab308', '#dc2626', '#7c3aed', '#0891b2', '#65a30d',
       '#ea580c', '#be185d'
     ];
-    
+
     let hash = 0;
     for (let i = 0; i < stockSymbol.length; i++) {
       const char = stockSymbol.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash;
     }
-    
+
     const colorIndex = Math.abs(hash) % colorPalette.length;
     return colorPalette[colorIndex];
   };
@@ -130,7 +130,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh }) => {
         }}>
           📰 Market News
         </h1>
-        
+
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -161,12 +161,12 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh }) => {
                   fontWeight: selectedMarket === market ? 'bold' : 'normal'
                 }}
               >
-                {market === 'all' ? 'All Markets' : 
+                {market === 'all' ? 'All Markets' :
                  market === 'stock' ? 'Stock Market' : 'Polymarket'}
               </button>
             ))}
           </div>
-          
+
           <div style={{
             fontSize: '0.875rem',
             color: '#9ca3af'
@@ -237,7 +237,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh }) => {
                   {news.impact}
                 </span>
               </div>
-              
+
               <span style={{
                 fontSize: '0.75rem',
                 color: '#9ca3af'
@@ -256,7 +256,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh }) => {
             }}>
               {news.title}
             </h3>
-            
+
             <p style={{
               fontSize: '0.875rem',
               color: '#d1d5db',

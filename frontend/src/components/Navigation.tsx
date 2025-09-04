@@ -64,7 +64,7 @@ const Navigation: React.FC = () => {
           >
             Social Media
           </button>
-          
+
           {/* GitHub Link */}
           <a
             href="https://github.com/ulab-uiuc/live-trade-bench"

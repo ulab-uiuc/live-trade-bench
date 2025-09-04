@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generic, Optional, TypeVar, List
+from typing import Any, Dict, Generic, List, Optional, TypeVar
 
 # Generic type for different position and transaction types
 PositionType = TypeVar("PositionType")
@@ -29,10 +29,14 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         snapshot = {
             "timestamp": datetime.now().isoformat(),
             "total_value": self.get_total_value(),
-            "allocations": self.get_portfolio_value_breakdown().get("current_allocations", {})
+            "allocations": self.get_portfolio_value_breakdown().get(
+                "current_allocations", {}
+            ),
         }
         self.allocation_history.append(snapshot)
-        print(f"📸 Recorded portfolio snapshot. History now has {len(self.allocation_history)} entries.")
+        print(
+            f"📸 Recorded portfolio snapshot. History now has {len(self.allocation_history)} entries."
+        )
 
     def set_target_allocation(self, ticker: str, target_ratio: float) -> bool:
         """Set target allocation for an asset (including CASH)."""
