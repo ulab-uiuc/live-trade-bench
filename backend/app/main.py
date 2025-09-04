@@ -13,7 +13,7 @@ from app.routers import (
     system_logs,
     trades,
 )
-from app.trading_system import start_trading_system, stop_trading_system
+# Removed complex trading system - now just simple data provider
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -114,20 +114,14 @@ async def health_check() -> Dict[str, Any]:
 
 @app.on_event("startup")
 async def startup_event() -> None:
-    """Initialize trading system on startup."""
-    logger.info("Starting Live Trade Bench API with AI trading system")
-    start_trading_system()
+    """Initialize API on startup."""
+    logger.info("Starting Live Trade Bench API")
 
 
 @app.on_event("shutdown")
 async def shutdown_event() -> None:
     """Cleanup on shutdown."""
-    logger.info("Shutting down trading system")
-    stop_trading_system()
-
-
-# Register cleanup on exit
-atexit.register(stop_trading_system)
+    logger.info("Shutting down API")
 
 frontend_build_path = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "..", "frontend", "build"
