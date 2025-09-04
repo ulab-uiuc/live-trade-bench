@@ -122,22 +122,69 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
         if ticker in self.positions:
             self.positions[ticker].current_price = current_price
 
+    def get_current_allocations(self) -> Dict[str, float]:
+        """Get current allocation percentages for all assets."""
+        total_value = self.get_total_value()
+        if total_value == 0:
+            return {"CASH": 1.0}
+        
+        allocations = {"CASH": self.cash_balance / total_value}
+        
+        for ticker, position in self.positions.items():
+            allocations[ticker] = position.market_value / total_value
+            
+        return allocations
+
     def _simulate_rebalance_to_target(self, target_allocations: Dict[str, float]):
         """
-        Simulates market fluctuations and then rebalances to a target allocation.
-        This provides a more realistic mock behavior.
+        Simulates market fluctuations, generates transactions, and then rebalances.
         """
+        from datetime import datetime
+
         # 1. Simulate market price fluctuation for existing positions
         for position in self.positions.values():
-            # Simulate a small price change (+/- 2%)
-            fluctuation = 1 + (random.random() - 0.5) * 0.04
+            fluctuation = 1 + (random.random() - 0.5) * 0.04  # +/- 2%
             position.current_price *= fluctuation
 
-        # 2. Get the new total value after market fluctuation, and set the target
-        total_value = self.get_total_value()
-        self.target_allocations = target_allocations  # <-- THIS IS THE FIX
+        # 2. Get current allocations BEFORE rebalancing to calculate trades
+        current_allocations = self.get_current_allocations()
 
-        # 3. Rebalance to the new target allocation based on the new total value
+        # 3. Generate simulated buy/sell transactions based on the difference
+        # Sell transactions
+        for asset, current_ratio in current_allocations.items():
+            if asset == "CASH":
+                continue
+            target_ratio = target_allocations.get(asset, 0)
+            if current_ratio > target_ratio:
+                position = self.positions.get(asset)
+                price = position.current_price if position else 1.0
+                self.transactions.append({
+                    'asset': asset, 'action': 'sell',
+                    'shares': (current_ratio - target_ratio) * self.get_total_value(),
+                    'price': price,
+                    'timestamp': datetime.now().isoformat()
+                })
+        # Buy transactions
+        for asset, target_ratio in target_allocations.items():
+            if asset == "CASH":
+                continue
+            current_ratio = current_allocations.get(asset, 0)
+            if target_ratio > current_ratio:
+                position = self.positions.get(asset)
+                # For new buys, position is None. Use a mock price consistent with rebalance logic
+                price = position.current_price if position else (100 + (hash(asset) % 400) + (hash(asset[::-1]) % 100) / 100.0)
+                self.transactions.append({
+                    'asset': asset, 'action': 'buy',
+                    'shares': (target_ratio - current_ratio) * self.get_total_value(),
+                    'price': price,
+                    'timestamp': datetime.now().isoformat()
+                })
+        
+        # 4. Now, rebalance to the new target allocation
+        total_value = self.get_total_value()
+        self.target_allocations = target_allocations
+
+        # 5. Rebalance to the new target allocation based on the new total value
         self.positions.clear()
 
         # Generate stable mock prices based on ticker hash for consistency
