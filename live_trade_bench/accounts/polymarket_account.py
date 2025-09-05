@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Dict, List
-import random
 
 from .base_account import BaseAccount
 
@@ -76,78 +75,107 @@ class PolymarketAccount(BaseAccount[PolymarketPosition, PolymarketTransaction]):
 
     def _simulate_rebalance_to_target(self, target_allocations: Dict[str, float]):
         """
-        Simulates market fluctuations, generates transactions, and then rebalances.
+        Execute real rebalancing to target allocation with real market prices.
         """
         from datetime import datetime
 
-        # 1. Simulate market price fluctuation for existing positions
-        for position in self.positions.values():
-            fluctuation = 1 + (random.random() - 0.5) * 0.10  # +/- 5%
-            position.current_price = max(
-                0.01, min(0.99, position.current_price * fluctuation)
-            )
+        # Get real Polymarket prices using fetcher (lazy import to avoid startup blocking)
+        market_ids = [m for m in target_allocations.keys() if m != "CASH"]
+        real_prices = {}
 
-        # 2. Get current allocations BEFORE rebalancing to calculate trades
+        if market_ids:
+            try:
+                from ..fetchers.polymarket_fetcher import PolymarketFetcher
+
+                fetcher = PolymarketFetcher()
+
+                # Get trending markets to find token_ids for our market_ids
+                markets = fetcher.fetch("trending_markets", limit=50)
+                market_to_tokens = {}
+
+                for market in markets:
+                    if market.get("id") in market_ids and market.get("token_ids"):
+                        market_to_tokens[market["id"]] = market["token_ids"]
+
+                print(
+                    f"📡 Found token mappings for {len(market_to_tokens)}/{len(market_ids)} markets"
+                )
+
+                # Get prices for each market using its first token
+                for market_id in market_ids:
+                    if market_id in market_to_tokens:
+                        token_ids = market_to_tokens[market_id]
+                        if token_ids and len(token_ids) > 0:
+                            first_token = token_ids[0]
+                            price_data = fetcher.fetch(
+                                "token_price", token_id=first_token
+                            )
+                            if price_data and isinstance(price_data, dict):
+                                raw_price = price_data.get("price")
+                                if raw_price is not None and isinstance(
+                                    raw_price, (int, float)
+                                ):
+                                    real_price = max(0.01, min(0.99, float(raw_price)))
+                                    real_prices[market_id] = real_price
+                                    print(
+                                        f"✅ REAL: Fetched {market_id} via token {first_token}: ${real_price:.3f}"
+                                    )
+                                    continue
+
+                    # Fallback for this market
+                    print(
+                        f"⚠️ FALLBACK: Could not get token mapping or price for market {market_id}"
+                    )
+                    print(f"⚠️ FALLBACK: Using mock price $0.50 for {market_id}")
+                    real_prices[market_id] = 0.5
+
+            except Exception as e:
+                print(f"⚠️ FALLBACK: Error in Polymarket price fetching: {e}")
+                print(
+                    f"⚠️ FALLBACK: Using mock price $0.50 for all {len(market_ids)} markets"
+                )
+                for market_id in market_ids:
+                    real_prices[market_id] = 0.5
+
+        # Update existing positions with real prices
+        for market_id, position in self.positions.items():
+            if market_id in real_prices:
+                position.current_price = real_prices[market_id]
+
+        # Get current allocations and total value
         current_allocations = self.get_current_allocations()
+        total_value = self.get_total_value()
 
-        # 3. Generate simulated buy/sell transactions based on the difference
+        # Generate real rebalancing transactions
         for asset, current_ratio in current_allocations.items():
             if asset == "CASH":
                 continue
             target_ratio = target_allocations.get(asset, 0)
-            if current_ratio > target_ratio:
-                position = self.positions.get(asset)
-                price = position.current_price if position else 0.5
+            if (
+                abs(current_ratio - target_ratio) > 0.01
+            ):  # Only trade if difference > 1%
+                price = real_prices.get(asset, 0.5)
+                value_diff = (target_ratio - current_ratio) * total_value
+                action = "buy" if value_diff > 0 else "sell"
                 self.transactions.append(
                     {
                         "asset": asset,
-                        "action": "sell",
-                        "shares": (current_ratio - target_ratio)
-                        * self.get_total_value(),
-                        "price": price,
-                        "timestamp": datetime.now().isoformat(),
-                    }
-                )
-        for asset, target_ratio in target_allocations.items():
-            if asset == "CASH":
-                continue
-            current_ratio = current_allocations.get(asset, 0)
-            if target_ratio > current_ratio:
-                position = self.positions.get(asset)
-                # For new buys, position is None. Use a mock price consistent with rebalance logic
-                price = (
-                    position.current_price if position else (hash(asset) % 100) / 100.0
-                )
-                self.transactions.append(
-                    {
-                        "asset": asset,
-                        "action": "buy",
-                        "shares": (target_ratio - current_ratio)
-                        * self.get_total_value(),
+                        "action": action,
+                        "shares": abs(value_diff),
                         "price": price,
                         "timestamp": datetime.now().isoformat(),
                     }
                 )
 
-        # 4. Now, rebalance to the new target allocation
-        total_value = self.get_total_value()
+        # Execute rebalancing with real prices
         self.target_allocations = target_allocations
         self.positions.clear()
 
-        mock_prices = {
-            market: (hash(market) % 100) / 100.0
-            for market in target_allocations.keys()
-            if market != "CASH"
-        }
-
         for market_id, ratio in target_allocations.items():
-            if market_id == "CASH":
+            if market_id == "CASH" or ratio <= 0:
                 continue
 
-            price = mock_prices.get(market_id, 0.5)
-            if price <= 0:
-                continue
-
+            price = real_prices.get(market_id, 0.5)
             target_value = total_value * ratio
             quantity = target_value / price
 
@@ -159,7 +187,7 @@ class PolymarketAccount(BaseAccount[PolymarketPosition, PolymarketTransaction]):
                 current_price=price,
             )
 
-        # 5. Update cash balance
+        # Update cash balance
         positions_value = sum(p.market_value for p in self.positions.values())
         self.cash_balance = total_value - positions_value
 

@@ -7,7 +7,6 @@ Stock account management system (simplified)
 
 from __future__ import annotations
 
-import random
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
@@ -127,82 +126,82 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
         total_value = self.get_total_value()
         if total_value == 0:
             return {"CASH": 1.0}
-        
+
         allocations = {"CASH": self.cash_balance / total_value}
-        
+
         for ticker, position in self.positions.items():
             allocations[ticker] = position.market_value / total_value
-            
+
         return allocations
 
     def _simulate_rebalance_to_target(self, target_allocations: Dict[str, float]):
         """
-        Simulates market fluctuations, generates transactions, and then rebalances.
+        Execute real rebalancing to target allocation with real market prices.
         """
         from datetime import datetime
 
-        # 1. Simulate market price fluctuation for existing positions
-        for position in self.positions.values():
-            fluctuation = 1 + (random.random() - 0.5) * 0.04  # +/- 2%
-            position.current_price *= fluctuation
+        # Get real market prices using fetcher (lazy import to avoid startup blocking)
+        real_prices = {}
 
-        # 2. Get current allocations BEFORE rebalancing to calculate trades
+        for ticker in target_allocations.keys():
+            if ticker == "CASH":
+                continue
+            try:
+                from ..fetchers.stock_fetcher import StockFetcher
+
+                fetcher = StockFetcher()
+                price = fetcher.fetch("stock_price", ticker=ticker)
+                if price:
+                    real_prices[ticker] = price
+                    print(f"✅ REAL: Fetched {ticker} price: ${price:.2f}")
+                else:
+                    print(f"⚠️ FALLBACK: API returned null price for {ticker}")
+                    print(f"⚠️ FALLBACK: Using mock price $100.00 for {ticker}")
+                    real_prices[ticker] = 100.0
+            except Exception as e:
+                print(f"⚠️ FALLBACK: Could not fetch real price for {ticker}: {e}")
+                print(f"⚠️ FALLBACK: Using mock price $100.00 for {ticker}")
+                real_prices[ticker] = 100.0
+
+        # Update existing positions with real prices
+        for ticker, position in self.positions.items():
+            if ticker in real_prices:
+                position.current_price = real_prices[ticker]
+
+        # Get current allocations and total value
         current_allocations = self.get_current_allocations()
+        total_value = self.get_total_value()
 
-        # 3. Generate simulated buy/sell transactions based on the difference
-        # Sell transactions
+        # Generate real rebalancing transactions
         for asset, current_ratio in current_allocations.items():
             if asset == "CASH":
                 continue
             target_ratio = target_allocations.get(asset, 0)
-            if current_ratio > target_ratio:
-                position = self.positions.get(asset)
-                price = position.current_price if position else 1.0
-                self.transactions.append({
-                    'asset': asset, 'action': 'sell',
-                    'shares': (current_ratio - target_ratio) * self.get_total_value(),
-                    'price': price,
-                    'timestamp': datetime.now().isoformat()
-                })
-        # Buy transactions
-        for asset, target_ratio in target_allocations.items():
-            if asset == "CASH":
-                continue
-            current_ratio = current_allocations.get(asset, 0)
-            if target_ratio > current_ratio:
-                position = self.positions.get(asset)
-                # For new buys, position is None. Use a mock price consistent with rebalance logic
-                price = position.current_price if position else (100 + (hash(asset) % 400) + (hash(asset[::-1]) % 100) / 100.0)
-                self.transactions.append({
-                    'asset': asset, 'action': 'buy',
-                    'shares': (target_ratio - current_ratio) * self.get_total_value(),
-                    'price': price,
-                    'timestamp': datetime.now().isoformat()
-                })
-        
-        # 4. Now, rebalance to the new target allocation
-        total_value = self.get_total_value()
-        self.target_allocations = target_allocations
+            if (
+                abs(current_ratio - target_ratio) > 0.01
+            ):  # Only trade if difference > 1%
+                price = real_prices.get(asset, 100.0)
+                value_diff = (target_ratio - current_ratio) * total_value
+                action = "buy" if value_diff > 0 else "sell"
+                self.transactions.append(
+                    {
+                        "asset": asset,
+                        "action": action,
+                        "shares": abs(value_diff),
+                        "price": price,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
 
-        # 5. Rebalance to the new target allocation based on the new total value
+        # Execute rebalancing with real prices
+        self.target_allocations = target_allocations
         self.positions.clear()
 
-        # Generate stable mock prices based on ticker hash for consistency
-        mock_prices = {
-            ticker: 100 + (hash(ticker) % 400) + (hash(ticker[::-1]) % 100) / 100.0
-            for ticker in target_allocations.keys()
-            if ticker != "CASH"
-        }
-
         for ticker, ratio in target_allocations.items():
-            if ticker == "CASH":
+            if ticker == "CASH" or ratio <= 0:
                 continue
 
-            # Use the newly generated mock price for rebalancing calculations
-            price = mock_prices.get(ticker)
-            if price is None or price == 0:
-                continue
-
+            price = real_prices.get(ticker, 100.0)
             target_value = total_value * ratio
             quantity = target_value / price
 
@@ -213,7 +212,7 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
                 current_price=price,
             )
 
-        # 4. Update cash balance based on the new positions
+        # Update cash balance
         positions_value = sum(p.market_value for p in self.positions.values())
         self.cash_balance = total_value - positions_value
 
