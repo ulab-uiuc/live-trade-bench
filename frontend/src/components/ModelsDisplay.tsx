@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import './ModelsDisplay.css';
 import type { Model } from '../types';
+import { getAssetColor } from '../utils/colors';
 
 // Custom Tooltip State
 type TooltipInfo = {
@@ -8,28 +9,6 @@ type TooltipInfo = {
   x: number;
   y: number;
 };
-
-// Pure helpers hoisted to module scope to avoid re-creation every render
-const COLORS = [
-  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316',
-  '#ec4899', '#6366f1', '#14b8a6', '#f43f5e', '#a855f7', '#22c55e', '#eab308', '#0ea5e9',
-  '#dc2626', '#16a34a', '#ca8a04', '#2563eb'
-] as const;
-
-function getColorForTicker(ticker: string): string {
-  if (ticker === 'CASH') return '#6b7280';
-  let hash = 0;
-  for (let i = 0; i < ticker.length; i++) {
-    hash = ticker.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return COLORS[Math.abs(hash) % COLORS.length];
-}
-
-function generateAssetAllocation(model: Pick<Model, 'category'>) {
-  return [
-    { name: 'CASH', allocation: 1.0, color: getColorForTicker('CASH'), price: '$1.00', change: '0.0%' }
-  ];
-}
 
 interface ModelsDisplayProps {
   modelsData: Model[];
@@ -48,6 +27,14 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null);
+  
+  // Pre-warm the tooltip system to avoid first-hover delay
+  useEffect(() => {
+    // Initialize tooltip state immediately when modal opens
+    if (showModal) {
+      setTooltip(null);
+    }
+  }, [showModal]);
 
   // 检查是否需要显示分类标签
   const showCategoryTabs = useMemo(() => {
@@ -77,18 +64,21 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
   // 点击模型卡片处理
   const handleModelClick = useCallback((model: Model) => {
+    console.log('🔥 Modal opening for model:', model.name, 'category:', model.category);
     setSelectedModel(model);
     setShowModal(true);
   }, []);
 
-  // Tooltip handlers
-  const handleMouseMove = (e: React.MouseEvent, content: string) => {
-    setTooltip({ content, x: e.clientX + 15, y: e.clientY + 15 });
-  };
+  // Tooltip handlers - immediate DOM-based response
+  const handleMouseMove = useCallback((e: React.MouseEvent, content: string) => {
+    // Immediate state update without any async operations
+    const newTooltip = { content, x: e.clientX + 15, y: e.clientY + 15 };
+    setTooltip(newTooltip);
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     setTooltip(null);
-  };
+  }, []);
 
   // 关闭模态框
   const closeModal = useCallback(() => {
@@ -231,18 +221,37 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   });
 
   // Asset Allocation Bar (for modal)
-  const AssetAllocationBar = memo(({ portfolioData }: { portfolioData: any }) => {
+  const AssetAllocationBar = memo(({ 
+    portfolioData, 
+    category,
+    onMouseMove,
+    onMouseLeave 
+  }: { 
+    portfolioData: any; 
+    category: string;
+    onMouseMove: (e: React.MouseEvent, content: string) => void;
+    onMouseLeave: () => void;
+  }) => {
     const allocations = useMemo(() => {
       const target = portfolioData?.target_allocations || {};
       return Object.entries(target)
         .map(([name, ratio]) => ({
           name,
           allocation: ratio as number,
-          color: getColorForTicker(name)
+          color: getAssetColor(name, category as 'stock' | 'polymarket')
         }))
         .filter(item => item.allocation > 0)
         .sort((a, b) => b.allocation - a.allocation);
-    }, [portfolioData]);
+    }, [portfolioData, category]);
+
+    // DEBUG: Log the category and colors
+    if (allocations.find(a => a.name === 'AAPL')) {
+      console.log('DEBUG (AssetAllocationBar) for AAPL:', { 
+        category, 
+        color: allocations.find(a => a.name === 'AAPL')?.color 
+      });
+    }
+
 
     return (
       <div className="asset-allocation">
@@ -256,9 +265,12 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               className="allocation-segment"
               style={{
                 width: `${asset.allocation * 100}%`,
-                backgroundColor: asset.color
+                backgroundColor: asset.color,
+                minWidth: '10px' // Ensure minimum clickable area
               }}
               title={`${asset.name}: ${(asset.allocation * 100).toFixed(1)}%`}
+              onMouseMove={(e) => onMouseMove(e, `${asset.name}: ${(asset.allocation * 100).toFixed(1)}%`)}
+              onMouseLeave={onMouseLeave}
             />
           ))}
         </div>
@@ -321,12 +333,12 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       <div className="models-grid-square">
         {filteredModels.map(model => {
           // Use the real (mocked) asset allocation from the model prop
-          const allocations = model.asset_allocation
+          const allocations = model.asset_allocation 
             ? Object.entries(model.asset_allocation)
                 .map(([name, allocation]) => ({
                   name,
                   allocation,
-                  color: getColorForTicker(name)
+                  color: getAssetColor(name, model.category as 'stock' | 'polymarket')
                 }))
                 .sort((a, b) => b.allocation - a.allocation)
             : []; // Default to empty if no allocation data
@@ -394,6 +406,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
       {/* 模态框 */}
       {showModal && selectedModel && (
+        console.log('🔥 Modal rendering for:', selectedModel.name),
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -419,7 +432,13 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 </div>
               </div>
 
-              <AssetAllocationBar portfolioData={selectedModel.portfolio} />
+              <AssetAllocationBar 
+                portfolioData={selectedModel.portfolio} 
+                category={selectedModel.category}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              />
+              {/* Debug category */}
 
               {/* 分割线 */}
               <div style={{
@@ -430,8 +449,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               }}>
             </div>
 
-              <AssetRatioChart
+              <AssetRatioChart 
                 allocationHistory={selectedModel.allocationHistory}
+                category={selectedModel.category}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
               />
@@ -461,11 +481,15 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 };
 
 // Asset Ratio Chart Component (now a "dumb" component)
-const AssetRatioChart: React.FC<{
+const AssetRatioChart: React.FC<{ 
   allocationHistory: any[];
+  category: string;
   onMouseMove: (e: React.MouseEvent, content: string) => void;
   onMouseLeave: () => void;
-}> = ({ allocationHistory, onMouseMove, onMouseLeave }) => {
+}> = ({ allocationHistory, category, onMouseMove, onMouseLeave }) => {
+  
+  // Create unique ID for this chart instance to avoid SVG gradient conflicts
+  const chartId = useMemo(() => Math.random().toString(36).substr(2, 9), []);
 
   const chartData = useMemo(() => {
     if (!Array.isArray(allocationHistory) || allocationHistory.length === 0) return [];
@@ -500,7 +524,15 @@ const AssetRatioChart: React.FC<{
     });
   }, [chartData, allAssets]);
 
-  const colors = ['#60a5fa', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#6b7280'];
+  // Get colors based on the category passed as prop
+  const getAssetColorForChart = (asset: string) => {
+    const color = getAssetColor(asset, category as 'stock' | 'polymarket');
+    // DEBUG: Log the category and color
+    if (asset === 'AAPL') {
+      console.log('DEBUG (AssetRatioChart) for AAPL:', { category, color });
+    }
+    return color;
+  };
 
   if (chartData.length === 0 || allAssets.length === 0) {
     return (
@@ -530,12 +562,12 @@ const AssetRatioChart: React.FC<{
         <svg width={chartWidth} height={chartHeight + margin.top + margin.bottom}>
           {/* Background and Y-Axis Grid */}
           <defs>
-            <linearGradient id="chartBackground" x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id={`chartBackground-${chartId}`} x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#334155" stopOpacity="0.1" />
               <stop offset="100%" stopColor="#1e293b" stopOpacity="0.3" />
             </linearGradient>
           </defs>
-          <rect x={margin.left} y={margin.top} width={chartWidth - margin.left - margin.right} height={chartHeight} fill="url(#chartBackground)" rx="8" />
+          <rect x={margin.left} y={margin.top} width={chartWidth - margin.left - margin.right} height={chartHeight} fill={`url(#chartBackground-${chartId})`} rx="8" />
           {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map((value, index) => {
             const y = margin.top + chartHeight - (value * chartHeight);
             return (
@@ -550,7 +582,7 @@ const AssetRatioChart: React.FC<{
 
           {/* Stacked Areas */}
           {allAssets.map((asset, assetIndex) => {
-              const color = asset === 'CASH' ? '#6b7280' : colors[assetIndex % colors.length];
+              const color = getAssetColorForChart(asset);
 
               let pathData;
               if (stackedData.length === 1) {
@@ -581,13 +613,7 @@ const AssetRatioChart: React.FC<{
                   onMouseMove={(e) => onMouseMove(e, `${asset}`)}
                   onMouseLeave={onMouseLeave}
                 >
-                  <defs>
-                    <linearGradient id={`gradient-${asset}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor={color} stopOpacity="0.8" />
-                      <stop offset="100%" stopColor={color} stopOpacity="0.3" />
-                    </linearGradient>
-                  </defs>
-                  <path d={pathData} fill={`url(#gradient-${asset})`} stroke="none" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))', transition: 'all 0.3s ease' }} />
+                  <path d={pathData} fill={color} strokeWidth="0" />
                 </g>
               );
             })}
@@ -613,7 +639,7 @@ const AssetRatioChart: React.FC<{
       <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem' }}>
         {allAssets.map((asset, index) => (
           <div key={asset} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ width: '12px', height: '12px', backgroundColor: asset === 'CASH' ? '#6b7280' : colors[index % colors.length], borderRadius: '50%' }}></div>
+            <div style={{ width: '12px', height: '12px', backgroundColor: getAssetColorForChart(asset), borderRadius: '50%' }}></div>
             <span style={{ color: '#d1d5db', fontSize: '0.875rem', fontWeight: '500' }}>
               {asset}
             </span>

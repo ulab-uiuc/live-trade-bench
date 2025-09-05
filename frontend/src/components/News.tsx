@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './News.css';
 
 interface NewsItem {
   id: string;
@@ -14,17 +15,16 @@ interface NewsItem {
 
 interface NewsProps {
   newsData: {
-    stock: NewsItem[];
-    polymarket: NewsItem[];
+    stock: any[];
+    polymarket: any[];
   };
   lastRefresh: Date;
+  isLoading: boolean;
 }
 
-const News: React.FC<NewsProps> = ({ newsData, lastRefresh }) => {
-  console.log('📰 News component rendering with background data!');
-
-  const [selectedMarket, setSelectedMarket] = useState<'all' | 'stock' | 'polymarket'>('all');
-
+const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
+  const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket'>('stock');
+  
   const getImpactColor = (impact: string) => {
     switch (impact) {
       case 'high': return '#ef4444';
@@ -34,135 +34,57 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh }) => {
     }
   };
 
-  // Generate unique color for each stock symbol
   const getStockColor = (stockSymbol: string | null) => {
     if (!stockSymbol) return '#6b7280';
-
-    const colorPalette = [
-      '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4',
-      '#84cc16', '#f97316', '#ec4899', '#6366f1', '#14b8a6', '#a855f7',
-      '#22c55e', '#eab308', '#dc2626', '#7c3aed', '#0891b2', '#65a30d',
-      '#ea580c', '#be185d'
-    ];
-
+    const colorPalette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
     let hash = 0;
     for (let i = 0; i < stockSymbol.length; i++) {
-      const char = stockSymbol.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
+      hash = stockSymbol.charCodeAt(i) + ((hash << 5) - hash);
     }
-
-    const colorIndex = Math.abs(hash) % colorPalette.length;
-    return colorPalette[colorIndex];
+    return colorPalette[Math.abs(hash) % colorPalette.length];
   };
 
   const formatTimeAgo = (publishedAt: string) => {
-    const now = new Date();
-    const published = new Date(publishedAt);
-    const diffInHours = Math.floor((now.getTime() - published.getTime()) / (1000 * 60 * 60));
-
-    if (diffInHours < 1) return 'Less than 1 hour ago';
-    if (diffInHours === 1) return '1 hour ago';
-    if (diffInHours < 24) return `${diffInHours} hours ago`;
-
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays === 1) return '1 day ago';
-    return `${diffInDays} days ago`;
+    const diff = new Date().getTime() - new Date(publishedAt).getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours < 1) return 'Just now';
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
   };
 
-  const filteredNews = selectedMarket === 'all'
-    ? [...newsData.stock, ...newsData.polymarket]
-    : newsData[selectedMarket];
+  const newsItems = activeCategory === 'stock' ? newsData.stock : newsData.polymarket;
 
-  console.log(`📊 Displaying ${filteredNews.length} news items (${selectedMarket})`);
-
-  // Show loading state if no data yet
-  if (filteredNews.length === 0) {
+  if (isLoading && newsItems.length === 0) {
     return (
-      <div
-        style={{
-          padding: '2rem',
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
-          color: '#ffffff',
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📰</div>
-          <p style={{ fontSize: '1.125rem' }}>Loading news in background...</p>
-          <p style={{ fontSize: '0.875rem', opacity: 0.7 }}>
-            Last updated: {lastRefresh.toLocaleTimeString()}
-          </p>
-        </div>
+      <div className="loading-indicator">
+        <span>Loading news...</span>
       </div>
     );
   }
 
   return (
-    <div style={{
-      padding: '2rem',
-      background: '#1f2937',
-      color: '#ffffff',
-      minHeight: '100vh',
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '16px',
-      position: 'relative',
-      zIndex: 1000,
-      overflow: 'visible',
-      display: 'block'
-    }}>
-      <div style={{
-        marginBottom: '2rem',
-        borderBottom: '1px solid #374151',
-        paddingBottom: '1rem'
-      }}>
-        <h1 style={{
-          fontSize: '2rem',
-          fontWeight: 'bold',
-          marginBottom: '1rem',
-          background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text'
-        }}>
-          📰 Market News
-        </h1>
-
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}>
-          <div style={{
-            display: 'flex',
-            gap: '0.5rem',
-            background: '#374151',
-            borderRadius: '0.5rem',
-            padding: '0.25rem'
-          }}>
-            {(['all', 'stock', 'polymarket'] as const).map((market) => (
+    <div className="news-container">
+      <div className="news-header">
+        <h1>📰 Market News</h1>
+        <div className="news-controls">
+          <div className="news-category-tabs">
+            {(['stock', 'polymarket'] as const).map((market) => (
               <button
                 key={market}
-                onClick={() => setSelectedMarket(market)}
+                onClick={() => setActiveCategory(market)}
                 style={{
                   padding: '0.5rem 1rem',
                   borderRadius: '0.375rem',
                   border: 'none',
-                  background: selectedMarket === market ? '#6366f1' : 'transparent',
-                  color: selectedMarket === market ? '#ffffff' : '#d1d5db',
+                  background: activeCategory === market ? '#6366f1' : 'transparent',
+                  color: activeCategory === market ? '#ffffff' : '#d1d5db',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   fontSize: '0.875rem',
-                  fontWeight: selectedMarket === market ? 'bold' : 'normal'
+                  fontWeight: activeCategory === market ? 'bold' : 'normal'
                 }}
               >
-                {market === 'all' ? 'All Markets' :
-                 market === 'stock' ? 'Stock Market' : 'Polymarket'}
+                {market === 'stock' ? 'Stock Market' : 'Polymarket'}
               </button>
             ))}
           </div>
@@ -171,7 +93,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh }) => {
             fontSize: '0.875rem',
             color: '#9ca3af'
           }}>
-            {filteredNews.length} articles • Last updated: {lastRefresh.toLocaleTimeString()}
+            {newsItems.length} articles • Last updated: {lastRefresh.toLocaleTimeString()}
           </div>
         </div>
       </div>
@@ -181,7 +103,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh }) => {
         gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
         gap: '1.5rem'
       }}>
-        {filteredNews.map((news) => (
+        {newsItems.map((news) => (
           <a
             key={news.id}
             href={news.url}

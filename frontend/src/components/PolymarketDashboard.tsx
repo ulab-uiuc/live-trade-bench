@@ -7,25 +7,26 @@ import { Model } from '../types';
 interface PolymarketDashboardProps {
   modelsData: Model[];
   modelsLastRefresh: Date;
+  isLoading: boolean;
 }
 
-const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({ modelsData, modelsLastRefresh }) => {
+const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({ modelsData, modelsLastRefresh, isLoading }) => {
   const polymarketModels = useMemo(() =>
     modelsData.filter(m => m.category === 'polymarket'),
     [modelsData]
   );
+
+  if (isLoading) {
+    return <div className="loading-indicator">Loading...</div>;
+  }
 
   return (
     <div className="dashboard-ultra-simple">
       {/* 页面标题 */}
       <div style={{
         textAlign: 'center',
-        marginBottom: '2rem',
-        padding: '2rem 0',
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
-        borderRadius: '0.5rem',
-        border: '1px solid #374151'
-      }}>
+        padding: '2rem 0'
+        }}>
         <h1 style={{
           color: '#ffffff',
           fontSize: '2.5rem',
