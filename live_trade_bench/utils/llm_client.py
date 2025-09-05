@@ -4,7 +4,48 @@ LLM utilities for trading decisions using litellm
 
 import json
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
+
+
+def _resolve_provider_and_model(model: str) -> Tuple[Optional[str], str, Optional[str]]:
+    """
+    Best-effort provider routing for model strings.
+
+    Supported patterns:
+    - Explicit prefixes:
+        • together:<model_id>  -> provider=together_ai
+        • openai:/anthropic:   -> respective providers (passthrough)
+    - Heuristics (when no prefix):
+        • contains 'qwen'  -> route to together_ai
+        • contains 'llama' or 'meta-llama' -> route to together_ai
+
+    Returns: (provider, normalized_model, api_key_env_var)
+    """
+    raw = model.strip()
+    lower = raw.lower()
+
+    # Explicit provider prefix parsing
+    if ":" in raw and not raw.startswith("http"):
+        prefix, rest = raw.split(":", 1)
+        pfx = prefix.strip().lower()
+        if pfx == "together":
+            return "together_ai", rest.strip(), "TOGETHER_API_KEY"
+        if pfx == "openai":
+            return "openai", rest.strip(), "OPENAI_API_KEY"
+        if pfx == "anthropic":
+            return "anthropic", rest.strip(), "ANTHROPIC_API_KEY"
+    # For any unsupported provider prefixes (e.g., dashscope/aliyun/xai/deepseek),
+    # we do not route them; caller should use together:/openai:/anthropic:
+
+    # Heuristic detection
+    if "qwen" in lower:
+        return "together_ai", raw, "TOGETHER_API_KEY"
+
+    if "llama" in lower or "meta-llama" in lower:
+        return "together_ai", raw, "TOGETHER_API_KEY"
+
+    # Unknown / default -> let litellm infer
+    return None, raw, None
 
 
 def call_llm(
@@ -24,13 +65,12 @@ def call_llm(
     try:
         import litellm
 
-        # Check for API keys
+        # Check for API keys (Together/OpenAI/Anthropic/Gemini)
         api_keys = [
             os.getenv("OPENAI_API_KEY"),
             os.getenv("ANTHROPIC_API_KEY"),
             os.getenv("GEMINI_API_KEY"),
-            os.getenv("XAI_API_KEY"),
-            os.getenv("DEEPSEEK_API_KEY"),
+            os.getenv("TOGETHER_API_KEY"),
         ]
         if not any(api_keys):
             return {"success": False, "content": "", "error": "No API key found"}
@@ -45,16 +85,25 @@ def call_llm(
                 {"role": msg["role"], "content": str(content)}  # Ensure it's a string
             )
 
-        # Call LLM with model-specific parameters
+        # Resolve provider/model and call LLM with provider-specific parameters
+        provider, normalized_model, api_key_env = _resolve_provider_and_model(model)
+
         completion_params: Dict[str, Any] = {
-            "model": model,
+            "model": normalized_model,
             "messages": formatted_messages,
         }
 
+        # If we determined a provider (e.g., together_ai / aliyun), set it
+        if provider:
+            completion_params["custom_llm_provider"] = provider
+        # Pass explicit API key when available
+        if api_key_env and os.getenv(api_key_env):
+            completion_params["api_key"] = os.getenv(api_key_env)
+
         # Handle GPT-5 specific requirements
-        if "gpt-5" in model.lower():
-            # GPT-5 only supports max_completion_tokens and default temperature
-            completion_params.update({"max_completion_tokens": 200})
+        if "gpt-5" in normalized_model.lower():
+            # GPT-5 only supports max_tokens and default temperature
+            completion_params.update({"temperature": 1, "max_tokens": 200})
         else:
             # All other models use standard parameters
             completion_params.update({"temperature": 0.3, "max_tokens": 200})
@@ -145,3 +194,64 @@ def parse_portfolio_response(content: str) -> Dict[str, Any]:
                 "allocations": {},
                 "reasoning": "Parsed from LLM response - no allocation change",
             }
+
+
+# ----------------------
+# Parallel/async helpers
+# ----------------------
+async def acall_llm(
+    messages: List[Dict[str, str]],
+    model: str = "gpt-4o-mini",
+    agent_name: str = "AI",
+    timeout: Optional[float] = None,
+) -> Dict[str, Any]:
+    """
+    Async version of call_llm using litellm.acompletion.
+
+    Returns same shape as call_llm: { success, content, error }
+    """
+    try:
+        import litellm  # type: ignore
+
+        # API key presence check
+        if not any(
+            [
+                os.getenv("OPENAI_API_KEY"),
+                os.getenv("ANTHROPIC_API_KEY"),
+                os.getenv("GEMINI_API_KEY"),
+                os.getenv("TOGETHER_API_KEY"),
+            ]
+        ):
+            return {"success": False, "content": "", "error": "No API key found"}
+
+        # Format messages
+        formatted_messages = [
+            {"role": m["role"], "content": str(m.get("content", ""))} for m in messages
+        ]
+
+        provider, normalized_model, api_key_env = _resolve_provider_and_model(model)
+        completion_params: Dict[str, Any] = {
+            "model": normalized_model,
+            "messages": formatted_messages,
+        }
+        if provider:
+            completion_params["custom_llm_provider"] = provider
+        if api_key_env and os.getenv(api_key_env):
+            completion_params["api_key"] = os.getenv(api_key_env)
+        if timeout is not None:
+            completion_params["timeout"] = timeout
+
+        if "gpt-5" in normalized_model.lower():
+            completion_params.update({"max_completion_tokens": 200})
+        else:
+            completion_params.update({"temperature": 0.3, "max_tokens": 200})
+
+        response = await litellm.acompletion(**completion_params)
+        content = response.choices[0].message.content
+        return {"success": True, "content": content, "error": None}
+
+    except ImportError:
+        return {"success": False, "content": "", "error": "litellm not installed"}
+    except Exception as e:
+        print(f"⚠️ {agent_name}: LLM error: {e}")
+        return {"success": False, "content": "", "error": str(e)}
