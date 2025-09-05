@@ -2,28 +2,11 @@
 Real model data provider using live_trade_bench
 """
 
-import os
-import random
-import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-# Add live_trade_bench to path
-project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-sys.path.insert(0, project_root)
-
-from live_trade_bench import (
-    create_polymarket_portfolio_system,
-    create_stock_portfolio_system,
-)
 from live_trade_bench.agents.polymarket_system import PolymarketPortfolioSystem
 from live_trade_bench.agents.stock_system import StockPortfolioSystem
-
-# Global instances - lazy loaded
-_stock_system = None
-_polymarket_system = None
 
 
 def _get_stock_system():
@@ -72,30 +55,72 @@ def _get_polymarket_system():
     return polymarket_system
 
 
-def _generate_mock_allocation(universe: List[str]) -> Dict[str, float]:
-    """Generates a random portfolio allocation for mocking purposes."""
-    # Ensure we have a universe to select from, excluding CASH
-    non_cash_universe = [asset for asset in universe if asset != "CASH"]
-    if not non_cash_universe:
+def _get_real_market_data_for_system(system) -> Dict[str, Dict[str, Any]]:
+    """Get real market data for the system's universe."""
+    market_data = {}
+
+    if hasattr(system, "universe") and system.universe:
+        # For stock system
+        if hasattr(system, "stock_info"):
+            from live_trade_bench.fetchers.stock_fetcher import (
+                fetch_current_stock_price,
+            )
+
+            for ticker in system.universe:
+                try:
+                    price = fetch_current_stock_price(ticker)
+                    if price:
+                        market_data[ticker] = {
+                            "ticker": ticker,
+                            "name": system.stock_info[ticker]["name"],
+                            "sector": system.stock_info[ticker]["sector"],
+                            "current_price": price,
+                            "market_cap": system.stock_info[ticker]["market_cap"],
+                        }
+                except Exception as e:
+                    print(f"⚠️ Failed to fetch data for {ticker}: {e}")
+
+        # For polymarket system
+        else:
+            from live_trade_bench.fetchers.polymarket_fetcher import (
+                fetch_current_market_price,
+            )
+
+            for market_id in system.universe:
+                try:
+                    market_info = fetch_current_market_price(market_id)
+                    if market_info:
+                        market_data[market_id] = market_info
+                except Exception as e:
+                    print(f"⚠️ Failed to fetch data for {market_id}: {e}")
+
+    return market_data
+
+
+def _generate_real_allocation(agent, system) -> Dict[str, float]:
+    """Generate real portfolio allocation using LLM agent."""
+    try:
+        # Get real market data for the system
+        market_data = _get_real_market_data_for_system(system)
+
+        if not market_data:
+            print(f"⚠️ No market data available for {agent.name}, using fallback")
+            return {"CASH": 1.0}
+
+        # Use the agent's real LLM to generate allocation
+        allocation = agent.generate_portfolio_allocation(market_data, agent.account)
+
+        if allocation:
+            print(f"✅ Generated real allocation for {agent.name}: {allocation}")
+            return allocation
+        else:
+            print(f"⚠️ No allocation generated for {agent.name}, using fallback")
+            return {"CASH": 1.0}
+
+    except Exception as e:
+        print(f"❌ Error generating real allocation for {agent.name}: {e}")
+        # Fallback to safe allocation
         return {"CASH": 1.0}
-
-    # Pick 1 to 4 assets from the universe to allocate (plus CASH)
-    num_assets = random.randint(1, min(4, len(non_cash_universe)))
-    selected_assets = random.sample(non_cash_universe, num_assets)
-
-    # Always include CASH
-    selected_assets.append("CASH")
-
-    # Generate random weights
-    weights = [random.random() for _ in selected_assets]
-    total_weight = sum(weights)
-
-    # Normalize weights to sum to 1.0
-    allocation = {
-        asset: weight / total_weight for asset, weight in zip(selected_assets, weights)
-    }
-
-    return allocation
 
 
 def get_models_data() -> List[Dict[str, Any]]:
@@ -126,9 +151,9 @@ def get_models_data() -> List[Dict[str, Any]]:
             account = agent.account
             model_id = f"{agent_name.lower().replace(' ', '-')}_{category}"
 
-            # 1. Simulate portfolio change
-            mock_allocation = _generate_mock_allocation(system.universe)
-            account._simulate_rebalance_to_target(mock_allocation)
+            # 1. Generate real portfolio allocation using LLM agent
+            real_allocation = _generate_real_allocation(agent, system)
+            account._simulate_rebalance_to_target(real_allocation)
             account._record_allocation_snapshot()
 
             # 2. Get performance metrics from the new state
