@@ -4,6 +4,9 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List
 
+import pickle
+import os
+
 from ..accounts import PolymarketAccount, create_polymarket_account
 from ..fetchers.polymarket_fetcher import (
     fetch_current_market_price,
@@ -11,6 +14,7 @@ from ..fetchers.polymarket_fetcher import (
 )
 from .polymarket_agent import LLMPolyMarketAgent
 
+STATE_FILE = "polymarket_system_state.pkl"
 
 class PolymarketPortfolioSystem:
     """Polymarket portfolio management system using AI agents."""
@@ -50,6 +54,7 @@ class PolymarketPortfolioSystem:
 
         self.agents[name] = agent
         self.accounts[name] = account
+        self.save_state()
 
     def _fetch_market_data(self) -> Dict[str, Dict[str, Any]]:
         """Fetch current market data for all markets."""
@@ -133,6 +138,7 @@ class PolymarketPortfolioSystem:
                     traceback.print_exc()
 
             self.cycle_count += 1
+            self.save_state()
             return {
                 "success": True,
                 "cycle": self.cycle_count,
@@ -145,6 +151,23 @@ class PolymarketPortfolioSystem:
 
             traceback.print_exc()
             return {"success": False, "error": str(e)}
+
+    def save_state(self):
+        with open(STATE_FILE, "wb") as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def get_instance(cls):
+        if hasattr(cls, "_instance") and cls._instance:
+            return cls._instance
+        
+        if os.path.exists(STATE_FILE):
+            with open(STATE_FILE, "rb") as f:
+                cls._instance = pickle.load(f)
+                return cls._instance
+        
+        cls._instance = create_polymarket_portfolio_system()
+        return cls._instance
 
     def get_portfolio_summaries(self) -> Dict[str, Dict[str, Any]]:
         """Get portfolio summaries for all agents."""
