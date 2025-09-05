@@ -300,7 +300,6 @@
   white-space: nowrap;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   transform: translate(-50%, -140%);
-  transition: opacity 0.2s ease, transform 0.2s ease;
   opacity: 1;
 }
 
@@ -550,6 +549,8 @@
   overflow: hidden;
   margin-bottom: 1rem;
   border: 1px solid #374151;
+  /* Ensure pixel-perfect alignment */
+  box-sizing: border-box;
 }
 
 .allocation-segment {
@@ -557,6 +558,9 @@
   transition: opacity 0.2s ease;
   cursor: pointer;
   position: relative;
+  /* Ensure precise alignment */
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .allocation-segment:hover {
