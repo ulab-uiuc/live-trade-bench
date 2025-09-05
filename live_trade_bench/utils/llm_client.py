@@ -101,10 +101,7 @@ def call_llm(
             completion_params["api_key"] = os.getenv(api_key_env)
 
         # Handle GPT-5 specific requirements
-        if "gpt-5" in normalized_model.lower():
-            # GPT-5 only supports max_tokens and default temperature
-            completion_params.update({"temperature": 1, "max_tokens": 200})
-        else:
+        if "gpt-5" not in normalized_model.lower():
             # All other models use standard parameters
             completion_params.update({"temperature": 0.3, "max_tokens": 200})
 
@@ -242,7 +239,7 @@ async def acall_llm(
             completion_params["timeout"] = timeout
 
         if "gpt-5" in normalized_model.lower():
-            completion_params.update({"max_completion_tokens": 200})
+            completion_params.update({"max_tokens": 200})
         else:
             completion_params.update({"temperature": 0.3, "max_tokens": 200})
 
