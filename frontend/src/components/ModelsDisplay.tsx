@@ -10,13 +10,6 @@ type TooltipInfo = {
   y: number;
 };
 
-
-function generateAssetAllocation(model: Pick<Model, 'category'>) {
-  return [
-    { name: 'CASH', allocation: 1.0, color: getAssetColor('CASH', model.category as 'stock' | 'polymarket'), price: '$1.00', change: '0.0%' }
-  ];
-}
-
 interface ModelsDisplayProps {
   modelsData: Model[];
   stockModels: Model[];
