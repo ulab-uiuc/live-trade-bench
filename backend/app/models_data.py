@@ -100,98 +100,58 @@ def _generate_mock_allocation(universe: List[str]) -> Dict[str, float]:
 
 def get_models_data() -> List[Dict[str, Any]]:
     """
-    Get comprehensive model data including performance, allocation, and chart data,
-    all generated from a single, consistent state.
+    Get comprehensive model data and save to JSON file.
     """
+    print("\n--- [DEBUG] Starting get_models_data ---")
     models = []
+    
+    try:
+        systems = {
+            "stock": {"system": _get_stock_system(), "initial_cash": 1000.0},
+            "polymarket": {"system": _get_polymarket_system(), "initial_cash": 500.0}
+        }
+        print(f"[DEBUG] Systems initialized.")
 
-    systems = {
-        "stock": {
-            "system": _get_stock_system(),
-            "initial_cash": 1000.0,
-            "accuracy": 75.0,
-        },
-        "polymarket": {
-            "system": _get_polymarket_system(),
-            "initial_cash": 500.0,
-            "accuracy": 70.0,
-        },
-    }
+        for category, config in systems.items():
+            system = config["system"]
+            initial_cash = config["initial_cash"]
+            print(f"[DEBUG] Processing {category} system with {len(system.agents)} agents.")
+            
+            for agent_name, agent in system.agents.items():
+                account = agent.account
+                model_id = f"{agent_name.lower().replace(' ', '-')}_{category}"
 
-    for category, config in systems.items():
-        system = config["system"]
-        initial_cash = config["initial_cash"]
+                # 1. Simulate portfolio change
+                mock_allocation = _generate_mock_allocation(system.universe)
+                account._simulate_rebalance_to_target(mock_allocation)
+                account._record_allocation_snapshot()
 
-        for agent_name, agent in system.agents.items():
-            account = agent.account
-            model_id = f"{agent_name.lower().replace(' ', '-')}_{category}"
+                # 2. Get performance metrics from the new state
+                portfolio_breakdown = account.get_portfolio_value_breakdown()
+                total_value = portfolio_breakdown.get("total_value", initial_cash)
+                return_pct = ((total_value - initial_cash) / initial_cash) * 100 if initial_cash > 0 else 0.0
+                profit_amount = total_value - initial_cash
 
-            # 1. Simulate portfolio change
-            mock_allocation = _generate_mock_allocation(system.universe)
-            account._simulate_rebalance_to_target(mock_allocation)
-            account._record_allocation_snapshot()
-
-            # 2. Get performance metrics from the new state
-            portfolio_breakdown = account.get_portfolio_value_breakdown()
-            total_value = portfolio_breakdown.get("total_value", initial_cash)
-            return_pct = (
-                ((total_value - initial_cash) / initial_cash) * 100
-                if initial_cash > 0
-                else 0.0
-            )
-            profit_amount = total_value - initial_cash
-
-            # 3. Get portfolio details (for modal)
-            portfolio_details = {
-                "cash": account.cash_balance,
-                "total_value": total_value,
-                "holdings": {
-                    symbol: pos.quantity * pos.current_price
-                    for symbol, pos in account.positions.items()
-                },
-                "target_allocations": portfolio_breakdown.get(
-                    "current_allocations", {}
-                ),
-                "return_pct": round(return_pct, 2),
-                "unrealized_pnl": round(profit_amount, 2),
-            }
-
-            # 4. Generate profit history directly from allocation history for a consistent mock
-            profit_history = []
-            if account.allocation_history:
-                for snapshot in account.allocation_history:
-                    value = snapshot["total_value"]
-                    profit = value - initial_cash
-                    profit_history.append(
-                        {
+                # 3. Generate profit history
+                profit_history = []
+                if account.allocation_history:
+                    for snapshot in account.allocation_history:
+                        value = snapshot["total_value"]
+                        profit = value - initial_cash
+                        profit_history.append({
                             "timestamp": snapshot["timestamp"],
                             "profit": round(profit, 2),
                             "totalValue": round(value, 2),
-                        }
-                    )
-            else:  # Fallback for the very first data point
-                profit_history.append(
-                    {
+                        })
+                else:
+                    profit_history.append({
                         "timestamp": datetime.now().isoformat(),
                         "profit": 0.0,
                         "totalValue": initial_cash,
-                    }
-                )
+                    })
 
-            # 5. Get chart data (for modal)
-            chart_data = {
-                "holdings": portfolio_details["holdings"],
-                "profit_history": profit_history,
-                "total_value": total_value,
-            }
-
-            # 6. Get allocation history (for modal)
-            allocation_history = account.allocation_history
-
-            # 7. Assemble the comprehensive model object
-            models.append(
-                {
-                    # Dashboard card data
+                # 4. Assemble the model object
+                models.append({
                     "id": model_id,
                     "name": agent_name,
                     "category": category,
@@ -199,16 +159,28 @@ def get_models_data() -> List[Dict[str, Any]]:
                     "profit": round(profit_amount, 2),
                     "trades": len(account.transactions),
                     "status": "active",
-                    "asset_allocation": portfolio_breakdown.get(
-                        "current_allocations", {}
-                    ),
-                    # Detailed modal data, nested
-                    "portfolio": portfolio_details,
-                    "chartData": chart_data,
-                    "allocationHistory": allocation_history,
-                    "last_updated": "2024-01-01T00:00:00Z",
-                }
-            )
+                    "asset_allocation": portfolio_breakdown.get("current_allocations", {}),
+                    "portfolio": account.get_portfolio_value_breakdown(),
+                    "chartData": {"profit_history": profit_history},
+                    "allocationHistory": account.allocation_history,
+                    "last_updated": datetime.now().isoformat(),
+                })
+
+        print(f"[DEBUG] Finished processing {len(models)} models.")
+        
+        # Save to JSON file instead of pickle
+        print("[DEBUG] Saving models data to JSON file...")
+        import json
+        with open("models_data.json", "w") as f:
+            json.dump(models, f, indent=2)
+        print("[DEBUG] Models data saved to models_data.json")
+        
+
+    except Exception:
+        print(f"🚨🚨🚨 [DEBUG] ERROR in get_models_data 🚨🚨🚨")
+        import traceback
+        traceback.print_exc()
+        print(f"🚨🚨🚨 [DEBUG] END ERROR 🚨🚨🚨\n")
 
     return models
 

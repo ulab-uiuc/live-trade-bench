@@ -2,11 +2,13 @@ import logging
 import os
 import threading
 import time
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from typing import Any, Callable, Dict
 
 from app.routers import models, news, social, system_logs
+from app.models_data import get_models_data
 
 # Removed complex trading system - now just simple data provider
 from fastapi import FastAPI, HTTPException, Request
@@ -251,6 +253,19 @@ def stop_background_trader():
         print("⏹️ Background trading cycle runner stopped")
 
 
+def run_background_updates():
+    """Periodically run the model data update cycle."""
+    while True:
+        print("--- [BACKGROUND] Triggering model data update cycle ---")
+        try:
+            get_models_data()
+            print("--- [BACKGROUND] Model data update cycle finished ---")
+        except Exception:
+            print(f"--- [BACKGROUND] Error in update cycle: ---")
+            traceback.print_exc()
+        time.sleep(60) # Wait for 60 seconds
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -308,6 +323,11 @@ async def startup_event() -> None:
         logger.info("Background fetchers completely disabled")
     except Exception as e:
         logger.warning(f"Failed to start background fetchers: {e}")
+
+    # Start the background task
+    thread = threading.Thread(target=run_background_updates, daemon=True)
+    thread.start()
+    print("Background update thread started.")
 
 
 @app.on_event("shutdown")
