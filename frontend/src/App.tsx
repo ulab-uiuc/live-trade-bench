@@ -58,6 +58,9 @@ function App() {
   });
   const [systemStatus, setSystemStatus] = useState<any>(null);
 
+  // Add a global loading state
+  const [isLoading, setIsLoading] = useState(true);
+
   // Storing previous ranks for comparison
   const prevRanks = useRef<{ [key: string]: number }>({});
 
@@ -226,6 +229,11 @@ function App() {
       console.log(`✅ Parallel fetch completed in ${elapsed}ms`);
     } catch (error) {
       console.error('❌ Parallel fetch failed:', error);
+    } finally {
+      // Set loading to false after the first fetch completes
+      if (initialFetchComplete.current) {
+        setIsLoading(false);
+      }
     }
   }, [fetchModelsData, fetchNewsData, fetchSocialData, fetchSystemStatus]);
 
@@ -286,24 +294,28 @@ function App() {
             <StockDashboard
               modelsData={modelsData}
               modelsLastRefresh={modelsLastRefresh}
+              isLoading={isLoading}
             />
           } />
           <Route path="/polymarket" element={
             <PolymarketDashboard
               modelsData={modelsData}
               modelsLastRefresh={modelsLastRefresh}
+              isLoading={isLoading}
             />
           } />
           <Route path="/news" element={
             <News
               newsData={newsData}
               lastRefresh={newsLastRefresh}
+              isLoading={isLoading}
             />
           } />
           <Route path="/social" element={
             <SocialMedia
               socialData={socialData}
               lastRefresh={socialLastRefresh}
+              isLoading={isLoading}
             />
           } />
         </Routes>

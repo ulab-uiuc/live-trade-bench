@@ -18,6 +18,8 @@ from live_trade_bench import (
     create_polymarket_portfolio_system,
     create_stock_portfolio_system,
 )
+from live_trade_bench.agents.polymarket_system import PolymarketPortfolioSystem
+from live_trade_bench.agents.stock_system import StockPortfolioSystem
 
 # Global instances - lazy loaded
 _stock_system = None
@@ -26,10 +28,8 @@ _polymarket_system = None
 
 def _get_stock_system():
     """Get or create stock system with real agents"""
-    global _stock_system
-    if _stock_system is None:
-        _stock_system = create_stock_portfolio_system()
-
+    stock_system = StockPortfolioSystem.get_instance()
+    if not stock_system.agents:
         # Add real LLM agents
         models = [
             ("GPT-4o", "gpt-4o", 1000),
@@ -42,19 +42,17 @@ def _get_stock_system():
         ]
 
         for name, model_name, initial_cash in models:
-            _stock_system.add_agent(
+            stock_system.add_agent(
                 name=name, initial_cash=initial_cash, model_name=model_name
             )
 
-    return _stock_system
+    return stock_system
 
 
 def _get_polymarket_system():
     """Get or create polymarket system with real agents"""
-    global _polymarket_system
-    if _polymarket_system is None:
-        _polymarket_system = create_polymarket_portfolio_system()
-
+    polymarket_system = PolymarketPortfolioSystem.get_instance()
+    if not polymarket_system.agents:
         # Add real LLM agents
         models = [
             ("GPT-4o", "gpt-4o", 500),
@@ -67,11 +65,11 @@ def _get_polymarket_system():
         ]
 
         for name, model_name, initial_cash in models:
-            _polymarket_system.add_agent(
+            polymarket_system.add_agent(
                 name=name, initial_cash=initial_cash, model_name=model_name
             )
 
-    return _polymarket_system
+    return polymarket_system
 
 
 def _generate_mock_allocation(universe: List[str]) -> Dict[str, float]:

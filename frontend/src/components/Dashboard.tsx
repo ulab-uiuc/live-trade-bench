@@ -22,25 +22,17 @@ const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div style={{
       padding: '2rem',
-      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
       color: '#ffffff',
-      minHeight: '100vh',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
       fontSize: '16px',
-      // 强制覆盖CSS问题
-      position: 'relative',
-      zIndex: 1000,
-      overflow: 'visible',
-      display: 'block'
+      position: 'relative' // Needed for z-index context
     }}>
       {/* 主标题 */}
       <div style={{
         textAlign: 'center',
         marginBottom: '3rem',
-        // 强制覆盖
         position: 'relative',
-        zIndex: 1001,
-        display: 'block'
+        zIndex: 1 // Ensure title is below navigation
       }}>
         <h1 style={{
           color: '#ffffff',

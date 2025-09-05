@@ -11,12 +11,6 @@ type TooltipInfo = {
 };
 
 
-function generateAssetAllocation(model: Pick<Model, 'category'>) {
-  return [
-    { name: 'CASH', allocation: 1.0, color: getAssetColor('CASH', model.category as 'stock' | 'polymarket'), price: '$1.00', change: '0.0%' }
-  ];
-}
-
 interface ModelsDisplayProps {
   modelsData: Model[];
   stockModels: Model[];
@@ -569,12 +563,12 @@ const AssetRatioChart: React.FC<{
         <svg width={chartWidth} height={chartHeight + margin.top + margin.bottom}>
           {/* Background and Y-Axis Grid */}
           <defs>
-            <linearGradient id="chartBackground" x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id={`chartBackground-${chartId}`} x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#334155" stopOpacity="0.1" />
               <stop offset="100%" stopColor="#1e293b" stopOpacity="0.3" />
             </linearGradient>
           </defs>
-          <rect x={margin.left} y={margin.top} width={chartWidth - margin.left - margin.right} height={chartHeight} fill="url(#chartBackground)" rx="8" />
+          <rect x={margin.left} y={margin.top} width={chartWidth - margin.left - margin.right} height={chartHeight} fill={`url(#chartBackground-${chartId})`} rx="8" />
           {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map((value, index) => {
             const y = margin.top + chartHeight - (value * chartHeight);
             return (
