@@ -1,0 +1,50 @@
+{
+  "stock": [
+    {
+      "id": "real_stock_NVDA_0_1757143507",
+      "content": "Is it attributable to AI's impact or this is normal cyclical effect ? Can experts in storage industry weigh in ? Last time top comments suggested other storage providers over STX & WD. But since then, STX up 3x WD up 2x. If not direct demand for their products, is this an indirect demand ? Do you be...",
+      "author": "goodpointbadpoint",
+      "platform": "Reddit",
+      "created_at": "2025-09-06T02:25:07.251116",
+      "sentiment": "positive",
+      "upvotes": 2,
+      "category": "stock",
+      "market_type": "stock",
+      "stock_symbols": [
+        "NVDA"
+      ],
+      "url": "https://www.reddit.com/r/stocks/comments/1n9bsbh/2_years_ago_i_had_asked_about_ais_impact_on/"
+    },
+    {
+      "id": "real_stock_AAPL_0_1757143509",
+      "content": "This is the daily discussion, so anything stocks related is fine, but the theme for today is on fundamentals, but if fundamentals aren't your thing then just ignore the theme. Some helpful day to day links, including news:  Finviz - Return on Equity (ROE) - BETA - SMA - quarterly earnings]([\u94fe\u63a5] If y...",
+      "author": "AutoModerator",
+      "platform": "Reddit",
+      "created_at": "2025-09-06T02:25:09.274266",
+      "sentiment": "neutral",
+      "upvotes": 24,
+      "category": "stock",
+      "market_type": "stock",
+      "stock_symbols": [
+        "AAPL"
+      ],
+      "url": "https://www.reddit.com/r/stocks/comments/1n90m50/rstocks_daily_discussion_fundamentals_friday_sep/"
+    },
+    {
+      "id": "real_stock_UNH_0_1757143517",
+      "content": "My choice is UNH: Bull Case: Solid revenue growth, solid earnings growth, selling at a 50% discount to recent highs, has 34% market share, major player in essential/inelastic demand, growth industry, recent buy-ins from Berkshire, Michael Burry and David Tepper. bonus points: 2.79% dividend",
+      "author": "AnonyMiss10001",
+      "platform": "Reddit",
+      "created_at": "2025-09-06T02:25:17.280446",
+      "sentiment": "positive",
+      "upvotes": 123,
+      "category": "stock",
+      "market_type": "stock",
+      "stock_symbols": [
+        "UNH"
+      ],
+      "url": "https://www.reddit.com/r/ValueInvesting/comments/1n9ao7s/best_value_stock_to_buy_right_now/"
+    }
+  ],
+  "polymarket": []
+}

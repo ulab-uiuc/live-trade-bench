@@ -210,6 +210,13 @@ def get_models_data() -> List[Dict[str, Any]]:
                 }
             )
 
+    # Save to JSON file
+    print(f"Saving {len(models)} models to JSON file...")
+    import json
+    with open("models_data.json", "w") as f:
+        json.dump(models, f, indent=2)
+    print("Models saved successfully!")
+
     return models
 
 

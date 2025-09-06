@@ -1,0 +1,985 @@
+[
+  {
+    "id": "gpt-4o_stock",
+    "name": "GPT-4o",
+    "category": "stock",
+    "performance": 0.0,
+    "profit": 0.0,
+    "trades": 1,
+    "status": "active",
+    "asset_allocation": {
+      "PG": 0.10271607041931317,
+      "JPM": 0.2096008252617161,
+      "NVDA": 0.27844434470374385,
+      "XOM": 0.25526723140312657,
+      "CASH": 0.15397152821210033
+    },
+    "portfolio": {
+      "cash": 153.97152821210034,
+      "total_value": 1000.0,
+      "holdings": {
+        "PG": 102.71607041931317,
+        "JPM": 209.60082526171612,
+        "NVDA": 278.44434470374387,
+        "XOM": 255.26723140312654
+      },
+      "target_allocations": {
+        "PG": 0.10271607041931317,
+        "JPM": 0.2096008252617161,
+        "NVDA": 0.27844434470374385,
+        "XOM": 0.25526723140312657,
+        "CASH": 0.15397152821210033
+      },
+      "return_pct": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    "chartData": {
+      "holdings": {
+        "PG": 102.71607041931317,
+        "JPM": 209.60082526171612,
+        "NVDA": 278.44434470374387,
+        "XOM": 255.26723140312654
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:03.601410",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        },
+        {
+          "timestamp": "2025-09-06T02:26:38.659935",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        }
+      ],
+      "total_value": 1000.0
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:03.601410",
+        "total_value": 1000.0,
+        "allocations": {
+          "NVDA": 0.5893022306295087,
+          "CASH": 0.4106977693704913
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:26:38.659935",
+        "total_value": 1000.0,
+        "allocations": {
+          "PG": 0.10271607041931317,
+          "JPM": 0.2096008252617161,
+          "NVDA": 0.27844434470374385,
+          "XOM": 0.25526723140312657,
+          "CASH": 0.15397152821210033
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "claude-3.5-sonnet_stock",
+    "name": "Claude 3.5 Sonnet",
+    "category": "stock",
+    "performance": 0.0,
+    "profit": 0.0,
+    "trades": 1,
+    "status": "active",
+    "asset_allocation": {
+      "XOM": 0.5970647365951695,
+      "CASH": 0.4029352634048305
+    },
+    "portfolio": {
+      "cash": 402.9352634048305,
+      "total_value": 1000.0,
+      "holdings": {
+        "XOM": 597.0647365951695
+      },
+      "target_allocations": {
+        "XOM": 0.5970647365951695,
+        "CASH": 0.4029352634048305
+      },
+      "return_pct": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    "chartData": {
+      "holdings": {
+        "XOM": 597.0647365951695
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:03.818160",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        },
+        {
+          "timestamp": "2025-09-06T02:26:38.723736",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        }
+      ],
+      "total_value": 1000.0
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:03.818160",
+        "total_value": 1000.0,
+        "allocations": {
+          "MSFT": 0.020441879690794886,
+          "CASH": 0.9795581203092052
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:26:38.723736",
+        "total_value": 1000.0,
+        "allocations": {
+          "XOM": 0.5970647365951695,
+          "CASH": 0.4029352634048305
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "gpt-4-turbo_stock",
+    "name": "GPT-4 Turbo",
+    "category": "stock",
+    "performance": 0.0,
+    "profit": 0.0,
+    "trades": 1,
+    "status": "active",
+    "asset_allocation": {
+      "AAPL": 0.6858680178970813,
+      "NVDA": 0.05782562128385392,
+      "CASH": 0.2563063608190648
+    },
+    "portfolio": {
+      "cash": 256.3063608190648,
+      "total_value": 1000.0,
+      "holdings": {
+        "AAPL": 685.8680178970812,
+        "NVDA": 57.82562128385392
+      },
+      "target_allocations": {
+        "AAPL": 0.6858680178970813,
+        "NVDA": 0.05782562128385392,
+        "CASH": 0.2563063608190648
+      },
+      "return_pct": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    "chartData": {
+      "holdings": {
+        "AAPL": 685.8680178970812,
+        "NVDA": 57.82562128385392
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:04.046961",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        },
+        {
+          "timestamp": "2025-09-06T02:26:38.971421",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        }
+      ],
+      "total_value": 1000.0
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:04.046961",
+        "total_value": 1000.0,
+        "allocations": {
+          "UNH": 0.23649476476245096,
+          "CASH": 0.7635052352375491
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:26:38.971421",
+        "total_value": 1000.0,
+        "allocations": {
+          "AAPL": 0.6858680178970813,
+          "NVDA": 0.05782562128385392,
+          "CASH": 0.2563063608190648
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "gpt-4o-mini_stock",
+    "name": "GPT-4o Mini",
+    "category": "stock",
+    "performance": 0.0,
+    "profit": 0.0,
+    "trades": 2,
+    "status": "active",
+    "asset_allocation": {
+      "AAPL": 0.2758332845338298,
+      "XOM": 0.21974212113442795,
+      "UNH": 0.3634368051476975,
+      "CASH": 0.1409877891840447
+    },
+    "portfolio": {
+      "cash": 140.9877891840447,
+      "total_value": 1000.0,
+      "holdings": {
+        "AAPL": 275.83328453382984,
+        "XOM": 219.74212113442795,
+        "UNH": 363.4368051476975
+      },
+      "target_allocations": {
+        "AAPL": 0.2758332845338298,
+        "XOM": 0.21974212113442795,
+        "UNH": 0.3634368051476975,
+        "CASH": 0.1409877891840447
+      },
+      "return_pct": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    "chartData": {
+      "holdings": {
+        "AAPL": 275.83328453382984,
+        "XOM": 219.74212113442795,
+        "UNH": 363.4368051476975
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:04.594684",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        },
+        {
+          "timestamp": "2025-09-06T02:26:39.400331",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        }
+      ],
+      "total_value": 1000.0
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:04.594684",
+        "total_value": 1000.0,
+        "allocations": {
+          "AAPL": 0.37680322794070187,
+          "PG": 0.13472885095263382,
+          "CASH": 0.4884679211066643
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:26:39.400331",
+        "total_value": 1000.0,
+        "allocations": {
+          "AAPL": 0.2758332845338298,
+          "XOM": 0.21974212113442795,
+          "UNH": 0.3634368051476975,
+          "CASH": 0.1409877891840447
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "claude-3-haiku_stock",
+    "name": "Claude 3 Haiku",
+    "category": "stock",
+    "performance": 0.0,
+    "profit": 0.0,
+    "trades": 2,
+    "status": "active",
+    "asset_allocation": {
+      "V": 0.37475374410384327,
+      "CASH": 0.6252462558961568
+    },
+    "portfolio": {
+      "cash": 625.2462558961568,
+      "total_value": 1000.0,
+      "holdings": {
+        "V": 374.75374410384325
+      },
+      "target_allocations": {
+        "V": 0.37475374410384327,
+        "CASH": 0.6252462558961568
+      },
+      "return_pct": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    "chartData": {
+      "holdings": {
+        "V": 374.75374410384325
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:04.936369",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        },
+        {
+          "timestamp": "2025-09-06T02:26:39.582345",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        }
+      ],
+      "total_value": 1000.0
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:04.936369",
+        "total_value": 1000.0,
+        "allocations": {
+          "KO": 0.5274710395930315,
+          "UNH": 0.19325858009552946,
+          "CASH": 0.27927038031143914
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:26:39.582345",
+        "total_value": 1000.0,
+        "allocations": {
+          "V": 0.37475374410384327,
+          "CASH": 0.6252462558961568
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "gemini-pro_stock",
+    "name": "Gemini Pro",
+    "category": "stock",
+    "performance": 0.0,
+    "profit": 0.0,
+    "trades": 3,
+    "status": "active",
+    "asset_allocation": {
+      "PG": 0.38736934222960107,
+      "V": 0.382266094843799,
+      "CASH": 0.23036456292660001
+    },
+    "portfolio": {
+      "cash": 230.3645629266,
+      "total_value": 1000.0,
+      "holdings": {
+        "PG": 387.36934222960105,
+        "V": 382.26609484379895
+      },
+      "target_allocations": {
+        "PG": 0.38736934222960107,
+        "V": 0.382266094843799,
+        "CASH": 0.23036456292660001
+      },
+      "return_pct": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    "chartData": {
+      "holdings": {
+        "PG": 387.36934222960105,
+        "V": 382.26609484379895
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:05.385063",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        },
+        {
+          "timestamp": "2025-09-06T02:26:39.719020",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        }
+      ],
+      "total_value": 1000.0
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:05.385063",
+        "total_value": 1000.0,
+        "allocations": {
+          "MSFT": 0.3630295011964034,
+          "AAPL": 0.19067140127145116,
+          "JNJ": 0.32202616550809976,
+          "CASH": 0.12427293202404564
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:26:39.719020",
+        "total_value": 1000.0,
+        "allocations": {
+          "PG": 0.38736934222960107,
+          "V": 0.382266094843799,
+          "CASH": 0.23036456292660001
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "llama-3.1_stock",
+    "name": "Llama 3.1",
+    "category": "stock",
+    "performance": 0.0,
+    "profit": 0.0,
+    "trades": 3,
+    "status": "active",
+    "asset_allocation": {
+      "AAPL": 0.4170405432491861,
+      "CASH": 0.5829594567508138
+    },
+    "portfolio": {
+      "cash": 582.9594567508138,
+      "total_value": 1000.0,
+      "holdings": {
+        "AAPL": 417.0405432491861
+      },
+      "target_allocations": {
+        "AAPL": 0.4170405432491861,
+        "CASH": 0.5829594567508138
+      },
+      "return_pct": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    "chartData": {
+      "holdings": {
+        "AAPL": 417.0405432491861
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:05.702082",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        },
+        {
+          "timestamp": "2025-09-06T02:26:39.797476",
+          "profit": 0.0,
+          "totalValue": 1000.0
+        }
+      ],
+      "total_value": 1000.0
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:05.702082",
+        "total_value": 1000.0,
+        "allocations": {
+          "V": 0.19124811191944466,
+          "UNH": 0.3122495766807466,
+          "PG": 0.1605383331865203,
+          "CASH": 0.33596397821328844
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:26:39.797476",
+        "total_value": 1000.0,
+        "allocations": {
+          "AAPL": 0.4170405432491861,
+          "CASH": 0.5829594567508138
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "gpt-4o_polymarket",
+    "name": "GPT-4o",
+    "category": "polymarket",
+    "performance": 0.0,
+    "profit": 0.0,
+    "trades": 1,
+    "status": "active",
+    "asset_allocation": {
+      "516706": 0.05046426955706904,
+      "516711": 0.008505137931762783,
+      "516710": 0.4343625792197322,
+      "516712": 0.37505377215203717,
+      "CASH": 0.13161424113939882
+    },
+    "portfolio": {
+      "cash": 65.8071205696994,
+      "total_value": 500.0,
+      "holdings": {
+        "516706": 25.232134778534522,
+        "516711": 4.252568965881391,
+        "516710": 217.1812896098661,
+        "516712": 187.52688607601857
+      },
+      "target_allocations": {
+        "516706": 0.05046426955706904,
+        "516711": 0.008505137931762783,
+        "516710": 0.4343625792197322,
+        "516712": 0.37505377215203717,
+        "CASH": 0.13161424113939882
+      },
+      "return_pct": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    "chartData": {
+      "holdings": {
+        "516706": 25.232134778534522,
+        "516711": 4.252568965881391,
+        "516710": 217.1812896098661,
+        "516712": 187.52688607601857
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:08.393553",
+          "profit": 0.0,
+          "totalValue": 500.0
+        },
+        {
+          "timestamp": "2025-09-06T02:26:46.755892",
+          "profit": 0.0,
+          "totalValue": 500.0
+        }
+      ],
+      "total_value": 500.0
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:08.393553",
+        "total_value": 500.0,
+        "allocations": {
+          "516706": 0.37023471588084217,
+          "CASH": 0.6297652841191579
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:26:46.755892",
+        "total_value": 500.0,
+        "allocations": {
+          "516706": 0.05046426955706904,
+          "516711": 0.008505137931762783,
+          "516710": 0.4343625792197322,
+          "516712": 0.37505377215203717,
+          "CASH": 0.13161424113939882
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "claude-3.5-sonnet_polymarket",
+    "name": "Claude 3.5 Sonnet",
+    "category": "polymarket",
+    "performance": -0.0,
+    "profit": -0.0,
+    "trades": 4,
+    "status": "active",
+    "asset_allocation": {
+      "516710": 0.13896653772489206,
+      "CASH": 0.8610334622751079
+    },
+    "portfolio": {
+      "cash": 430.5167311375539,
+      "total_value": 499.99999999999994,
+      "holdings": {
+        "516710": 69.48326886244602
+      },
+      "target_allocations": {
+        "516710": 0.13896653772489206,
+        "CASH": 0.8610334622751079
+      },
+      "return_pct": -0.0,
+      "unrealized_pnl": -0.0
+    },
+    "chartData": {
+      "holdings": {
+        "516710": 69.48326886244602
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:15.002610",
+          "profit": -0.0,
+          "totalValue": 500.0
+        },
+        {
+          "timestamp": "2025-09-06T02:26:50.288371",
+          "profit": -0.0,
+          "totalValue": 500.0
+        }
+      ],
+      "total_value": 499.99999999999994
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:15.002610",
+        "total_value": 499.99999999999994,
+        "allocations": {
+          "516711": 0.1274681747518622,
+          "516712": 0.29861136187003656,
+          "516706": 0.19439636447615674,
+          "516710": 0.07848833664775931,
+          "CASH": 0.30103576225418527
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:26:50.288371",
+        "total_value": 499.99999999999994,
+        "allocations": {
+          "516710": 0.13896653772489206,
+          "CASH": 0.8610334622751079
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "gpt-4-turbo_polymarket",
+    "name": "GPT-4 Turbo",
+    "category": "polymarket",
+    "performance": 0.0,
+    "profit": 0.0,
+    "trades": 3,
+    "status": "active",
+    "asset_allocation": {
+      "516711": 0.3671015228510061,
+      "516710": 0.1800913139503951,
+      "516712": 0.25911964740375376,
+      "CASH": 0.193687515794845
+    },
+    "portfolio": {
+      "cash": 96.8437578974225,
+      "total_value": 500.0,
+      "holdings": {
+        "516711": 183.55076142550305,
+        "516710": 90.04565697519755,
+        "516712": 129.5598237018769
+      },
+      "target_allocations": {
+        "516711": 0.3671015228510061,
+        "516710": 0.1800913139503951,
+        "516712": 0.25911964740375376,
+        "CASH": 0.193687515794845
+      },
+      "return_pct": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    "chartData": {
+      "holdings": {
+        "516711": 183.55076142550305,
+        "516710": 90.04565697519755,
+        "516712": 129.5598237018769
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:20.708065",
+          "profit": 0.0,
+          "totalValue": 500.0
+        },
+        {
+          "timestamp": "2025-09-06T02:26:55.408799",
+          "profit": 0.0,
+          "totalValue": 500.0
+        }
+      ],
+      "total_value": 500.0
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:20.708065",
+        "total_value": 500.0,
+        "allocations": {
+          "516711": 0.442872901556304,
+          "516706": 0.17625176968880935,
+          "516710": 0.02123209683337742,
+          "CASH": 0.35964323192150927
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:26:55.408799",
+        "total_value": 500.0,
+        "allocations": {
+          "516711": 0.3671015228510061,
+          "516710": 0.1800913139503951,
+          "516712": 0.25911964740375376,
+          "CASH": 0.193687515794845
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "gpt-4o-mini_polymarket",
+    "name": "GPT-4o Mini",
+    "category": "polymarket",
+    "performance": -0.0,
+    "profit": -0.0,
+    "trades": 3,
+    "status": "active",
+    "asset_allocation": {
+      "516711": 0.15362931998516988,
+      "516712": 0.4134775057446812,
+      "CASH": 0.4328931742701489
+    },
+    "portfolio": {
+      "cash": 216.44658713507442,
+      "total_value": 499.99999999999994,
+      "holdings": {
+        "516711": 76.81465999258494,
+        "516712": 206.73875287234057
+      },
+      "target_allocations": {
+        "516711": 0.15362931998516988,
+        "516712": 0.4134775057446812,
+        "CASH": 0.4328931742701489
+      },
+      "return_pct": -0.0,
+      "unrealized_pnl": -0.0
+    },
+    "chartData": {
+      "holdings": {
+        "516711": 76.81465999258494,
+        "516712": 206.73875287234057
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:25.587957",
+          "profit": -0.0,
+          "totalValue": 500.0
+        },
+        {
+          "timestamp": "2025-09-06T02:26:59.186559",
+          "profit": -0.0,
+          "totalValue": 500.0
+        }
+      ],
+      "total_value": 499.99999999999994
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:25.587957",
+        "total_value": 499.99999999999994,
+        "allocations": {
+          "516712": 0.36469671132275266,
+          "516706": 0.2438691737719628,
+          "516711": 0.18803672861156287,
+          "CASH": 0.20339738629372178
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:26:59.186559",
+        "total_value": 499.99999999999994,
+        "allocations": {
+          "516711": 0.15362931998516988,
+          "516712": 0.4134775057446812,
+          "CASH": 0.4328931742701489
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "claude-3-haiku_polymarket",
+    "name": "Claude 3 Haiku",
+    "category": "polymarket",
+    "performance": 0.0,
+    "profit": 0.0,
+    "trades": 1,
+    "status": "active",
+    "asset_allocation": {
+      "516710": 0.2519777181400695,
+      "CASH": 0.7480222818599305
+    },
+    "portfolio": {
+      "cash": 374.0111409299652,
+      "total_value": 500.0,
+      "holdings": {
+        "516710": 125.98885907003475
+      },
+      "target_allocations": {
+        "516710": 0.2519777181400695,
+        "CASH": 0.7480222818599305
+      },
+      "return_pct": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    "chartData": {
+      "holdings": {
+        "516710": 125.98885907003475
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:28.266770",
+          "profit": 0.0,
+          "totalValue": 500.0
+        },
+        {
+          "timestamp": "2025-09-06T02:27:01.899586",
+          "profit": 0.0,
+          "totalValue": 500.0
+        }
+      ],
+      "total_value": 500.0
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:28.266770",
+        "total_value": 500.0,
+        "allocations": {
+          "516710": 0.6902909430014544,
+          "CASH": 0.3097090569985455
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:27:01.899586",
+        "total_value": 500.0,
+        "allocations": {
+          "516710": 0.2519777181400695,
+          "CASH": 0.7480222818599305
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "gemini-pro_polymarket",
+    "name": "Gemini Pro",
+    "category": "polymarket",
+    "performance": 0.0,
+    "profit": 0.0,
+    "trades": 2,
+    "status": "active",
+    "asset_allocation": {
+      "516712": 0.43256578681852864,
+      "516706": 0.171816270853774,
+      "CASH": 0.39561794232769737
+    },
+    "portfolio": {
+      "cash": 197.8089711638487,
+      "total_value": 500.0,
+      "holdings": {
+        "516712": 216.28289340926432,
+        "516706": 85.908135426887
+      },
+      "target_allocations": {
+        "516712": 0.43256578681852864,
+        "516706": 0.171816270853774,
+        "CASH": 0.39561794232769737
+      },
+      "return_pct": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    "chartData": {
+      "holdings": {
+        "516712": 216.28289340926432,
+        "516706": 85.908135426887
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:32.021646",
+          "profit": 0.0,
+          "totalValue": 500.0
+        },
+        {
+          "timestamp": "2025-09-06T02:27:05.126489",
+          "profit": 0.0,
+          "totalValue": 500.0
+        }
+      ],
+      "total_value": 500.0
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:32.021646",
+        "total_value": 500.0,
+        "allocations": {
+          "516706": 0.3715441256383993,
+          "516711": 0.22488247865356129,
+          "CASH": 0.40357339570803946
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:27:05.126489",
+        "total_value": 500.0,
+        "allocations": {
+          "516712": 0.43256578681852864,
+          "516706": 0.171816270853774,
+          "CASH": 0.39561794232769737
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "llama-3.1_polymarket",
+    "name": "Llama 3.1",
+    "category": "polymarket",
+    "performance": 0.0,
+    "profit": 0.0,
+    "trades": 3,
+    "status": "active",
+    "asset_allocation": {
+      "516712": 0.06044468144404343,
+      "516706": 0.37715872234495956,
+      "516711": 0.37759539624225497,
+      "516710": 0.14258786715881025,
+      "CASH": 0.04221333280993179
+    },
+    "portfolio": {
+      "cash": 21.106666404965893,
+      "total_value": 500.0,
+      "holdings": {
+        "516712": 30.222340722021713,
+        "516706": 188.5793611724798,
+        "516711": 188.7976981211275,
+        "516710": 71.29393357940512
+      },
+      "target_allocations": {
+        "516712": 0.06044468144404343,
+        "516706": 0.37715872234495956,
+        "516711": 0.37759539624225497,
+        "516710": 0.14258786715881025,
+        "CASH": 0.04221333280993179
+      },
+      "return_pct": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    "chartData": {
+      "holdings": {
+        "516712": 30.222340722021713,
+        "516706": 188.5793611724798,
+        "516711": 188.7976981211275,
+        "516710": 71.29393357940512
+      },
+      "profit_history": [
+        {
+          "timestamp": "2025-09-06T02:24:37.129680",
+          "profit": 0.0,
+          "totalValue": 500.0
+        },
+        {
+          "timestamp": "2025-09-06T02:27:11.305969",
+          "profit": 0.0,
+          "totalValue": 500.0
+        }
+      ],
+      "total_value": 500.0
+    },
+    "allocationHistory": [
+      {
+        "timestamp": "2025-09-06T02:24:37.129680",
+        "total_value": 500.0,
+        "allocations": {
+          "516706": 0.16351403779128712,
+          "516711": 0.2641759938404435,
+          "516710": 0.2870588286204277,
+          "CASH": 0.2852511397478418
+        }
+      },
+      {
+        "timestamp": "2025-09-06T02:27:11.305969",
+        "total_value": 500.0,
+        "allocations": {
+          "516712": 0.06044468144404343,
+          "516706": 0.37715872234495956,
+          "516711": 0.37759539624225497,
+          "516710": 0.14258786715881025,
+          "CASH": 0.04221333280993179
+        }
+      }
+    ],
+    "last_updated": "2024-01-01T00:00:00Z"
+  }
+]

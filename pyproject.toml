@@ -7,21 +7,17 @@ license = "MIT License"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.9, <3.12"
-mypy = "^1.16.1"
-beartype = "^0.17.1"
-pydantic = "^2.11.7"
-finnhub-python = "*"
-yfinance = "*"
-requests = "*"
-beautifulsoup4 = "*"
-tenacity = "*"
-scipy = "*"
-praw = "*"
-fastapi = "*"
-uvicorn = "*"
-spacy = "^3.8.7"
-litellm = "*"
+python = "^3.9"
+fastapi = "^0.110.0"
+uvicorn = "^0.29.0"
+yfinance = "^0.2.37"
+finnhub-python = "^2.4.20"
+python-dotenv = "^1.0.1"
+requests = "^2.31.0"
+beautifulsoup4 = "^4.12.3"
+praw = "^7.7.1"
+fasteners = "^0.19"
+
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.3.0"
@@ -32,7 +28,7 @@ commitizen = "^3.14.1"
 
 # Removed black and isort since we're using ruff
 [tool.poetry.group.test.dependencies]
-pytest = "*"
+pytest = "^8.1.1"
 pytest-asyncio = "*"
 
 

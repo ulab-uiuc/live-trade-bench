@@ -150,8 +150,24 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.5rem',
+                flexWrap: 'wrap'
               }}>
+                {/* Stock Symbol Tags */}
+                {post.stock_symbols && post.stock_symbols.length > 0 && (
+                  post.stock_symbols.map((symbol: string, index: number) => (
+                    <span key={index} style={{
+                      background: '#3b82f6',
+                      color: '#ffffff',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold'
+                    }}>
+                      {symbol}
+                    </span>
+                  ))
+                )}
                 <span style={{
                   background: getPlatformColor(post.platform),
                   color: '#ffffff',
@@ -181,9 +197,15 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
               fontSize: '0.875rem',
               color: '#d1d5db',
               lineHeight: '1.5',
-              marginBottom: '1rem'
+              marginBottom: '1rem',
+              maxHeight: '120px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 4,
+              WebkitBoxOrient: 'vertical'
             }}>
-              {post.content}
+              {post.content.length > 200 ? `${post.content.substring(0, 200)}...` : post.content}
             </p>
 
             {/* Post footer */}
