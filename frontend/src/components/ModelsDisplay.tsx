@@ -27,7 +27,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null);
-  
+
   // Pre-warm the tooltip system to avoid first-hover delay
   useEffect(() => {
     // Initialize tooltip state immediately when modal opens
@@ -221,13 +221,13 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   });
 
   // Asset Allocation Bar (for modal)
-  const AssetAllocationBar = memo(({ 
-    portfolioData, 
+  const AssetAllocationBar = memo(({
+    portfolioData,
     category,
     onMouseMove,
-    onMouseLeave 
-  }: { 
-    portfolioData: any; 
+    onMouseLeave
+  }: {
+    portfolioData: any;
     category: string;
     onMouseMove: (e: React.MouseEvent, content: string) => void;
     onMouseLeave: () => void;
@@ -246,9 +246,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
     // DEBUG: Log the category and colors
     if (allocations.find(a => a.name === 'AAPL')) {
-      console.log('DEBUG (AssetAllocationBar) for AAPL:', { 
-        category, 
-        color: allocations.find(a => a.name === 'AAPL')?.color 
+      console.log('DEBUG (AssetAllocationBar) for AAPL:', {
+        category,
+        color: allocations.find(a => a.name === 'AAPL')?.color
       });
     }
 
@@ -333,7 +333,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       <div className="models-grid-square">
         {filteredModels.map(model => {
           // Use the real (mocked) asset allocation from the model prop
-          const allocations = model.asset_allocation 
+          const allocations = model.asset_allocation
             ? Object.entries(model.asset_allocation)
                 .map(([name, allocation]) => ({
                   name,
@@ -432,8 +432,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 </div>
               </div>
 
-              <AssetAllocationBar 
-                portfolioData={selectedModel.portfolio} 
+              <AssetAllocationBar
+                portfolioData={selectedModel.portfolio}
                 category={selectedModel.category}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
@@ -449,7 +449,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               }}>
             </div>
 
-              <AssetRatioChart 
+              <AssetRatioChart
                 allocationHistory={selectedModel.allocationHistory}
                 category={selectedModel.category}
                 onMouseMove={handleMouseMove}
@@ -481,13 +481,13 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 };
 
 // Asset Ratio Chart Component (now a "dumb" component)
-const AssetRatioChart: React.FC<{ 
+const AssetRatioChart: React.FC<{
   allocationHistory: any[];
   category: string;
   onMouseMove: (e: React.MouseEvent, content: string) => void;
   onMouseLeave: () => void;
 }> = ({ allocationHistory, category, onMouseMove, onMouseLeave }) => {
-  
+
   // Create unique ID for this chart instance to avoid SVG gradient conflicts
   const chartId = useMemo(() => Math.random().toString(36).substr(2, 9), []);
 
