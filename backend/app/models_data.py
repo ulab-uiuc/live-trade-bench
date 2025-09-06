@@ -16,12 +16,8 @@ def _get_stock_system():
         # Add real LLM agents
         models = [
             ("GPT-4o", "gpt-4o", 1000),
-            ("Claude 3.5 Sonnet", "claude-3-5-sonnet-20241022", 1000),
             ("GPT-4 Turbo", "gpt-4-turbo", 1000),
             ("GPT-4o Mini", "gpt-4o-mini", 1000),
-            ("Claude 3 Haiku", "claude-3-haiku-20240307", 1000),
-            ("Gemini Pro", "gemini-pro", 1000),
-            ("Llama 3.1", "llama-3.1-70b-versatile", 1000),
         ]
 
         for name, model_name, initial_cash in models:
@@ -39,12 +35,8 @@ def _get_polymarket_system():
         # Add real LLM agents
         models = [
             ("GPT-4o", "gpt-4o", 500),
-            ("Claude 3.5 Sonnet", "claude-3-5-sonnet-20241022", 500),
             ("GPT-4 Turbo", "gpt-4-turbo", 500),
             ("GPT-4o Mini", "gpt-4o-mini", 500),
-            ("Claude 3 Haiku", "claude-3-haiku-20240307", 500),
-            ("Gemini Pro", "gemini-pro", 500),
-            ("Llama 3.1", "llama-3.1-70b-versatile", 500),
         ]
 
         for name, model_name, initial_cash in models:
@@ -145,15 +137,25 @@ async def get_models_data() -> List[Dict[str, Any]]:
         },
     }
 
+    # 收集所有需要并发处理的 agent 任务
+    all_agent_tasks = []
     for category, config in systems.items():
         system = config["system"]
-        initial_cash = config["initial_cash"]
-
         for agent_name, agent in system.agents.items():
+            all_agent_tasks.append((agent_name, agent, category, config))
+
+    # 🚀 并发处理所有 agent！
+    async def process_single_agent(
+        agent_name: str, agent, category: str, config: Dict
+    ) -> Dict[str, Any]:
+        """处理单个 agent，返回模型数据"""
+        try:
+            system = config["system"]
+            initial_cash = config["initial_cash"]
             account = agent.account
             model_id = f"{agent_name.lower().replace(' ', '-')}_{category}"
 
-            # 1. Generate real portfolio allocation using LLM agent
+            # 1. Generate real portfolio allocation using LLM agent (并发!)
             real_allocation = await _generate_real_allocation(agent, system)
             account._simulate_rebalance_to_target(real_allocation)
             account._record_allocation_snapshot()
@@ -183,7 +185,7 @@ async def get_models_data() -> List[Dict[str, Any]]:
                 "unrealized_pnl": round(profit_amount, 2),
             }
 
-            # 4. Generate profit history directly from allocation history for a consistent mock
+            # 4. Generate profit history
             profit_history = []
             if account.allocation_history:
                 for snapshot in account.allocation_history:
@@ -196,7 +198,7 @@ async def get_models_data() -> List[Dict[str, Any]]:
                             "totalValue": round(value, 2),
                         }
                     )
-            else:  # Fallback for the very first data point
+            else:
                 profit_history.append(
                     {
                         "timestamp": datetime.now().isoformat(),
@@ -205,37 +207,61 @@ async def get_models_data() -> List[Dict[str, Any]]:
                     }
                 )
 
-            # 5. Get chart data (for modal)
+            # 5. Get chart data
             chart_data = {
                 "holdings": portfolio_details["holdings"],
                 "profit_history": profit_history,
                 "total_value": total_value,
             }
 
-            # 6. Get allocation history (for modal)
+            # 6. Get allocation history
             allocation_history = account.allocation_history
 
             # 7. Assemble the comprehensive model object
-            models.append(
-                {
-                    # Dashboard card data
-                    "id": model_id,
-                    "name": agent_name,
-                    "category": category,
-                    "performance": round(return_pct, 2),
-                    "profit": round(profit_amount, 2),
-                    "trades": len(account.transactions),
-                    "status": "active",
-                    "asset_allocation": portfolio_breakdown.get(
-                        "current_allocations", {}
-                    ),
-                    # Detailed modal data, nested
-                    "portfolio": portfolio_details,
-                    "chartData": chart_data,
-                    "allocationHistory": allocation_history,
-                    "last_updated": "2024-01-01T00:00:00Z",
-                }
-            )
+            return {
+                "id": model_id,
+                "name": agent_name,
+                "category": category,
+                "performance": round(return_pct, 2),
+                "profit": round(profit_amount, 2),
+                "trades": len(account.transactions),
+                "status": "active",
+                "asset_allocation": portfolio_breakdown.get("current_allocations", {}),
+                "portfolio": portfolio_details,
+                "chartData": chart_data,
+                "allocationHistory": allocation_history,
+                "last_updated": "2024-01-01T00:00:00Z",
+            }
+        except Exception as e:
+            print(f"❌ Error processing agent {agent_name}: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return None
+
+    # 执行所有 agent 的并发处理
+    print(f"🚀 Processing {len(all_agent_tasks)} agents concurrently...")
+
+    # 创建任务列表
+    tasks = [
+        process_single_agent(agent_name, agent, category, config)
+        for agent_name, agent, category, config in all_agent_tasks
+    ]
+
+    # 并发执行所有任务
+    import asyncio
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # 处理结果
+    for result in results:
+        if isinstance(result, Exception):
+            print(f"❌ Agent processing exception: {result}")
+            continue
+        if result is not None:
+            models.append(result)
+
+    print(f"✅ Processed {len(models)} agents successfully")
 
     return models
 

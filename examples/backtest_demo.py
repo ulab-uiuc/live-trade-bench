@@ -27,7 +27,7 @@ async def main():
 
     # Test with trading days (avoid holidays)
     start_date = "2024-01-02"  # Avoid New Year's Day
-    end_date = "2024-01-05"  # Short test period
+    end_date = "2024-01-03"  # Short test period
 
     print(f"🚀 Running backtest: {start_date} → {end_date}")
 
@@ -91,6 +91,45 @@ async def main():
         import traceback
 
         traceback.print_exc()
+
+    finally:
+        # 🧹 CRITICAL: Force cleanup of litellm's lingering async resources
+        # This prevents the program from hanging after completion
+        print("🧹 Cleaning up async resources...")
+
+        try:
+            # Cancel all remaining background tasks created by litellm
+            pending_tasks = [
+                task
+                for task in asyncio.all_tasks()
+                if not task.done() and task != asyncio.current_task()
+            ]
+
+            if pending_tasks:
+                print(f"   🔍 Found {len(pending_tasks)} background tasks to cleanup")
+
+                # Cancel all pending tasks
+                for task in pending_tasks:
+                    task.cancel()
+
+                # Wait briefly for cancellation with timeout to avoid infinite recursion
+                try:
+                    await asyncio.wait_for(
+                        asyncio.gather(*pending_tasks, return_exceptions=True),
+                        timeout=2.0,
+                    )
+                    print("   ✅ Background tasks cleaned up successfully")
+                except asyncio.TimeoutError:
+                    print("   ⚠️ Cleanup timeout - forcing exit")
+                except Exception as cleanup_error:
+                    print(f"   ⚠️ Cleanup error (ignoring): {cleanup_error}")
+            else:
+                print("   ✅ No background tasks to cleanup")
+
+        except Exception as e:
+            print(f"   ⚠️ Cleanup failed (ignoring): {e}")
+
+        print("🎯 Backtest completed - program should exit cleanly now")
 
 
 if __name__ == "__main__":

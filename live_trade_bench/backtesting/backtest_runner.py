@@ -5,6 +5,7 @@ Linus principle: "Good code has no special cases"
 This just controls time flow, everything else uses existing systems unchanged.
 """
 
+import asyncio
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
@@ -234,14 +235,17 @@ class BacktestRunner:
                 if hasattr(agent.account, "update_position_price"):
                     agent.account.update_position_price(ticker, price)
 
-        # Generate portfolio allocations for each agent - same as live system
-        for agent_name, agent in self.portfolio_system.agents.items():
+        # Generate portfolio allocations for all agents CONCURRENTLY 🚀
+        async def process_agent_backtest(agent_name: str, agent) -> tuple[str, dict]:
+            """Process a single agent in backtest"""
             try:
                 # Override agent's news analysis to use historical date
                 original_prepare_news = agent._prepare_news_analysis
                 agent._prepare_news_analysis = (
                     lambda md: self._prepare_historical_news_analysis(date, md)
                 )
+
+                print(f"     🔍 {agent_name}: Processing concurrently...")
 
                 # Same logic as StockPortfolioSystem.run_cycle() - no special cases!
                 allocation = await agent.generate_portfolio_allocation(
@@ -268,18 +272,46 @@ class BacktestRunner:
 
                 # Compute portfolio value
                 portfolio_value = agent.account.get_total_value()
-                day_results["agents"][agent_name] = {
+                agent_result = {
                     "portfolio_value": portfolio_value,
                     "cash_balance": agent.account.cash_balance,
                     "allocation": allocation,
                     "target_allocations": agent.account.target_allocations.copy(),
                 }
 
-                print(f"     🤖 {agent_name}: ${portfolio_value:,.2f}")
+                print(f"     ✅ {agent_name}: ${portfolio_value:,.2f}")
+                return agent_name, agent_result
 
             except Exception as e:
-                print(f"     ❌ Error processing {agent_name}: {e}")
-                day_results["agents"][agent_name] = {"error": str(e)}
+                print(f"     ❌ {agent_name}: Error - {e}")
+                import traceback
+
+                traceback.print_exc()
+                return agent_name, {
+                    "portfolio_value": 0.0,
+                    "cash_balance": 0.0,
+                    "allocation": {},
+                    "target_allocations": {},
+                    "error": str(e),
+                }
+
+        # 🚀 Execute all agents concurrently!
+        agent_tasks = [
+            process_agent_backtest(agent_name, agent)
+            for agent_name, agent in self.portfolio_system.agents.items()
+        ]
+
+        print(f"     🚀 Processing {len(agent_tasks)} agents concurrently...")
+        agent_results = await asyncio.gather(*agent_tasks, return_exceptions=True)
+
+        # Process results
+        for result in agent_results:
+            if isinstance(result, Exception):
+                print(f"     ❌ Agent exception: {result}")
+                continue
+            if isinstance(result, tuple):
+                agent_name, agent_data = result
+                day_results["agents"][agent_name] = agent_data
 
         return day_results
 
