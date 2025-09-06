@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/models", tags=["models"])
 async def get_models() -> List[Dict[str, Any]]:
     """Get real LLM trading models with performance from actual predictions."""
     try:
-        models = get_models_data()
+        models = await get_models_data()
         return models
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching models: {str(e)}")
@@ -23,7 +23,7 @@ async def get_models() -> List[Dict[str, Any]]:
 async def trigger_trading_cycle() -> Dict[str, Any]:
     """Manually trigger a trading cycle for all models."""
     try:
-        result = trigger_cycle()
+        result = await trigger_cycle()
         if result["status"] == "success":
             return {
                 "success": True,

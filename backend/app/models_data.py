@@ -97,7 +97,7 @@ def _get_real_market_data_for_system(system) -> Dict[str, Dict[str, Any]]:
     return market_data
 
 
-def _generate_real_allocation(agent, system) -> Dict[str, float]:
+async def _generate_real_allocation(agent, system) -> Dict[str, float]:
     """Generate real portfolio allocation using LLM agent."""
     try:
         # Get real market data for the system
@@ -108,7 +108,9 @@ def _generate_real_allocation(agent, system) -> Dict[str, float]:
             return {"CASH": 1.0}
 
         # Use the agent's real LLM to generate allocation
-        allocation = agent.generate_portfolio_allocation(market_data, agent.account)
+        allocation = await agent.generate_portfolio_allocation(
+            market_data, agent.account
+        )
 
         if allocation:
             print(f"✅ Generated real allocation for {agent.name}: {allocation}")
@@ -123,7 +125,7 @@ def _generate_real_allocation(agent, system) -> Dict[str, float]:
         return {"CASH": 1.0}
 
 
-def get_models_data() -> List[Dict[str, Any]]:
+async def get_models_data() -> List[Dict[str, Any]]:
     """
     Get comprehensive model data including performance, allocation, and chart data,
     all generated from a single, consistent state.
@@ -152,7 +154,7 @@ def get_models_data() -> List[Dict[str, Any]]:
             model_id = f"{agent_name.lower().replace(' ', '-')}_{category}"
 
             # 1. Generate real portfolio allocation using LLM agent
-            real_allocation = _generate_real_allocation(agent, system)
+            real_allocation = await _generate_real_allocation(agent, system)
             account._simulate_rebalance_to_target(real_allocation)
             account._record_allocation_snapshot()
 
@@ -279,7 +281,7 @@ def get_allocation_history(model_id: str) -> Optional[List[Dict[str, Any]]]:
         return None
 
 
-def trigger_cycle() -> Dict[str, Any]:
+async def trigger_cycle() -> Dict[str, Any]:
     """Run one trading cycle using real live_trade_bench systems"""
     try:
         stock_system = _get_stock_system()
@@ -289,11 +291,11 @@ def trigger_cycle() -> Dict[str, Any]:
 
         # Run stock system cycle
         print("  📈 Running stock portfolio cycle...")
-        stock_result = stock_system.run_cycle()
+        stock_result = await stock_system.run_cycle()
 
         # Run polymarket system cycle
         print("  🎯 Running polymarket portfolio cycle...")
-        poly_result = polymarket_system.run_cycle()
+        poly_result = await polymarket_system.run_cycle()
 
         # Check results
         success = stock_result.get("success", True) and poly_result.get("success", True)

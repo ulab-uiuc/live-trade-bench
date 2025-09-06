@@ -52,7 +52,7 @@ class BacktestRunner:
         """Add agent - same interface as live system."""
         self.portfolio_system.add_agent(name, initial_cash, model_name)
 
-    def run(self) -> Dict[str, Any]:
+    async def run(self) -> Dict[str, Any]:
         """
         Run backtest. Pure simplicity.
 
@@ -87,7 +87,7 @@ class BacktestRunner:
                 print(f"   💰 Sample: {sample_ticker} = ${sample_price:.2f}")
 
             # Run portfolio cycle with historical data - same as live system
-            day_results = self._run_day_cycle(day, market_data)
+            day_results = await self._run_day_cycle(day, market_data)
             self.daily_results.append(day_results)
 
         return self._generate_backtest_summary()
@@ -211,7 +211,7 @@ class BacktestRunner:
         except Exception as e:
             return f"RECENT NEWS:\n• News fetch error: {str(e)}..."
 
-    def _run_day_cycle(
+    async def _run_day_cycle(
         self, date: datetime, market_data: Dict[str, Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
@@ -244,7 +244,7 @@ class BacktestRunner:
                 )
 
                 # Same logic as StockPortfolioSystem.run_cycle() - no special cases!
-                allocation = agent.generate_portfolio_allocation(
+                allocation = await agent.generate_portfolio_allocation(
                     market_data, agent.account
                 )
 

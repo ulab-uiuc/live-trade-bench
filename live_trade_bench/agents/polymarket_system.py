@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import asyncio
+import os
+import pickle
 import time
 from datetime import datetime
 from typing import Any, Dict, List
-
-import pickle
-import os
 
 from ..accounts import PolymarketAccount, create_polymarket_account
 from ..fetchers.polymarket_fetcher import (
@@ -15,6 +15,7 @@ from ..fetchers.polymarket_fetcher import (
 from .polymarket_agent import LLMPolyMarketAgent
 
 STATE_FILE = "polymarket_system_state.pkl"
+
 
 class PolymarketPortfolioSystem:
     """Polymarket portfolio management system using AI agents."""
@@ -82,7 +83,7 @@ class PolymarketPortfolioSystem:
 
         return market_data
 
-    def run_cycle(self) -> Dict[str, Any]:
+    async def run_cycle(self) -> Dict[str, Any]:
         """Run one portfolio management cycle."""
         print(f"\n🔄 Running portfolio cycle {self.cycle_count}...")
 
@@ -96,8 +97,13 @@ class PolymarketPortfolioSystem:
 
             print(f"📊 Fetched data for {len(market_data)} markets")
 
-            # Generate portfolio allocations for each agent
-            for agent_name, agent in self.agents.items():
+            # Generate portfolio allocations concurrently for all agents
+            print(
+                f"\n🚀 Generating portfolio allocations for {len(self.agents)} agents concurrently..."
+            )
+
+            async def process_agent(agent_name: str, agent) -> tuple[str, bool]:
+                """Process a single agent and return (name, success)"""
                 try:
                     print(f"\n🤖 {agent_name} generating portfolio allocation...")
 
@@ -111,7 +117,7 @@ class PolymarketPortfolioSystem:
                     )
 
                     # Generate complete portfolio allocation
-                    allocation = agent.generate_portfolio_allocation(
+                    allocation = await agent.generate_portfolio_allocation(
                         market_data, agent.account
                     )
 
@@ -128,14 +134,37 @@ class PolymarketPortfolioSystem:
                         agent.account._record_allocation_snapshot()
 
                         print(f"   ✅ Portfolio allocation updated for {agent_name}")
+                        return agent_name, True
                     else:
                         print(f"   ⚠️ No allocation generated for {agent_name}")
+                        return agent_name, False
 
                 except Exception as e:
                     print(f"❌ Error processing {agent_name}: {e}")
                     import traceback
 
                     traceback.print_exc()
+                    return agent_name, False
+
+            # Execute all agent processing concurrently
+            agent_tasks = [
+                process_agent(agent_name, agent)
+                for agent_name, agent in self.agents.items()
+            ]
+
+            results = await asyncio.gather(*agent_tasks, return_exceptions=True)
+
+            # Process results
+            successful_agents = 0
+            for result in results:
+                if isinstance(result, tuple) and result[1]:
+                    successful_agents += 1
+                elif isinstance(result, Exception):
+                    print(f"❌ Agent processing exception: {result}")
+
+            print(
+                f"\n📊 Portfolio allocation completed: {successful_agents}/{len(self.agents)} agents successful"
+            )
 
             self.cycle_count += 1
             self.save_state()
@@ -160,12 +189,12 @@ class PolymarketPortfolioSystem:
     def get_instance(cls):
         if hasattr(cls, "_instance") and cls._instance:
             return cls._instance
-        
+
         if os.path.exists(STATE_FILE):
             with open(STATE_FILE, "rb") as f:
                 cls._instance = pickle.load(f)
                 return cls._instance
-        
+
         cls._instance = create_polymarket_portfolio_system()
         return cls._instance
 
@@ -208,22 +237,26 @@ class PolymarketPortfolioSystem:
                 for s in summaries.values()
                 if s["agent_name"] != "OVERALL"
             ),
-            "cash_allocation": sum(
-                s["cash_allocation"]
-                for s in summaries.values()
-                if s["agent_name"] != "OVERALL"
-            )
-            / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
-            if summaries
-            else 0.0,
-            "positions_allocation": sum(
-                s["positions_allocation"]
-                for s in summaries.values()
-                if s["agent_name"] != "OVERALL"
-            )
-            / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
-            if summaries
-            else 0.0,
+            "cash_allocation": (
+                sum(
+                    s["cash_allocation"]
+                    for s in summaries.values()
+                    if s["agent_name"] != "OVERALL"
+                )
+                / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
+                if summaries
+                else 0.0
+            ),
+            "positions_allocation": (
+                sum(
+                    s["positions_allocation"]
+                    for s in summaries.values()
+                    if s["agent_name"] != "OVERALL"
+                )
+                / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
+                if summaries
+                else 0.0
+            ),
             "current_allocations": {},
             "target_allocations": {},
             "needs_rebalancing": any(
@@ -253,7 +286,7 @@ class PolymarketPortfolioSystem:
             "last_rebalance": account.last_rebalance,
         }
 
-    def run_continuous(
+    async def run_continuous(
         self, interval_minutes: int = 15, max_cycles: int = None
     ) -> None:
         """Run continuous portfolio management cycles."""
@@ -267,7 +300,7 @@ class PolymarketPortfolioSystem:
                 cycle_count += 1
                 print(f"\n🔄 Cycle {cycle_count}")
 
-                result = self.run_cycle()
+                result = await self.run_cycle()
                 if result.get("errors"):
                     print(f"⚠️ Cycle {cycle_count} had {len(result['errors'])} errors")
 

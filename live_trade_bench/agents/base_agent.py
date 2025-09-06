@@ -18,7 +18,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         self._last_price: Dict[str, float] = {}
         self.account = None  # Will be set by the system
 
-    def generate_portfolio_allocation(
+    async def generate_portfolio_allocation(
         self, market_data: Dict[str, DataType], account: AccountType
     ) -> Optional[Dict[str, float]]:
         """Generate complete portfolio allocation for all assets."""
@@ -50,7 +50,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             ]
 
             print(f"🔍 {self.name}: Calling LLM with {len(market_data)} assets...")
-            llm_response = self._call_llm(messages)
+            llm_response = await self._call_llm(messages)
 
             if not llm_response.get("success"):
                 print(
@@ -86,13 +86,13 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             return None
 
     # ----- LLM plumbing -----
-    def _call_llm(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
+    async def _call_llm(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         if not self.available:
             return {"success": False, "content": "", "error": "LLM not available"}
         try:
-            from ..utils import call_llm
+            from ..utils import acall_llm
 
-            return call_llm(messages, self.model_name, self.name)
+            return await acall_llm(messages, self.model_name, self.name)
         except Exception as e:
             return {"success": False, "content": "", "error": str(e)}
 

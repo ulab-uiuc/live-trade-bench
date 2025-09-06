@@ -9,11 +9,11 @@ from typing import Any, Dict
 from .backtest_runner import BacktestRunner
 
 
-def run_backtest(
+async def run_backtest(
     start_date: str, end_date: str, agents_config: Dict[str, Dict[str, Any]]
 ) -> Dict[str, Any]:
     """
-    Run a backtest - dead simple interface.
+    Run backtest with multiple agents.
 
     Args:
         start_date: YYYY-MM-DD
@@ -33,4 +33,4 @@ def run_backtest(
             model_name=config.get("model", "gpt-4o-mini"),
         )
 
-    return runner.run()
+    return await runner.run()
