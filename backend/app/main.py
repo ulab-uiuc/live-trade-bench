@@ -7,9 +7,9 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from typing import Any, Callable, Dict
 
-from app.routers import models, news, social, system
 from app.models_data import get_models_data
 from app.news_data import update_news_data
+from app.routers import models, news, social, system
 from app.social_data import update_social_data
 from app.system_data import update_system_status
 
@@ -267,7 +267,7 @@ def run_background_updates():
         except Exception:
             print("--- [BACKGROUND] Error in model update ---")
             traceback.print_exc()
-        
+
         # Update system status every minute
         print("--- [BACKGROUND] Triggering system status update ---")
         try:
@@ -276,9 +276,9 @@ def run_background_updates():
         except Exception:
             print("--- [BACKGROUND] Error in system status update ---")
             traceback.print_exc()
-        
+
         # Update news and social data every 10 minutes (check cycle count)
-        cycle_count = getattr(run_background_updates, 'cycle_count', 0)
+        cycle_count = getattr(run_background_updates, "cycle_count", 0)
         if cycle_count % 10 == 0:  # Every 10th cycle (10 minutes)
             print("--- [BACKGROUND] Triggering news data update ---")
             try:
@@ -287,7 +287,7 @@ def run_background_updates():
             except Exception:
                 print("--- [BACKGROUND] Error in news update ---")
                 traceback.print_exc()
-            
+
             print("--- [BACKGROUND] Triggering social data update ---")
             try:
                 update_social_data()
@@ -295,9 +295,9 @@ def run_background_updates():
             except Exception:
                 print("--- [BACKGROUND] Error in social update ---")
                 traceback.print_exc()
-        
+
         run_background_updates.cycle_count = cycle_count + 1
-        time.sleep(60) # Wait for 60 seconds
+        time.sleep(60)  # Wait for 60 seconds
 
 
 @asynccontextmanager

@@ -8,6 +8,7 @@ from ..accounts import StockAccount, create_stock_account
 from ..fetchers.stock_fetcher import fetch_current_stock_price, fetch_trending_stocks
 from .stock_agent import LLMStockAgent
 
+
 class StockPortfolioSystem:
     """Stock portfolio management system using AI agents."""
 
@@ -162,7 +163,6 @@ class StockPortfolioSystem:
         if not hasattr(cls, "_instance"):
             cls._instance = create_stock_portfolio_system()
         return cls._instance
-
 
     def get_portfolio_summaries(self) -> Dict[str, Dict[str, Any]]:
         """Get portfolio summaries for all agents."""

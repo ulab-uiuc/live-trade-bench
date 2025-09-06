@@ -1,10 +1,7 @@
-import json
-import os
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException
-
 from app.system_data import get_system_status
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix="/api/system", tags=["system"])
 
@@ -21,7 +18,7 @@ async def system_status() -> Dict[str, Any]:
             "polymarket_agents": status["polymarket_agents"],
             "last_updated": status["last_updated"],
             "uptime": status["uptime"],
-            "version": status["version"]
+            "version": status["version"],
         }
     except Exception as e:
         raise HTTPException(

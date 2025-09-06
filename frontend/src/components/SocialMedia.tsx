@@ -13,6 +13,11 @@ interface SocialPost {
   replies: number;
   sentiment: string;
   avatar: string;
+  url?: string;
+  upvotes?: number;
+  author?: string;
+  created_at?: string;
+  stock_symbols?: string[];
 }
 
 interface SocialMediaProps {
@@ -53,6 +58,24 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
     }
   };
 
+  const formatTimeAgo = (timeString: string) => {
+    try {
+      const time = new Date(timeString);
+      if (isNaN(time.getTime())) {
+        return 'Unknown time';
+      }
+
+      const diff = new Date().getTime() - time.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+
+      if (hours < 1) return 'Just now';
+      if (hours < 24) return `${hours}h ago`;
+      return `${Math.floor(hours / 24)}d ago`;
+    } catch (error) {
+      return 'Unknown time';
+    }
+  };
+
   if (isLoading && posts.length === 0) {
     return (
       <div className="loading-indicator">
@@ -64,7 +87,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
   return (
     <div className="social-media-container">
       <div className="social-media-header">
-        <h1>📱 Social Media Sentiment</h1>
+        <h1>Social Media</h1>
         <div className="social-media-controls">
           <div className="social-media-category-tabs">
             {(['stock', 'polymarket'] as const).map((market) => (
@@ -96,7 +119,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
           </div>
         </div>
       </div>
-      
+
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
@@ -110,7 +133,21 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
               border: '1px solid #374151',
               borderRadius: '0.5rem',
               padding: '1.5rem',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#3b82f6';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#374151';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+            onClick={() => {
+              if (post.url) {
+                window.open(post.url, '_blank', 'noopener,noreferrer');
+              }
             }}
           >
             {/* Post header */}
@@ -120,33 +157,6 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
               alignItems: 'flex-start',
               marginBottom: '1rem'
             }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem'
-              }}>
-                <div style={{
-                  fontSize: '1.5rem'
-                }}>
-                  {post.avatar}
-                </div>
-                <div>
-                  <div style={{
-                    fontSize: '0.875rem',
-                    fontWeight: 'bold',
-                    color: '#ffffff'
-                  }}>
-                    {post.displayName}
-                  </div>
-                  <div style={{
-                    fontSize: '0.75rem',
-                    color: '#9ca3af'
-                  }}>
-                    {post.username}
-                  </div>
-                </div>
-              </div>
-
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -190,6 +200,13 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                   {post.sentiment}
                 </span>
               </div>
+
+              <span style={{
+                fontSize: '0.75rem',
+                color: '#9ca3af'
+              }}>
+                {formatTimeAgo(post.time || post.created_at || '')}
+              </span>
             </div>
 
             {/* Post content */}
@@ -211,20 +228,20 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
             {/* Post footer */}
             <div style={{
               display: 'flex',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-start',
               alignItems: 'center',
               fontSize: '0.75rem',
               color: '#9ca3af'
             }}>
               <div style={{
                 display: 'flex',
-                gap: '1rem'
+                gap: '1rem',
+                alignItems: 'center'
               }}>
-                <span>❤️ {post.likes}</span>
-                <span>🔄 {post.retweets}</span>
-                <span>💬 {post.replies}</span>
+                <span>❤️ {post.likes || post.upvotes || 0}</span>
+                <span>🔄 {post.retweets || 0}</span>
+                <span>💬 {post.replies || 0}</span>
               </div>
-              <span>{post.time}</span>
             </div>
           </div>
         ))}

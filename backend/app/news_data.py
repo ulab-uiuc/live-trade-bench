@@ -2,13 +2,13 @@
 News data provider using live_trade_bench fetchers
 """
 
+import json
 import os
 import sys
-import json
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Add live_trade_bench to path
 project_root = os.path.dirname(
@@ -104,26 +104,59 @@ TICKER_TO_COMPANY = {
     "SYY": "Sysco",
     "TGT": "Target",
     "USB": "U.S. Bancorp",
-    "ZTS": "Zoetis"
+    "ZTS": "Zoetis",
 }
+
 
 def _classify_impact(title: str, content: str) -> str:
     """Classify news impact based on keywords."""
     text = (title + " " + content).lower()
-    
+
     high_impact_keywords = [
-        "earnings", "revenue", "profit", "loss", "beat", "miss", "guidance",
-        "merger", "acquisition", "buyout", "bankruptcy", "lawsuit", "settlement",
-        "fda", "approval", "rejection", "clinical trial", "drug", "treatment",
-        "ceo", "cfo", "resignation", "appointment", "leadership change"
+        "earnings",
+        "revenue",
+        "profit",
+        "loss",
+        "beat",
+        "miss",
+        "guidance",
+        "merger",
+        "acquisition",
+        "buyout",
+        "bankruptcy",
+        "lawsuit",
+        "settlement",
+        "fda",
+        "approval",
+        "rejection",
+        "clinical trial",
+        "drug",
+        "treatment",
+        "ceo",
+        "cfo",
+        "resignation",
+        "appointment",
+        "leadership change",
     ]
-    
+
     medium_impact_keywords = [
-        "partnership", "collaboration", "contract", "deal", "agreement",
-        "expansion", "growth", "investment", "funding", "raise",
-        "product", "launch", "release", "update", "upgrade"
+        "partnership",
+        "collaboration",
+        "contract",
+        "deal",
+        "agreement",
+        "expansion",
+        "growth",
+        "investment",
+        "funding",
+        "raise",
+        "product",
+        "launch",
+        "release",
+        "update",
+        "upgrade",
     ]
-    
+
     if any(keyword in text for keyword in high_impact_keywords):
         return "high"
     elif any(keyword in text for keyword in medium_impact_keywords):
@@ -131,25 +164,60 @@ def _classify_impact(title: str, content: str) -> str:
     else:
         return "low"
 
+
 def _classify_sentiment(title: str, content: str) -> str:
     """Classify news sentiment based on keywords."""
     text = (title + " " + content).lower()
-    
+
     positive_keywords = [
-        "beat", "exceed", "strong", "growth", "profit", "gain", "rise", "up",
-        "positive", "optimistic", "bullish", "success", "win", "breakthrough",
-        "record", "high", "surge", "rally", "boom", "thrive"
+        "beat",
+        "exceed",
+        "strong",
+        "growth",
+        "profit",
+        "gain",
+        "rise",
+        "up",
+        "positive",
+        "optimistic",
+        "bullish",
+        "success",
+        "win",
+        "breakthrough",
+        "record",
+        "high",
+        "surge",
+        "rally",
+        "boom",
+        "thrive",
     ]
-    
+
     negative_keywords = [
-        "miss", "fall", "decline", "drop", "loss", "weak", "struggle", "down",
-        "negative", "pessimistic", "bearish", "fail", "crisis", "crash",
-        "low", "plunge", "slump", "recession", "bankruptcy", "layoff"
+        "miss",
+        "fall",
+        "decline",
+        "drop",
+        "loss",
+        "weak",
+        "struggle",
+        "down",
+        "negative",
+        "pessimistic",
+        "bearish",
+        "fail",
+        "crisis",
+        "crash",
+        "low",
+        "plunge",
+        "slump",
+        "recession",
+        "bankruptcy",
+        "layoff",
     ]
-    
+
     positive_count = sum(1 for keyword in positive_keywords if keyword in text)
     negative_count = sum(1 for keyword in negative_keywords if keyword in text)
-    
+
     if positive_count > negative_count:
         return "positive"
     elif negative_count > positive_count:
@@ -157,31 +225,216 @@ def _classify_sentiment(title: str, content: str) -> str:
     else:
         return "neutral"
 
+
 def fetch_trending_stocks() -> List[str]:
     """Fetch trending stock tickers."""
     try:
         from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
+
         stocks = fetch_trending_stocks()
         return stocks[:10]  # Limit to top 10
-    except Exception as e:
+    except Exception:
         # Fallback to popular stocks
-        return ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "AMD", "NFLX", "CRM"]
+        return [
+            "AAPL",
+            "MSFT",
+            "GOOGL",
+            "AMZN",
+            "TSLA",
+            "NVDA",
+            "META",
+            "AMD",
+            "NFLX",
+            "CRM",
+        ]
+
+
+def extract_keywords_from_question(question: str) -> str:
+    """Extract the most important key noun from polymarket question for better search."""
+    import re
+
+    # Remove common question words and stop words
+    stop_words = {
+        "will",
+        "be",
+        "in",
+        "on",
+        "at",
+        "to",
+        "for",
+        "of",
+        "with",
+        "by",
+        "from",
+        "up",
+        "about",
+        "into",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "between",
+        "among",
+        "the",
+        "a",
+        "an",
+        "and",
+        "or",
+        "but",
+        "if",
+        "then",
+        "because",
+        "as",
+        "until",
+        "while",
+        "of",
+        "to",
+        "for",
+        "with",
+        "on",
+        "at",
+        "by",
+        "from",
+        "up",
+        "about",
+        "into",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "between",
+        "among",
+        "is",
+        "are",
+        "was",
+        "were",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "having",
+        "do",
+        "does",
+        "did",
+        "doing",
+        "can",
+        "could",
+        "should",
+        "would",
+        "may",
+        "might",
+        "must",
+        "shall",
+        "will",
+        "this",
+        "that",
+        "these",
+        "those",
+        "i",
+        "you",
+        "he",
+        "she",
+        "it",
+        "we",
+        "they",
+        "me",
+        "him",
+        "her",
+        "us",
+        "them",
+        "my",
+        "your",
+        "his",
+        "her",
+        "its",
+        "our",
+        "their",
+        "mine",
+        "yours",
+        "hers",
+        "ours",
+        "theirs",
+        "win",
+        "reach",
+        "cut",
+        "replace",
+        "happen",
+        "occur",
+        "increase",
+        "decrease",
+        "rise",
+        "fall",
+        "drop",
+        "gain",
+        "lose",
+        "surpass",
+        "exceed",
+        "beat",
+        "defeat",
+        "election",
+        "price",
+        "rates",
+        "jobs",
+        "market",
+        "year",
+        "end",
+        "start",
+        "begin",
+        "finish",
+        "complete",
+        "achieve",
+        "accomplish",
+    }
+
+    # Clean the question
+    question = re.sub(r"[^\w\s]", " ", question.lower())
+    words = question.split()
+
+    # Filter out stop words and short words, prioritize longer words
+    keywords = [word for word in words if len(word) > 2 and word not in stop_words]
+
+    # Sort by length (longer words are usually more specific) and take the most important one
+    if keywords:
+        keywords.sort(key=len, reverse=True)
+        return keywords[0]  # Return only the most important key noun
+
+    return "polymarket"  # Fallback
+
 
 def fetch_trending_markets() -> List[str]:
-    """Fetch trending polymarket topics."""
+    """Fetch trending polymarket topics and extract keywords."""
     try:
         from live_trade_bench.fetchers.polymarket_fetcher import fetch_trending_markets
+
         markets = fetch_trending_markets()
-        return markets[:5]  # Limit to top 5
+        # Extract keywords from question text
+        topics = []
+        for market in markets[:5]:
+            if isinstance(market, dict) and "question" in market:
+                keywords = extract_keywords_from_question(market["question"])
+                if keywords:
+                    topics.append(keywords)
+            elif isinstance(market, str):
+                keywords = extract_keywords_from_question(market)
+                if keywords:
+                    topics.append(keywords)
+        return topics
     except Exception as e:
-        # Fallback topics
+        print(f"Error fetching trending markets: {e}")
+        # Fallback topics with keywords
         return [
-            "US Presidential Election 2024",
-            "Bitcoin Price",
-            "Federal Reserve Interest Rates",
-            "AI Development",
-            "Climate Change"
+            "presidential election 2024",
+            "bitcoin price",
+            "federal reserve rates",
+            "artificial intelligence",
+            "climate change",
         ]
+
 
 def fetch_stock_news(ticker: str) -> List[Dict[str, Any]]:
     """Fetch news for a specific stock ticker."""
@@ -192,26 +445,31 @@ def fetch_stock_news(ticker: str) -> List[Dict[str, Any]]:
         company_name = TICKER_TO_COMPANY.get(ticker.upper(), ticker)
         query = f"{ticker} stock OR {ticker} earnings OR {ticker} news"
         raw_news = news_fetcher.fetch(query, start_date, end_date, max_pages=1)
-        
+
         formatted_news = []
         for i, article in enumerate(raw_news):
             title = article.get("title", "Stock Market Update")
             content = article.get("snippet", "Market news update")
-            formatted_news.append({
-                "id": f"real_stock_{ticker}_{i}_{int(time.time())}",
-                "title": title,
-                "summary": content,
-                "source": article.get("source", "Financial News"),
-                "published_at": article.get("date", datetime.now().isoformat()),
-                "impact": _classify_impact(title, content),
-                "category": "stock",
-                "market_type": "stock",
-                "stock_symbol": ticker,
-                "url": article.get("link", f"https://finance.yahoo.com/quote/{ticker}"),
-            })
+            formatted_news.append(
+                {
+                    "id": f"real_stock_{ticker}_{i}_{int(time.time())}",
+                    "title": title,
+                    "summary": content,
+                    "source": article.get("source", "Financial News"),
+                    "published_at": article.get("date", datetime.now().isoformat()),
+                    "impact": _classify_impact(title, content),
+                    "category": "stock",
+                    "market_type": "stock",
+                    "stock_symbol": ticker,
+                    "url": article.get(
+                        "link", f"https://finance.yahoo.com/quote/{ticker}"
+                    ),
+                }
+            )
         return formatted_news
-    except Exception as e:
+    except Exception:
         return []
+
 
 def fetch_polymarket_news(topic: str) -> List[Dict[str, Any]]:
     """Fetch news for a specific polymarket topic."""
@@ -221,71 +479,73 @@ def fetch_polymarket_news(topic: str) -> List[Dict[str, Any]]:
         start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
         query = f"{topic} prediction market OR {topic} polymarket"
         raw_news = news_fetcher.fetch(query, start_date, end_date, max_pages=1)
-        
+
         formatted_news = []
         for i, article in enumerate(raw_news):
             title = article.get("title", "Market Prediction Update")
             content = article.get("snippet", "Prediction market news update")
-            formatted_news.append({
-                "id": f"real_polymarket_{topic.replace(' ', '_')}_{i}_{int(time.time())}",
-                "title": title,
-                "summary": content,
-                "source": article.get("source", "Prediction Market News"),
-                "published_at": article.get("date", datetime.now().isoformat()),
-                "impact": _classify_impact(title, content),
-                "category": "polymarket",
-                "market_type": "polymarket",
-                "topic": topic,
-                "url": article.get("link", "https://polymarket.com"),
-            })
+            formatted_news.append(
+                {
+                    "id": f"real_polymarket_{topic.replace(' ', '_')}_{i}_{int(time.time())}",
+                    "title": title,
+                    "summary": content,
+                    "source": article.get("source", "Prediction Market News"),
+                    "published_at": article.get("date", datetime.now().isoformat()),
+                    "impact": _classify_impact(title, content),
+                    "category": "polymarket",
+                    "market_type": "polymarket",
+                    "topic": topic,
+                    "url": article.get("link", "https://polymarket.com"),
+                }
+            )
         return formatted_news
-    except Exception as e:
+    except Exception:
         return []
+
 
 def update_news_data():
     """Update news data and save to JSON file."""
     try:
         # Fetch news data
         news_data = {"stock": [], "polymarket": []}
-        
+
         # Get trending stocks and markets
         stocks = fetch_trending_stocks()
         topics = fetch_trending_markets()
-        
+
         # Fetch stock news in parallel
         with ThreadPoolExecutor(max_workers=5) as executor:
             stock_futures = {
-                executor.submit(fetch_stock_news, ticker): ticker 
-                for ticker in stocks
+                executor.submit(fetch_stock_news, ticker): ticker for ticker in stocks
             }
-            
+
             for future in as_completed(stock_futures):
                 ticker = stock_futures[future]
                 try:
                     news_items = future.result()
                     news_data["stock"].extend(news_items)
-                except Exception as e:
+                except Exception:
                     pass
-        
+
         # Fetch polymarket news in parallel
         with ThreadPoolExecutor(max_workers=3) as executor:
             polymarket_futures = {
-                executor.submit(fetch_polymarket_news, topic): topic 
-                for topic in topics
+                executor.submit(fetch_polymarket_news, topic): topic for topic in topics
             }
-            
+
             for future in as_completed(polymarket_futures):
                 topic = polymarket_futures[future]
                 try:
                     news_items = future.result()
                     news_data["polymarket"].extend(news_items)
-                except Exception as e:
+                except Exception:
                     pass
-        
+
         # Save to JSON file
         with open("news_data.json", "w") as f:
             json.dump(news_data, f, indent=2)
-            
+
     except Exception:
         import traceback
+
         traceback.print_exc()
