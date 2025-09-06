@@ -199,7 +199,7 @@ function App() {
   const fetchSystemStatus = useCallback(async () => {
     try {
       console.log('🔄 Background fetching system status...');
-      const response = await fetch('/api/models/system-status');
+      const response = await fetch('/api/system/status');
       if (response.ok) {
         const status = await response.json();
         setSystemStatus(status);

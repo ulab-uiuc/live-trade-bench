@@ -4,20 +4,12 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List
 
-import pickle
-import os
-import threading
-import fasteners
-
 from ..accounts import PolymarketAccount, create_polymarket_account
 from ..fetchers.polymarket_fetcher import (
     fetch_current_market_price,
     fetch_trending_markets,
 )
 from .polymarket_agent import LLMPolyMarketAgent
-
-STATE_FILE = "polymarket_system_state.pkl"
-file_lock = fasteners.InterProcessLock(STATE_FILE + ".lock")
 
 class PolymarketPortfolioSystem:
     """Polymarket portfolio management system using AI agents."""

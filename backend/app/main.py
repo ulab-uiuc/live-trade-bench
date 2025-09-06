@@ -7,8 +7,11 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from typing import Any, Callable, Dict
 
-from app.routers import models, news, social, system_logs
+from app.routers import models, news, social, system
 from app.models_data import get_models_data
+from app.news_data import update_news_data
+from app.social_data import update_social_data
+from app.system_data import update_system_status
 
 # Removed complex trading system - now just simple data provider
 from fastapi import FastAPI, HTTPException, Request
@@ -77,7 +80,7 @@ app.add_middleware(
 app.include_router(models.router)
 app.include_router(news.router)
 app.include_router(social.router)
-app.include_router(system_logs.router)
+app.include_router(system.router)
 
 # Global background fetcher control
 _parallel_fetcher_running = False
@@ -254,15 +257,46 @@ def stop_background_trader():
 
 
 def run_background_updates():
-    """Periodically run the model data update cycle."""
+    """Periodically run all background data updates."""
     while True:
-        print("--- [BACKGROUND] Triggering model data update cycle ---")
+        # Update models data every minute
+        print("--- [BACKGROUND] Triggering model data update ---")
         try:
             get_models_data()
-            print("--- [BACKGROUND] Model data update cycle finished ---")
+            print("--- [BACKGROUND] Model data update finished ---")
         except Exception:
-            print(f"--- [BACKGROUND] Error in update cycle: ---")
+            print("--- [BACKGROUND] Error in model update ---")
             traceback.print_exc()
+        
+        # Update system status every minute
+        print("--- [BACKGROUND] Triggering system status update ---")
+        try:
+            update_system_status()
+            print("--- [BACKGROUND] System status update finished ---")
+        except Exception:
+            print("--- [BACKGROUND] Error in system status update ---")
+            traceback.print_exc()
+        
+        # Update news and social data every 10 minutes (check cycle count)
+        cycle_count = getattr(run_background_updates, 'cycle_count', 0)
+        if cycle_count % 10 == 0:  # Every 10th cycle (10 minutes)
+            print("--- [BACKGROUND] Triggering news data update ---")
+            try:
+                update_news_data()
+                print("--- [BACKGROUND] News data update finished ---")
+            except Exception:
+                print("--- [BACKGROUND] Error in news update ---")
+                traceback.print_exc()
+            
+            print("--- [BACKGROUND] Triggering social data update ---")
+            try:
+                update_social_data()
+                print("--- [BACKGROUND] Social data update finished ---")
+            except Exception:
+                print("--- [BACKGROUND] Error in social update ---")
+                traceback.print_exc()
+        
+        run_background_updates.cycle_count = cycle_count + 1
         time.sleep(60) # Wait for 60 seconds
 
 
@@ -295,11 +329,9 @@ async def api_root() -> Dict[str, Any]:
         "version": "1.0.0",
         "endpoints": {
             "models": "/api/models",
-            "trades": "/api/trades",
             "news": "/api/news",
             "social": "/api/social",
-            "system-log": "/api/system-log",
-            "polymarket": "/api/polymarket",
+            "system": "/api/system",
             "docs": "/docs",
             "redoc": "/redoc",
         },

@@ -11,7 +11,7 @@ const SystemMonitoring: React.FC = () => {
   // 极简的状态更新
   const updateStatus = useCallback(async () => {
     try {
-      const response = await fetch('/api/models/system-status');
+      const response = await fetch('/api/system/status');
       if (response.ok) {
         const data = await response.json();
         const uptimeMinutes = Math.floor(Math.random() * 300) + 120; // 2-7小时
