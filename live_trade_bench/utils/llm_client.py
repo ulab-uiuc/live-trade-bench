@@ -2,6 +2,7 @@
 LLM utilities for trading decisions using litellm
 """
 
+import asyncio
 import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
@@ -238,17 +239,28 @@ async def acall_llm(
         if timeout is not None:
             completion_params["timeout"] = timeout
 
-        if "gpt-5" in normalized_model.lower():
-            completion_params.update({"max_tokens": 200})
-        else:
+        if "gpt-5" not in normalized_model.lower():
             completion_params.update({"temperature": 0.3, "max_tokens": 200})
 
-        response = await litellm.acompletion(**completion_params)
+        # Use asyncio.wait_for for proper timeout handling
+        if timeout is not None:
+            response = await asyncio.wait_for(
+                litellm.acompletion(**completion_params), timeout=timeout
+            )
+        else:
+            response = await litellm.acompletion(**completion_params)
+
         content = response.choices[0].message.content
         return {"success": True, "content": content, "error": None}
 
     except ImportError:
         return {"success": False, "content": "", "error": "litellm not installed"}
+    except asyncio.TimeoutError:
+        return {
+            "success": False,
+            "content": "",
+            "error": f"Request timed out after {timeout}s",
+        }
     except Exception as e:
         print(f"⚠️ {agent_name}: LLM error: {e}")
         return {"success": False, "content": "", "error": str(e)}
