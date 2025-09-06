@@ -15,9 +15,13 @@ def _get_stock_system():
     if not stock_system.agents:
         # Add real LLM agents
         models = [
-            ("GPT-4o", "gpt-4o", 1000),
-            ("GPT-4 Turbo", "gpt-4-turbo", 1000),
-            ("GPT-4o Mini", "gpt-4o-mini", 1000),
+            ("GPT-4o", "gpt-4o", 500),
+            ("Claude 3.5 Sonnet", "claude-3-5-sonnet-20241022", 500),
+            ("GPT-4 Turbo", "gpt-4-turbo", 500),
+            ("GPT-4o Mini", "gpt-4o-mini", 500),
+            ("Claude 3 Haiku", "claude-3-haiku-20240307", 500),
+            ("Gemini Pro", "gemini-pro", 500),
+            ("Llama 3.1", "llama-3.1-70b-versatile", 500),
         ]
 
         for name, model_name, initial_cash in models:
@@ -35,8 +39,13 @@ def _get_polymarket_system():
         # Add real LLM agents
         models = [
             ("GPT-4o", "gpt-4o", 500),
+            ("Claude 3.5 Sonnet", "claude-3-5-sonnet-20241022", 500),
             ("GPT-4 Turbo", "gpt-4-turbo", 500),
             ("GPT-4o Mini", "gpt-4o-mini", 500),
+            ("Claude 3 Haiku", "claude-3-haiku-20240307", 500),
+            ("Gemini Pro", "gemini-pro", 500),
+            ("Llama 3.1", "llama-3.1-70b-versatile", 500),
+            ("Qwen/Qwen2.5-Instruct-Turbo", "qwen/qwen2.5-7b-instruct-turbo", 500),
         ]
 
         for name, model_name, initial_cash in models:
