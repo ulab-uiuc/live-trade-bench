@@ -167,20 +167,55 @@ def fetch_trending_stocks() -> List[str]:
         # Fallback to popular stocks
         return ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "AMD", "NFLX", "CRM"]
 
+def extract_keywords_from_question(question: str) -> str:
+    """Extract the most important key noun from polymarket question for better search."""
+    import re
+    
+    # Remove common question words and stop words
+    stop_words = {
+        'will', 'be', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'among', 'the', 'a', 'an', 'and', 'or', 'but', 'if', 'then', 'because', 'as', 'until', 'while', 'of', 'to', 'for', 'with', 'on', 'at', 'by', 'from', 'up', 'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'among', 'is', 'are', 'was', 'were', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'can', 'could', 'should', 'would', 'may', 'might', 'must', 'shall', 'will', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'mine', 'yours', 'hers', 'ours', 'theirs', 'win', 'reach', 'cut', 'replace', 'happen', 'occur', 'increase', 'decrease', 'rise', 'fall', 'drop', 'gain', 'lose', 'surpass', 'exceed', 'beat', 'defeat', 'election', 'price', 'rates', 'jobs', 'market', 'year', 'end', 'start', 'begin', 'finish', 'complete', 'achieve', 'accomplish'
+    }
+    
+    # Clean the question
+    question = re.sub(r'[^\w\s]', ' ', question.lower())
+    words = question.split()
+    
+    # Filter out stop words and short words, prioritize longer words
+    keywords = [word for word in words if len(word) > 2 and word not in stop_words]
+    
+    # Sort by length (longer words are usually more specific) and take the most important one
+    if keywords:
+        keywords.sort(key=len, reverse=True)
+        return keywords[0]  # Return only the most important key noun
+    
+    return "polymarket"  # Fallback
+
 def fetch_trending_markets() -> List[str]:
-    """Fetch trending polymarket topics."""
+    """Fetch trending polymarket topics and extract keywords."""
     try:
         from live_trade_bench.fetchers.polymarket_fetcher import fetch_trending_markets
         markets = fetch_trending_markets()
-        return markets[:5]  # Limit to top 5
+        # Extract keywords from question text
+        topics = []
+        for market in markets[:5]:
+            if isinstance(market, dict) and 'question' in market:
+                keywords = extract_keywords_from_question(market['question'])
+                if keywords:
+                    topics.append(keywords)
+            elif isinstance(market, str):
+                keywords = extract_keywords_from_question(market)
+                if keywords:
+                    topics.append(keywords)
+        return topics
     except Exception as e:
-        # Fallback topics
+        print(f"Error fetching trending markets: {e}")
+        # Fallback topics with keywords
         return [
-            "US Presidential Election 2024",
-            "Bitcoin Price",
-            "Federal Reserve Interest Rates",
-            "AI Development",
-            "Climate Change"
+            "presidential election 2024",
+            "bitcoin price",
+            "federal reserve rates",
+            "artificial intelligence",
+            "climate change"
         ]
 
 def fetch_stock_news(ticker: str) -> List[Dict[str, Any]]:

@@ -113,12 +113,16 @@ function App() {
         username: `u/${post.author}`,
         displayName: `u/${post.author}`,
         content: post.content || post.title || 'Stock discussion',
-        time: '2 hours ago',
+        time: post.created_at,
         likes: post.upvotes || Math.floor(Math.random() * 300),
         retweets: post.num_comments || Math.floor(Math.random() * 100),
         replies: Math.floor(Math.random() * 50),
         sentiment: post.sentiment || 'neutral',
-        avatar: '📈'
+        avatar: '📈',
+        url: post.url,
+        author: post.author,
+        created_at: post.created_at,
+        stock_symbols: post.stock_symbols
       }));
 
       const transformPolymarketPosts = polymarketPosts.map((post: any, index: number) => ({
@@ -127,12 +131,16 @@ function App() {
         username: `u/${post.author}`,
         displayName: `u/${post.author}`,
         content: post.content || post.title || 'Political/prediction discussion',
-        time: '2 hours ago',
+        time: post.created_at || '2 hours ago',
         likes: post.upvotes || Math.floor(Math.random() * 300),
         retweets: post.num_comments || Math.floor(Math.random() * 100),
         replies: Math.floor(Math.random() * 50),
         sentiment: post.sentiment || 'neutral',
-        avatar: '🎯'
+        avatar: '🎯',
+        url: post.url,
+        author: post.author,
+        created_at: post.created_at,
+        stock_symbols: post.stock_symbols
       }));
 
       setSocialData({

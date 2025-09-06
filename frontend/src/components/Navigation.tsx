@@ -31,7 +31,29 @@ const Navigation: React.FC = () => {
             }}></div>
             LIVE
           </div>
-          <span>Trading Benchmark</span>
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#ffffff',
+              fontSize: '1.25rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              padding: '0.5rem',
+              borderRadius: '0.375rem',
+              transition: 'all 0.2s ease',
+              textAlign: 'left'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            Trading Benchmark
+          </button>
         </div>
         <div className="nav-links">
           <button

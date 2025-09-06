@@ -44,13 +44,6 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
     return colorPalette[Math.abs(hash) % colorPalette.length];
   };
 
-  const formatTimeAgo = (publishedAt: string) => {
-    const diff = new Date().getTime() - new Date(publishedAt).getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 1) return 'Just now';
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
-  };
 
   const newsItems = activeCategory === 'stock' ? newsData.stock : newsData.polymarket;
 
@@ -65,7 +58,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
   return (
     <div className="news-container">
       <div className="news-header">
-        <h1>📰 Market News</h1>
+        <h1>Market News</h1>
         <div className="news-controls">
           <div className="news-category-tabs">
             {(['stock', 'polymarket'] as const).map((market) => (
@@ -120,6 +113,27 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
               color: 'inherit',
               display: 'block'
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#3b82f6';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#374151';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+            onClick={(e) => {
+              // 添加点击效果
+              e.currentTarget.style.transform = 'translateY(-1px) scale(0.98)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.25)';
+              
+              // 短暂延迟后恢复悬停状态
+              setTimeout(() => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)';
+              }, 150);
+            }}
           >
             {/* News header */}
             <div style={{
@@ -164,7 +178,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
                 fontSize: '0.75rem',
                 color: '#9ca3af'
               }}>
-                {formatTimeAgo(news.published_at)}
+                {news.published_at}
               </span>
             </div>
 
