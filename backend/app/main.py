@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import threading
@@ -203,32 +204,41 @@ _trading_cycle_running = False
 _trading_cycle_thread = None
 
 
-def _background_trading_cycle_runner():
-    """Background thread that periodically runs the trading cycle."""
-    global _trading_cycle_running
-    print("🚀 Background trading cycle runner started")
+def run_background_trading_cycle():
+    """Run the background trading cycle in a separate thread"""
 
-    while _trading_cycle_running:
-        try:
-            print("AUTOMATION: 🤖 Triggering 15-minute automatic trading cycle...")
-            from app.models_data import trigger_cycle
+    async def _background_cycle():
+        global _trading_cycle_running
 
-            trigger_cycle()
-            print("AUTOMATION: ✅ Trading cycle finished. Waiting for 15 minutes.")
+        while _trading_cycle_running:
+            try:
+                print("AUTOMATION: 🤖 Triggering 15-minute automatic trading cycle...")
+                from app.models_data import trigger_cycle
 
-            # Wait for 15 minutes, but check for shutdown every second
-            for _ in range(15 * 60):
-                if not _trading_cycle_running:
-                    break
-                time.sleep(1)
+                await trigger_cycle()
+                print("AUTOMATION: ✅ Trading cycle finished. Waiting for 15 minutes.")
 
-        except Exception as e:
-            print(f"AUTOMATION: ❌ Error in background trading cycle: {e}")
-            import traceback
+                # Wait for 15 minutes, but check for shutdown every second
+                for _ in range(15 * 60):
+                    if not _trading_cycle_running:
+                        break
+                    await asyncio.sleep(1)
 
-            traceback.print_exc()
-            # Wait 5 minutes on error before retrying
-            time.sleep(5 * 60)
+            except Exception as e:
+                print(f"AUTOMATION: ❌ Error in background trading cycle: {e}")
+                import traceback
+
+                traceback.print_exc()
+                # Wait 5 minutes on error before retrying
+                for _ in range(5 * 60):
+                    if not _trading_cycle_running:
+                        break
+                    await asyncio.sleep(1)
+
+        print("AUTOMATION: ⏹️ Background trading cycle stopped")
+
+    # Run the async function in a new event loop
+    asyncio.run(_background_cycle())
 
 
 def start_background_trader():
@@ -238,7 +248,7 @@ def start_background_trader():
         return
     _trading_cycle_running = True
     _trading_cycle_thread = threading.Thread(
-        target=_background_trading_cycle_runner, daemon=True
+        target=run_background_trading_cycle, daemon=True
     )
     _trading_cycle_thread.start()
 

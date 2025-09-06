@@ -2,28 +2,11 @@
 Real model data provider using live_trade_bench
 """
 
-import os
-import random
-import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-# Add live_trade_bench to path
-project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-sys.path.insert(0, project_root)
-
-from live_trade_bench import (
-    create_polymarket_portfolio_system,
-    create_stock_portfolio_system,
-)
 from live_trade_bench.agents.polymarket_system import PolymarketPortfolioSystem
 from live_trade_bench.agents.stock_system import StockPortfolioSystem
-
-# Global instances - lazy loaded
-_stock_system = None
-_polymarket_system = None
 
 
 def _get_stock_system():
@@ -32,13 +15,13 @@ def _get_stock_system():
     if not stock_system.agents:
         # Add real LLM agents
         models = [
-            ("GPT-4o", "gpt-4o", 1000),
-            ("Claude 3.5 Sonnet", "claude-3-5-sonnet-20241022", 1000),
-            ("GPT-4 Turbo", "gpt-4-turbo", 1000),
-            ("GPT-4o Mini", "gpt-4o-mini", 1000),
-            ("Claude 3 Haiku", "claude-3-haiku-20240307", 1000),
-            ("Gemini Pro", "gemini-pro", 1000),
-            ("Llama 3.1", "llama-3.1-70b-versatile", 1000),
+            ("GPT-4o", "gpt-4o", 500),
+            ("Claude 3.5 Sonnet", "claude-3-5-sonnet-20241022", 500),
+            ("GPT-4 Turbo", "gpt-4-turbo", 500),
+            ("GPT-4o Mini", "gpt-4o-mini", 500),
+            ("Claude 3 Haiku", "claude-3-haiku-20240307", 500),
+            ("Gemini Pro", "gemini-pro", 500),
+            ("Llama 3.1", "llama-3.1-70b-versatile", 500),
         ]
 
         for name, model_name, initial_cash in models:
@@ -62,6 +45,7 @@ def _get_polymarket_system():
             ("Claude 3 Haiku", "claude-3-haiku-20240307", 500),
             ("Gemini Pro", "gemini-pro", 500),
             ("Llama 3.1", "llama-3.1-70b-versatile", 500),
+            ("Qwen/Qwen2.5-Instruct-Turbo", "qwen/qwen2.5-7b-instruct-turbo", 500),
         ]
 
         for name, model_name, initial_cash in models:
@@ -72,33 +56,77 @@ def _get_polymarket_system():
     return polymarket_system
 
 
-def _generate_mock_allocation(universe: List[str]) -> Dict[str, float]:
-    """Generates a random portfolio allocation for mocking purposes."""
-    # Ensure we have a universe to select from, excluding CASH
-    non_cash_universe = [asset for asset in universe if asset != "CASH"]
-    if not non_cash_universe:
+def _get_real_market_data_for_system(system) -> Dict[str, Dict[str, Any]]:
+    """Get real market data for the system's universe."""
+    market_data = {}
+
+    if hasattr(system, "universe") and system.universe:
+        # For stock system
+        if hasattr(system, "stock_info"):
+            from live_trade_bench.fetchers.stock_fetcher import (
+                fetch_current_stock_price,
+            )
+
+            for ticker in system.universe:
+                try:
+                    price = fetch_current_stock_price(ticker)
+                    if price:
+                        market_data[ticker] = {
+                            "ticker": ticker,
+                            "name": system.stock_info[ticker]["name"],
+                            "sector": system.stock_info[ticker]["sector"],
+                            "current_price": price,
+                            "market_cap": system.stock_info[ticker]["market_cap"],
+                        }
+                except Exception as e:
+                    print(f"⚠️ Failed to fetch data for {ticker}: {e}")
+
+        # For polymarket system
+        else:
+            from live_trade_bench.fetchers.polymarket_fetcher import (
+                fetch_current_market_price,
+            )
+
+            for market_id in system.universe:
+                try:
+                    market_info = fetch_current_market_price(market_id)
+                    if market_info:
+                        market_data[market_id] = market_info
+                except Exception as e:
+                    print(f"⚠️ Failed to fetch data for {market_id}: {e}")
+
+    return market_data
+
+
+async def _generate_real_allocation(agent, system) -> Dict[str, float]:
+    """Generate real portfolio allocation using LLM agent."""
+    try:
+        # Get real market data for the system
+        market_data = _get_real_market_data_for_system(system)
+
+        if not market_data:
+            print(f"⚠️ No market data available for {agent.name}, using fallback")
+            return {"CASH": 1.0}
+
+        # Use the agent's real LLM to generate allocation
+        allocation = await agent.generate_portfolio_allocation(
+            market_data, agent.account
+        )
+
+        if allocation:
+            print(f"✅ Generated real allocation for {agent.name}: {allocation}")
+            return allocation
+        else:
+            print(f"⚠️ No allocation generated for {agent.name}, using fallback")
+            return {"CASH": 1.0}
+
+    except Exception as e:
+        print(f"❌ Error generating real allocation for {agent.name}: {e}")
+        # Fallback to safe allocation
         return {"CASH": 1.0}
 
-    # Pick 1 to 4 assets from the universe to allocate (plus CASH)
-    num_assets = random.randint(1, min(4, len(non_cash_universe)))
-    selected_assets = random.sample(non_cash_universe, num_assets)
 
-    # Always include CASH
-    selected_assets.append("CASH")
-
-    # Generate random weights
-    weights = [random.random() for _ in selected_assets]
-    total_weight = sum(weights)
-
-    # Normalize weights to sum to 1.0
-    allocation = {
-        asset: weight / total_weight for asset, weight in zip(selected_assets, weights)
-    }
-
-    return allocation
-
-
-def get_models_data() -> List[Dict[str, Any]]:
+async def get_models_data() -> List[Dict[str, Any]]:
     """
     Get comprehensive model data including performance, allocation, and chart data,
     all generated from a single, consistent state.
@@ -118,17 +146,27 @@ def get_models_data() -> List[Dict[str, Any]]:
         },
     }
 
+    # 收集所有需要并发处理的 agent 任务
+    all_agent_tasks = []
     for category, config in systems.items():
         system = config["system"]
-        initial_cash = config["initial_cash"]
-
         for agent_name, agent in system.agents.items():
+            all_agent_tasks.append((agent_name, agent, category, config))
+
+    # 🚀 并发处理所有 agent！
+    async def process_single_agent(
+        agent_name: str, agent, category: str, config: Dict
+    ) -> Dict[str, Any]:
+        """处理单个 agent，返回模型数据"""
+        try:
+            system = config["system"]
+            initial_cash = config["initial_cash"]
             account = agent.account
             model_id = f"{agent_name.lower().replace(' ', '-')}_{category}"
 
-            # 1. Simulate portfolio change
-            mock_allocation = _generate_mock_allocation(system.universe)
-            account._simulate_rebalance_to_target(mock_allocation)
+            # 1. Generate real portfolio allocation using LLM agent (并发!)
+            real_allocation = await _generate_real_allocation(agent, system)
+            account._simulate_rebalance_to_target(real_allocation)
             account._record_allocation_snapshot()
 
             # 2. Get performance metrics from the new state
@@ -156,7 +194,7 @@ def get_models_data() -> List[Dict[str, Any]]:
                 "unrealized_pnl": round(profit_amount, 2),
             }
 
-            # 4. Generate profit history directly from allocation history for a consistent mock
+            # 4. Generate profit history
             profit_history = []
             if account.allocation_history:
                 for snapshot in account.allocation_history:
@@ -169,7 +207,7 @@ def get_models_data() -> List[Dict[str, Any]]:
                             "totalValue": round(value, 2),
                         }
                     )
-            else:  # Fallback for the very first data point
+            else:
                 profit_history.append(
                     {
                         "timestamp": datetime.now().isoformat(),
@@ -178,37 +216,61 @@ def get_models_data() -> List[Dict[str, Any]]:
                     }
                 )
 
-            # 5. Get chart data (for modal)
+            # 5. Get chart data
             chart_data = {
                 "holdings": portfolio_details["holdings"],
                 "profit_history": profit_history,
                 "total_value": total_value,
             }
 
-            # 6. Get allocation history (for modal)
+            # 6. Get allocation history
             allocation_history = account.allocation_history
 
             # 7. Assemble the comprehensive model object
-            models.append(
-                {
-                    # Dashboard card data
-                    "id": model_id,
-                    "name": agent_name,
-                    "category": category,
-                    "performance": round(return_pct, 2),
-                    "profit": round(profit_amount, 2),
-                    "trades": len(account.transactions),
-                    "status": "active",
-                    "asset_allocation": portfolio_breakdown.get(
-                        "current_allocations", {}
-                    ),
-                    # Detailed modal data, nested
-                    "portfolio": portfolio_details,
-                    "chartData": chart_data,
-                    "allocationHistory": allocation_history,
-                    "last_updated": "2024-01-01T00:00:00Z",
-                }
-            )
+            return {
+                "id": model_id,
+                "name": agent_name,
+                "category": category,
+                "performance": round(return_pct, 2),
+                "profit": round(profit_amount, 2),
+                "trades": len(account.transactions),
+                "status": "active",
+                "asset_allocation": portfolio_breakdown.get("current_allocations", {}),
+                "portfolio": portfolio_details,
+                "chartData": chart_data,
+                "allocationHistory": allocation_history,
+                "last_updated": "2024-01-01T00:00:00Z",
+            }
+        except Exception as e:
+            print(f"❌ Error processing agent {agent_name}: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return None
+
+    # 执行所有 agent 的并发处理
+    print(f"🚀 Processing {len(all_agent_tasks)} agents concurrently...")
+
+    # 创建任务列表
+    tasks = [
+        process_single_agent(agent_name, agent, category, config)
+        for agent_name, agent, category, config in all_agent_tasks
+    ]
+
+    # 并发执行所有任务
+    import asyncio
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # 处理结果
+    for result in results:
+        if isinstance(result, Exception):
+            print(f"❌ Agent processing exception: {result}")
+            continue
+        if result is not None:
+            models.append(result)
+
+    print(f"✅ Processed {len(models)} agents successfully")
 
     return models
 
@@ -254,7 +316,7 @@ def get_allocation_history(model_id: str) -> Optional[List[Dict[str, Any]]]:
         return None
 
 
-def trigger_cycle() -> Dict[str, Any]:
+async def trigger_cycle() -> Dict[str, Any]:
     """Run one trading cycle using real live_trade_bench systems"""
     try:
         stock_system = _get_stock_system()
@@ -264,11 +326,11 @@ def trigger_cycle() -> Dict[str, Any]:
 
         # Run stock system cycle
         print("  📈 Running stock portfolio cycle...")
-        stock_result = stock_system.run_cycle()
+        stock_result = await stock_system.run_cycle()
 
         # Run polymarket system cycle
         print("  🎯 Running polymarket portfolio cycle...")
-        poly_result = polymarket_system.run_cycle()
+        poly_result = await polymarket_system.run_cycle()
 
         # Check results
         success = stock_result.get("success", True) and poly_result.get("success", True)
