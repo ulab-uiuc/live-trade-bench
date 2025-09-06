@@ -14,10 +14,6 @@ project_root = os.path.dirname(
 )
 sys.path.insert(0, project_root)
 
-from live_trade_bench import (
-    create_polymarket_portfolio_system,
-    create_stock_portfolio_system,
-)
 from live_trade_bench.agents.polymarket_system import PolymarketPortfolioSystem
 from live_trade_bench.agents.stock_system import StockPortfolioSystem
 
@@ -213,6 +209,7 @@ def get_models_data() -> List[Dict[str, Any]]:
     # Save to JSON file
     print(f"Saving {len(models)} models to JSON file...")
     import json
+
     with open("models_data.json", "w") as f:
         json.dump(models, f, indent=2)
     print("Models saved successfully!")

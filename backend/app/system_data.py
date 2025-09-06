@@ -2,10 +2,11 @@
 System status data provider
 """
 
-import os
 import json
+import os
 from datetime import datetime
 from typing import Any, Dict
+
 
 def get_system_status() -> Dict[str, Any]:
     """Get system status from JSON file or generate default status."""
@@ -19,6 +20,7 @@ def get_system_status() -> Dict[str, Any]:
     except Exception:
         return generate_system_status()
 
+
 def generate_system_status() -> Dict[str, Any]:
     """Generate system status data."""
     try:
@@ -26,14 +28,16 @@ def generate_system_status() -> Dict[str, Any]:
         model_count = 0
         stock_agents = 0
         polymarket_agents = 0
-        
+
         if os.path.exists("models_data.json"):
             with open("models_data.json", "r") as f:
                 models = json.load(f)
                 model_count = len(models)
                 stock_agents = len([m for m in models if m.get("category") == "stock"])
-                polymarket_agents = len([m for m in models if m.get("category") == "polymarket"])
-        
+                polymarket_agents = len(
+                    [m for m in models if m.get("category") == "polymarket"]
+                )
+
         status = {
             "running": True,
             "total_agents": model_count,
@@ -41,15 +45,15 @@ def generate_system_status() -> Dict[str, Any]:
             "polymarket_agents": polymarket_agents,
             "last_updated": datetime.now().isoformat(),
             "uptime": "Active",
-            "version": "1.0.0"
+            "version": "1.0.0",
         }
-        
+
         # Save to JSON file
         with open("system_data.json", "w") as f:
             json.dump(status, f, indent=2)
-        
+
         return status
-        
+
     except Exception:
         # Fallback status
         return {
@@ -59,8 +63,9 @@ def generate_system_status() -> Dict[str, Any]:
             "polymarket_agents": 0,
             "last_updated": datetime.now().isoformat(),
             "uptime": "Active",
-            "version": "1.0.0"
+            "version": "1.0.0",
         }
+
 
 def update_system_status():
     """Update system status and save to JSON file."""

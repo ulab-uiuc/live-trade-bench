@@ -5,7 +5,7 @@
 // Base color palette for different asset types
 const STOCK_COLORS = [
   '#3b82f6', // Blue
-  '#ef4444', // Red  
+  '#ef4444', // Red
   '#10b981', // Green
   '#f59e0b', // Amber
   '#8b5cf6', // Purple
@@ -70,7 +70,7 @@ export function getAssetColor(ticker: string, category: 'stock' | 'polymarket'):
 
   // Select color palette based on category
   const colors = category === 'stock' ? STOCK_COLORS : POLYMARKET_COLORS;
-  
+
   // Return consistent color based on hash
   return colors[hash % colors.length];
 }
@@ -93,14 +93,14 @@ export function getCashColor(): string {
  * Generate a color map for multiple assets
  */
 export function generateColorMap(
-  assets: string[], 
+  assets: string[],
   category: 'stock' | 'polymarket'
 ): Record<string, string> {
   const colorMap: Record<string, string> = {};
-  
+
   assets.forEach(asset => {
     colorMap[asset] = getAssetColor(asset, category);
   });
-  
+
   return colorMap;
 }

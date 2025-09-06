@@ -24,7 +24,7 @@ interface NewsProps {
 
 const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
   const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket'>('stock');
-  
+
   const getImpactColor = (impact: string) => {
     switch (impact) {
       case 'high': return '#ef4444';
@@ -127,7 +127,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
               // 添加点击效果
               e.currentTarget.style.transform = 'translateY(-1px) scale(0.98)';
               e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.25)';
-              
+
               // 短暂延迟后恢复悬停状态
               setTimeout(() => {
                 e.currentTarget.style.transform = 'translateY(-2px)';

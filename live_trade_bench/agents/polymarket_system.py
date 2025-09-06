@@ -11,6 +11,7 @@ from ..fetchers.polymarket_fetcher import (
 )
 from .polymarket_agent import LLMPolyMarketAgent
 
+
 class PolymarketPortfolioSystem:
     """Polymarket portfolio management system using AI agents."""
 

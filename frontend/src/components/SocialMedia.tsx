@@ -64,10 +64,10 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
       if (isNaN(time.getTime())) {
         return 'Unknown time';
       }
-      
+
       const diff = new Date().getTime() - time.getTime();
       const hours = Math.floor(diff / (1000 * 60 * 60));
-      
+
       if (hours < 1) return 'Just now';
       if (hours < 24) return `${hours}h ago`;
       return `${Math.floor(hours / 24)}d ago`;
@@ -119,7 +119,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
           </div>
         </div>
       </div>
-      
+
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
