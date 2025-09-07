@@ -2,20 +2,22 @@ import asyncio
 import logging
 import os
 import threading
-import time
 import traceback
-from concurrent.futures import ThreadPoolExecutor
-from contextlib import asynccontextmanager
-from typing import Any, Callable, Dict
+from datetime import datetime, timedelta
 
-from app.models_data import get_models_data
+# 使用统一配置管理
+from app.config import (
+    ALLOWED_ORIGINS,
+    FRONTEND_BUILD,
+    TRADING_CONFIG,
+    UPDATE_FREQUENCY,
+    get_base_model_configs,
+)
 from app.news_data import update_news_data
 from app.routers import models, news, social, system
 from app.social_data import update_social_data
 from app.system_data import update_system_status
-
-# Removed complex trading system - now just simple data provider
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -30,39 +32,8 @@ app = FastAPI(
     version="1.0.0",
 )
 
-
-# Add request logging middleware
-@app.middleware("http")
-async def log_requests(request: Request, call_next: Callable[[Request], Any]) -> Any:
-    start_time = time.time()
-
-    # Log incoming request
-    logger.info(f"→ {request.method} {request.url.path}")
-
-    response = await call_next(request)
-
-    # Calculate processing time
-    process_time = time.time() - start_time
-
-    # Log response with status code and time
-    status_emoji = (
-        "✅"
-        if response.status_code == 200
-        else "❌"
-        if response.status_code >= 400
-        else "⚠️"
-    )
-    logger.info(
-        f"{status_emoji} {response.status_code} {request.method} {request.url.path} - {process_time:.3f}s"
-    )
-
-    return response
-
-
-allowed_origins = [
-    "http://localhost:3000",  # React dev server
-    "https://localhost:3000",  # React dev server with HTTPS
-]
+# CORS configuration using centralized config
+allowed_origins = list(ALLOWED_ORIGINS)  # 从配置文件获取
 
 # Add production frontend URL from environment variable
 frontend_url = os.environ.get("FRONTEND_URL")
@@ -83,334 +54,275 @@ app.include_router(news.router)
 app.include_router(social.router)
 app.include_router(system.router)
 
-# Global background fetcher control
-_parallel_fetcher_running = False
-_parallel_fetcher_thread = None
+# ============================================================================
+# SIMPLE STARTUP BACKTEST - Use existing live_trade_bench interface
+# ============================================================================
 
 
-def _parallel_background_fetcher():
-    """Background thread that fetches news and social media data in parallel"""
-    global _parallel_fetcher_running
+async def run_startup_backtest():
+    """Run backtest for past week on startup using existing system."""
+    try:
+        print("🔄 Running startup backtest...")
 
-    while _parallel_fetcher_running:
-        try:
-            print("🔄 Starting parallel background data fetch...")
-            start_time = time.time()
+        # Import here to avoid circular imports
+        from live_trade_bench.backtesting import run_backtest
 
-            # Use a simpler approach - trigger the endpoints that will do parallel fetching
-            import requests
+        # Use SINGLE source of truth for model configurations
+        # Calculate past week dates
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=TRADING_CONFIG["backtest_days"])
 
-            # Use ThreadPoolExecutor for parallel endpoint calls
-            with ThreadPoolExecutor(max_workers=4) as executor:
-                # Submit all fetch tasks in parallel via HTTP calls
-                futures = [
-                    executor.submit(
-                        lambda: requests.get(
-                            "http://localhost:5001/api/news/stock?limit=15", timeout=60
-                        )
-                    ),
-                    executor.submit(
-                        lambda: requests.get(
-                            "http://localhost:5001/api/news/polymarket?limit=15",
-                            timeout=60,
-                        )
-                    ),
-                    executor.submit(
-                        lambda: requests.get(
-                            "http://localhost:5001/api/social/stock?limit=15",
-                            timeout=60,
-                        )
-                    ),
-                    executor.submit(
-                        lambda: requests.get(
-                            "http://localhost:5001/api/social/polymarket?limit=15",
-                            timeout=60,
-                        )
-                    ),
-                ]
+        # 使用统一配置源
+        base_models = get_base_model_configs()
 
-                # Wait for all tasks to complete
-                results = []
-                for i, future in enumerate(futures):
-                    try:
-                        response = future.result(
-                            timeout=70
-                        )  # 70 second timeout per task
-                        if response.status_code == 200:
-                            data = response.json()
-                            results.append(data)
-                            task_names = [
-                                "Stock News",
-                                "Polymarket News",
-                                "Stock Social",
-                                "Polymarket Social",
-                            ]
-                            print(f"   ✅ {task_names[i]}: {len(data)} items")
-                        else:
-                            task_names = [
-                                "Stock News",
-                                "Polymarket News",
-                                "Stock Social",
-                                "Polymarket Social",
-                            ]
-                            print(
-                                f"   ❌ {task_names[i]} failed: HTTP {response.status_code}"
-                            )
-                            results.append([])
-                    except Exception as e:
-                        task_names = [
-                            "Stock News",
-                            "Polymarket News",
-                            "Stock Social",
-                            "Polymarket Social",
-                        ]
-                        print(f"   ❌ {task_names[i]} failed: {e}")
-                        results.append([])
+        # Run backtests
+        stock_results = await run_backtest(
+            models=base_models,
+            initial_cash=TRADING_CONFIG["initial_cash_stock"],
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
+            market_type="stock",
+        )
 
-            elapsed = time.time() - start_time
-            total_items = sum(len(r) for r in results)
-            print(f"🎉 Parallel fetch completed: {total_items} items in {elapsed:.2f}s")
+        poly_results = await run_backtest(
+            models=base_models,
+            initial_cash=TRADING_CONFIG["initial_cash_polymarket"],
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
+            market_type="polymarket",
+        )
 
-            # Wait 30 minutes before next fetch
-            time.sleep(30 * 60)
+        # Save results directly to models_data.json instead of separate file
+        backtest_results = {
+            "stock": stock_results,
+            "polymarket": poly_results,
+            "start_date": start_date.strftime("%Y-%m-%d"),
+            "end_date": end_date.strftime("%Y-%m-%d"),
+        }
 
-        except Exception as e:
-            print(f"❌ Parallel background fetcher error: {e}")
-            import traceback
+        # Import here to avoid circular dependency
+        from .models_data import _save_backtest_data_to_models
 
-            traceback.print_exc()
-            time.sleep(5 * 60)  # Wait 5 minutes on error
+        _save_backtest_data_to_models(backtest_results)
+
+        print("✅ Startup backtest completed and saved to models_data.json")
+
+    except Exception as e:
+        print(f"❌ Startup backtest failed: {e}")
+        traceback.print_exc()
 
 
-def start_parallel_background_fetchers():
-    """Start the parallel background fetcher"""
-    global _parallel_fetcher_running, _parallel_fetcher_thread
-
-    if _parallel_fetcher_running:
-        return
-
-    _parallel_fetcher_running = True
-    _parallel_fetcher_thread = threading.Thread(
-        target=_parallel_background_fetcher, daemon=True
-    )
-    _parallel_fetcher_thread.start()
-    print("🚀 Parallel background data fetcher started")
+# ============================================================================
+# END STARTUP BACKTEST
+# ============================================================================
 
 
-def stop_parallel_background_fetchers():
-    """Stop the parallel background fetcher"""
-    global _parallel_fetcher_running
-    _parallel_fetcher_running = False
-    print("⏹️ Parallel background data fetcher stopped")
+# Background update function
+def run_background_updates():
+    """启动异步后台更新系统 - 消除线程复杂性"""
 
-
-# Background trading task
-_trading_cycle_running = False
-_trading_cycle_thread = None
-
-
-def run_background_trading_cycle():
-    """Run the background trading cycle in a separate thread"""
-
-    async def _background_cycle():
-        global _trading_cycle_running
-
-        while _trading_cycle_running:
+    async def system_status_updates():
+        """系统状态更新 (高频)"""
+        while True:
             try:
-                print("AUTOMATION: 🤖 Triggering 15-minute automatic trading cycle...")
-                from app.models_data import trigger_cycle
+                update_system_status()
+                await asyncio.sleep(UPDATE_FREQUENCY["system_status"])
+            except Exception as e:
+                print(f"❌ System status update error: {e}")
+                await asyncio.sleep(60)
 
-                await trigger_cycle()
-                print("AUTOMATION: ✅ Trading cycle finished. Waiting for 15 minutes.")
+    async def news_social_updates():
+        """新闻社交更新 (中频)"""
+        while True:
+            try:
+                update_news_data()
+                update_social_data()
+                await asyncio.sleep(UPDATE_FREQUENCY["news_social"])
+            except Exception as e:
+                print(f"❌ News/Social update error: {e}")
+                await asyncio.sleep(60)
 
-                # Wait for 15 minutes, but check for shutdown every second
-                for _ in range(15 * 60):
-                    if not _trading_cycle_running:
-                        break
-                    await asyncio.sleep(1)
+    async def trading_cycle_updates():
+        """交易周期更新 (低频) - 纯异步实现"""
+        consecutive_failures = 0
+        max_failures = TRADING_CONFIG["max_consecutive_failures"]
+
+        while True:
+            try:
+                print("🤖 Running hourly trading cycle...")
+
+                # Import here to avoid circular imports
+                from .models_data import get_models_data, trigger_cycle
+
+                # 直接调用异步函数，无需创建新循环
+                cycle_result = await trigger_cycle()
+
+                if cycle_result.get("status") == "success":
+                    consecutive_failures = 0  # 重置失败计数
+                    print("✅ Hourly trading cycle completed successfully")
+
+                    # 更新模型数据 - 添加防御性检查
+                    try:
+                        models = get_models_data()
+                        if models is not None:
+                            print(f"📊 Updated {len(models)} models data")
+                        else:
+                            print("⚠️ Warning: get_models_data() returned None")
+                    except Exception as e:
+                        print(f"⚠️ Error updating models data: {e}")
+
+                    # 正常等待下次交易
+                    print("⏰ Next trading cycle in 60 minutes...")
+                    await asyncio.sleep(UPDATE_FREQUENCY["trading"])
+
+                else:
+                    consecutive_failures += 1
+                    print(
+                        f"⚠️ Trading cycle had issues ({consecutive_failures}/{max_failures}): {cycle_result.get('message', 'Unknown')}"
+                    )
+
+                    if consecutive_failures >= max_failures:
+                        print(
+                            "❌ Too many trading failures, entering recovery mode (1 hour wait)"
+                        )
+                        await asyncio.sleep(TRADING_CONFIG["recovery_wait_time"])
+                        consecutive_failures = 0
+                    else:
+                        await asyncio.sleep(TRADING_CONFIG["error_retry_time"])
 
             except Exception as e:
-                print(f"AUTOMATION: ❌ Error in background trading cycle: {e}")
+                consecutive_failures += 1
+                print(
+                    f"❌ Trading update error ({consecutive_failures}/{max_failures}): {e}"
+                )
                 import traceback
 
                 traceback.print_exc()
-                # Wait 5 minutes on error before retrying
-                for _ in range(5 * 60):
-                    if not _trading_cycle_running:
-                        break
-                    await asyncio.sleep(1)
 
-        print("AUTOMATION: ⏹️ Background trading cycle stopped")
+                if consecutive_failures >= max_failures:
+                    print("❌ Critical trading errors, entering recovery mode")
+                    await asyncio.sleep(TRADING_CONFIG["recovery_wait_time"])
+                    consecutive_failures = 0
+                else:
+                    await asyncio.sleep(TRADING_CONFIG["error_retry_time"])
 
-    # Run the async function in a new event loop
-    asyncio.run(_background_cycle())
+    # 在后台任务中启动异步任务 - 消除线程复杂性
+    def start_background_tasks():
+        """在线程中运行异步任务组"""
 
+        async def run_all_tasks():
+            # 并发运行所有后台任务
+            await asyncio.gather(
+                system_status_updates(),
+                news_social_updates(),
+                trading_cycle_updates(),
+                return_exceptions=True,  # 一个任务失败不影响其他任务
+            )
 
-def start_background_trader():
-    """Start the background trading cycle runner."""
-    global _trading_cycle_running, _trading_cycle_thread
-    if _trading_cycle_running:
-        return
-    _trading_cycle_running = True
-    _trading_cycle_thread = threading.Thread(
-        target=run_background_trading_cycle, daemon=True
-    )
-    _trading_cycle_thread.start()
-
-
-def stop_background_trader():
-    """Stop the background trading cycle runner."""
-    global _trading_cycle_running
-    if _trading_cycle_running:
-        _trading_cycle_running = False
-        print("⏹️ Background trading cycle runner stopped")
-
-
-def run_background_updates():
-    """Periodically run all background data updates."""
-    while True:
-        # Update models data every minute
-        print("--- [BACKGROUND] Triggering model data update ---")
+        # 为后台线程创建新的事件循环
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         try:
-            get_models_data()
-            print("--- [BACKGROUND] Model data update finished ---")
-        except Exception:
-            print("--- [BACKGROUND] Error in model update ---")
-            traceback.print_exc()
+            loop.run_until_complete(run_all_tasks())
+        finally:
+            loop.close()
 
-        # Update system status every minute
-        print("--- [BACKGROUND] Triggering system status update ---")
-        try:
-            update_system_status()
-            print("--- [BACKGROUND] System status update finished ---")
-        except Exception:
-            print("--- [BACKGROUND] Error in system status update ---")
-            traceback.print_exc()
+    # 启动单个后台线程运行所有异步任务
+    background_thread = threading.Thread(target=start_background_tasks, daemon=True)
+    background_thread.start()
 
-        # Update news and social data every 10 minutes (check cycle count)
-        cycle_count = getattr(run_background_updates, "cycle_count", 0)
-        if cycle_count % 10 == 0:  # Every 10th cycle (10 minutes)
-            print("--- [BACKGROUND] Triggering news data update ---")
-            try:
-                update_news_data()
-                print("--- [BACKGROUND] News data update finished ---")
-            except Exception:
-                print("--- [BACKGROUND] Error in news update ---")
-                traceback.print_exc()
+    print("🚀 Optimized background updates started:")
+    print(f"   📊 System status: every {UPDATE_FREQUENCY['system_status']}s")
+    print(f"   📰 News/Social: every {UPDATE_FREQUENCY['news_social']}s")
+    print(f"   🤖 Trading: every {UPDATE_FREQUENCY['trading']}s")
 
-            print("--- [BACKGROUND] Triggering social data update ---")
-            try:
-                update_social_data()
-                print("--- [BACKGROUND] Social data update finished ---")
-            except Exception:
-                print("--- [BACKGROUND] Error in social update ---")
-                traceback.print_exc()
-
-        run_background_updates.cycle_count = cycle_count + 1
-        time.sleep(60)  # Wait for 60 seconds
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    logger.info("Starting Live Trade Bench API")
-    try:
-        start_background_trader()
-        logger.info("🚀 Automatic trading cycle enabled (15-minute interval)")
-    except Exception as e:
-        logger.warning(f"Failed to start background trader: {e}")
-
-    yield
-
-    # Shutdown
-    logger.info("Shutting down Live Trade Bench API")
-    try:
-        stop_background_trader()
-        logger.info("Background trader stopped")
-    except Exception as e:
-        logger.warning(f"Failed to stop background trader cleanly: {e}")
-
-
-@app.get("/api")
-async def api_root() -> Dict[str, Any]:
-    """API information endpoint."""
-    return {
-        "message": "Live Trade Bench API",
-        "version": "1.0.0",
-        "endpoints": {
-            "models": "/api/models",
-            "news": "/api/news",
-            "social": "/api/social",
-            "system": "/api/system",
-            "docs": "/docs",
-            "redoc": "/redoc",
-        },
-    }
+    logger.info("Optimized multi-frequency background updates active")
 
 
 @app.get("/health")
-async def health_check() -> Dict[str, Any]:
+async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "message": "API is running"}
 
 
 @app.on_event("startup")
-async def startup_event() -> None:
-    """Initialize API on startup."""
+async def startup_event():
+    """Initialize API with complete trading workflow."""
     logger.info("Starting Live Trade Bench API")
 
-    # Disable background fetchers completely for now
+    # Step 1: Run 7-day backtest for historical baseline
     try:
-        # start_parallel_background_fetchers()  # Completely disabled
-        logger.info("Background fetchers completely disabled")
+        print("📈 Step 1: Running 7-day backtest for historical data...")
+        await run_startup_backtest()
+        logger.info("✅ 7-day backtest completed successfully")
     except Exception as e:
-        logger.warning(f"Failed to start background fetchers: {e}")
+        logger.warning(f"⚠️ Startup backtest failed: {e}")
+        import traceback
 
-    # Start the background task
-    thread = threading.Thread(target=run_background_updates, daemon=True)
-    thread.start()
-    print("Background update thread started.")
+        traceback.print_exc()
+
+    # Step 2: Run initial trading cycle for current state
+    try:
+        print("🤖 Step 2: Running initial trading cycle...")
+        from .models_data import get_models_data, trigger_cycle
+
+        cycle_result = await trigger_cycle()
+
+        if cycle_result.get("status") == "success":
+            print("✅ Initial trading cycle completed")
+        else:
+            print(
+                f"⚠️ Initial trading had issues: {cycle_result.get('message', 'Unknown')}"
+            )
+
+        # Generate complete models data (backtest + current trading)
+        models = get_models_data()
+        logger.info(f"✅ Generated {len(models)} models with complete data")
+
+    except Exception as e:
+        logger.warning(f"⚠️ Initial trading setup failed: {e}")
+        import traceback
+
+        traceback.print_exc()
+
+    # Step 3: Start multi-frequency background updates (including hourly trading)
+    try:
+        print("🔄 Step 3: Starting background update systems...")
+        run_background_updates()
+        logger.info("✅ Multi-frequency background updates started")
+
+        print("🎯 Live Trade Bench initialization complete!")
+        print("   📊 Historical data: 7-day backtest")
+        print("   🤖 Current state: Initial trading cycle")
+        print("   ⏰ Future updates: Hourly automatic trading")
+
+    except Exception as e:
+        logger.error(f"❌ Failed to start background updates: {e}")
+        import traceback
+
+        traceback.print_exc()
 
 
 @app.on_event("shutdown")
-async def shutdown_event() -> None:
+async def shutdown_event():
     """Cleanup on shutdown."""
     logger.info("Shutting down API")
 
-    # Stop parallel background data fetcher
-    try:
-        stop_parallel_background_fetchers()
-        logger.info("Parallel background data fetcher stopped")
-    except Exception as e:
-        logger.warning(f"Failed to stop background fetchers: {e}")
+
+# Serve React frontend using centralized config
+if os.path.exists(FRONTEND_BUILD):
+    app.mount(
+        "/static",
+        StaticFiles(directory=os.path.join(FRONTEND_BUILD, "static")),
+        name="static",
+    )
 
 
-frontend_build_path = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), "..", "frontend", "build"
-)
-
-# Serve static files
-app.mount(
-    "/static",
-    StaticFiles(directory=os.path.join(frontend_build_path, "static")),
-    name="static",
-)
-
-
-# Catch-all route for React Router (must be last)
-@app.get("/{full_path:path}")
-async def serve_frontend(full_path: str) -> Any:
-    """Serve React frontend for all non-API routes."""
-    # Don't serve frontend for API routes
-    if (
-        full_path.startswith("api/")
-        or full_path.startswith("docs")
-        or full_path.startswith("redoc")
-    ):
-        raise HTTPException(status_code=404, detail="API endpoint not found")
-
-    # Serve index.html for React Router
-    index_file = os.path.join(frontend_build_path, "index.html")
+@app.get("/{path:path}")
+async def serve_frontend(path: str):
+    """Serve React frontend files."""
+    # Serve index.html for all routes (SPA)
+    index_file = os.path.join(FRONTEND_BUILD, "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)
     else:

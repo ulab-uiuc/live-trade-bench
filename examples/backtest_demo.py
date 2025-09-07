@@ -1,13 +1,10 @@
 """
 Multi-Model Backtest Demo - AI Trading Competition
 
-Tests multiple AI models concurrently in historical trading scenarios:
-- together:Qwen/Qwen2.5-7B-Instruct-Turbo
-- together:meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo
-- openai:gpt-5
-- openai:gpt-4o-mini
+Quick backtest demo with a few models for testing.
+For production-grade demo, see enhanced_backtest_demo.py
 
-Shows which AI model makes better investment decisions.
+Tests multiple AI models concurrently in historical trading scenarios.
 Requires: TOGETHER_API_KEY and OPENAI_API_KEY environment variables.
 """
 
@@ -24,6 +21,10 @@ async def main():
     """Backtest demo main function."""
     print("🔮 Multi-Model Portfolio Backtest Demo")
     print("Testing 4 different AI models concurrently")
+    print()
+    print("💡 For production-grade demo with all models, run:")
+    print("   python enhanced_backtest_demo.py")
+    print()
 
     # Test with trading days (avoid holidays)
     start_date = "2024-01-02"  # Avoid New Year's Day

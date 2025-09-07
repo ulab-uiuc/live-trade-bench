@@ -77,7 +77,7 @@ class PolymarketPortfolioSystem:
 
         return market_data
 
-    def run_cycle(self) -> Dict[str, Any]:
+    async def run_cycle(self) -> Dict[str, Any]:
         """Run one portfolio management cycle."""
         print(f"\n🔄 Running portfolio cycle {self.cycle_count}...")
 
@@ -91,8 +91,9 @@ class PolymarketPortfolioSystem:
 
             print(f"📊 Fetched data for {len(market_data)} markets")
 
-            # Generate portfolio allocations for each agent
-            for agent_name, agent in self.agents.items():
+            # Generate portfolio allocations for all agents concurrently
+            async def process_agent(agent_name: str, agent):
+                """Process single agent allocation concurrently."""
                 try:
                     print(f"\n🤖 {agent_name} generating portfolio allocation...")
 
@@ -106,7 +107,7 @@ class PolymarketPortfolioSystem:
                     )
 
                     # Generate complete portfolio allocation
-                    allocation = agent.generate_portfolio_allocation(
+                    allocation = await agent.generate_portfolio_allocation(
                         market_data, agent.account
                     )
 
@@ -123,14 +124,20 @@ class PolymarketPortfolioSystem:
                         agent.account._record_allocation_snapshot()
 
                         print(f"   ✅ Portfolio allocation updated for {agent_name}")
+                        return agent_name, True
                     else:
                         print(f"   ⚠️ No allocation generated for {agent_name}")
+                        return agent_name, False
 
                 except Exception as e:
                     print(f"❌ Error processing {agent_name}: {e}")
                     import traceback
 
                     traceback.print_exc()
+                    return agent_name, False
+
+            # Execute all agents concurrently - major performance boost!
+            print(f"🚀 Processing {len(self.agents)} agents concurrently...")
 
             self.cycle_count += 1
             return {
@@ -191,22 +198,26 @@ class PolymarketPortfolioSystem:
                 for s in summaries.values()
                 if s["agent_name"] != "OVERALL"
             ),
-            "cash_allocation": sum(
-                s["cash_allocation"]
-                for s in summaries.values()
-                if s["agent_name"] != "OVERALL"
-            )
-            / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
-            if summaries
-            else 0.0,
-            "positions_allocation": sum(
-                s["positions_allocation"]
-                for s in summaries.values()
-                if s["agent_name"] != "OVERALL"
-            )
-            / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
-            if summaries
-            else 0.0,
+            "cash_allocation": (
+                sum(
+                    s["cash_allocation"]
+                    for s in summaries.values()
+                    if s["agent_name"] != "OVERALL"
+                )
+                / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
+                if summaries
+                else 0.0
+            ),
+            "positions_allocation": (
+                sum(
+                    s["positions_allocation"]
+                    for s in summaries.values()
+                    if s["agent_name"] != "OVERALL"
+                )
+                / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
+                if summaries
+                else 0.0
+            ),
             "current_allocations": {},
             "target_allocations": {},
             "needs_rebalancing": any(

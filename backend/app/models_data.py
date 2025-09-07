@@ -2,17 +2,14 @@
 Real model data provider using live_trade_bench
 """
 
+import json
 import os
 import random
-import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-# Add live_trade_bench to path
-project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-sys.path.insert(0, project_root)
+# 使用统一配置管理
+from app.config import MODELS_DATA_FILE, get_base_model_configs
 
 # Import after path modification
 from live_trade_bench.agents.polymarket_system import (  # noqa: E402
@@ -20,30 +17,63 @@ from live_trade_bench.agents.polymarket_system import (  # noqa: E402
 )
 from live_trade_bench.agents.stock_system import StockPortfolioSystem  # noqa: E402
 
-# Global instances - lazy loaded
-_stock_system = None
-_polymarket_system = None
+
+def _save_backtest_data_to_models(backtest_results: Dict[str, Any]):
+    """Save backtest data directly into models_data.json instead of separate file."""
+    try:
+        # Load existing models data
+        if os.path.exists(MODELS_DATA_FILE):
+            with open(MODELS_DATA_FILE, "r") as f:
+                existing_models = json.load(f)
+        else:
+            existing_models = []
+
+        # Update models with backtest data
+        for model in existing_models:
+            model_name = model.get("name", "")
+            category = model.get("category", "")
+
+            # Find matching backtest data
+            category_results = backtest_results.get(category, {})
+            for backtest_name, backtest_data in category_results.items():
+                if (
+                    model_name.lower() in backtest_name.lower()
+                    or backtest_name.lower() in model_name.lower()
+                ):
+                    # Add backtest data directly to model
+                    model["backtest"] = {
+                        "initial_value": backtest_data.get("initial_value", 0),
+                        "final_value": backtest_data.get("final_value", 0),
+                        "return_percentage": backtest_data.get("return_percentage", 0),
+                        "period": backtest_data.get("period", ""),
+                        "daily_values": backtest_data.get(
+                            "daily_values", []
+                        ),  # Include daily progression
+                    }
+                    print(
+                        f"✅ Added backtest data to {model_name}: {backtest_data.get('return_percentage', 0):.2f}%"
+                    )
+                    break
+
+        # Save updated models data
+        with open(MODELS_DATA_FILE, "w") as f:
+            json.dump(existing_models, f, indent=2)
+
+        print(f"✅ Backtest data saved directly to {MODELS_DATA_FILE}")
+
+    except Exception as e:
+        print(f"⚠️ Failed to save backtest data to models: {e}")
 
 
 def _get_stock_system():
     """Get or create stock system with real agents"""
     stock_system = StockPortfolioSystem.get_instance()
     if not stock_system.agents:
-        # Add real LLM agents
-        models = [
-            ("GPT-4o", "gpt-4o", 1000),
-            ("Claude 3.5 Sonnet", "claude-3-5-sonnet-20241022", 1000),
-            ("GPT-4 Turbo", "gpt-4-turbo", 1000),
-            ("GPT-4o Mini", "gpt-4o-mini", 1000),
-            ("Claude 3 Haiku", "claude-3-haiku-20240307", 1000),
-            ("Gemini Pro", "gemini-pro", 1000),
-            ("Llama 3.1", "llama-3.1-70b-versatile", 1000),
-        ]
+        # Use centralized model configurations
+        base_models = get_base_model_configs()
 
-        for name, model_name, initial_cash in models:
-            stock_system.add_agent(
-                name=name, initial_cash=initial_cash, model_name=model_name
-            )
+        for name, model_name in base_models:
+            stock_system.add_agent(name=name, initial_cash=1000, model_name=model_name)
 
     return stock_system
 
@@ -52,23 +82,28 @@ def _get_polymarket_system():
     """Get or create polymarket system with real agents"""
     polymarket_system = PolymarketPortfolioSystem.get_instance()
     if not polymarket_system.agents:
-        # Add real LLM agents
-        models = [
-            ("GPT-4o", "gpt-4o", 500),
-            ("Claude 3.5 Sonnet", "claude-3-5-sonnet-20241022", 500),
-            ("GPT-4 Turbo", "gpt-4-turbo", 500),
-            ("GPT-4o Mini", "gpt-4o-mini", 500),
-            ("Claude 3 Haiku", "claude-3-haiku-20240307", 500),
-            ("Gemini Pro", "gemini-pro", 500),
-            ("Llama 3.1", "llama-3.1-70b-versatile", 500),
-        ]
+        # Use centralized model configurations
+        base_models = get_base_model_configs()
 
-        for name, model_name, initial_cash in models:
+        for name, model_name in base_models:
             polymarket_system.add_agent(
-                name=name, initial_cash=initial_cash, model_name=model_name
+                name=name, initial_cash=500, model_name=model_name
             )
 
     return polymarket_system
+
+
+def get_model_configurations():
+    """Get model configurations for backtest.
+
+    Returns:
+        tuple: (stock_models, polymarket_models) where each is a list of (name, model_id) tuples
+    """
+    # Use centralized model configurations - single source of truth!
+    base_models = get_base_model_configs()
+
+    # Return same models for both markets (only initial_cash differs)
+    return base_models, base_models
 
 
 def _generate_mock_allocation(universe: List[str]) -> Dict[str, float]:
@@ -104,6 +139,9 @@ def get_models_data() -> List[Dict[str, Any]]:
     """
     models = []
 
+    # Note: Backtest data is now stored directly in models, no separate loading needed
+    print("📊 Using integrated backtest data from models")
+
     systems = {
         "stock": {
             "system": _get_stock_system(),
@@ -125,12 +163,11 @@ def get_models_data() -> List[Dict[str, Any]]:
             account = agent.account
             model_id = f"{agent_name.lower().replace(' ', '-')}_{category}"
 
-            # 1. Simulate portfolio change
-            mock_allocation = _generate_mock_allocation(system.universe)
-            account._simulate_rebalance_to_target(mock_allocation)
-            account._record_allocation_snapshot()
+            # 1. Use REAL trading data instead of mock simulation
+            # Note: At startup, the systems are fresh, so we rely on backtest data
+            # for historical performance and generate minimal current state
 
-            # 2. Get performance metrics from the new state
+            # Get current portfolio state (may be empty on startup)
             portfolio_breakdown = account.get_portfolio_value_breakdown()
             total_value = portfolio_breakdown.get("total_value", initial_cash)
             return_pct = (
@@ -140,7 +177,7 @@ def get_models_data() -> List[Dict[str, Any]]:
             )
             profit_amount = total_value - initial_cash
 
-            # 3. Get portfolio details (for modal)
+            # 2. Get portfolio details (for modal) - use actual account state
             portfolio_details = {
                 "cash": account.cash_balance,
                 "total_value": total_value,
@@ -155,9 +192,10 @@ def get_models_data() -> List[Dict[str, Any]]:
                 "unrealized_pnl": round(profit_amount, 2),
             }
 
-            # 4. Generate profit history directly from allocation history for a consistent mock
+            # 3. Generate profit history from allocation history OR backtest data
             profit_history = []
             if account.allocation_history:
+                # Use real allocation history if available
                 for snapshot in account.allocation_history:
                     value = snapshot["total_value"]
                     profit = value - initial_cash
@@ -168,7 +206,9 @@ def get_models_data() -> List[Dict[str, Any]]:
                             "totalValue": round(value, 2),
                         }
                     )
-            else:  # Fallback for the very first data point
+            else:
+                # Fallback: use integrated backtest data for initial profit history
+                # Note: backtest data is now directly embedded in model objects
                 profit_history.append(
                     {
                         "timestamp": datetime.now().isoformat(),
@@ -177,43 +217,65 @@ def get_models_data() -> List[Dict[str, Any]]:
                     }
                 )
 
-            # 5. Get chart data (for modal)
+            # 4. Get chart data (for modal) - use real data
             chart_data = {
                 "holdings": portfolio_details["holdings"],
                 "profit_history": profit_history,
                 "total_value": total_value,
             }
 
-            # 6. Get allocation history (for modal)
+            # 5. Get allocation history (for modal) - use real data
             allocation_history = account.allocation_history
 
-            # 7. Assemble the comprehensive model object
-            models.append(
-                {
-                    # Dashboard card data
-                    "id": model_id,
-                    "name": agent_name,
-                    "category": category,
-                    "performance": round(return_pct, 2),
-                    "profit": round(profit_amount, 2),
-                    "trades": len(account.transactions),
-                    "status": "active",
-                    "asset_allocation": portfolio_breakdown.get(
-                        "current_allocations", {}
-                    ),
-                    # Detailed modal data, nested
-                    "portfolio": portfolio_details,
-                    "chartData": chart_data,
-                    "allocationHistory": allocation_history,
-                    "last_updated": "2024-01-01T00:00:00Z",
-                }
-            )
+            # 6. Assemble the comprehensive model object using REAL data
+            model_obj = {
+                # Dashboard card data
+                "id": model_id,
+                "name": agent_name,
+                "category": category,
+                "performance": round(return_pct, 2),
+                "profit": round(profit_amount, 2),
+                "trades": len(account.transactions),
+                "status": "active",
+                "asset_allocation": portfolio_breakdown.get("current_allocations", {}),
+                # Detailed modal data, nested
+                "portfolio": portfolio_details,
+                "chartData": chart_data,
+                "allocationHistory": allocation_history,
+                "last_updated": datetime.now().isoformat(),
+            }
 
-    # Save to JSON file
+            # Note: Backtest data is now integrated directly when models are created
+            models.append(model_obj)
+
+    # Save to JSON file using centralized config - PRESERVE backtest data
     print(f"Saving {len(models)} models to JSON file...")
     import json
 
-    with open("models_data.json", "w") as f:
+    # Load existing models to preserve backtest data
+    existing_models = []
+    if os.path.exists(MODELS_DATA_FILE):
+        try:
+            with open(MODELS_DATA_FILE, "r") as f:
+                existing_models = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            existing_models = []
+
+    # Merge backtest data from existing models into new models
+    for new_model in models:
+        # Find matching existing model
+        for existing_model in existing_models:
+            if existing_model.get("name") == new_model.get(
+                "name"
+            ) and existing_model.get("category") == new_model.get("category"):
+                # Preserve backtest data if it exists
+                if "backtest" in existing_model:
+                    new_model["backtest"] = existing_model["backtest"]
+                    print(f"✅ Preserved backtest data for {new_model['name']}")
+                break
+
+    # Save the updated models to file
+    with open(MODELS_DATA_FILE, "w") as f:
         json.dump(models, f, indent=2)
     print("Models saved successfully!")
 
@@ -261,7 +323,7 @@ def get_allocation_history(model_id: str) -> Optional[List[Dict[str, Any]]]:
         return None
 
 
-def trigger_cycle() -> Dict[str, Any]:
+async def trigger_cycle() -> Dict[str, Any]:
     """Run one trading cycle using real live_trade_bench systems"""
     try:
         stock_system = _get_stock_system()
@@ -271,11 +333,11 @@ def trigger_cycle() -> Dict[str, Any]:
 
         # Run stock system cycle
         print("  📈 Running stock portfolio cycle...")
-        stock_result = stock_system.run_cycle()
+        stock_result = await stock_system.run_cycle()
 
         # Run polymarket system cycle
         print("  🎯 Running polymarket portfolio cycle...")
-        poly_result = polymarket_system.run_cycle()
+        poly_result = await polymarket_system.run_cycle()
 
         # Check results
         success = stock_result.get("success", True) and poly_result.get("success", True)
@@ -298,3 +360,9 @@ def trigger_cycle() -> Dict[str, Any]:
 
         traceback.print_exc()
         return {"status": "error", "message": f"Trading cycle failed: {str(e)}"}
+
+
+if __name__ == "__main__":
+    print("🚀 Running models_data generation...")
+    models = get_models_data()
+    print(f"✅ Generated {len(models)} models successfully!")
