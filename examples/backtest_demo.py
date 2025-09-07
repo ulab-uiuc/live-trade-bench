@@ -26,17 +26,17 @@ async def main():
     print("   python enhanced_backtest_demo.py")
     print()
 
-    start_date = "2024-01-02"  # Avoid New Year's Day
-    end_date = "2024-01-06"  # Short test period
+    start_date = "2025-01-02"  # Avoid New Year's Day
+    end_date = "2025-01-04"  # Short test period
 
     print(f"🚀 Running backtest: {start_date} → {end_date}")
 
     try:
         models = [
-            #("Qwen_Agent", "together:Qwen/Qwen2.5-7B-Instruct-Turbo"),
-            #("Llama_Agent", "together:meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"),
+            # ("Qwen_Agent", "together:Qwen/Qwen2.5-7B-Instruct-Turbo"),
+            # ("Llama_Agent", "together:meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"),
             ("GPT5_Agent", "openai:gpt-5"),
-            #("GPT4o_Mini_Agent", "openai:gpt-4o-mini"),
+            ("GPT4o_Mini_Agent", "openai:gpt-4o-mini"),
         ]
 
         print(f"🤖 Testing {len(models)} AI models:")
@@ -87,42 +87,6 @@ async def main():
         traceback.print_exc()
 
     finally:
-        # 🧹 CRITICAL: Force cleanup of litellm's lingering async resources
-        # This prevents the program from hanging after completion
-        print("🧹 Cleaning up async resources...")
-
-        try:
-            # Cancel all remaining background tasks created by litellm
-            pending_tasks = [
-                task
-                for task in asyncio.all_tasks()
-                if not task.done() and task != asyncio.current_task()
-            ]
-
-            if pending_tasks:
-                print(f"   🔍 Found {len(pending_tasks)} background tasks to cleanup")
-
-                # Cancel all pending tasks
-                for task in pending_tasks:
-                    task.cancel()
-
-                # Wait briefly for cancellation with timeout to avoid infinite recursion
-                try:
-                    await asyncio.wait_for(
-                        asyncio.gather(*pending_tasks, return_exceptions=True),
-                        timeout=2.0,
-                    )
-                    print("   ✅ Background tasks cleaned up successfully")
-                except asyncio.TimeoutError:
-                    print("   ⚠️ Cleanup timeout - forcing exit")
-                except Exception as cleanup_error:
-                    print(f"   ⚠️ Cleanup error (ignoring): {cleanup_error}")
-            else:
-                print("   ✅ No background tasks to cleanup")
-
-        except Exception as e:
-            print(f"   ⚠️ Cleanup failed (ignoring): {e}")
-
         print("🎯 Backtest completed - program should exit cleanly now")
 
 

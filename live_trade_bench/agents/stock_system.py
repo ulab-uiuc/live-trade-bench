@@ -198,17 +198,6 @@ class StockPortfolioSystem:
                             except Exception as rebalance_error:
                                 print(f"   ⚠️ Rebalance failed: {rebalance_error}")
 
-                            agent.account._record_allocation_snapshot()
-                            updated_value = agent.account.get_total_value()
-                            print(
-                                f"   💰 Updated Portfolio Value: ${updated_value:,.2f}"
-                            )
-                            print(
-                                f"   💵 Cash After Rebalance: ${agent.account.cash_balance:,.2f} | Positions: {len(agent.account.positions)}"
-                            )
-                        else:
-                            print("   ⚠️ No tickers available for fallback allocation")
-
                 except Exception as e:
                     print(f"❌ Error processing {agent_name}: {e}")
                     import traceback
