@@ -30,16 +30,13 @@ def _save_backtest_data_to_models(backtest_results: Dict[str, Any]):
 
         # Update models with backtest data
         for model in existing_models:
-            model_name = model.get("name", "")
+            model_id = model.get("id", "")
             category = model.get("category", "")
 
-            # Find matching backtest data
+            # Find matching backtest data using model_id for precision
             category_results = backtest_results.get(category, {})
-            for backtest_name, backtest_data in category_results.items():
-                if (
-                    model_name.lower() in backtest_name.lower()
-                    or backtest_name.lower() in model_name.lower()
-                ):
+            for backtest_model_id, backtest_data in category_results.items():
+                if model_id == backtest_model_id:
                     # Add backtest data directly to model
                     model["backtest"] = {
                         "initial_value": backtest_data.get("initial_value", 0),
@@ -51,7 +48,7 @@ def _save_backtest_data_to_models(backtest_results: Dict[str, Any]):
                         ),  # Include daily progression
                     }
                     print(
-                        f"✅ Added backtest data to {model_name}: {backtest_data.get('return_percentage', 0):.2f}%"
+                        f"✅ Added backtest data to {model['name']}: {backtest_data.get('return_percentage', 0):.2f}%"
                     )
                     break
 
