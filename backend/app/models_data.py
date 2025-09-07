@@ -187,9 +187,8 @@ def get_models_data() -> List[Dict[str, Any]]:
                     symbol: pos.quantity * pos.current_price
                     for symbol, pos in account.positions.items()
                 },
-                "target_allocations": portfolio_breakdown.get(
-                    "current_allocations", {}
-                ),
+                "target_allocations": getattr(account, "target_allocations", {}),
+                "current_allocations": getattr(account, "get_current_allocations", lambda: lambda: {} )(),
                 "return_pct": round(return_pct, 2),
                 "unrealized_pnl": round(profit_amount, 2),
             }
@@ -239,7 +238,7 @@ def get_models_data() -> List[Dict[str, Any]]:
                 "profit": round(profit_amount, 2),
                 "trades": len(account.transactions),
                 "status": "active",
-                "asset_allocation": portfolio_breakdown.get("current_allocations", {}),
+                "asset_allocation": getattr(account, "get_current_allocations", lambda: lambda: {} )(),
                 # Detailed modal data, nested
                 "portfolio": portfolio_details,
                 "chartData": chart_data,
@@ -358,6 +357,47 @@ def _parallel_process_agents(stock_system, polymarket_system) -> Dict[str, Any]:
 
     print(f"📊 Processing {len(all_agents)} agents in parallel...")
 
+    # Pre-fetch shared market data to avoid duplicate fetching per agent
+    from concurrent.futures import as_completed
+
+    shared_stock_market_data: Dict[str, Dict[str, Any]] = {}
+    if getattr(stock_system, "universe", None):
+        print("🔎 Pre-fetching stock market data in parallel...")
+        tickers = list(stock_system.universe)
+        max_ticker_workers = max(2, min(16, len(tickers)))
+        with ThreadPoolExecutor(max_workers=max_ticker_workers) as tpool:
+            future_to_ticker = {
+                tpool.submit(fetch_current_stock_price, ticker): ticker
+                for ticker in tickers
+            }
+            for fut in as_completed(future_to_ticker):
+                ticker = future_to_ticker[fut]
+                try:
+                    price = fut.result()
+                    if price:
+                        shared_stock_market_data[ticker] = {
+                            "ticker": ticker,
+                            "name": stock_system.stock_info[ticker]["name"],
+                            "sector": stock_system.stock_info[ticker]["sector"],
+                            "current_price": price,
+                            "market_cap": stock_system.stock_info[ticker][
+                                "market_cap"
+                            ],
+                        }
+                except Exception as e:
+                    print(f"⚠️ Failed to fetch data for {ticker}: {e}")
+
+    print(
+        f"📈 Pre-fetched {len(shared_stock_market_data)} stock quotes; sharing across agents"
+    )
+
+    # Polymarket can fetch once via its system method
+    try:
+        shared_polymarket_market_data = polymarket_system._fetch_market_data()
+    except Exception as e:
+        print(f"⚠️ Failed to pre-fetch polymarket data: {e}")
+        shared_polymarket_market_data = {}
+
     # Function to process a single agent
     def process_single_agent(agent_info):
         try:
@@ -368,36 +408,20 @@ def _parallel_process_agents(stock_system, polymarket_system) -> Dict[str, Any]:
 
             print(f"🤖 [{system_type.upper()}] {agent_name} starting LLM call...")
 
-            # Get market data based on system type
+            # Get market data based on system type (shared across agents)
             if system_type == "stock":
-                # Fetch market data for stocks
-                market_data = {}
-                for ticker in system_instance.universe:
-                    try:
-                        price = fetch_current_stock_price(ticker)
-                        if price:
-                            market_data[ticker] = {
-                                "ticker": ticker,
-                                "name": system_instance.stock_info[ticker]["name"],
-                                "sector": system_instance.stock_info[ticker]["sector"],
-                                "current_price": price,
-                                "market_cap": system_instance.stock_info[ticker][
-                                    "market_cap"
-                                ],
-                            }
-                    except Exception as e:
-                        print(f"⚠️ Failed to fetch data for {ticker}: {e}")
+                market_data = shared_stock_market_data
 
-                # Update position prices
-                for agent in system_instance.agents.values():
-                    if hasattr(agent.account, "update_position_price"):
+                # Update position prices with shared data
+                for ag in system_instance.agents.values():
+                    if hasattr(ag.account, "update_position_price"):
                         for ticker, data in market_data.items():
-                            agent.account.update_position_price(
+                            ag.account.update_position_price(
                                 ticker, data.get("current_price", 0)
                             )
 
             else:  # polymarket
-                market_data = system_instance._fetch_market_data()
+                market_data = shared_polymarket_market_data
 
             if not market_data:
                 return {
@@ -472,7 +496,8 @@ def _parallel_process_agents(stock_system, polymarket_system) -> Dict[str, Any]:
 
     # Execute all agents in parallel
     results = []
-    with ThreadPoolExecutor(max_workers=len(all_agents)) as executor:
+    workers = max(2, min(32, len(all_agents)))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
         # Submit all tasks
         future_to_agent = {
             executor.submit(process_single_agent, agent_info): agent_info
