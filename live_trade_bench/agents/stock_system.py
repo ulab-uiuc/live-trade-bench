@@ -164,39 +164,35 @@ class StockPortfolioSystem:
                             f"   💵 Cash After Rebalance: ${agent.account.cash_balance:,.2f} | Positions: {len(agent.account.positions)}"
                         )
                     else:
-                        # Fallback: create simple equal-weight allocation if LLM returns nothing
+                        # Fallback: keep previous allocation unchanged
                         print(
-                            f"   ⚠️ No allocation generated for {agent_name} — applying fallback equal-weight allocation"
+                            f"   ⚠️ No allocation generated for {agent_name} — keeping previous target allocations"
                         )
-                        tickers = list(market_data.keys())[: min(5, len(market_data))]
-                        fallback_alloc: Dict[str, float] = {}
-                        if tickers:
-                            cash_ratio = 0.2
-                            per_stock = (1.0 - cash_ratio) / len(tickers)
-                            for t in tickers:
-                                fallback_alloc[t] = per_stock
-                            fallback_alloc["CASH"] = cash_ratio
 
-                            for ticker, target_ratio in fallback_alloc.items():
-                                if ticker in self.universe or ticker == "CASH":
-                                    agent.account.set_target_allocation(
-                                        ticker, target_ratio
-                                    )
-                                    if ticker != "CASH":
-                                        print(f"   📈 {ticker}: {target_ratio:.1%}")
-
+                        if getattr(agent.account, "target_allocations", {}):
                             price_map = {
-                                t: d.get("current_price")
-                                for t, d in market_data.items()
+                                t: d.get("current_price") for t, d in market_data.items()
                             }
                             try:
                                 agent.account._simulate_rebalance_to_target(
                                     agent.account.target_allocations,
                                     price_map=price_map,
                                 )
-                                print("   🔁 Rebalanced to fallback target allocations")
+                                print("   🔁 Rebalanced to previous target allocations")
                             except Exception as rebalance_error:
                                 print(f"   ⚠️ Rebalance failed: {rebalance_error}")
+                            # Record snapshot after keeping previous allocation
+                            agent.account._record_allocation_snapshot()
+                            updated_value = agent.account.get_total_value()
+                            print(f"   💰 Updated Portfolio Value: ${updated_value:,.2f}")
+                            print(
+                                f"   💵 Cash After Rebalance: ${agent.account.cash_balance:,.2f} | Positions: {len(agent.account.positions)}"
+                            )
+                        else:
+                            # No previous allocation — keep 100% CASH
+                            print(
+                                "   ℹ️ No previous allocation found — staying in 100% CASH"
+                            )
 
                 except Exception as e:
                     print(f"❌ Error processing {agent_name}: {e}")

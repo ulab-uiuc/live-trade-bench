@@ -14,6 +14,9 @@ from live_trade_bench.agents.polymarket_system import (  # noqa: E402
     PolymarketPortfolioSystem,
 )
 from live_trade_bench.agents.stock_system import StockPortfolioSystem  # noqa: E402
+from live_trade_bench.fetchers.stock_fetcher import (  # noqa: E402
+    fetch_current_stock_price,
+)
 
 # 使用统一配置管理
 from .config import MODELS_DATA_FILE, get_base_model_configs
@@ -184,9 +187,10 @@ def get_models_data() -> List[Dict[str, Any]]:
                     symbol: pos.quantity * pos.current_price
                     for symbol, pos in account.positions.items()
                 },
-                "target_allocations": portfolio_breakdown.get(
-                    "current_allocations", {}
-                ),
+                "target_allocations": getattr(account, "target_allocations", {}),
+                "current_allocations": getattr(
+                    account, "get_current_allocations", lambda: lambda: {}
+                )(),
                 "return_pct": round(return_pct, 2),
                 "unrealized_pnl": round(profit_amount, 2),
             }
@@ -236,7 +240,9 @@ def get_models_data() -> List[Dict[str, Any]]:
                 "profit": round(profit_amount, 2),
                 "trades": len(account.transactions),
                 "status": "active",
-                "asset_allocation": portfolio_breakdown.get("current_allocations", {}),
+                "asset_allocation": getattr(
+                    account, "get_current_allocations", lambda: lambda: {}
+                )(),
                 # Detailed modal data, nested
                 "portfolio": portfolio_details,
                 "chartData": chart_data,
@@ -332,50 +338,319 @@ def _parallel_process_agents(stock_system, polymarket_system) -> Dict[str, Any]:
     if result["success"]:
         print("✅ Parallel system processing completed successfully")
 
-        # 转换结果格式以保持向后兼容性
-        stock_agents = len(stock_system.agents)
-        polymarket_agents = len(polymarket_system.agents)
+        # Initialize all_agents list
+        all_agents = []
 
-        return {
-            "success": True,
-            "total_agents": stock_agents + polymarket_agents,
-            "stock_success": (
-                result["stock_result"].get("agents_processed", 0)
-                if result["stock_result"].get("success")
-                else 0
-            ),
-            "polymarket_success": (
-                result["polymarket_result"].get("agents_processed", 0)
-                if result["polymarket_result"].get("success")
-                else 0
-            ),
-            "results": [
+        # Add stock agents
+        for agent_name, agent in stock_system.agents.items():
+            all_agents.append(
                 {
-                    "agent_name": agent_name,
+                    "name": agent_name,
+                    "agent": agent,
                     "system": "stock",
-                    "success": result["stock_result"].get("success", False),
-                    "allocation": (
-                        "completed" if result["stock_result"].get("success") else None
-                    ),
+                    "system_instance": stock_system,
                 }
-                for agent_name in stock_system.agents.keys()
-            ]
-            + [
-                {
+            )
+
+    # Add polymarket agents
+    for agent_name, agent in polymarket_system.agents.items():
+        all_agents.append(
+            {
+                "name": agent_name,
+                "agent": agent,
+                "system": "polymarket",
+                "system_instance": polymarket_system,
+            }
+        )
+
+    print(f"📊 Processing {len(all_agents)} agents in parallel...")
+
+    # Pre-fetch shared market data to avoid duplicate fetching per agent
+    from concurrent.futures import as_completed
+
+    shared_stock_market_data: Dict[str, Dict[str, Any]] = {}
+    if getattr(stock_system, "universe", None):
+        print("🔎 Pre-fetching stock market data in parallel...")
+        tickers = list(stock_system.universe)
+        max_ticker_workers = max(2, min(16, len(tickers)))
+        with ThreadPoolExecutor(max_workers=max_ticker_workers) as tpool:
+            future_to_ticker = {
+                tpool.submit(fetch_current_stock_price, ticker): ticker
+                for ticker in tickers
+            }
+            for fut in as_completed(future_to_ticker):
+                ticker = future_to_ticker[fut]
+                try:
+                    price = fut.result()
+                    if price:
+                        shared_stock_market_data[ticker] = {
+                            "ticker": ticker,
+                            "name": stock_system.stock_info[ticker]["name"],
+                            "sector": stock_system.stock_info[ticker]["sector"],
+                            "current_price": price,
+                            "market_cap": stock_system.stock_info[ticker]["market_cap"],
+                        }
+                except Exception as e:
+                    print(f"⚠️ Failed to fetch data for {ticker}: {e}")
+
+    print(
+        f"📈 Pre-fetched {len(shared_stock_market_data)} stock quotes; sharing across agents"
+    )
+
+    # Polymarket can fetch once via its system method
+    try:
+        shared_polymarket_market_data = polymarket_system._fetch_market_data()
+    except Exception as e:
+        print(f"⚠️ Failed to pre-fetch polymarket data: {e}")
+        shared_polymarket_market_data = {}
+
+    # Function to process a single agent
+    def process_single_agent(agent_info):
+        try:
+            agent_name = agent_info["name"]
+            agent = agent_info["agent"]
+            system_type = agent_info["system"]
+            system_instance = agent_info["system_instance"]
+
+            print(f"🤖 [{system_type.upper()}] {agent_name} starting LLM call...")
+
+            # Get market data based on system type (shared across agents)
+            if system_type == "stock":
+                market_data = shared_stock_market_data
+
+                # Update position prices with shared data
+                for ag in system_instance.agents.values():
+                    if hasattr(ag.account, "update_position_price"):
+                        for ticker, data in market_data.items():
+                            ag.account.update_position_price(
+                                ticker, data.get("current_price", 0)
+                            )
+
+            else:  # polymarket
+                market_data = shared_polymarket_market_data
+
+            if not market_data:
+                return {
                     "agent_name": agent_name,
-                    "system": "polymarket",
-                    "success": result["polymarket_result"].get("success", False),
-                    "allocation": (
-                        "completed"
-                        if result["polymarket_result"].get("success")
-                        else None
-                    ),
+                    "system": system_type,
+                    "success": False,
+                    "allocation": None,
                 }
-                for agent_name in polymarket_system.agents.keys()
-            ],
+
+            # Generate portfolio allocation using the agent
+            allocation = agent.generate_portfolio_allocation(market_data)
+
+            if allocation:
+                print(
+                    f"✅ [{system_type.upper()}] {agent_name} allocation generated successfully"
+                )
+                return {
+                    "agent_name": agent_name,
+                    "system": system_type,
+                    "success": True,
+                    "allocation": allocation,
+                }
+            else:
+                print(
+                    f"⚠️ [{system_type.upper()}] {agent_name} no allocation generated"
+                )
+                return {
+                    "agent_name": agent_name,
+                    "system": system_type,
+                    "success": True,
+                    "allocation": None,
+                }
+
+        except Exception as e:
+            print(f"❌ [{system_type.upper()}] {agent_name} error: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return {
+                "agent_name": agent_name,
+                "system": system_type,
+                "success": False,
+                "error": str(e),
+            }
+
+    # Execute all agents in parallel
+    results = []
+    workers = max(2, min(32, len(all_agents)))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        # Submit all tasks
+        future_to_agent = {
+            executor.submit(process_single_agent, agent_info): agent_info
+            for agent_info in all_agents
         }
-    else:
-        return {"status": "error", "message": "Parallel processing failed"}
+        for future in as_completed(future_to_agent):
+            agent_info = future_to_agent[future]
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                print(f"❌ Task failed for {agent_info['name']}: {e}")
+                results.append(
+                    {
+                        "agent_name": agent_info["name"],
+                        "system": agent_info["system"],
+                        "success": False,
+                        "error": str(e),
+                    }
+                )
+
+    # Group results by system
+    stock_results = [r for r in results if r["system"] == "stock"]
+    polymarket_results = [r for r in results if r["system"] == "polymarket"]
+
+    return {
+        "success": True,
+        "total_agents": len(results),
+        "stock_success": len([r for r in stock_results if r["success"]]),
+        "polymarket_success": len([r for r in polymarket_results if r["success"]]),
+        "results": results,
+    }
+
+    shared_stock_market_data: Dict[str, Dict[str, Any]] = {}
+    if getattr(stock_system, "universe", None):
+        print("🔎 Pre-fetching stock market data in parallel...")
+        tickers = list(stock_system.universe)
+        max_ticker_workers = max(2, min(16, len(tickers)))
+        with ThreadPoolExecutor(max_workers=max_ticker_workers) as tpool:
+            future_to_ticker = {
+                tpool.submit(fetch_current_stock_price, ticker): ticker
+                for ticker in tickers
+            }
+            for fut in as_completed(future_to_ticker):
+                ticker = future_to_ticker[fut]
+                try:
+                    price = fut.result()
+                    if price:
+                        shared_stock_market_data[ticker] = {
+                            "ticker": ticker,
+                            "name": stock_system.stock_info[ticker]["name"],
+                            "sector": stock_system.stock_info[ticker]["sector"],
+                            "current_price": price,
+                            "market_cap": stock_system.stock_info[ticker]["market_cap"],
+                        }
+                except Exception as e:
+                    print(f"⚠️ Failed to fetch data for {ticker}: {e}")
+
+    print(
+        f"📈 Pre-fetched {len(shared_stock_market_data)} stock quotes; sharing across agents"
+    )
+
+    # Polymarket can fetch once via its system method
+    try:
+        shared_polymarket_market_data = polymarket_system._fetch_market_data()
+    except Exception as e:
+        print(f"⚠️ Failed to pre-fetch polymarket data: {e}")
+        shared_polymarket_market_data = {}
+
+    # Function to process a single agent
+    def process_single_agent(agent_info):
+        try:
+            agent_name = agent_info["name"]
+            agent = agent_info["agent"]
+            system_type = agent_info["system"]
+            system_instance = agent_info["system_instance"]
+
+            print(f"🤖 [{system_type.upper()}] {agent_name} starting LLM call...")
+
+            # Get market data based on system type (shared across agents)
+            if system_type == "stock":
+                market_data = shared_stock_market_data
+
+                # Update position prices with shared data
+                for ag in system_instance.agents.values():
+                    if hasattr(ag.account, "update_position_price"):
+                        for ticker, data in market_data.items():
+                            ag.account.update_position_price(
+                                ticker, data.get("current_price", 0)
+                            )
+
+            else:  # polymarket
+                market_data = shared_polymarket_market_data
+
+            if not market_data:
+                return {
+                    "agent_name": agent_name,
+                    "system": system_type,
+                    "success": False,
+                    "allocation": None,
+                }
+
+            # Generate portfolio allocation using the agent
+            allocation = agent.generate_portfolio_allocation(market_data)
+
+            if allocation:
+                print(
+                    f"✅ [{system_type.upper()}] {agent_name} allocation generated successfully"
+                )
+                return {
+                    "agent_name": agent_name,
+                    "system": system_type,
+                    "success": True,
+                    "allocation": allocation,
+                }
+            else:
+                print(
+                    f"⚠️ [{system_type.upper()}] {agent_name} no allocation generated"
+                )
+                return {
+                    "agent_name": agent_name,
+                    "system": system_type,
+                    "success": True,
+                    "allocation": None,
+                }
+
+        except Exception as e:
+            print(f"❌ [{system_type.upper()}] {agent_name} error: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return {
+                "agent_name": agent_name,
+                "system": system_type,
+                "success": False,
+                "error": str(e),
+            }
+
+    # Execute all agents in parallel
+    results = []
+    workers = max(2, min(32, len(all_agents)))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        # Submit all tasks
+        future_to_agent = {
+            executor.submit(process_single_agent, agent_info): agent_info
+            for agent_info in all_agents
+        }
+        for future in as_completed(future_to_agent):
+            agent_info = future_to_agent[future]
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                print(f"❌ Task failed for {agent_info['name']}: {e}")
+                results.append(
+                    {
+                        "agent_name": agent_info["name"],
+                        "system": agent_info["system"],
+                        "success": False,
+                        "error": str(e),
+                    }
+                )
+
+    # Group results by system
+    stock_results = [r for r in results if r["system"] == "stock"]
+    polymarket_results = [r for r in results if r["system"] == "polymarket"]
+
+    return {
+        "success": True,
+        "total_agents": len(results),
+        "stock_success": len([r for r in stock_results if r["success"]]),
+        "polymarket_success": len([r for r in polymarket_results if r["success"]]),
+        "results": results,
+    }
 
 
 def trigger_cycle() -> Dict[str, Any]:
@@ -391,6 +666,19 @@ def trigger_cycle() -> Dict[str, Any]:
 
         if result["success"]:
             print("✅ Parallel LLM trading cycles completed successfully")
+
+            # 🔄 CRITICAL FIX: Save updated data to JSON after parallel processing
+            print("💾 Saving updated model data to JSON...")
+            try:
+                updated_models = get_models_data()
+                print(f"✅ Successfully saved {len(updated_models)} models to JSON")
+            except Exception as save_error:
+                print(f"⚠️ Failed to save models data: {save_error}")
+                # Don't fail the whole operation if save fails
+                import traceback
+
+                traceback.print_exc()
+
             return {
                 "status": "success",
                 "message": "Parallel LLM trading cycles completed successfully",
@@ -541,6 +829,18 @@ def run_parallel_backtest(
     print("✅ Parallel backtest completed:")
     print(f"   📈 Stock models: {len(stock_results)} results")
     print(f"   🎯 Polymarket models: {len(polymarket_results)} results")
+
+    # 🔄 CRITICAL FIX: Save backtest results to models JSON
+    print("💾 Saving backtest results to models JSON...")
+    try:
+        backtest_data = {"stock": stock_results, "polymarket": polymarket_results}
+        _save_backtest_data_to_models(backtest_data)
+        print("✅ Backtest data saved to models JSON successfully")
+    except Exception as save_error:
+        print(f"⚠️ Failed to save backtest data: {save_error}")
+        import traceback
+
+        traceback.print_exc()
 
     return {
         "stock": stock_results,

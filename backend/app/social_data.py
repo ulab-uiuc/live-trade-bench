@@ -445,7 +445,6 @@ def update_social_data():
 
                     traceback.print_exc()
 
-        print("hello")
         # Save to JSON file
         with open("social_data.json", "w") as f:
             json.dump(social_data, f, indent=2)
