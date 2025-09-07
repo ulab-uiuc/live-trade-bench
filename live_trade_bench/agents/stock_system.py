@@ -7,8 +7,8 @@ from typing import Any, Dict, List
 from ..accounts import StockAccount, create_stock_account
 from ..fetchers.stock_fetcher import (
     fetch_current_stock_price,
-    fetch_trending_stocks,
     fetch_stock_price_on_date,
+    fetch_trending_stocks,
 )
 from .stock_agent import LLMStockAgent
 
@@ -126,7 +126,7 @@ class StockPortfolioSystem:
 
                     # Generate complete portfolio allocation
                     allocation = agent.generate_portfolio_allocation(
-                        market_data, agent.account
+                        market_data, agent.account, for_date
                     )
 
                     if allocation:
@@ -165,7 +165,9 @@ class StockPortfolioSystem:
                         )
                     else:
                         # Fallback: create simple equal-weight allocation if LLM returns nothing
-                        print(f"   ⚠️ No allocation generated for {agent_name} — applying fallback equal-weight allocation")
+                        print(
+                            f"   ⚠️ No allocation generated for {agent_name} — applying fallback equal-weight allocation"
+                        )
                         tickers = list(market_data.keys())[: min(5, len(market_data))]
                         fallback_alloc: Dict[str, float] = {}
                         if tickers:
@@ -184,7 +186,8 @@ class StockPortfolioSystem:
                                         print(f"   📈 {ticker}: {target_ratio:.1%}")
 
                             price_map = {
-                                t: d.get("current_price") for t, d in market_data.items()
+                                t: d.get("current_price")
+                                for t, d in market_data.items()
                             }
                             try:
                                 agent.account._simulate_rebalance_to_target(
@@ -197,7 +200,9 @@ class StockPortfolioSystem:
 
                             agent.account._record_allocation_snapshot()
                             updated_value = agent.account.get_total_value()
-                            print(f"   💰 Updated Portfolio Value: ${updated_value:,.2f}")
+                            print(
+                                f"   💰 Updated Portfolio Value: ${updated_value:,.2f}"
+                            )
                             print(
                                 f"   💵 Cash After Rebalance: ${agent.account.cash_balance:,.2f} | Positions: {len(agent.account.positions)}"
                             )

@@ -77,9 +77,12 @@ class PolymarketPortfolioSystem:
 
         return market_data
 
-    def run_cycle(self) -> Dict[str, Any]:
+    def run_cycle(self, for_date: str | None = None) -> Dict[str, Any]:
         """Run one portfolio management cycle."""
-        print(f"\n🔄 Running portfolio cycle {self.cycle_count}...")
+        mode = "Backtest" if for_date else "Live"
+        print(f"\n🔄 Running {mode} portfolio cycle {self.cycle_count}...")
+        if for_date:
+            print(f"   - Date: {for_date}")
 
         try:
             # Fetch market data for all markets
@@ -107,7 +110,7 @@ class PolymarketPortfolioSystem:
 
                     # Generate complete portfolio allocation
                     allocation = agent.generate_portfolio_allocation(
-                        market_data, agent.account
+                        market_data, agent.account, for_date
                     )
 
                     if allocation:

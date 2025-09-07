@@ -67,8 +67,8 @@ def run_startup_backtest():
         from live_trade_bench.backtesting import run_backtest
 
         # Use SINGLE source of truth for model configurations
-        # Calculate past week dates
-        end_date = datetime.now()
+        # Calculate past week dates - use historical data, not future data
+        end_date = datetime.now() - timedelta(days=1)  # Yesterday
         start_date = end_date - timedelta(days=TRADING_CONFIG["backtest_days"])
 
         # 使用统一配置源
@@ -103,6 +103,10 @@ def run_startup_backtest():
         from app.models_data import _save_backtest_data_to_models
 
         _save_backtest_data_to_models(backtest_results)
+
+        print(
+            f"✅ Startup backtest completed: {len(stock_results)} stock, {len(poly_results)} polymarket results"
+        )
 
     except Exception as e:
         print(f"❌ Startup backtest failed: {e}")
@@ -192,8 +196,10 @@ def startup_event():
     if not os.path.exists("backend/system_data.json"):
         update_system_status()
 
-    # 2. Run startup backtest in a separate thread to not block startup
-    threading.Thread(target=run_startup_backtest).start()
+    # 2. Run startup backtest SYNCHRONOUSLY to ensure it completes before other operations
+    logger.info("🔄 Running startup backtest...")
+    run_startup_backtest()
+    logger.info("✅ Startup backtest completed")
 
     # 3. Start all background updates
     run_background_updates()

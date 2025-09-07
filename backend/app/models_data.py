@@ -31,13 +31,14 @@ def _save_backtest_data_to_models(backtest_results: Dict[str, Any]):
 
         # Update models with backtest data
         for model in existing_models:
-            model_id = model.get("id", "")
+            model_name = model.get("name", "")
             category = model.get("category", "")
 
-            # Find matching backtest data using model_id for precision
+            # Find matching backtest data using model name (not id)
             category_results = backtest_results.get(category, {})
-            for backtest_model_id, backtest_data in category_results.items():
-                if model_id == backtest_model_id:
+            for backtest_model_name, backtest_data in category_results.items():
+                # Match by model name (case-insensitive)
+                if backtest_model_name.lower() == model_name.lower():
                     # Add backtest data directly to model
                     model["backtest"] = {
                         "initial_value": backtest_data.get("initial_value", 0),

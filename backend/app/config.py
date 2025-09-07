@@ -63,6 +63,7 @@ UPDATE_FREQUENCY = {
     "system_status": 60,  # 1分钟
     "news_social": 600,  # 10分钟
     "trading": 3600,  # 60分钟
+    "trading_cycle": 3600,  # 60分钟 - 别名
 }
 
 # 交易配置

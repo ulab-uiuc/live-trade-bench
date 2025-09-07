@@ -19,7 +19,10 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         self.account = None  # Will be set by the system
 
     def generate_portfolio_allocation(
-        self, market_data: Dict[str, DataType], account: AccountType
+        self,
+        market_data: Dict[str, DataType],
+        account: AccountType,
+        backtest_date: str | None = None,
     ) -> Optional[Dict[str, float]]:
         """Generate complete portfolio allocation for all assets."""
         if not market_data:
@@ -37,7 +40,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             # Prepare comprehensive analysis
             market_analysis = self._prepare_market_analysis(market_data)
             account_analysis = self._prepare_account_analysis(account)
-            news_analysis = self._prepare_news_analysis(market_data)
+            news_analysis = self._prepare_news_analysis(market_data, backtest_date)
             full_analysis = self._combine_analysis_data(
                 market_analysis, account_analysis, news_analysis
             )
@@ -131,16 +134,25 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             f"  Current Allocations: {account.target_allocations}"
         )
 
-    def _prepare_news_analysis(self, market_data: Dict[str, DataType]) -> str:
+    def _prepare_news_analysis(
+        self, market_data: Dict[str, DataType], backtest_date: str | None = None
+    ) -> str:
         """Prepare news analysis for all assets."""
         try:
             from datetime import datetime, timedelta
 
             from ..fetchers.news_fetcher import fetch_news_data
 
-            # Get recent news (last 3 days)
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
+            # Use backtest date if provided, otherwise use current date
+            reference_date = (
+                datetime.strptime(backtest_date, "%Y-%m-%d")
+                if backtest_date
+                else datetime.now()
+            )
+
+            # Get recent news (last 3 days from reference date)
+            end_date = reference_date.strftime("%Y-%m-%d")
+            start_date = (reference_date - timedelta(days=3)).strftime("%Y-%m-%d")
 
             news_summaries = []
             for asset_id, data in list(market_data.items())[:3]:  # Top 3 assets
