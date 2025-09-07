@@ -54,31 +54,12 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
     def _create_portfolio_allocation_from_response(
         self, parsed: Dict[str, Any], market_data: Dict[str, Dict[str, Any]]
     ) -> Optional[Dict[str, float]]:
-        """Create complete portfolio allocation from LLM response."""
-        allocations = parsed.get("allocations", {})
-
-        if not allocations:
+        """Create complete portfolio allocation from LLM response using base normalization."""
+        normalized = self._normalize_allocations_from_parsed(parsed)
+        if not normalized:
             print("⚠️ No allocations found in LLM response")
             return None
-
-        # Validate that allocations sum to approximately 1.0
-        total_allocation = sum(allocations.values())
-        if abs(total_allocation - 1.0) > 0.1:  # Allow 10% tolerance
-            print(
-                f"⚠️ Allocations don't sum to 1.0 (got {total_allocation:.3f}), normalizing"
-            )
-            # Normalize allocations
-            allocations = {k: v / total_allocation for k, v in allocations.items()}
-
-        # Validate individual allocations
-        for market_id, allocation in allocations.items():
-            if not (0.0 <= allocation <= 1.0):
-                print(
-                    f"⚠️ Invalid allocation {allocation} for {market_id}, clamping to [0,1]"
-                )
-                allocations[market_id] = max(0.0, min(1.0, allocation))
-
-        return allocations
+        return normalized
 
     def _get_portfolio_prompt(
         self, analysis: str, market_data: Dict[str, Dict[str, Any]]

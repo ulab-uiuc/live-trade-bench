@@ -104,6 +104,48 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
     ) -> Optional[Dict[str, Any]]:
         if not llm_response.get("success"):
             return None
+
+    def _normalize_allocations_from_parsed(
+        self, parsed: Dict[str, Any]
+    ) -> Optional[Dict[str, float]]:
+        """Normalize portfolio allocations to sum to 1.0 (including CASH).
+
+        Rules:
+        - Accepts any keys; if CASH is missing, derive CASH = max(0, 1 - sum(non-cash))
+        - Clamp individual weights to [0, 1] before normalization
+        - If total <= 0 after cleaning, return 100% CASH
+        - Finally normalize all weights so their sum equals 1.0 exactly
+        """
+        allocations = parsed.get("allocations", {}) if isinstance(parsed, dict) else {}
+        if not isinstance(allocations, dict) or not allocations:
+            return None
+
+        # Clamp non-negative and numeric
+        cleaned: Dict[str, float] = {}
+        for key, value in allocations.items():
+            if isinstance(value, (int, float)):
+                weight = float(value)
+                if weight < 0:
+                    weight = 0.0
+                cleaned[key] = min(1.0, weight)
+
+        # Derive CASH if not provided
+        if "CASH" not in cleaned:
+            non_cash_sum = sum(v for k, v in cleaned.items() if k != "CASH")
+            cleaned["CASH"] = max(0.0, 1.0 - non_cash_sum)
+
+        total = sum(cleaned.values())
+        if total <= 0:
+            return {"CASH": 1.0}
+
+        # Normalize
+        normalized = {k: (v / total) for k, v in cleaned.items()}
+
+        # Ensure exact unity by correcting CASH for any floating error
+        non_cash_sum = sum(v for k, v in normalized.items() if k != "CASH")
+        normalized["CASH"] = max(0.0, 1.0 - non_cash_sum)
+
+        return normalized
         try:
             from ..utils import parse_portfolio_response
 
