@@ -22,7 +22,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         self,
         market_data: Dict[str, DataType],
         account: AccountType,
-        backtest_date: str | None = None,
+        date: str | None = None,
     ) -> Optional[Dict[str, float]]:
         """Generate complete portfolio allocation for all assets."""
         if not market_data:
@@ -40,7 +40,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             # Prepare comprehensive analysis
             market_analysis = self._prepare_market_analysis(market_data)
             account_analysis = self._prepare_account_analysis(account)
-            news_analysis = self._prepare_news_analysis(market_data, backtest_date)
+            news_analysis = self._prepare_news_analysis(market_data, date)
             full_analysis = self._combine_analysis_data(
                 market_analysis, account_analysis, news_analysis
             )
@@ -135,7 +135,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         )
 
     def _prepare_news_analysis(
-        self, market_data: Dict[str, DataType], backtest_date: str | None = None
+        self, market_data: Dict[str, DataType], date: str | None = None
     ) -> str:
         """Prepare news analysis for all assets."""
         try:
@@ -143,11 +143,9 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
 
             from ..fetchers.news_fetcher import fetch_news_data
 
-            # Use backtest date if provided, otherwise use current date
+            # Use provided date if available, otherwise current date
             reference_date = (
-                datetime.strptime(backtest_date, "%Y-%m-%d")
-                if backtest_date
-                else datetime.now()
+                datetime.strptime(date, "%Y-%m-%d") if date else datetime.now()
             )
 
             # Get recent news (last 3 days from reference date)
