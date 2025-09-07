@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/models", tags=["models"])
 
 
 @router.get("/")
-async def get_models() -> List[Dict[str, Any]]:
+def get_models() -> List[Dict[str, Any]]:
     """Get models data from JSON file written by background task."""
     try:
         if not os.path.exists(MODELS_DATA_FILE):

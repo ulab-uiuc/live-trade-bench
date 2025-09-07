@@ -52,18 +52,18 @@ class BacktestRunner:
             {"name": name, "initial_cash": initial_cash, "model_name": model_name}
         )
 
-    async def run(self) -> Dict[str, Any]:
+    def run(self) -> Dict[str, Any]:
         """
-        Run backtest with async concurrency.
+        Run backtest.
 
-        Process all agents concurrently within a single portfolio system.
+        Process all agents within a single portfolio system.
         """
         print(
             f"🚀 Starting {self.market_type} backtest: {self.start_date.strftime('%Y-%m-%d')} → {self.end_date.strftime('%Y-%m-%d')}"
         )
-        print(f"🤖 Processing {len(self.agents)} agents concurrently in single system")
+        print(f"🤖 Processing {len(self.agents)} agents in single system")
 
-        # Create ONE system for ALL agents - major architecture fix!
+        # Create ONE system for ALL agents
         if self.market_type == "stock":
             from ..agents.stock_system import StockPortfolioSystem
 
@@ -82,10 +82,10 @@ class BacktestRunner:
         # Simulate trading period - ONE system call for ALL agents
         trading_days = self._get_trading_days()
 
-        # Run one cycle with all agents concurrently
+        # Run one cycle with all agents
         try:
             print(f"📅 Running backtest cycle for {len(trading_days)} days...")
-            await portfolio_system.run_cycle()
+            portfolio_system.run_cycle()
 
             # Extract results for each agent
             final_results = {}

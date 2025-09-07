@@ -5,6 +5,7 @@ Real model data provider using live_trade_bench
 import json
 import os
 import random
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -320,21 +321,25 @@ def get_allocation_history(model_id: str) -> Optional[List[Dict[str, Any]]]:
         return None
 
 
-async def trigger_cycle() -> Dict[str, Any]:
+def trigger_cycle() -> Dict[str, Any]:
     """Run one trading cycle using real live_trade_bench systems"""
     try:
         stock_system = _get_stock_system()
         polymarket_system = _get_polymarket_system()
 
-        print("🔄 Triggering LLM trading cycles...")
+        print("🔄 Triggering LLM trading cycles using threads...")
 
-        # Run stock system cycle
-        print("  📈 Running stock portfolio cycle...")
-        stock_result = await stock_system.run_cycle()
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            # Submit tasks to the thread pool
+            future_stock = executor.submit(stock_system.run_cycle)
+            future_poly = executor.submit(polymarket_system.run_cycle)
 
-        # Run polymarket system cycle
-        print("  🎯 Running polymarket portfolio cycle...")
-        poly_result = await polymarket_system.run_cycle()
+            # Wait for results
+            print("  📈 Waiting for stock portfolio cycle...")
+            stock_result = future_stock.result()
+
+            print("  🎯 Waiting for polymarket portfolio cycle...")
+            poly_result = future_poly.result()
 
         # Check results
         success = stock_result.get("success", True) and poly_result.get("success", True)

@@ -69,7 +69,7 @@ class StockPortfolioSystem:
 
         return market_data
 
-    async def run_cycle(self) -> Dict[str, Any]:
+    def run_cycle(self) -> Dict[str, Any]:
         """Run one portfolio management cycle."""
         print(f"\n🔄 Running portfolio cycle {self.cycle_count}...")
 
@@ -103,9 +103,8 @@ class StockPortfolioSystem:
 
             print(f"📊 Fetched data for {len(market_data)} stocks")
 
-            # Generate portfolio allocations for all agents concurrently
-            async def process_agent(agent_name: str, agent):
-                """Process single agent allocation concurrently."""
+            # Generate portfolio allocations for all agents
+            for agent_name, agent in self.agents.items():
                 try:
                     print(f"\n🤖 {agent_name} generating portfolio allocation...")
 
@@ -119,7 +118,7 @@ class StockPortfolioSystem:
                     )
 
                     # Generate complete portfolio allocation
-                    allocation = await agent.generate_portfolio_allocation(
+                    allocation = agent.generate_portfolio_allocation(
                         market_data, agent.account
                     )
 
@@ -136,20 +135,14 @@ class StockPortfolioSystem:
                         agent.account._record_allocation_snapshot()
 
                         print(f"   ✅ Portfolio allocation updated for {agent_name}")
-                        return agent_name, True
                     else:
                         print(f"   ⚠️ No allocation generated for {agent_name}")
-                        return agent_name, False
 
                 except Exception as e:
                     print(f"❌ Error processing {agent_name}: {e}")
                     import traceback
 
                     traceback.print_exc()
-                    return agent_name, False
-
-            # Execute all agents concurrently - major performance boost!
-            print(f"🚀 Processing {len(self.agents)} agents concurrently...")
 
             self.cycle_count += 1
             return {

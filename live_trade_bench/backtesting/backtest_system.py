@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Tuple
 from .backtest_runner import BacktestRunner
 
 
-async def run_backtest(
+def run_backtest(
     models: List[Tuple[str, str]],  # [(name, model_id), ...]
     initial_cash: float,
     start_date: str,
@@ -39,4 +39,4 @@ async def run_backtest(
             model_name=model_id,
         )
 
-    return await runner.run()
+    return runner.run()

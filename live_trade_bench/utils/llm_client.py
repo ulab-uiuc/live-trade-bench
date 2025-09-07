@@ -2,7 +2,6 @@
 LLM utilities for trading decisions using litellm
 """
 
-import asyncio
 import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
@@ -192,75 +191,3 @@ def parse_portfolio_response(content: str) -> Dict[str, Any]:
                 "allocations": {},
                 "reasoning": "Parsed from LLM response - no allocation change",
             }
-
-
-# ----------------------
-# Parallel/async helpers
-# ----------------------
-async def acall_llm(
-    messages: List[Dict[str, str]],
-    model: str = "gpt-4o-mini",
-    agent_name: str = "AI",
-    timeout: Optional[float] = None,
-) -> Dict[str, Any]:
-    """
-    Async version of call_llm using litellm.acompletion.
-
-    Returns same shape as call_llm: { success, content, error }
-    """
-    try:
-        import litellm  # type: ignore
-
-        # API key presence check
-        if not any(
-            [
-                os.getenv("OPENAI_API_KEY"),
-                os.getenv("ANTHROPIC_API_KEY"),
-                os.getenv("GEMINI_API_KEY"),
-                os.getenv("TOGETHER_API_KEY"),
-            ]
-        ):
-            return {"success": False, "content": "", "error": "No API key found"}
-
-        # Format messages
-        formatted_messages = [
-            {"role": m["role"], "content": str(m.get("content", ""))} for m in messages
-        ]
-
-        provider, normalized_model, api_key_env = _resolve_provider_and_model(model)
-        completion_params: Dict[str, Any] = {
-            "model": normalized_model,
-            "messages": formatted_messages,
-        }
-        if provider:
-            completion_params["custom_llm_provider"] = provider
-        if api_key_env and os.getenv(api_key_env):
-            completion_params["api_key"] = os.getenv(api_key_env)
-        if timeout is not None:
-            completion_params["timeout"] = timeout
-
-        if "gpt-5" not in normalized_model.lower():
-            completion_params.update({"temperature": 0.3, "max_tokens": 200})
-
-        # Use asyncio.wait_for for proper timeout handling
-        if timeout is not None:
-            response = await asyncio.wait_for(
-                litellm.acompletion(**completion_params), timeout=timeout
-            )
-        else:
-            response = await litellm.acompletion(**completion_params)
-
-        content = response.choices[0].message.content
-        return {"success": True, "content": content, "error": None}
-
-    except ImportError:
-        return {"success": False, "content": "", "error": "litellm not installed"}
-    except asyncio.TimeoutError:
-        return {
-            "success": False,
-            "content": "",
-            "error": f"Request timed out after {timeout}s",
-        }
-    except Exception as e:
-        print(f"⚠️ {agent_name}: LLM error: {e}")
-        return {"success": False, "content": "", "error": str(e)}
