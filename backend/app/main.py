@@ -175,9 +175,9 @@ def startup_event():
 
     # 1. Initial data generation (if files don't exist)
     from app.models_data import get_models_data
-    from app.news_data import get_news_data
-    from app.social_data import get_social_data
-    from app.system_data import get_system_data
+    from app.news_data import update_news_data
+    from app.social_data import update_social_data
+    from app.system_data import update_system_status
 
     # Check for models.json, if not present, generate it
     if not os.path.exists("backend/models_data.json"):
@@ -186,11 +186,11 @@ def startup_event():
 
     # Generate other data files if they don't exist
     if not os.path.exists("backend/news_data.json"):
-        get_news_data()
+        update_news_data()
     if not os.path.exists("backend/social_data.json"):
-        get_social_data()
+        update_social_data()
     if not os.path.exists("backend/system_data.json"):
-        get_system_data()
+        update_system_status()
 
     # 2. Run startup backtest in a separate thread to not block startup
     threading.Thread(target=run_startup_backtest).start()
