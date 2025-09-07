@@ -6,7 +6,7 @@ Just controls time flow, uses existing systems unchanged.
 """
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from ..agents.polymarket_system import PolymarketPortfolioSystem
 from ..agents.stock_system import StockPortfolioSystem
@@ -140,3 +140,32 @@ class BacktestRunner:
             current += timedelta(days=1)
 
         return days
+
+
+# Simple wrapper function for backtesting (merged from backtest_system)
+def run_backtest(
+    models: List[Tuple[str, str]],  # [(name, model_id), ...]
+    initial_cash: float,
+    start_date: str,
+    end_date: str,
+    market_type: str = "stock",
+) -> Dict[str, Any]:
+    """
+    Run backtest with multiple models - simplified interface.
+
+    Args:
+        models: List of (name, model_id) tuples, e.g. [("GPT-4o", "gpt-4o")]
+        initial_cash: Initial cash for each model
+        start_date: YYYY-MM-DD
+        end_date: YYYY-MM-DD
+        market_type: "stock" or "polymarket"
+
+    Returns:
+        Backtest results with all models processed concurrently
+    """
+    runner = BacktestRunner(start_date, end_date, market_type=market_type)
+
+    for name, model_id in models:
+        runner.add_agent(name=name, initial_cash=initial_cash, model_name=model_id)
+
+    return runner.run()
