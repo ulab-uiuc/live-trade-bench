@@ -43,7 +43,14 @@ def get_base_model_configs() -> List[Tuple[str, str]]:
         List[Tuple[str, str]]: [(display_name, model_id), ...]
     """
     return [
+        ("GPT-4o", "gpt-4o"),
+        ("Claude 3.5 Sonnet", "claude-3-5-sonnet-20241022"),
+        ("GPT-4 Turbo", "gpt-4-turbo"),
         ("GPT-4o Mini", "gpt-4o-mini"),
+        ("Claude 3 Haiku", "claude-3-haiku-20240307"),
+        ("Gemini Pro", "gemini-pro"),
+        ("Llama 3.1", "llama-3.1-70b-versatile"),
+        ("Qwen/Qwen2.5-Instruct-Turbo", "qwen/qwen2.5-7b-instruct-turbo"),
     ]
 
 
