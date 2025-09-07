@@ -162,3 +162,42 @@ def fetch_current_stock_price(ticker: str) -> Optional[float]:
     if price:
         print(f"Stock price 💰 {ticker}: {price}")
     return price
+
+
+def fetch_stock_price_on_date(ticker: str, date: str) -> Optional[float]:
+    """Fetch the closing price for a specific date (YYYY-MM-DD).
+
+    yfinance's end date is exclusive, so we add one day to ensure the date is included.
+    """
+    try:
+        fetcher = StockFetcher()
+        # Use private helper to avoid multi-strategy current price logic
+        from datetime import datetime, timedelta
+
+        start_date = date
+        end_date_dt = datetime.strptime(date, "%Y-%m-%d") + timedelta(days=1)
+        end_date = end_date_dt.strftime("%Y-%m-%d")
+
+        df = fetcher._download_price_data(ticker, start_date, end_date, interval="1d")
+        if df is not None and not df.empty:
+            # Prefer Close -> Adj Close -> close
+            for col in ("Close", "Adj Close", "close"):
+                if col in df.columns:
+                    series = df[col]
+                    # Convert last value to plain python float safely
+                    try:
+                        price = float(series.to_numpy()[-1])
+                    except Exception:
+                        val = series.iloc[-1]
+                        try:
+                            price = float(getattr(val, "item", lambda: val)())
+                        except Exception:
+                            continue
+                    print(f"Stock price @ {date} 💰 {ticker}: {price}")
+                    return price
+            print(f"⚠️ No historical price column found for {ticker} @ {date}")
+        else:
+            print(f"⚠️ No historical data returned for {ticker} {start_date}→{end_date} @ 1d")
+    except Exception as e:
+        print(f"⚠️ Error fetching historical price for {ticker} @ {date}: {e}")
+    return None

@@ -26,60 +26,53 @@ async def main():
     print("   python enhanced_backtest_demo.py")
     print()
 
-    # Test with trading days (avoid holidays)
     start_date = "2024-01-02"  # Avoid New Year's Day
-    end_date = "2024-01-03"  # Short test period
+    end_date = "2024-01-06"  # Short test period
 
     print(f"🚀 Running backtest: {start_date} → {end_date}")
 
     try:
-        # Define multiple agents with different models from async_demo
-        agents_config = {
-            "Qwen_Agent": {
-                "initial_cash": 1000,
-                "model": "together:Qwen/Qwen2.5-7B-Instruct-Turbo",
-            },
-            "Llama_Agent": {
-                "initial_cash": 1000,
-                "model": "together:meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-            },
-            "GPT5_Agent": {"initial_cash": 1000, "model": "openai:gpt-5"},
-            "GPT4o_Mini_Agent": {"initial_cash": 1000, "model": "openai:gpt-4o-mini"},
-        }
+        models = [
+            #("Qwen_Agent", "together:Qwen/Qwen2.5-7B-Instruct-Turbo"),
+            #("Llama_Agent", "together:meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"),
+            ("GPT5_Agent", "openai:gpt-5"),
+            #("GPT4o_Mini_Agent", "openai:gpt-4o-mini"),
+        ]
 
-        print(f"🤖 Testing {len(agents_config)} AI models:")
-        for agent_name, config in agents_config.items():
-            print(f"   • {agent_name}: {config['model']}")
+        print(f"🤖 Testing {len(models)} AI models:")
+        for name, model_id in models:
+            print(f"   • {name}: {model_id}")
 
-        results = await run_backtest(start_date, end_date, agents_config)
+        # run_backtest 是同步函数
+        results = run_backtest(
+            models=models,
+            initial_cash=1000.0,
+            start_date=start_date,
+            end_date=end_date,
+            market_type="stock",
+        )
 
-        print("\n📊 Backtest Results:")
-        print(f"   Period: {results['start_date']} → {results['end_date']}")
-        print(f"   Trading days: {results['total_days']}")
-
-        print("\n🏆 AI Model Performance Comparison:")
+        print("\n📊 Backtest Results (per agent):")
         print("=" * 60)
 
-        # Sort agents by return percentage for ranking
+        # results 已是每个 agent 的摘要字典
+        # {agent_name: {initial_value, final_value, return_percentage, period}}
         sorted_agents = sorted(
-            results["agents"].items(),
+            results.items(),
             key=lambda x: x[1]["return_percentage"],
             reverse=True,
         )
 
         for rank, (agent_name, perf) in enumerate(sorted_agents, 1):
-            model_name = (
-                agents_config[agent_name]["model"].split(":")[-1].split("/")[-1]
-            )
+            model_name = next((m for n, m in models if n == agent_name), "?")
             print(f"   #{rank} {agent_name} ({model_name}):")
             print(f"        Initial: ${perf['initial_value']:,.2f}")
             print(f"        Final:   ${perf['final_value']:,.2f}")
             print(f"        Return:  {perf['return_percentage']:+.2f}%")
             print()
 
-        # Find the best performing model
         best_agent, best_perf = sorted_agents[0]
-        best_model = agents_config[best_agent]["model"]
+        best_model = next((m for n, m in models if n == best_agent), "?")
         print(f"🏅 Best Performer: {best_agent}")
         print(f"   Model: {best_model}")
         print(f"   Return: {best_perf['return_percentage']:+.2f}%")

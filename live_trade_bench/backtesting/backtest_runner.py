@@ -10,8 +10,6 @@ from typing import Any, Dict, List
 
 from ..agents.polymarket_system import PolymarketPortfolioSystem
 from ..agents.stock_system import StockPortfolioSystem
-from ..fetchers.polymarket_fetcher import PolymarketFetcher
-from ..fetchers.stock_fetcher import StockFetcher
 
 
 class BacktestRunner:
@@ -37,10 +35,8 @@ class BacktestRunner:
         # Use existing systems - zero special cases
         if market_type == "stock":
             self.system = StockPortfolioSystem()
-            self.fetcher = StockFetcher()
         else:
             self.system = PolymarketPortfolioSystem()
-            self.fetcher = PolymarketFetcher()
 
         self.agents: List[Dict[str, Any]] = []
 
@@ -63,29 +59,27 @@ class BacktestRunner:
         )
         print(f"🤖 Processing {len(self.agents)} agents in single system")
 
-        # Create ONE system for ALL agents
-        if self.market_type == "stock":
-            from ..agents.stock_system import StockPortfolioSystem
-
-            portfolio_system = StockPortfolioSystem()
-        else:
-            from ..agents.polymarket_system import PolymarketPortfolioSystem
-
-            portfolio_system = PolymarketPortfolioSystem()
-
-        # Add all agents to the SAME system
+        # Add all agents to the initialized system
         for agent in self.agents:
-            portfolio_system.add_agent(
+            self.system.add_agent(
                 agent["name"], agent["initial_cash"], agent["model_name"]
             )
 
-        # Simulate trading period - ONE system call for ALL agents
+        # Simulate trading period - loop over trading days
         trading_days = self._get_trading_days()
 
-        # Run one cycle with all agents
+        # Run cycles equal to number of trading days
         try:
-            print(f"📅 Running backtest cycle for {len(trading_days)} days...")
-            portfolio_system.run_cycle()
+            print(f"📅 Running backtest for {len(trading_days)} days...")
+            for day_index, current_day in enumerate(trading_days, start=1):
+                print(
+                    f"\n===== 📆 Day {day_index}/{len(trading_days)}: {current_day.strftime('%Y-%m-%d')} ====="
+                )
+                # Pass date only for stock system which supports date-specific pricing
+                if self.market_type == "stock":
+                    self.system.run_cycle(current_day.strftime('%Y-%m-%d'))
+                else:
+                    self.system.run_cycle()
 
             # Extract results for each agent
             final_results = {}
@@ -94,8 +88,8 @@ class BacktestRunner:
                 initial_cash = agent["initial_cash"]
 
                 # Get final portfolio value from the agent's account
-                if agent_name in portfolio_system.agents:
-                    agent_account = portfolio_system.agents[agent_name].account
+                if agent_name in self.system.agents:
+                    agent_account = self.system.agents[agent_name].account
                     final_value = agent_account.get_total_value()
                     return_pct = ((final_value - initial_cash) / initial_cash) * 100
 
@@ -135,13 +129,14 @@ class BacktestRunner:
             return error_results
 
     def _get_trading_days(self) -> List[datetime]:
-        """Get trading days in backtest period."""
-        days = []
+        """Get trading days in backtest period (weekdays only)."""
+        days: List[datetime] = []
         current = self.start_date
 
         while current <= self.end_date:
-            # For simplicity, include all days (systems handle market closures)
-            days.append(current)
+            # Only include weekdays (Mon-Fri). Systems can still handle closures.
+            if current.weekday() < 5:
+                days.append(current)
             current += timedelta(days=1)
 
         return days

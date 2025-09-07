@@ -8,7 +8,7 @@ Stock account management system (simplified)
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .base_account import BaseAccount
 
@@ -134,7 +134,9 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
 
         return allocations
 
-    def _simulate_rebalance_to_target(self, target_allocations: Dict[str, float]):
+    def _simulate_rebalance_to_target(
+        self, target_allocations: Dict[str, float], price_map: Optional[Dict[str, float]] = None
+    ):
         """
         Execute real rebalancing to target allocation with real market prices.
         """
@@ -146,22 +148,28 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
         for ticker in target_allocations.keys():
             if ticker == "CASH":
                 continue
-            try:
-                from ..fetchers.stock_fetcher import StockFetcher
+            # Prefer provided price_map (e.g., historical price for backtest)
+            if price_map and ticker in price_map:
+                real_prices[ticker] = float(price_map[ticker])
+                print(f"✅ PRICE: Using provided {ticker} price: ${real_prices[ticker]:.2f}")
+            else:
+                # Fallback to live fetch
+                try:
+                    from ..fetchers.stock_fetcher import StockFetcher
 
-                fetcher = StockFetcher()
-                price = fetcher.fetch("stock_price", ticker=ticker)
-                if price:
-                    real_prices[ticker] = price
-                    print(f"✅ REAL: Fetched {ticker} price: ${price:.2f}")
-                else:
-                    print(f"⚠️ FALLBACK: API returned null price for {ticker}")
+                    fetcher = StockFetcher()
+                    price = fetcher.fetch("stock_price", ticker=ticker)
+                    if price:
+                        real_prices[ticker] = price
+                        print(f"✅ REAL: Fetched {ticker} live price: ${price:.2f}")
+                    else:
+                        print(f"⚠️ FALLBACK: API returned null price for {ticker}")
+                        print(f"⚠️ FALLBACK: Using mock price $100.00 for {ticker}")
+                        real_prices[ticker] = 100.0
+                except Exception as e:
+                    print(f"⚠️ FALLBACK: Could not fetch price for {ticker}: {e}")
                     print(f"⚠️ FALLBACK: Using mock price $100.00 for {ticker}")
                     real_prices[ticker] = 100.0
-            except Exception as e:
-                print(f"⚠️ FALLBACK: Could not fetch real price for {ticker}: {e}")
-                print(f"⚠️ FALLBACK: Using mock price $100.00 for {ticker}")
-                real_prices[ticker] = 100.0
 
         # Update existing positions with real prices
         for ticker, position in self.positions.items():

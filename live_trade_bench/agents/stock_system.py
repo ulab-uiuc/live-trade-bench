@@ -5,7 +5,11 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 from ..accounts import StockAccount, create_stock_account
-from ..fetchers.stock_fetcher import fetch_current_stock_price, fetch_trending_stocks
+from ..fetchers.stock_fetcher import (
+    fetch_current_stock_price,
+    fetch_trending_stocks,
+    fetch_stock_price_on_date,
+)
 from .stock_agent import LLMStockAgent
 
 
@@ -69,7 +73,7 @@ class StockPortfolioSystem:
 
         return market_data
 
-    def run_cycle(self) -> Dict[str, Any]:
+    def run_cycle(self, for_date: str | None = None) -> Dict[str, Any]:
         """Run one portfolio management cycle."""
         print(f"\n🔄 Running portfolio cycle {self.cycle_count}...")
 
@@ -78,8 +82,11 @@ class StockPortfolioSystem:
             market_data = {}
             for ticker in self.universe:
                 try:
-                    # Get current price
-                    price = fetch_current_stock_price(ticker)
+                    # Get price either for a specific date or current
+                    if for_date:
+                        price = fetch_stock_price_on_date(ticker, for_date)
+                    else:
+                        price = fetch_current_stock_price(ticker)
                     if price:
                         market_data[ticker] = {
                             "ticker": ticker,
@@ -131,12 +138,71 @@ class StockPortfolioSystem:
                                 )
                                 print(f"   📈 {ticker}: {target_ratio:.1%}")
 
-                        # After updating allocations, record a snapshot of the new state
+                        # Build price map for rebalance (use current market_data)
+                        price_map = {
+                            t: d.get("current_price") for t, d in market_data.items()
+                        }
+
+                        # Execute rebalancing to target so positions reflect allocations
+                        try:
+                            agent.account._simulate_rebalance_to_target(
+                                agent.account.target_allocations,
+                                price_map=price_map,
+                            )
+                            print("   🔁 Rebalanced to target allocations")
+                        except Exception as rebalance_error:
+                            print(f"   ⚠️ Rebalance failed: {rebalance_error}")
+
+                        # Record a snapshot after rebalancing
                         agent.account._record_allocation_snapshot()
 
                         print(f"   ✅ Portfolio allocation updated for {agent_name}")
+                        # Print updated portfolio value after rebalance
+                        updated_value = agent.account.get_total_value()
+                        print(f"   💰 Updated Portfolio Value: ${updated_value:,.2f}")
+                        print(
+                            f"   💵 Cash After Rebalance: ${agent.account.cash_balance:,.2f} | Positions: {len(agent.account.positions)}"
+                        )
                     else:
-                        print(f"   ⚠️ No allocation generated for {agent_name}")
+                        # Fallback: create simple equal-weight allocation if LLM returns nothing
+                        print(f"   ⚠️ No allocation generated for {agent_name} — applying fallback equal-weight allocation")
+                        tickers = list(market_data.keys())[: min(5, len(market_data))]
+                        fallback_alloc: Dict[str, float] = {}
+                        if tickers:
+                            cash_ratio = 0.2
+                            per_stock = (1.0 - cash_ratio) / len(tickers)
+                            for t in tickers:
+                                fallback_alloc[t] = per_stock
+                            fallback_alloc["CASH"] = cash_ratio
+
+                            for ticker, target_ratio in fallback_alloc.items():
+                                if ticker in self.universe or ticker == "CASH":
+                                    agent.account.set_target_allocation(
+                                        ticker, target_ratio
+                                    )
+                                    if ticker != "CASH":
+                                        print(f"   📈 {ticker}: {target_ratio:.1%}")
+
+                            price_map = {
+                                t: d.get("current_price") for t, d in market_data.items()
+                            }
+                            try:
+                                agent.account._simulate_rebalance_to_target(
+                                    agent.account.target_allocations,
+                                    price_map=price_map,
+                                )
+                                print("   🔁 Rebalanced to fallback target allocations")
+                            except Exception as rebalance_error:
+                                print(f"   ⚠️ Rebalance failed: {rebalance_error}")
+
+                            agent.account._record_allocation_snapshot()
+                            updated_value = agent.account.get_total_value()
+                            print(f"   💰 Updated Portfolio Value: ${updated_value:,.2f}")
+                            print(
+                                f"   💵 Cash After Rebalance: ${agent.account.cash_balance:,.2f} | Positions: {len(agent.account.positions)}"
+                            )
+                        else:
+                            print("   ⚠️ No tickers available for fallback allocation")
 
                 except Exception as e:
                     print(f"❌ Error processing {agent_name}: {e}")
