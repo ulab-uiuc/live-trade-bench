@@ -78,11 +78,6 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
                 )
                 allocations[market_id] = max(0.0, min(1.0, allocation))
 
-        # Ensure CASH is included
-        if "CASH" not in allocations:
-            print("⚠️ CASH allocation not found, adding default 20%")
-            allocations["CASH"] = 0.2
-
         return allocations
 
     def _get_portfolio_prompt(
