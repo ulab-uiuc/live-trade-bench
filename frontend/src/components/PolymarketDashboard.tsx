@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import ModelsDisplay from './ModelsDisplay';
-import SystemMonitoring from './SystemMonitoring';
 import './Dashboard.css';
 import { Model } from '../types';
 
@@ -63,8 +62,7 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({ modelsData, m
         onRefresh={undefined}
       />
 
-      {/* 系统监控 */}
-      <SystemMonitoring />
+      
     </div>
   );
 };
