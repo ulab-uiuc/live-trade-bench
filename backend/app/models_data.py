@@ -7,7 +7,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from backend.app.config import MODELS_DATA_FILE
+from .config import MODELS_DATA_FILE
 from live_trade_bench.systems import (
     PolymarketPortfolioSystem,
     StockPortfolioSystem,
@@ -49,39 +49,6 @@ def generate_models_data() -> None:
     except IOError as e:
         print(f"❌ Error writing to {MODELS_DATA_FILE}: {e}")
 
-def run_backend_backtest() -> None:
-    from datetime import datetime, timedelta
-    from backend.app.config import (
-        BACKTEST_RESULTS_FILE,
-        get_base_model_configs,
-    )
-    from live_trade_bench.backtesting import run_backtest
-
-    print("🚀 Starting backend backtest...")
-    models = get_base_model_configs()
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=7)
-
-    all_results = {}
-    for market_type in ["stock", "polymarket"]:
-        print(f"--- Running backtest for {market_type.upper()} market ---")
-        initial_cash = 1000.0 if market_type == "stock" else 500.0
-        
-        results = run_backtest(
-            models=models,
-            initial_cash=initial_cash,
-            start_date=start_date.strftime("%Y-%m-%d"),
-            end_date=end_date.strftime("%Y-%m-%d"),
-            market_type=market_type,
-        )
-        all_results[market_type] = results
-
-    try:
-        with open(BACKTEST_RESULTS_FILE, "w") as f:
-            json.dump(all_results, f, indent=4)
-        print(f"✅ Backtest results saved to {BACKTEST_RESULTS_FILE}")
-    except IOError as e:
-        print(f"❌ Error writing backtest results: {e}")
 
 if __name__ == "__main__":
     generate_models_data()

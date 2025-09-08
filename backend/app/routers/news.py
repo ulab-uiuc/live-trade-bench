@@ -1,11 +1,13 @@
 from typing import Any, Dict, List
 from fastapi import APIRouter
-from backend.app.config import NEWS_DATA_FILE
-from backend.app.router_utils import read_json_file, get_paginated_data
+from ..config import NEWS_DATA_FILE
+from .router_utils import read_json_or_404, slice_limit
 
 router = APIRouter()
 
 @router.get("/news", response_model=Dict[str, List[Dict[str, Any]]])
-def get_news(limit: int = 10, page: int = 1):
-    data = read_json_file(NEWS_DATA_FILE, "News data not found.")
-    return get_paginated_data(data, limit, page)
+def get_news(limit: int = 100):
+    data = read_json_or_404(NEWS_DATA_FILE)
+    stock_news = slice_limit(data.get("stock", []), limit, 100, 500)
+    polymarket_news = slice_limit(data.get("polymarket", []), limit, 100, 500)
+    return {"stock": stock_news, "polymarket": polymarket_news}

@@ -12,10 +12,10 @@ from app.config import (
     UPDATE_FREQUENCY,
     get_base_model_configs,
 )
-from app.news_data import update_news_data
-from app.routers import models, news, social, system
-from app.social_data import update_social_data
-from app.system_data import update_system_status
+from .news_data import update_news_data
+from .routers import models, news, social, system
+from .social_data import update_social_data
+from .system_data import update_system_status
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -52,10 +52,9 @@ app.include_router(system.router)
 
 def run_initial_tasks():
     print("🚀 Kicking off initial background tasks...")
-    from .models_data import generate_models_data, run_backend_backtest
+    from .models_data import generate_models_data
 
     generate_models_data()
-    run_backend_backtest()
     print("✅ Initial background tasks finished.")
 
 
