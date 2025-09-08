@@ -26,8 +26,8 @@ from .agents.base_agent import BaseAgent
 from .agents.polymarket_agent import LLMPolyMarketAgent
 from .agents.stock_agent import LLMStockAgent
 
-# Backtesting
-from .backtesting.backtest_runner import BacktestRunner
+# backtest
+from .backtest.backtest_runner import BacktestRunner
 
 # Fetchers
 from .fetchers.base_fetcher import BaseFetcher
@@ -85,7 +85,7 @@ __all__ = [
     "fetch_market_price_on_date",
     "fetch_token_price",
     "RedditFetcher",
-    # Backtesting
+    # backtest
     "BacktestRunner",
     # Utilities
     "call_llm",
