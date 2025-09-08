@@ -14,10 +14,12 @@ from live_trade_bench.mock.mock_system import (  # noqa: E402
     MockFetcherPolymarketSystem,
     MockFetcherStockSystem,
 )
+from dataclasses import asdict
 from live_trade_bench.systems.polymarket_system import (  # noqa: E402
     PolymarketPortfolioSystem,
 )
 from live_trade_bench.systems.stock_system import StockPortfolioSystem  # noqa: E402
+from live_trade_bench.accounts.base_account import Position  # noqa: E402
 
 from .config import (  # noqa: E402
     MODELS_DATA_FILE,

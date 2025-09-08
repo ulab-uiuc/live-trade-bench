@@ -22,11 +22,6 @@ SYSTEM_DATA_FILE = os.path.join(BACKEND_ROOT, "system_data.json")
 
 
 def get_base_model_configs() -> List[Tuple[str, str]]:
-    """：
-
-    Returns:
-        List[Tuple[str, str]]: [(display_name, model_id), ...]
-    """
     return [
         # ("Claude 3.5 Sonnet", "claude-3-5-sonnet-20241022"),
         # ("GPT-4 Turbo", "gpt-4-turbo"),
@@ -41,8 +36,8 @@ def get_base_model_configs() -> List[Tuple[str, str]]:
 UPDATE_FREQUENCY = {
     "system_status": 60,
     "news_social": 600,
-    "trading": 3600,
-    "trading_cycle": 3600,
+    "trading": 30,
+    "trading_cycle": 30,
 }
 
 TRADING_CONFIG = {
@@ -72,16 +67,10 @@ ALLOWED_ORIGINS = [
 
 
 def ensure_data_directory():
-    """"""
     os.makedirs(BACKEND_ROOT, exist_ok=True)
 
 
 def get_data_file_path(file_type: str) -> str:
-    """
-
-    Args:
-        file_type: 'models', 'news', 'social', 'system'
-    """
     mapping = {
         "models": MODELS_DATA_FILE,
         "news": NEWS_DATA_FILE,
