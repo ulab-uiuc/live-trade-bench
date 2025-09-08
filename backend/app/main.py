@@ -37,10 +37,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(models.router)
-app.include_router(news.router)
-app.include_router(social.router)
-app.include_router(system.router)
+app.include_router(models.router, prefix="/api")
+app.include_router(news.router, prefix="/api")
+app.include_router(social.router, prefix="/api")
+app.include_router(system.router, prefix="/api")
+
+
+@app.get("/api")
+async def api_root():
+    """API information endpoint."""
+    return {
+        "message": "Live Trade Bench API",
+        "version": "1.0.0",
+        "endpoints": {
+            "models": "/api/models",
+            "news": "/api/news",
+            "social": "/api/social",
+            "system": "/api/system",
+            "docs": "/docs",
+            "redoc": "/redoc",
+        },
+    }
 
 
 def run_initial_tasks():
