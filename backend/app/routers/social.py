@@ -1,9 +1,12 @@
 from typing import Any, Dict, List
+
 from fastapi import APIRouter
+
 from ..config import SOCIAL_DATA_FILE
 from .router_utils import read_json_or_404, slice_limit
 
 router = APIRouter()
+
 
 @router.get("/social", response_model=Dict[str, List[Dict[str, Any]]])
 def get_social_media(limit: int = 100):

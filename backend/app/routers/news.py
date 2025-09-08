@@ -1,9 +1,12 @@
 from typing import Any, Dict, List
+
 from fastapi import APIRouter
+
 from ..config import NEWS_DATA_FILE
 from .router_utils import read_json_or_404, slice_limit
 
 router = APIRouter()
+
 
 @router.get("/news", response_model=Dict[str, List[Dict[str, Any]]])
 def get_news(limit: int = 100):

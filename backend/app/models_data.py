@@ -1,17 +1,15 @@
 import json
 import os
 import sys
-from typing import Any, Dict
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
+
 from .config import MODELS_DATA_FILE
-from live_trade_bench.systems import (
-    PolymarketPortfolioSystem,
-    StockPortfolioSystem,
-)
+
 
 def generate_models_data() -> None:
     print("🚀 Starting data generation for both markets...")
@@ -33,7 +31,7 @@ def generate_models_data() -> None:
                 continue
 
             account_data = account.get_account_data()
-            
+
             model_data = {
                 "model_name": agent.name,
                 "model_id": agent.model_name,
@@ -41,11 +39,13 @@ def generate_models_data() -> None:
                 **account_data,
             }
             all_market_data.append(model_data)
-    
+
     try:
         with open(MODELS_DATA_FILE, "w") as f:
             json.dump(all_market_data, f, indent=4)
-        print(f"✅ Successfully wrote data for {len(all_market_data)} models to {MODELS_DATA_FILE}")
+        print(
+            f"✅ Successfully wrote data for {len(all_market_data)} models to {MODELS_DATA_FILE}"
+        )
     except IOError as e:
         print(f"❌ Error writing to {MODELS_DATA_FILE}: {e}")
 
