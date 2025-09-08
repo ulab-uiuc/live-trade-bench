@@ -4,8 +4,7 @@ Backtesting module for live_trade_bench
 Provides historical data replay and portfolio backtesting functionality.
 """
 
-from .backtest_runner import BacktestRunner
-from .backtest_runner import run_backtest
+from .backtest_runner import BacktestRunner, run_backtest
 
 __all__ = [
     "BacktestRunner",

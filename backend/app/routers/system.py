@@ -1,7 +1,8 @@
 from typing import Any, Dict
-from fastapi import APIRouter, HTTPException
+
 from app.config import SYSTEM_DATA_FILE
 from app.routers.router_utils import read_json_or_404
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix="/api/system", tags=["system"])
 

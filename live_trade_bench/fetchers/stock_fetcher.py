@@ -1,5 +1,5 @@
-from typing import Any, List, Optional, Union
 from datetime import datetime, timedelta
+from typing import Any, List, Optional, Union
 
 import yfinance as yf
 

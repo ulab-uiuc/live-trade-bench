@@ -148,7 +148,9 @@ class OptionFetcher(BaseFetcher):
         option_type: str,
     ) -> Dict[str, float]:
         import math
+
         from scipy.stats import norm
+
         S = underlying_price
         K = strike
         T = time_to_expiry
@@ -220,6 +222,7 @@ class OptionFetcher(BaseFetcher):
         max_iterations: int = 100,
     ) -> float:
         import math
+
         from scipy.stats import norm
 
         def black_scholes_price(

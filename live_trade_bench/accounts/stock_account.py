@@ -135,7 +135,9 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
         return allocations
 
     def _simulate_rebalance_to_target(
-        self, target_allocations: Dict[str, float], price_map: Optional[Dict[str, float]] = None
+        self,
+        target_allocations: Dict[str, float],
+        price_map: Optional[Dict[str, float]] = None,
     ):
         """
         Execute real rebalancing to target allocation with real market prices.
@@ -151,7 +153,9 @@ class StockAccount(BaseAccount[StockPosition, StockTransaction]):
             # Prefer provided price_map (e.g., historical price for backtest)
             if price_map and ticker in price_map:
                 real_prices[ticker] = float(price_map[ticker])
-                print(f"✅ PRICE: Using provided {ticker} price: ${real_prices[ticker]:.2f}")
+                print(
+                    f"✅ PRICE: Using provided {ticker} price: ${real_prices[ticker]:.2f}"
+                )
             else:
                 # Fallback to live fetch
                 try:

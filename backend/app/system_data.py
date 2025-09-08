@@ -94,5 +94,3 @@ def update_system_status():
             json.dump(status, f, indent=2)
     except Exception:
         pass
-
-

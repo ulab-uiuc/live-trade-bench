@@ -62,7 +62,7 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({ modelsData, m
         onRefresh={undefined}
       />
 
-      
+
     </div>
   );
 };

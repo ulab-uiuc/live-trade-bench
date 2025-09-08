@@ -49,6 +49,7 @@ class PolymarketFetcher(BaseFetcher):
             if isinstance(token_ids, str):
                 try:
                     import json
+
                     token_ids = json.loads(token_ids)
                 except (json.JSONDecodeError, TypeError):
                     token_ids = None

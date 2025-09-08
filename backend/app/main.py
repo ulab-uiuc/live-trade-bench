@@ -1,9 +1,9 @@
+import json
 import logging
 import os
 import threading
 import time
 import traceback
-import json
 from datetime import datetime, timedelta
 
 # 使用统一配置管理
@@ -167,10 +167,10 @@ def startup_event():
     """
     logger.info("🚀 FastAPI app starting up...")
 
+    from app.models_data import get_models_data
     from app.news_data import update_news_data
     from app.social_data import update_social_data
     from app.system_data import update_system_status
-    from app.models_data import get_models_data
 
     def _write_json(path: str, data):
         try:
@@ -269,4 +269,3 @@ async def serve_frontend(full_path: str):
 
     # Always return index.html for any non-API path, letting React Router handle it
     return FileResponse(index_path)
-

@@ -5,12 +5,12 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from ..accounts import PolymarketAccount, create_polymarket_account
+from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.polymarket_fetcher import (
     fetch_current_market_price,
     fetch_trending_markets,
 )
 from .polymarket_agent import LLMPolyMarketAgent
-from ..fetchers.news_fetcher import fetch_news_data
 
 
 class PolymarketPortfolioSystem:
@@ -106,8 +106,12 @@ class PolymarketPortfolioSystem:
                 end_date = ref.strftime("%Y-%m-%d")
                 for market_id in list(market_data.keys())[:3]:
                     # Use market question/category as query basis
-                    question = self.market_info.get(market_id, {}).get("question", str(market_id))
-                    query = " ".join(question.split()[:5]) if question else str(market_id)
+                    question = self.market_info.get(market_id, {}).get(
+                        "question", str(market_id)
+                    )
+                    query = (
+                        " ".join(question.split()[:5]) if question else str(market_id)
+                    )
                     news_data_map[market_id] = fetch_news_data(
                         query, start_date, end_date, max_pages=1
                     )

@@ -5,12 +5,12 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from ..accounts import StockAccount, create_stock_account
+from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.stock_fetcher import (
     fetch_current_stock_price,
     fetch_stock_price_on_date,
     fetch_trending_stocks,
 )
-from ..fetchers.news_fetcher import fetch_news_data
 from .stock_agent import LLMStockAgent
 
 
@@ -191,7 +191,8 @@ class StockPortfolioSystem:
 
                         if getattr(agent.account, "target_allocations", {}):
                             price_map = {
-                                t: d.get("current_price") for t, d in market_data.items()
+                                t: d.get("current_price")
+                                for t, d in market_data.items()
                             }
                             try:
                                 agent.account._simulate_rebalance_to_target(
@@ -204,7 +205,9 @@ class StockPortfolioSystem:
                             # Record snapshot after keeping previous allocation
                             agent.account._record_allocation_snapshot()
                             updated_value = agent.account.get_total_value()
-                            print(f"   💰 Updated Portfolio Value: ${updated_value:,.2f}")
+                            print(
+                                f"   💰 Updated Portfolio Value: ${updated_value:,.2f}"
+                            )
                             print(
                                 f"   💵 Cash After Rebalance: ${agent.account.cash_balance:,.2f} | Positions: {len(agent.account.positions)}"
                             )

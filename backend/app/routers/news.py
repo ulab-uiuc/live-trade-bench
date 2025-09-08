@@ -1,10 +1,8 @@
-import json
-import os
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, HTTPException
 from app.config import NEWS_DATA_FILE
 from app.routers.router_utils import read_json_or_404, slice_limit
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix="/api/news", tags=["news"])
 
@@ -30,4 +28,6 @@ async def get_polymarket_news(limit: int = 100) -> List[Dict[str, Any]]:
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching polymarket news: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching polymarket news: {e}"
+        )

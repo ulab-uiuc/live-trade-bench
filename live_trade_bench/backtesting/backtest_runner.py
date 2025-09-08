@@ -77,7 +77,7 @@ class BacktestRunner:
                 )
                 # Pass date only for stock system which supports date-specific pricing
                 if self.market_type == "stock":
-                    self.system.run_cycle(current_day.strftime('%Y-%m-%d'))
+                    self.system.run_cycle(current_day.strftime("%Y-%m-%d"))
                 else:
                     self.system.run_cycle()
 

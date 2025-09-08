@@ -62,7 +62,7 @@ const StockDashboard: React.FC<StockDashboardProps> = ({ modelsData, modelsLastR
         onRefresh={undefined}
       />
 
-      
+
     </div>
   );
 };

@@ -1,10 +1,8 @@
-import json
-import os
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, HTTPException
 from app.config import SOCIAL_DATA_FILE
 from app.routers.router_utils import read_json_or_404, slice_limit
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix="/api/social", tags=["social"])
 
@@ -18,7 +16,9 @@ async def get_stock_social(limit: int = 100) -> List[Dict[str, Any]]:
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching stock social data: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching stock social data: {e}"
+        )
 
 
 @router.get("/polymarket")
@@ -30,4 +30,6 @@ async def get_polymarket_social(limit: int = 100) -> List[Dict[str, Any]]:
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching polymarket social data: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching polymarket social data: {e}"
+        )

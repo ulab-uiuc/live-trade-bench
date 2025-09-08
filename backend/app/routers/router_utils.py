@@ -17,9 +17,9 @@ def read_json_or_404(file_path: str) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail="Error reading data file.")
 
 
-def slice_limit(items: Sequence[T], limit: int, default_limit: int, max_limit: int) -> List[T]:
+def slice_limit(
+    items: Sequence[T], limit: int, default_limit: int, max_limit: int
+) -> List[T]:
     lim = default_limit if limit is None else limit
     lim = max(1, min(lim, max_limit))
     return list(items[:lim])
-
-
