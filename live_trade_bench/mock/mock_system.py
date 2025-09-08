@@ -282,3 +282,28 @@ class MockAgentFetcherPolymarketSystem(PolymarketPortfolioSystem):
 
         print("  - ✅ News data fetched")
         return news_data_map
+
+
+# Factory functions for thread-safe instantiation
+def create_mock_agent_stock_system():
+    return MockAgentStockSystem()
+
+
+def create_mock_fetcher_stock_system():
+    return MockFetcherStockSystem()
+
+
+def create_mock_agent_fetcher_stock_system():
+    return MockAgentFetcherStockSystem()
+
+
+def create_mock_agent_polymarket_system():
+    return MockAgentPolymarketSystem()
+
+
+def create_mock_fetcher_polymarket_system():
+    return MockFetcherPolymarketSystem()
+
+
+def create_mock_agent_fetcher_polymarket_system():
+    return MockAgentFetcherPolymarketSystem()
