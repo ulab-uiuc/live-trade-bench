@@ -75,6 +75,18 @@ class StockAccount(BaseAccount[Position, Transaction]):
             )
             self.cash_balance -= target_value
 
+            # Record this as a buy transaction
+            import uuid
+            transaction = Transaction(
+                transaction_id=uuid.uuid4(),
+                ticker=ticker,
+                quantity=quantity,
+                price=price,
+                transaction_type="buy",
+                timestamp=datetime.now(),
+            )
+            self.transactions.append(transaction)
+
         self.last_rebalance = datetime.now().isoformat()
 
     def get_account_data(self) -> Dict[str, Any]:
