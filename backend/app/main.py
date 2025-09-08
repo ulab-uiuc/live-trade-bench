@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 
 from app.config import ALLOWED_ORIGINS, UPDATE_FREQUENCY
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -107,19 +108,13 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
 def startup_event():
     logger.info("🚀 FastAPI app starting up...")
 
-    # Run initial data generation synchronously to prevent race conditions.
-    # This ensures `models_data.json` is populated before the server
-    # starts accepting requests from the frontend.
-    logger.info("Running initial data generation synchronously...")
-    try:
-        generate_models_data()
-        logger.info("✅ Initial data generation complete.")
-    except Exception as e:
-        logger.error(
-            f"❌ Initial data generation failed during startup: {e}", exc_info=True
-        )
+    # Run initial data generation in a background thread.
+    # This allows the server to start immediately and serve cached data,
+    # while the potentially slow data generation runs without blocking.
+    logger.info("Scheduling initial data generation to run in the background...")
+    threading.Thread(target=generate_models_data, daemon=True).start()
 
-    # The scheduler will now handle all subsequent, periodic updates.
+    # The scheduler will handle all subsequent, periodic updates.
     global scheduler
     scheduler = BackgroundScheduler()
     schedule_background_tasks(scheduler)
