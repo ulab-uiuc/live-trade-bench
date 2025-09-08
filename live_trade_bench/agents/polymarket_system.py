@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from ..accounts import PolymarketAccount, create_polymarket_account
@@ -10,6 +10,7 @@ from ..fetchers.polymarket_fetcher import (
     fetch_trending_markets,
 )
 from .polymarket_agent import LLMPolyMarketAgent
+from ..fetchers.news_fetcher import fetch_news_data
 
 
 class PolymarketPortfolioSystem:
@@ -94,6 +95,25 @@ class PolymarketPortfolioSystem:
 
             print(f"📊 Fetched data for {len(market_data)} markets")
 
+            # Prepare per-market news (system-level fetch) for the date window
+            news_data_map: Dict[str, Any] = {}
+            try:
+                if for_date:
+                    ref = datetime.strptime(for_date, "%Y-%m-%d")
+                else:
+                    ref = datetime.now()
+                start_date = (ref - timedelta(days=3)).strftime("%Y-%m-%d")
+                end_date = ref.strftime("%Y-%m-%d")
+                for market_id in list(market_data.keys())[:3]:
+                    # Use market question/category as query basis
+                    question = self.market_info.get(market_id, {}).get("question", str(market_id))
+                    query = " ".join(question.split()[:5]) if question else str(market_id)
+                    news_data_map[market_id] = fetch_news_data(
+                        query, start_date, end_date, max_pages=1
+                    )
+            except Exception:
+                news_data_map = {}
+
             # Generate portfolio allocations for all agents
             for agent_name, agent in self.agents.items():
                 try:
@@ -110,7 +130,7 @@ class PolymarketPortfolioSystem:
 
                     # Generate complete portfolio allocation
                     allocation = agent.generate_portfolio_allocation(
-                        market_data, agent.account, for_date
+                        market_data, agent.account, for_date, news_data=news_data_map
                     )
 
                     if allocation:

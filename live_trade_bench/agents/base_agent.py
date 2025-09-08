@@ -23,6 +23,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         market_data: Dict[str, DataType],
         account: AccountType,
         date: str | None = None,
+        news_data: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, float]]:
         """Generate complete portfolio allocation for all assets."""
         if not market_data:
@@ -40,7 +41,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             # Prepare comprehensive analysis
             market_analysis = self._prepare_market_analysis(market_data)
             account_analysis = self._prepare_account_analysis(account)
-            news_analysis = self._prepare_news_analysis(market_data, date)
+            news_analysis = self._prepare_news_analysis(market_data, date, news_data)
             full_analysis = self._combine_analysis_data(
                 market_analysis, account_analysis, news_analysis
             )
@@ -177,13 +178,16 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         )
 
     def _prepare_news_analysis(
-        self, market_data: Dict[str, DataType], date: str | None = None
+        self,
+        market_data: Dict[str, DataType],
+        date: str | None = None,
+        news_data: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Prepare news analysis for all assets."""
         try:
             from datetime import datetime, timedelta
 
-            from ..fetchers.news_fetcher import fetch_news_data
+            # System-level should provide news_data; avoid fetching here
 
             # Use provided date if available, otherwise current date
             reference_date = (
@@ -195,16 +199,17 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             start_date = (reference_date - timedelta(days=3)).strftime("%Y-%m-%d")
 
             news_summaries = []
-            for asset_id, data in list(market_data.items())[:3]:  # Top 3 assets
-                query = self._create_news_query(asset_id, data)
-                news = fetch_news_data(query, start_date, end_date, max_pages=1)
-
-                if news:
-                    # Summarize top news item
-                    snippet = news[0].get("snippet", "")
-                    news_summaries.append(f"• {asset_id}: {snippet[:100]}...")
-                else:
-                    news_summaries.append(f"• {asset_id}: No recent news")
+            # Prefer provided news_data if available; otherwise don't fetch here
+            if news_data:
+                for asset_id, articles in list(news_data.items())[:3]:
+                    if articles:
+                        snippet = articles[0].get("snippet", "")
+                        news_summaries.append(f"• {asset_id}: {snippet[:100]}...")
+                    else:
+                        news_summaries.append(f"• {asset_id}: No recent news")
+            else:
+                for asset_id in list(market_data.keys())[:3]:
+                    news_summaries.append(f"• {asset_id}: No news data provided")
 
             return "RECENT NEWS:\n" + "\n".join(news_summaries)
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from ..accounts import StockAccount, create_stock_account
@@ -10,6 +10,7 @@ from ..fetchers.stock_fetcher import (
     fetch_stock_price_on_date,
     fetch_trending_stocks,
 )
+from ..fetchers.news_fetcher import fetch_news_data
 from .stock_agent import LLMStockAgent
 
 
@@ -110,6 +111,23 @@ class StockPortfolioSystem:
 
             print(f"📊 Fetched data for {len(market_data)} stocks")
 
+            # Prepare per-asset news (system-level fetch) for the date window
+            news_data_map: Dict[str, Any] = {}
+            try:
+                if for_date:
+                    ref = datetime.strptime(for_date, "%Y-%m-%d")
+                else:
+                    ref = datetime.now()
+                start_date = (ref - timedelta(days=3)).strftime("%Y-%m-%d")
+                end_date = ref.strftime("%Y-%m-%d")
+                for ticker in list(market_data.keys())[:3]:
+                    query = f"{ticker} stock earnings news"
+                    news_data_map[ticker] = fetch_news_data(
+                        query, start_date, end_date, max_pages=1
+                    )
+            except Exception:
+                news_data_map = {}
+
             # Generate portfolio allocations for all agents
             for agent_name, agent in self.agents.items():
                 try:
@@ -125,8 +143,9 @@ class StockPortfolioSystem:
                     )
 
                     # Generate complete portfolio allocation
+                    # Build minimal per-asset news_data map if needed (None for now; backend can pass real cache)
                     allocation = agent.generate_portfolio_allocation(
-                        market_data, agent.account, for_date
+                        market_data, agent.account, for_date, news_data=news_data_map
                     )
 
                     if allocation:

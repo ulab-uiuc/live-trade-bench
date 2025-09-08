@@ -433,7 +433,7 @@ def _parallel_process_agents(stock_system, polymarket_system) -> Dict[str, Any]:
 
             # Generate portfolio allocation
             allocation = agent.generate_portfolio_allocation(
-                market_data, agent.account, None  # for_date=None for live trading
+                market_data, agent.account, None, news_data=None  # live trading
             )
 
             if allocation:
