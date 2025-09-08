@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Optional, TypeVar
 
@@ -106,6 +107,27 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         if not llm_response.get("success"):
             return None
 
+        content = llm_response.get("content", "")
+        if not content:
+            return None
+
+        try:
+            # Strategy 1: Find JSON block within markdown
+            if "```json" in content:
+                json_str = content.split("```json")[1].split("```")[0].strip()
+            # Strategy 2: Find the first '{' and last '}'
+            else:
+                start = content.find("{")
+                end = content.rfind("}") + 1
+                if start == -1 or end == 0:
+                    return None
+                json_str = content[start:end]
+
+            return json.loads(json_str)
+        except (json.JSONDecodeError, IndexError) as e:
+            self._log_error("JSON parsing failed", f"Error: {e}, Content: {content}")
+            return None
+
     def _normalize_allocations_from_parsed(
         self, parsed: Dict[str, Any]
     ) -> Optional[Dict[str, float]]:
@@ -147,13 +169,6 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         normalized["CASH"] = max(0.0, 1.0 - non_cash_sum)
 
         return normalized
-        try:
-            from ..utils import parse_portfolio_response
-
-            return parse_portfolio_response(llm_response["content"])
-        except Exception as e:
-            self._log_error("parse error", str(e))
-            return None
 
     # ----- Analysis Methods -----
     @abstractmethod
@@ -185,19 +200,6 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
     ) -> str:
         """Prepare news analysis for all assets."""
         try:
-            from datetime import datetime, timedelta
-
-            # System-level should provide news_data; avoid fetching here
-
-            # Use provided date if available, otherwise current date
-            reference_date = (
-                datetime.strptime(date, "%Y-%m-%d") if date else datetime.now()
-            )
-
-            # Get recent news (last 3 days from reference date)
-            end_date = reference_date.strftime("%Y-%m-%d")
-            start_date = (reference_date - timedelta(days=3)).strftime("%Y-%m-%d")
-
             news_summaries = []
             # Prefer provided news_data if available; otherwise don't fetch here
             if news_data:
