@@ -4,45 +4,30 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException
 from app.config import SOCIAL_DATA_FILE
+from app.routers.router_utils import read_json_or_404, slice_limit
 
 router = APIRouter(prefix="/api/social", tags=["social"])
 
 
 @router.get("/stock")
-async def get_stock_social(limit: int = 15) -> List[Dict[str, Any]]:
-    """Get stock social media data from JSON file."""
+async def get_stock_social(limit: int = 100) -> List[Dict[str, Any]]:
     try:
-        if not os.path.exists(SOCIAL_DATA_FILE):
-            raise HTTPException(status_code=404, detail="Social data not ready yet.")
-
-        with open(SOCIAL_DATA_FILE, "r") as f:
-            social_data = json.load(f)
-
-        return social_data.get("stock", [])
-
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Error reading social data file.")
+        data = read_json_or_404(SOCIAL_DATA_FILE)
+        items = data.get("stock", [])
+        return slice_limit(items, limit, 100, 500)
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error fetching stock social data: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error fetching stock social data: {e}")
 
 
 @router.get("/polymarket")
-async def get_polymarket_social(limit: int = 15) -> List[Dict[str, Any]]:
-    """Get polymarket social media data from JSON file."""
+async def get_polymarket_social(limit: int = 100) -> List[Dict[str, Any]]:
     try:
-        if not os.path.exists(SOCIAL_DATA_FILE):
-            raise HTTPException(status_code=404, detail="Social data not ready yet.")
-
-        with open(SOCIAL_DATA_FILE, "r") as f:
-            social_data = json.load(f)
-
-        return social_data.get("polymarket", [])
-
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Error reading social data file.")
+        data = read_json_or_404(SOCIAL_DATA_FILE)
+        items = data.get("polymarket", [])
+        return slice_limit(items, limit, 100, 500)
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error fetching polymarket social data: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error fetching polymarket social data: {e}")

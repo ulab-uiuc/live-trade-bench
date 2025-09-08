@@ -2,9 +2,17 @@ import logging
 import os
 import threading
 import time
+import traceback
+import json
+from datetime import datetime, timedelta
 
 # 使用统一配置管理
-from app.config import ALLOWED_ORIGINS, UPDATE_FREQUENCY
+from app.config import (
+    ALLOWED_ORIGINS,
+    TRADING_CONFIG,
+    UPDATE_FREQUENCY,
+    get_base_model_configs,
+)
 from app.news_data import update_news_data
 from app.routers import models, news, social, system
 from app.social_data import update_social_data
@@ -45,6 +53,55 @@ app.include_router(models.router)
 app.include_router(news.router)
 app.include_router(social.router)
 app.include_router(system.router)
+
+# ============================================================================
+# SIMPLE STARTUP BACKTEST - Use existing live_trade_bench interface
+# ============================================================================
+
+
+def run_startup_backtest():
+    """Run backtest for past week on startup using existing system."""
+    try:
+        print("🔄 Running startup backtest...")
+
+        # Use SINGLE source of truth for model configurations
+        # Calculate past week dates - use historical data, not future data
+        end_date = datetime.now() - timedelta(days=1)  # Yesterday
+        start_date = end_date - timedelta(days=TRADING_CONFIG["backtest_days"])
+
+        # 使用统一配置源
+        base_models = get_base_model_configs()
+
+        # Run parallel backtests for both markets
+        from app.models_data import run_parallel_backtest
+
+        backtest_results = run_parallel_backtest(
+            models=base_models,
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
+            stock_initial_cash=TRADING_CONFIG["initial_cash_stock"],
+            polymarket_initial_cash=TRADING_CONFIG["initial_cash_polymarket"],
+        )
+
+        # Save results directly to models_data.json instead of separate file
+        # backtest_results 已经是正确的格式了
+
+        # Import here to avoid circular dependency
+        from app.models_data import _save_backtest_data_to_models
+
+        _save_backtest_data_to_models(backtest_results)
+
+        stock_count = len(backtest_results.get("stock", {}))
+        poly_count = len(backtest_results.get("polymarket", {}))
+
+        print(
+            f"✅ Startup backtest completed: {stock_count} stock, {poly_count} polymarket results"
+        )
+
+    except Exception as e:
+        print(f"❌ Startup backtest failed: {e}")
+        traceback.print_exc()
+
 
 # ============================================================================
 # BACKGROUND UPDATES - Simple, clean, no async complexity
@@ -105,30 +162,66 @@ def startup_event():
     """
     Run startup tasks:
     1. Initial data generation (if needed)
-    2. Start background update threads
+    2. Backtest for the past week
+    3. Start background update threads
     """
     logger.info("🚀 FastAPI app starting up...")
 
-    # 1. Initial data generation (if files don't exist)
-    from app.models_data import get_models_data
     from app.news_data import update_news_data
     from app.social_data import update_social_data
     from app.system_data import update_system_status
+    from app.models_data import get_models_data
 
-    # Check for models.json, if not present, generate it
+    def _write_json(path: str, data):
+        try:
+            with open(path, "w") as f:
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            logger.error(f"Failed to write placeholder {path}: {e}")
+
     if not os.path.exists("backend/models_data.json"):
-        logger.info("models_data.json not found, generating initial data...")
-        get_models_data()
-
-    # Generate other data files if they don't exist
+        _write_json("backend/models_data.json", [])
     if not os.path.exists("backend/news_data.json"):
-        update_news_data()
+        _write_json("backend/news_data.json", {"stock": [], "polymarket": []})
     if not os.path.exists("backend/social_data.json"):
-        update_social_data()
+        _write_json("backend/social_data.json", {"stock": [], "polymarket": []})
     if not os.path.exists("backend/system_data.json"):
-        update_system_status()
+        _write_json(
+            "backend/system_data.json",
+            {
+                "running": True,
+                "total_agents": 0,
+                "stock_agents": 0,
+                "polymarket_agents": 0,
+                "last_updated": datetime.now().isoformat(),
+                "uptime": "Active",
+                "version": "1.0.0",
+            },
+        )
 
-    # 2. Start all background updates
+    def _kickoff_initial_updates():
+        try:
+            try:
+                get_models_data()
+            except Exception as e:
+                logger.error(f"Initial get_models_data failed: {e}")
+            try:
+                update_news_data()
+            except Exception as e:
+                logger.error(f"Initial update_news_data failed: {e}")
+            try:
+                update_social_data()
+            except Exception as e:
+                logger.error(f"Initial update_social_data failed: {e}")
+            try:
+                update_system_status()
+            except Exception as e:
+                logger.error(f"Initial update_system_status failed: {e}")
+        except Exception as e:
+            logger.error(f"Initial updates setup failed: {e}")
+
+    threading.Thread(target=_kickoff_initial_updates, daemon=True).start()
+    threading.Thread(target=run_startup_backtest, daemon=True).start()
     run_background_updates()
 
 
@@ -176,3 +269,4 @@ async def serve_frontend(full_path: str):
 
     # Always return index.html for any non-API path, letting React Router handle it
     return FileResponse(index_path)
+
