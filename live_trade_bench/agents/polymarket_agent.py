@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from ..accounts import PolymarketAccount
 from .base_agent import BaseAgent
@@ -38,7 +38,6 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             return f"{category} prediction market"
         else:
             return f"polymarket {market_id}"
-
 
     def _get_portfolio_prompt(
         self, analysis: str, market_data: Dict[str, Dict[str, Any]]

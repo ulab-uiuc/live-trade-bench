@@ -31,7 +31,6 @@ async def main():
         for name, model_id in models:
             print(f"   • {name}: {model_id}")
 
-
         print("🎯 Running polymarket backtest...")
         polymarket_results = run_backtest(
             models=models,
@@ -49,7 +48,6 @@ async def main():
             end_date=end_date,
             market_type="stock",
         )
-
 
         results = {
             "stock": stock_results,

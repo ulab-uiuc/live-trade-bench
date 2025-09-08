@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
@@ -42,14 +41,21 @@ class StockPortfolioSystem:
     def _format_social_content(self, content: str) -> str:
         """Helper to format social media content for display or analysis."""
         import re
+
         content = " ".join(content.split())
-        content = re.sub(r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+", "[link]", content)
+        content = re.sub(
+            r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
+            "[link]",
+            content,
+        )
         content = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\\1", content)
         content = re.sub(r"\\*\\*([^*]+)\\*\\*", r"\\1", content)
         return content[:300] + "..." if len(content) > 300 else content
 
     def run_cycle(self, for_date: str | None = None) -> None:
-        print(f"\n--- 🔄 Cycle {self.cycle_count} | Processing {len(self.agents)} agents ---")
+        print(
+            f"\n--- 🔄 Cycle {self.cycle_count} | Processing {len(self.agents)} agents ---"
+        )
 
         # 1. Fetch Market Data
         market_data = self._fetch_market_data(for_date)
@@ -61,9 +67,7 @@ class StockPortfolioSystem:
         news_data = self._fetch_news_data(market_data, for_date)
 
         # 3. Generate Allocations for all agents
-        allocations = self._generate_allocations(
-            market_data, news_data, for_date
-        )
+        allocations = self._generate_allocations(market_data, news_data, for_date)
 
         # 4. Update Accounts with new allocations
         self._update_accounts(allocations, market_data)
@@ -71,9 +75,7 @@ class StockPortfolioSystem:
         self.cycle_count += 1
         print("--- ✅ Cycle Finished ---")
 
-    def _fetch_market_data(
-        self, for_date: str | None
-    ) -> Dict[str, Dict[str, Any]]:
+    def _fetch_market_data(self, for_date: str | None) -> Dict[str, Dict[str, Any]]:
         print("  - Fetching market data...")
         market_data = {}
         for ticker in self.universe:
@@ -104,7 +106,7 @@ class StockPortfolioSystem:
         """Fetch social media data (Reddit) for the stock universe."""
         print("  - Fetching social media data...")
         from ..fetchers.reddit_fetcher import RedditFetcher
-        
+
         social_data_map = {}
         fetcher = RedditFetcher()
         today = datetime.now().strftime("%Y-%m-%d")
@@ -115,17 +117,19 @@ class StockPortfolioSystem:
                 formatted_posts = []
                 for post in posts:
                     content = self._format_social_content(post.get("content", ""))
-                    formatted_posts.append({
-                        "content": content,
-                        "author": post.get("author", "Unknown"),
-                        "platform": "Reddit",
-                        "url": post.get("url", ""),
-                        "created_at": post.get("created_at", ""),
-                    })
+                    formatted_posts.append(
+                        {
+                            "content": content,
+                            "author": post.get("author", "Unknown"),
+                            "platform": "Reddit",
+                            "url": post.get("url", ""),
+                            "created_at": post.get("created_at", ""),
+                        }
+                    )
                 social_data_map[ticker] = formatted_posts
             except Exception as e:
                 print(f"    - Failed to fetch social data for {ticker}: {e}")
-        
+
         print(f"  - ✅ Social media data fetched for {len(social_data_map)} stocks")
         return social_data_map
 
@@ -136,9 +140,7 @@ class StockPortfolioSystem:
         news_data_map: Dict[str, Any] = {}
         try:
             ref = (
-                datetime.strptime(for_date, "%Y-%m-%d")
-                if for_date
-                else datetime.now()
+                datetime.strptime(for_date, "%Y-%m-%d") if for_date else datetime.now()
             )
             start_date = (ref - timedelta(days=3)).strftime("%Y-%m-%d")
             end_date = ref.strftime("%Y-%m-%d")
@@ -173,9 +175,13 @@ class StockPortfolioSystem:
             )
             if allocation:
                 all_allocations[agent_name] = allocation
-                print(f"    - ✅ Allocation for {agent_name}: { {k: f'{v:.1%}' for k, v in allocation.items()} }")
+                print(
+                    f"    - ✅ Allocation for {agent_name}: { {k: f'{v:.1%}' for k, v in allocation.items()} }"
+                )
             else:
-                print(f"    - ⚠️ No allocation generated for {agent_name}, keeping previous target.")
+                print(
+                    f"    - ⚠️ No allocation generated for {agent_name}, keeping previous target."
+                )
                 all_allocations[agent_name] = account.target_allocations
         print("  - ✅ All allocations generated")
         return all_allocations
@@ -192,7 +198,9 @@ class StockPortfolioSystem:
             try:
                 account.apply_allocation(allocation, price_map=price_map)
                 account.record_allocation()
-                print(f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}")
+                print(
+                    f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"
+                )
             except Exception as e:
                 print(f"    - ❌ Failed to update account for {agent_name}: {e}")
         print("  - ✅ All accounts updated")

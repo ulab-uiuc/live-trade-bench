@@ -61,7 +61,9 @@ class StockFetcher(BaseFetcher):
             threads=True,
         )
         if df.empty:
-            print(f"No data for {ticker} from {start_date} to {end_date}, likely a holiday.")
+            print(
+                f"No data for {ticker} from {start_date} to {end_date}, likely a holiday."
+            )
             return df
         return df
 

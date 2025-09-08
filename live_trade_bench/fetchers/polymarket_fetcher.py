@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
@@ -56,7 +55,7 @@ class PolymarketFetcher(BaseFetcher):
         self, limit: int, date_str: str
     ) -> List[Dict[str, Any]]:
         url = "https://gamma-api.polymarket.com/markets"
-        
+
         # Format date for the API query
         start_of_day_utc = f"{date_str}T00:00:00Z"
         end_of_day_utc = f"{date_str}T23:59:59Z"
@@ -64,13 +63,13 @@ class PolymarketFetcher(BaseFetcher):
         params = {
             "start_date_max": end_of_day_utc,
             "end_date_min": start_of_day_utc,
-            "limit": 100, # Fetch more to find active ones
+            "limit": 100,  # Fetch more to find active ones
         }
-        
+
         resp = self.make_request(url, params=params, timeout=15)
         if resp.status_code != 200:
             raise ValueError(f"Polymarket markets API error: {resp.status_code}")
-        
+
         data = self.safe_json_parse(resp, "Polymarket markets API")
         all_markets = data.get("data", data) if isinstance(data, dict) else data
         return self._process_markets(all_markets, limit)
@@ -79,7 +78,7 @@ class PolymarketFetcher(BaseFetcher):
         self, start_date_str: str, end_date_str: str, limit: int = 100
     ) -> List[Dict[str, Any]]:
         url = "https://gamma-api.polymarket.com/markets"
-        
+
         start_utc = f"{start_date_str}T00:00:00Z"
         end_utc = f"{end_date_str}T23:59:59Z"
 
@@ -88,11 +87,11 @@ class PolymarketFetcher(BaseFetcher):
             "end_date_min": start_utc,
             "limit": limit,
         }
-        
+
         resp = self.make_request(url, params=params, timeout=15)
         if resp.status_code != 200:
             raise ValueError(f"Polymarket markets API error: {resp.status_code}")
-        
+
         data = self.safe_json_parse(resp, "Polymarket markets API")
         all_markets = data.get("data", data) if isinstance(data, dict) else data
         return self._process_markets(all_markets, limit)
@@ -102,14 +101,16 @@ class PolymarketFetcher(BaseFetcher):
     ) -> List[Dict[str, Any]]:
         if not trading_days:
             return []
-        
+
         start_date_str = trading_days[0].strftime("%Y-%m-%d")
         end_date_str = trading_days[-1].strftime("%Y-%m-%d")
 
         candidate_markets = self.get_historical_markets_for_period(
             start_date_str, end_date_str, limit=limit * 10
         )
-        print(f"--- Found {len(candidate_markets)} candidate markets. Verifying price history for each day... ---")
+        print(
+            f"--- Found {len(candidate_markets)} candidate markets. Verifying price history for each day... ---"
+        )
 
         verified_markets = []
         for market in candidate_markets:
@@ -123,28 +124,34 @@ class PolymarketFetcher(BaseFetcher):
                 price = self.get_market_price_on_date(token_ids[0], date_str)
                 if price is None:
                     has_all_days = False
-                    question = market.get("question", market['id'])
-                    print(f"    - ❌ Market '{question[:30]}...' is missing data on {date_str}. Discarding.")
+                    question = market.get("question", market["id"])
+                    print(
+                        f"    - ❌ Market '{question[:30]}...' is missing data on {date_str}. Discarding."
+                    )
                     break
-            
+
             if has_all_days:
-                question = market.get("question", market['id'])
-                print(f"    - ✅ Market '{question[:30]}...' has complete history. Adding to universe.")
+                question = market.get("question", market["id"])
+                print(
+                    f"    - ✅ Market '{question[:30]}...' has complete history. Adding to universe."
+                )
                 verified_markets.append(market)
                 if len(verified_markets) >= limit:
                     break
-        
+
         return verified_markets
 
-    def _process_markets(self, markets: List[Dict[str, Any]], limit: int) -> List[Dict[str, Any]]:
+    def _process_markets(
+        self, markets: List[Dict[str, Any]], limit: int
+    ) -> List[Dict[str, Any]]:
         if not isinstance(markets, list):
             return []
-        
+
         out: List[Dict[str, Any]] = []
         for m in markets:
             if not isinstance(m, dict):
                 continue
-            
+
             token_ids = self._parse_token_ids(m)
             if not token_ids:
                 continue
@@ -152,7 +159,7 @@ class PolymarketFetcher(BaseFetcher):
             market_info = self._format_market_info(m, token_ids)
             out.append(market_info)
             self._map_tokens_to_market(m, token_ids)
-            
+
             if len(out) >= limit:
                 break
         return out
@@ -162,6 +169,7 @@ class PolymarketFetcher(BaseFetcher):
         if isinstance(token_ids, str):
             try:
                 import json
+
                 return json.loads(token_ids)
             except (json.JSONDecodeError, TypeError):
                 return None
@@ -256,7 +264,7 @@ class PolymarketFetcher(BaseFetcher):
 
             return price
 
-        except Exception as e:
+        except Exception:
             # Silencing the error for verification purposes, as many will fail
             # print(f"Error fetching historical data for token {token_id} on {date}: {e}")
             return None
@@ -268,8 +276,11 @@ def fetch_trending_markets(
     fetcher = PolymarketFetcher()
     markets = fetcher.get_trending_markets(limit=limit, for_date=for_date)
     valid_markets = [m for m in markets if m.get("token_ids")]
-    print(f"📊 Fetched {len(valid_markets)} valid markets for date {for_date or 'today'}")
+    print(
+        f"📊 Fetched {len(valid_markets)} valid markets for date {for_date or 'today'}"
+    )
     return valid_markets
+
 
 def fetch_verified_historical_markets(
     trading_days: List[datetime], limit: int
@@ -283,9 +294,7 @@ def fetch_current_market_price(token_ids: List[str]) -> Dict[str, Any]:
     if prices and "yes" in prices:
         question = prices.get("question")
         if question:
-            question_short = (
-                question[:40] + "..." if len(question) > 40 else question
-            )
+            question_short = question[:40] + "..." if len(question) > 40 else question
             print(f"💰 {question_short}")
             print(
                 f"   YES: {prices['yes']:.3f} | NO: {prices.get('no', 1-prices['yes']):.3f}"

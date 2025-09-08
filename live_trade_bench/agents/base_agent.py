@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, List, Optional, TypeVar
 from collections import defaultdict
+from typing import Any, Dict, Generic, List, Optional, TypeVar
 
 from ..accounts import BaseAccount
-from ..utils.agent_utils import normalize_allocations
-from ..utils.agent_utils import parse_llm_response_to_json
+from ..utils.agent_utils import normalize_allocations, parse_llm_response_to_json
 
 AccountType = TypeVar("AccountType", bound=BaseAccount[Any, Any])
 DataType = TypeVar("DataType")
@@ -28,7 +27,6 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         date: str | None = None,
         news_data: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, float]]:
-        
         if not market_data or not self.available:
             return None
 
