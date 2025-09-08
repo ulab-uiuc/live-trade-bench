@@ -78,7 +78,7 @@ def parse_trading_response(content: str) -> Dict[str, Any]:
         }
 
 
-def parse_portfolio_response(content: str) -> Dict[str, Any]:
+def parse_allocation_response(content: str) -> Dict[str, Any]:
     try:
         cleaned_content = content.strip()
         start_idx = cleaned_content.find("{")

@@ -5,6 +5,8 @@ Linus principle: "Good code has no special cases"
 Just controls time flow, uses existing systems unchanged.
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
@@ -25,19 +27,23 @@ class BacktestRunner:
 
     def run(self) -> Dict[str, Any]:
         trading_days = self._get_trading_days()
-        market_type = (
-            "stock" if isinstance(self.system, StockPortfolioSystem) else "polymarket"
-        )
+
+        if isinstance(self.system, PolymarketPortfolioSystem):
+            self.system.initialize_for_backtest(trading_days)
+            if not self.system.universe:
+                print(
+                    "--- ⚠️ No Polymarket markets found with complete price history for the given period. Skipping backtest. ---"
+                )
+                return {}
+        elif isinstance(self.system, StockPortfolioSystem):
+            self.system.initialize_for_live()  # Assuming live-like init for stocks
 
         for day in trading_days:
             date_str = day.strftime("%Y-%m-%d")
             print(
                 f"\n===== 📆 Day {trading_days.index(day) + 1}/{len(trading_days)}: {date_str} ====="
             )
-            if market_type == "stock":
-                self.system.run_cycle(date_str)
-            else:
-                self.system.run_cycle()
+            self.system.run_cycle(date_str)
 
         return self._collect_results()
 

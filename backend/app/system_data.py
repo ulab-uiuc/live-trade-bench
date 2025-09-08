@@ -7,15 +7,14 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
+
 from .config import SYSTEM_DATA_FILE
-from live_trade_bench.systems import (
-    PolymarketPortfolioSystem,
-    StockPortfolioSystem,
-)
+
 
 def update_system_status() -> None:
     print("📊 Updating system status...")
-    
+
     try:
         stock_system = StockPortfolioSystem.get_instance()
         polymarket_system = PolymarketPortfolioSystem.get_instance()
@@ -37,6 +36,7 @@ def update_system_status() -> None:
 
     except Exception as e:
         print(f"❌ Error updating system status: {e}")
+
 
 if __name__ == "__main__":
     update_system_status()
