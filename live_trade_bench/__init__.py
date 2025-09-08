@@ -8,81 +8,88 @@ This package provides tools for:
 - Portfolio management and performance tracking
 """
 
-# Import core components
+from __future__ import annotations
+
+# Core Systems
+from .systems.polymarket_system import (
+    PolymarketPortfolioSystem,
+    create_polymarket_portfolio_system,
+)
+from .systems.stock_system import StockPortfolioSystem, create_stock_portfolio_system
+
+# Accounts
 from .accounts import (
     BaseAccount,
-    PolymarketAccount,
-    PolymarketPosition,
+    Position,
+    Transaction,
     StockAccount,
-    StockPosition,
-    create_polymarket_account,
     create_stock_account,
+    PolymarketAccount,
+    create_polymarket_account,
 )
-from .agents import (
-    BaseAgent,
-    LLMPolyMarketAgent,
-    LLMStockAgent,
-    create_polymarket_agent,
-    create_stock_agent,
-)
-from .fetchers import (
-    BaseFetcher,
-    NewsFetcher,
+
+# Agents
+from .agents.base_agent import BaseAgent
+from .agents.polymarket_agent import LLMPolyMarketAgent
+from .agents.stock_agent import LLMStockAgent
+
+# Fetchers
+from .fetchers.base_fetcher import BaseFetcher
+from .fetchers.news_fetcher import NewsFetcher, fetch_news_data
+from .fetchers.option_fetcher import OptionFetcher
+from .fetchers.polymarket_fetcher import (
     PolymarketFetcher,
     fetch_current_market_price,
-    fetch_current_stock_price,
+    fetch_market_price_on_date,
+    fetch_token_price,
     fetch_trending_markets,
-    fetch_trending_stocks,
 )
-from .systems import (
-    PolymarketPortfolioSystem,
-    StockPortfolioSystem,
-    create_polymarket_portfolio_system,
-    create_stock_portfolio_system,
-)
-from .utils import call_llm, parse_allocation_response, parse_trading_response
+from .fetchers.reddit_fetcher import RedditFetcher
+from .fetchers.stock_fetcher import StockFetcher, fetch_stock_price
 
-# Define what gets exported when importing *
+# Backtesting
+from .backtesting.backtest_runner import BacktestRunner
+
+# Utilities
+from .utils.llm_client import call_llm
+from .utils.logger import setup_logger
+
 __all__ = [
+    # Systems
+    "StockPortfolioSystem",
+    "create_stock_portfolio_system",
+    "PolymarketPortfolioSystem",
+    "create_polymarket_portfolio_system",
     # Accounts
     "BaseAccount",
+    "Position",
+    "Transaction",
     "StockAccount",
-    "StockPosition",
-    "StockTransaction",
     "create_stock_account",
     "PolymarketAccount",
-    "PolymarketPosition",
-    "PolymarketTransaction",
     "create_polymarket_account",
-    # Portfolio models
-    "PortfolioTarget",
-    "AllocationChange",
-    "PortfolioStatus",
-    "RebalanceAction",
-    "RebalancePlan",
-    "PortfolioSummary",
     # Agents
     "BaseAgent",
     "LLMStockAgent",
-    "StockPortfolioSystem",
     "LLMPolyMarketAgent",
-    "PolymarketPortfolioSystem",
-    "create_polymarket_portfolio_system",
-    "create_polymarket_agent",
-    "create_stock_agent",
-    "create_stock_portfolio_system",
     # Fetchers
     "BaseFetcher",
+    "StockFetcher",
+    "fetch_stock_price",
     "NewsFetcher",
+    "fetch_news_data",
+    "OptionFetcher",
     "PolymarketFetcher",
     "fetch_trending_markets",
     "fetch_current_market_price",
-    "fetch_trending_stocks",
-    "fetch_current_stock_price",
-    # Utils
+    "fetch_market_price_on_date",
+    "fetch_token_price",
+    "RedditFetcher",
+    # Backtesting
+    "BacktestRunner",
+    # Utilities
     "call_llm",
-    "parse_trading_response",
-    "parse_allocation_response",
+    "setup_logger",
 ]
 
 __version__ = "2.0.0"

@@ -4,37 +4,32 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from .base_account import BaseAccount
+from .base_account import BaseAccount, Position, Transaction
 
 
 @dataclass
-class PolymarketPosition:
-    market_id: str
-    outcome: str
-    quantity: float
-    price: float
+class PolymarketAccount(BaseAccount[Position, Transaction]):
+    positions: Dict[str, Position] = field(default_factory=dict)
+    transactions: List[Transaction] = field(default_factory=list)
 
-    @property
-    def market_value(self) -> float:
-        return self.quantity * self.price
-
-
-@dataclass
-class PolymarketAccount(BaseAccount[PolymarketPosition, Dict[str, Any]]):
-    positions: Dict[str, PolymarketPosition] = field(default_factory=dict)
-    transactions: List[Dict[str, Any]] = field(default_factory=list)
-
-    def get_positions(self) -> Dict[str, PolymarketPosition]:
+    def get_positions(self) -> Dict[str, Position]:
         return {
             ticker: pos for ticker, pos in self.positions.items() if pos.quantity > 0.01
         }
 
-    def get_position(self, ticker: str) -> Optional[PolymarketPosition]:
+    def get_transactions(self) -> List[Transaction]:
+        return self.transactions
+
+    def get_position(self, ticker: str) -> Optional[Position]:
         return self.positions.get(ticker)
 
     def _get_position_value(self, ticker: str) -> float:
         position = self.positions.get(ticker)
-        return position.quantity * position.price if position else 0.0
+        return position.market_value if position else 0.0
+
+    def update_position_price(self, ticker: str, current_price: float) -> None:
+        if ticker in self.positions:
+            self.positions[ticker].current_price = current_price
 
     def apply_allocation(
         self,
@@ -42,7 +37,9 @@ class PolymarketAccount(BaseAccount[PolymarketPosition, Dict[str, Any]]):
         price_map: Optional[Dict[str, float]] = None,
     ) -> None:
         if not price_map:
-            price_map = {ticker: pos.price for ticker, pos in self.positions.items()}
+            price_map = {
+                ticker: pos.current_price for ticker, pos in self.positions.items()
+            }
 
         total_value = self.get_total_value()
 
@@ -66,8 +63,11 @@ class PolymarketAccount(BaseAccount[PolymarketPosition, Dict[str, Any]]):
             target_value = total_value * target_ratio
             quantity = target_value / price
 
-            self.positions[ticker] = PolymarketPosition(
-                market_id=ticker, outcome="yes", quantity=quantity, price=price
+            self.positions[ticker] = Position(
+                symbol=ticker,
+                quantity=quantity,
+                average_price=price,
+                current_price=price,
             )
             self.cash_balance -= target_value
 

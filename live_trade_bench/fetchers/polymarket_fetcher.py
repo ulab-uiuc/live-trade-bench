@@ -291,19 +291,30 @@ def fetch_verified_historical_markets(
 
 def fetch_current_market_price(token_ids: List[str]) -> Dict[str, Any]:
     prices = PolymarketFetcher().get_market_prices(token_ids)
-    if prices and "yes" in prices:
+    if prices and prices.get("yes") is not None:
         question = prices.get("question")
+        yes_price = prices["yes"]
+        no_price = prices.get("no")
+
+        if no_price is None:
+            no_price = 1.0 - yes_price
+
         if question:
-            question_short = question[:40] + "..." if len(question) > 40 else question
+            question_short = (
+                question[:40] + "..." if len(question) > 40 else question
+            )
             print(f"💰 {question_short}")
-            print(
-                f"   YES: {prices['yes']:.3f} | NO: {prices.get('no', 1-prices['yes']):.3f}"
-            )
+            print(f"   YES: {yes_price:.3f} | NO: {no_price:.3f}")
         else:
-            print(
-                f"💰 YES: {prices['yes']:.3f} | NO: {prices.get('no', 1-prices['yes']):.3f}"
-            )
-    return prices
+            print(f"💰 YES: {yes_price:.3f} | NO: {no_price:.3f}")
+
+        return {
+            "price": yes_price,
+            "yes_price": yes_price,
+            "no_price": no_price,
+            "timestamp": datetime.now().isoformat(),
+        }
+    return {}
 
 
 def fetch_market_price_on_date(
