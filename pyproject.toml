@@ -17,6 +17,7 @@ requests = "^2.31.0"
 beautifulsoup4 = "^4.12.3"
 praw = "^7.7.1"
 fasteners = "^0.19"
+apscheduler = "*"
 
 
 [tool.poetry.group.dev.dependencies]

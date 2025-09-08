@@ -27,6 +27,7 @@ FRONTEND_BUILD = os.path.join(FRONTEND_ROOT, "build")
 
 # 数据文件路径 - 标准化命名
 MODELS_DATA_FILE = os.path.join(BACKEND_ROOT, "models_data.json")
+BACKTEST_RESULTS_FILE = os.path.join(BACKEND_ROOT, "backtest_results.json")
 NEWS_DATA_FILE = os.path.join(BACKEND_ROOT, "news_data.json")
 SOCIAL_DATA_FILE = os.path.join(BACKEND_ROOT, "social_data.json")
 SYSTEM_DATA_FILE = os.path.join(BACKEND_ROOT, "system_data.json")

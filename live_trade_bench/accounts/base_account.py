@@ -58,7 +58,7 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
             "target_allocations": self.target_allocations.copy(),
         }
 
-    def get_agent_data(self) -> Dict[str, Any]:
+    def get_account_data(self) -> Dict[str, Any]:
         breakdown = self.get_breakdown()
         active_positions = self.get_positions()
         return {
