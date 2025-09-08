@@ -124,11 +124,11 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
               e.currentTarget.style.boxShadow = 'none';
             }}
             onClick={(e) => {
-              // 添加点击效果
+
               e.currentTarget.style.transform = 'translateY(-1px) scale(0.98)';
               e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.25)';
 
-              // 短暂延迟后恢复悬停状态
+
               setTimeout(() => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)';

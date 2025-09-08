@@ -8,7 +8,6 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-# 使用统一配置管理
 from .config import (
     MODELS_DATA_FILE,
     USE_MOCK_AGENTS,
@@ -16,13 +15,11 @@ from .config import (
     get_base_model_configs,
 )
 
-# 条件导入 - 根据配置选择mock或real组件
 if USE_MOCK_FETCHERS:
     from live_trade_bench.mock.mock_fetcher import fetch_current_stock_price
 else:
     from live_trade_bench.fetchers.stock_fetcher import fetch_current_stock_price
 
-# 始终导入systems - 即使用mock agents也需要真实系统作为容器
 from live_trade_bench.agents.polymarket_system import PolymarketPortfolioSystem
 from live_trade_bench.agents.stock_system import StockPortfolioSystem
 
@@ -30,17 +27,13 @@ from live_trade_bench.agents.stock_system import StockPortfolioSystem
 def _get_stock_system():
     """Get or create stock system with real or mock agents"""
     if USE_MOCK_AGENTS:
-        # 使用现有的mock系统 - 创建带mock agents的真实系统
         stock_system = StockPortfolioSystem.get_instance()
         if not stock_system.agents:
-            # 只创建一个mock agent
             from live_trade_bench.accounts import StockAccount
             from live_trade_bench.mock import create_mock_stock_agent
 
             mock_agent = create_mock_stock_agent("Mock_Stock_Agent")
-            # 设置account
             mock_agent.account = StockAccount(cash_balance=1000.0)
-            # 直接添加到系统中，绕过add_agent的LLM初始化
             stock_system.agents["Mock_Stock_Agent"] = mock_agent
         return stock_system
     else:
@@ -57,17 +50,13 @@ def _get_stock_system():
 def _get_polymarket_system():
     """Get or create polymarket system with real or mock agents"""
     if USE_MOCK_AGENTS:
-        # 使用现有的mock系统 - 创建带mock agents的真实系统
         polymarket_system = PolymarketPortfolioSystem.get_instance()
         if not polymarket_system.agents:
-            # 只创建一个mock agent
             from live_trade_bench.accounts import PolymarketAccount
             from live_trade_bench.mock import create_mock_polymarket_agent
 
             mock_agent = create_mock_polymarket_agent("Mock_Polymarket_Agent")
-            # 设置account
             mock_agent.account = PolymarketAccount(cash_balance=500.0)
-            # 直接添加到系统中，绕过add_agent的LLM初始化
             polymarket_system.agents["Mock_Polymarket_Agent"] = mock_agent
         return polymarket_system
     else:
@@ -284,10 +273,9 @@ def get_allocation_history(model_id: str) -> Optional[List[Dict[str, Any]]]:
 
 
 def _parallel_process_agents(stock_system, polymarket_system) -> Dict[str, Any]:
-    """并行处理所有智能体的LLM调用 - 复用现有系统接口"""
+    """LLM -"""
     print("🚀 Starting parallel system processing using existing interfaces...")
 
-    # 直接调用本地的并行系统处理方法
     result = run_parallel_cycle(stock_system, polymarket_system, for_date=None)
 
     if result["success"]:
@@ -514,18 +502,17 @@ def trigger_cycle() -> Dict[str, Any]:
 
 
 # ============================================================================
-# PARALLEL PROCESSING METHODS - 复用现有接口
 # ============================================================================
 
 
 def run_parallel_cycle(stock_system, polymarket_system, for_date=None):
-    """并行运行股票和预测市场系统的交易周期"""
+    """"""
     from concurrent.futures import as_completed
 
     print("🚀 Starting parallel system processing...")
 
     def run_stock_cycle():
-        """运行股票系统周期"""
+        """"""
         try:
             print("📈 Processing stock system...")
             result = stock_system.run_cycle(for_date=for_date)
@@ -536,7 +523,7 @@ def run_parallel_cycle(stock_system, polymarket_system, for_date=None):
             return {"system": "stock", "result": {"success": False, "error": str(e)}}
 
     def run_polymarket_cycle():
-        """运行预测市场系统周期"""
+        """"""
         try:
             print("🎯 Processing polymarket system...")
             result = polymarket_system.run_cycle(for_date=for_date)
@@ -549,7 +536,6 @@ def run_parallel_cycle(stock_system, polymarket_system, for_date=None):
                 "result": {"success": False, "error": str(e)},
             }
 
-    # 并行执行两个系统
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = {
             executor.submit(run_stock_cycle): "stock",
@@ -561,7 +547,6 @@ def run_parallel_cycle(stock_system, polymarket_system, for_date=None):
             result = future.result()
             results[result["system"]] = result["result"]
 
-    # 汇总结果
     stock_success = results.get("stock", {}).get("success", False)
     polymarket_success = results.get("polymarket", {}).get("success", False)
 

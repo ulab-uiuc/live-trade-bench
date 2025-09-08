@@ -8,7 +8,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
-# 条件导入fetchers
 from .config import USE_MOCK_FETCHERS
 
 if USE_MOCK_FETCHERS:
@@ -411,7 +410,7 @@ def fetch_trending_markets() -> List[str]:
     """Fetch trending polymarket topics and extract keywords."""
     try:
         if USE_MOCK_FETCHERS:
-            # Mock polymarket fetcher - 返回空列表或简单mock数据
+
             def fetch_trending_markets():
                 return [{"id": "mock_market_1", "question": "Mock market"}]
 

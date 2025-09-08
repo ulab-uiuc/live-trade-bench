@@ -6,7 +6,6 @@ import time
 import traceback
 from datetime import datetime, timedelta
 
-# 使用统一配置管理
 from app.config import (
     ALLOWED_ORIGINS,
     TRADING_CONFIG,
@@ -33,7 +32,7 @@ app = FastAPI(
 )
 
 # CORS configuration using centralized config
-allowed_origins = list(ALLOWED_ORIGINS)  # 从配置文件获取
+allowed_origins = list(ALLOWED_ORIGINS)
 
 # Add production frontend URL from environment variable
 frontend_url = os.environ.get("FRONTEND_URL")
@@ -69,7 +68,6 @@ def run_startup_backtest():
         end_date = datetime.now() - timedelta(days=1)  # Yesterday
         start_date = end_date - timedelta(days=TRADING_CONFIG["backtest_days"])
 
-        # 使用统一配置源
         base_models = get_base_model_configs()
 
         # Run parallel backtests for both markets
@@ -84,7 +82,6 @@ def run_startup_backtest():
         )
 
         # Save results directly to models_data.json instead of separate file
-        # backtest_results 已经是正确的格式了
 
         # Import here to avoid circular dependency
         from app.models_data import _save_backtest_data_to_models
