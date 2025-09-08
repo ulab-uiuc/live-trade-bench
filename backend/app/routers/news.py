@@ -3,6 +3,7 @@ import os
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException
+from app.config import NEWS_DATA_FILE
 
 router = APIRouter(prefix="/api/news", tags=["news"])
 
@@ -11,10 +12,10 @@ router = APIRouter(prefix="/api/news", tags=["news"])
 async def get_stock_news(limit: int = 25) -> List[Dict[str, Any]]:
     """Get stock market news from JSON file."""
     try:
-        if not os.path.exists("news_data.json"):
+        if not os.path.exists(NEWS_DATA_FILE):
             raise HTTPException(status_code=404, detail="News data not ready yet.")
 
-        with open("news_data.json", "r") as f:
+        with open(NEWS_DATA_FILE, "r") as f:
             news_data = json.load(f)
 
         return news_data.get("stock", [])
@@ -31,10 +32,10 @@ async def get_stock_news(limit: int = 25) -> List[Dict[str, Any]]:
 async def get_polymarket_news(limit: int = 25) -> List[Dict[str, Any]]:
     """Get polymarket news from JSON file."""
     try:
-        if not os.path.exists("news_data.json"):
+        if not os.path.exists(NEWS_DATA_FILE):
             raise HTTPException(status_code=404, detail="News data not ready yet.")
 
-        with open("news_data.json", "r") as f:
+        with open(NEWS_DATA_FILE, "r") as f:
             news_data = json.load(f)
 
         return news_data.get("polymarket", [])

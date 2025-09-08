@@ -11,19 +11,6 @@ from typing import Any, Dict
 from app.config import MODELS_DATA_FILE, SYSTEM_DATA_FILE
 
 
-def get_system_status() -> Dict[str, Any]:
-    """Get system status from JSON file or generate default status."""
-    try:
-        if os.path.exists(SYSTEM_DATA_FILE):
-            with open(SYSTEM_DATA_FILE, "r") as f:
-                return json.load(f)
-        else:
-            # Generate default system status
-            return generate_system_status()
-    except Exception:
-        return generate_system_status()
-
-
 def generate_system_status() -> Dict[str, Any]:
     """Generate system status data."""
     try:
@@ -107,3 +94,5 @@ def update_system_status():
             json.dump(status, f, indent=2)
     except Exception:
         pass
+
+

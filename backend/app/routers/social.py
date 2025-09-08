@@ -3,6 +3,7 @@ import os
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException
+from app.config import SOCIAL_DATA_FILE
 
 router = APIRouter(prefix="/api/social", tags=["social"])
 
@@ -11,10 +12,10 @@ router = APIRouter(prefix="/api/social", tags=["social"])
 async def get_stock_social(limit: int = 15) -> List[Dict[str, Any]]:
     """Get stock social media data from JSON file."""
     try:
-        if not os.path.exists("social_data.json"):
+        if not os.path.exists(SOCIAL_DATA_FILE):
             raise HTTPException(status_code=404, detail="Social data not ready yet.")
 
-        with open("social_data.json", "r") as f:
+        with open(SOCIAL_DATA_FILE, "r") as f:
             social_data = json.load(f)
 
         return social_data.get("stock", [])
@@ -31,10 +32,10 @@ async def get_stock_social(limit: int = 15) -> List[Dict[str, Any]]:
 async def get_polymarket_social(limit: int = 15) -> List[Dict[str, Any]]:
     """Get polymarket social media data from JSON file."""
     try:
-        if not os.path.exists("social_data.json"):
+        if not os.path.exists(SOCIAL_DATA_FILE):
             raise HTTPException(status_code=404, detail="Social data not ready yet.")
 
-        with open("social_data.json", "r") as f:
+        with open(SOCIAL_DATA_FILE, "r") as f:
             social_data = json.load(f)
 
         return social_data.get("polymarket", [])
