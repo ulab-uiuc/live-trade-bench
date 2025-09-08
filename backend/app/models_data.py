@@ -8,14 +8,15 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-# Import after path modification
-from live_trade_bench.agents.polymarket_system import (  # noqa: E402
-    PolymarketPortfolioSystem,
-)
-from live_trade_bench.agents.stock_system import StockPortfolioSystem  # noqa: E402
 from live_trade_bench.fetchers.stock_fetcher import (  # noqa: E402
     fetch_current_stock_price,
 )
+
+# Import after path modification
+from live_trade_bench.systems.polymarket_system import (  # noqa: E402
+    PolymarketPortfolioSystem,
+)
+from live_trade_bench.systems.stock_system import StockPortfolioSystem  # noqa: E402
 
 # 使用统一配置管理
 from .config import MODELS_DATA_FILE, get_base_model_configs
@@ -361,7 +362,7 @@ def _parallel_process_agents(stock_system, polymarket_system) -> Dict[str, Any]:
                 }
 
             # Generate portfolio allocation
-            allocation = agent.generate_portfolio_allocation(
+            allocation = agent.generate_allocation(
                 market_data, agent.account, None, news_data=None  # live trading
             )
 

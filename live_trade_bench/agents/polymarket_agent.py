@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from ..accounts import PolymarketAccount
+from ..utils.agent_utils import normalize_allocations
 from .base_agent import BaseAgent
 
 
@@ -42,11 +43,7 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
     def _create_portfolio_allocation_from_response(
         self, parsed: Dict[str, Any], market_data: Dict[str, Dict[str, Any]]
     ) -> Optional[Dict[str, float]]:
-        normalized = self._normalize_allocations_from_parsed(parsed)
-        if not normalized:
-            print("⚠️ No allocations found in LLM response")
-            return None
-        return normalized
+        return normalize_allocations(parsed)
 
     def _get_portfolio_prompt(
         self, analysis: str, market_data: Dict[str, Dict[str, Any]]
