@@ -561,3 +561,15 @@ def fetch_stock_price_on_date(ticker: str, date: str) -> Optional[float]:
 def fetch_stock_price(ticker: str, date: Optional[str] = None) -> Optional[float]:
     fetcher = MockStockFetcher()
     return fetcher.get_price(ticker, date=date)
+
+
+def fetch_polymarket_data(market_slugs: List[str]) -> Dict[str, Any]:
+    """Generate mock polymarket data"""
+    # This is a simplified mock. A more advanced version could simulate price changes.
+    return {
+        slug: {
+            "yes_price": round(random.uniform(0.01, 0.99), 2),
+            "no_price": round(random.uniform(0.01, 0.99), 2),
+        }
+        for slug in market_slugs
+    }
