@@ -3,7 +3,6 @@ Real model data provider using live_trade_bench
 """
 
 import json
-import os
 import random
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -51,7 +50,7 @@ def _get_polymarket_system():
 
 
 def get_model_configurations():
-    """Get model configurations for backtest.
+    """Get model configurations.
 
     Returns:
         tuple: (stock_models, polymarket_models) where each is a list of (name, model_id) tuples
@@ -96,9 +95,6 @@ def get_models_data() -> List[Dict[str, Any]]:
     """
     models = []
 
-    # Note: Backtest data is now stored directly in models, no separate loading needed
-    print("📊 Using integrated backtest data from models")
-
     systems = {
         "stock": {
             "system": _get_stock_system(),
@@ -121,9 +117,6 @@ def get_models_data() -> List[Dict[str, Any]]:
             model_id = f"{agent_name.lower().replace(' ', '-')}_{category}"
 
             # 1. Use REAL trading data instead of mock simulation
-            # Note: At startup, the systems are fresh, so we rely on backtest data
-            # for historical performance and generate minimal current state
-
             # Get current portfolio state (may be empty on startup)
             portfolio_breakdown = account.get_portfolio_value_breakdown()
             total_value = portfolio_breakdown.get("total_value", initial_cash)
@@ -150,7 +143,7 @@ def get_models_data() -> List[Dict[str, Any]]:
                 "unrealized_pnl": round(profit_amount, 2),
             }
 
-            # 3. Generate profit history from allocation history OR backtest data
+            # 3. Generate profit history from allocation history
             profit_history = []
             if account.allocation_history:
                 # Use real allocation history if available
@@ -165,8 +158,7 @@ def get_models_data() -> List[Dict[str, Any]]:
                         }
                     )
             else:
-                # Fallback: use integrated backtest data for initial profit history
-                # Note: backtest data is now directly embedded in model objects
+                # Use current state for initial profit history
                 profit_history.append(
                     {
                         "timestamp": datetime.now().isoformat(),
@@ -205,35 +197,12 @@ def get_models_data() -> List[Dict[str, Any]]:
                 "last_updated": datetime.now().isoformat(),
             }
 
-            # Note: Backtest data is now integrated directly when models are created
             models.append(model_obj)
 
-    # Save to JSON file using centralized config - PRESERVE backtest data
+    # Save to JSON file using centralized config
     print(f"Saving {len(models)} models to JSON file...")
 
-    # Load existing models to preserve backtest data
-    existing_models = []
-    if os.path.exists(MODELS_DATA_FILE):
-        try:
-            with open(MODELS_DATA_FILE, "r") as f:
-                existing_models = json.load(f)
-        except (json.JSONDecodeError, FileNotFoundError):
-            existing_models = []
-
-    # Merge backtest data from existing models into new models
-    for new_model in models:
-        # Find matching existing model
-        for existing_model in existing_models:
-            if existing_model.get("name") == new_model.get(
-                "name"
-            ) and existing_model.get("category") == new_model.get("category"):
-                # Preserve backtest data if it exists
-                if "backtest" in existing_model:
-                    new_model["backtest"] = existing_model["backtest"]
-                    print(f"✅ Preserved backtest data for {new_model['name']}")
-                break
-
-    # Save the updated models to file
+    # Save the models to file
     with open(MODELS_DATA_FILE, "w") as f:
         json.dump(models, f, indent=2)
     print("Models saved successfully!")
