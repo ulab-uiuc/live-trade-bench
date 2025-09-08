@@ -3,7 +3,6 @@ Real model data provider using live_trade_bench
 """
 
 import json
-import random
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -81,32 +80,6 @@ def get_model_configurations():
 
     # Return same models for both markets (only initial_cash differs)
     return base_models, base_models
-
-
-def _generate_mock_allocation(universe: List[str]) -> Dict[str, float]:
-    """Generates a random portfolio allocation for mocking purposes."""
-    # Ensure we have a universe to select from, excluding CASH
-    non_cash_universe = [asset for asset in universe if asset != "CASH"]
-    if not non_cash_universe:
-        return {"CASH": 1.0}
-
-    # Pick 1 to 4 assets from the universe to allocate (plus CASH)
-    num_assets = random.randint(1, min(4, len(non_cash_universe)))
-    selected_assets = random.sample(non_cash_universe, num_assets)
-
-    # Always include CASH
-    selected_assets.append("CASH")
-
-    # Generate random weights
-    weights = [random.random() for _ in selected_assets]
-    total_weight = sum(weights)
-
-    # Normalize weights to sum to 1.0
-    allocation = {
-        asset: weight / total_weight for asset, weight in zip(selected_assets, weights)
-    }
-
-    return allocation
 
 
 def get_models_data() -> List[Dict[str, Any]]:
