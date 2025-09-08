@@ -22,51 +22,6 @@ from live_trade_bench.fetchers.stock_fetcher import (  # noqa: E402
 from .config import MODELS_DATA_FILE, get_base_model_configs
 
 
-def _save_backtest_data_to_models(backtest_results: Dict[str, Any]):
-    """Save backtest data directly into models_data.json instead of separate file."""
-    try:
-        # Load existing models data
-        if os.path.exists(MODELS_DATA_FILE):
-            with open(MODELS_DATA_FILE, "r") as f:
-                existing_models = json.load(f)
-        else:
-            existing_models = []
-
-        # Update models with backtest data
-        for model in existing_models:
-            model_name = model.get("name", "")
-            category = model.get("category", "")
-
-            # Find matching backtest data using model name (not id)
-            category_results = backtest_results.get(category, {})
-            for backtest_model_name, backtest_data in category_results.items():
-                # Match by model name (case-insensitive)
-                if backtest_model_name.lower() == model_name.lower():
-                    # Add backtest data directly to model
-                    model["backtest"] = {
-                        "initial_value": backtest_data.get("initial_value", 0),
-                        "final_value": backtest_data.get("final_value", 0),
-                        "return_percentage": backtest_data.get("return_percentage", 0),
-                        "period": backtest_data.get("period", ""),
-                        "daily_values": backtest_data.get(
-                            "daily_values", []
-                        ),  # Include daily progression
-                    }
-                    print(
-                        f"✅ Added backtest data to {model['name']}: {backtest_data.get('return_percentage', 0):.2f}%"
-                    )
-                    break
-
-        # Save updated models data
-        with open(MODELS_DATA_FILE, "w") as f:
-            json.dump(existing_models, f, indent=2)
-
-        print(f"✅ Backtest data saved directly to {MODELS_DATA_FILE}")
-
-    except Exception as e:
-        print(f"⚠️ Failed to save backtest data to models: {e}")
-
-
 def _get_stock_system():
     """Get or create stock system with real agents"""
     stock_system = StockPortfolioSystem.get_instance()
@@ -255,7 +210,6 @@ def get_models_data() -> List[Dict[str, Any]]:
 
     # Save to JSON file using centralized config - PRESERVE backtest data
     print(f"Saving {len(models)} models to JSON file...")
-    import json
 
     # Load existing models to preserve backtest data
     existing_models = []
@@ -618,95 +572,6 @@ def run_parallel_cycle(stock_system, polymarket_system, for_date=None):
         "success": stock_success and polymarket_success,
         "stock_result": results.get("stock"),
         "polymarket_result": results.get("polymarket"),
-    }
-
-
-# ============================================================================
-# PARALLEL BACKTEST METHODS - 复用现有接口
-# ============================================================================
-
-
-def run_parallel_backtest(
-    models, start_date, end_date, stock_initial_cash, polymarket_initial_cash
-):
-    """并行运行股票和预测市场回测"""
-    from concurrent.futures import as_completed
-
-    from live_trade_bench.backtesting import run_backtest
-
-    print("🚀 Starting parallel backtest for both markets...")
-
-    def run_stock_backtest():
-        """运行股票市场回测"""
-        try:
-            print("📈 Running stock market backtest...")
-            result = run_backtest(
-                models=models,
-                initial_cash=stock_initial_cash,
-                start_date=start_date,
-                end_date=end_date,
-                market_type="stock",
-            )
-            print("✅ Stock backtest completed")
-            return {"market": "stock", "result": result}
-        except Exception as e:
-            print(f"❌ Stock backtest error: {e}")
-            return {"market": "stock", "result": {}, "error": str(e)}
-
-    def run_polymarket_backtest():
-        """运行预测市场回测"""
-        try:
-            print("🎯 Running polymarket backtest...")
-            result = run_backtest(
-                models=models,
-                initial_cash=polymarket_initial_cash,
-                start_date=start_date,
-                end_date=end_date,
-                market_type="polymarket",
-            )
-            print("✅ Polymarket backtest completed")
-            return {"market": "polymarket", "result": result}
-        except Exception as e:
-            print(f"❌ Polymarket backtest error: {e}")
-            return {"market": "polymarket", "result": {}, "error": str(e)}
-
-    # 并行执行两个市场的回测
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        futures = {
-            executor.submit(run_stock_backtest): "stock",
-            executor.submit(run_polymarket_backtest): "polymarket",
-        }
-
-        results = {}
-        for future in as_completed(futures):
-            result = future.result()
-            results[result["market"]] = result["result"]
-
-    # 汇总结果
-    stock_results = results.get("stock", {})
-    polymarket_results = results.get("polymarket", {})
-
-    print("✅ Parallel backtest completed:")
-    print(f"   📈 Stock models: {len(stock_results)} results")
-    print(f"   🎯 Polymarket models: {len(polymarket_results)} results")
-
-    # 🔄 CRITICAL FIX: Save backtest results to models JSON
-    print("💾 Saving backtest results to models JSON...")
-    try:
-        backtest_data = {"stock": stock_results, "polymarket": polymarket_results}
-        _save_backtest_data_to_models(backtest_data)
-        print("✅ Backtest data saved to models JSON successfully")
-    except Exception as save_error:
-        print(f"⚠️ Failed to save backtest data: {save_error}")
-        import traceback
-
-        traceback.print_exc()
-
-    return {
-        "stock": stock_results,
-        "polymarket": polymarket_results,
-        "start_date": start_date,
-        "end_date": end_date,
     }
 
 

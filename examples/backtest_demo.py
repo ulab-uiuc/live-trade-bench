@@ -17,7 +17,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from backend.app.config import get_base_model_configs
-from backend.app.models_data import run_parallel_backtest
+from live_trade_bench.backtesting import run_backtest
 
 
 async def main():
@@ -43,14 +43,29 @@ async def main():
         for name, model_id in models:
             print(f"   • {name}: {model_id}")
 
-        # 使用并行回测 - 同时测试股票和预测市场
-        results = run_parallel_backtest(
+        # 分别运行股票和预测市场回测
+        print("📈 Running stock market backtest...")
+        stock_results = run_backtest(
             models=models,
+            initial_cash=1000.0,
             start_date=start_date,
             end_date=end_date,
-            stock_initial_cash=1000.0,
-            polymarket_initial_cash=500.0,
+            market_type="stock",
         )
+
+        print("🎯 Running polymarket backtest...")
+        polymarket_results = run_backtest(
+            models=models,
+            initial_cash=500.0,
+            start_date=start_date,
+            end_date=end_date,
+            market_type="polymarket",
+        )
+
+        results = {
+            "stock": stock_results,
+            "polymarket": polymarket_results,
+        }
 
         print(
             f"\n✅ Parallel backtest completed at: {datetime.now().strftime('%H:%M:%S')}"
