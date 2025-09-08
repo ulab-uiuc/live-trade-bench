@@ -21,10 +21,10 @@ class StockPortfolioSystem:
         self.universe: List[str] = []
         self.stock_info: Dict[str, Dict[str, Any]] = {}
         self.cycle_count = 0
-        self._init_universe(universe_size)
+        self.universe_size = universe_size
 
-    def _init_universe(self, limit: int) -> None:
-        tickers = fetch_trending_stocks(limit=limit)
+    def initialize_for_live(self):
+        tickers = fetch_trending_stocks(limit=self.universe_size)
         self.universe = tickers
         self.stock_info = {
             ticker: {"name": ticker, "sector": "Unknown", "market_cap": 0}

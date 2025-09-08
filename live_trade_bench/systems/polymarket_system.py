@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from ..accounts import PolymarketAccount, create_polymarket_account
 from ..agents.polymarket_agent import LLMPolyMarketAgent
 from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.polymarket_fetcher import (
     fetch_current_market_price,
+    fetch_market_price_on_date,
     fetch_trending_markets,
+    fetch_verified_historical_markets,
 )
 
 
@@ -20,20 +22,31 @@ class PolymarketPortfolioSystem:
         self.universe: List[str] = []
         self.market_info: Dict[str, Dict[str, Any]] = {}
         self.cycle_count = 0
-        self._init_universe(universe_size)
+        self.universe_size = universe_size
 
-    def _init_universe(self, limit: int) -> None:
-        markets = fetch_trending_markets(limit=limit)
+    def initialize_for_backtest(self, trading_days: List[datetime]):
+        print("--- Initializing Polymarket universe for backtest period... ---")
+        verified_markets = fetch_verified_historical_markets(
+            trading_days, self.universe_size
+        )
+        self.set_universe(verified_markets)
+        print(f"--- Polymarket universe finalized with {len(self.universe)} markets. ---")
+
+    def initialize_for_live(self):
+        markets = fetch_trending_markets(limit=self.universe_size)
+        self.set_universe(markets)
+
+    def set_universe(self, markets: List[Dict[str, Any]]):
         self.universe = []
+        self.market_info = {}
         for m in markets:
-            if m.get("token_ids"):
-                market_id = m["id"]
-                self.universe.append(market_id)
-                self.market_info[market_id] = {
-                    "question": m.get("question", str(market_id)),
-                    "category": m.get("category", "Unknown"),
-                    "token_ids": m.get("token_ids", []),
-                }
+            market_id = m["id"]
+            self.universe.append(market_id)
+            self.market_info[market_id] = {
+                "question": m.get("question", str(market_id)),
+                "category": m.get("category", "Unknown"),
+                "token_ids": m.get("token_ids", []),
+            }
 
     def add_agent(
         self, name: str, initial_cash: float = 500.0, model_name: str = "gpt-4o-mini"
@@ -56,7 +69,7 @@ class PolymarketPortfolioSystem:
         print(f"\n--- 🔄 Cycle {self.cycle_count} | Processing {len(self.agents)} agents ---")
 
         # 1. Fetch Market Data
-        market_data = self._fetch_market_data()
+        market_data = self._fetch_market_data(for_date)
         if not market_data:
             print("  - Market data fetch failed, skipping cycle")
             return
@@ -73,27 +86,37 @@ class PolymarketPortfolioSystem:
         self.cycle_count += 1
         print("--- ✅ Cycle Finished ---")
 
-    def _fetch_market_data(self) -> Dict[str, Dict[str, Any]]:
+    def _fetch_market_data(self, for_date: str | None = None) -> Dict[str, Dict[str, Any]]:
         print("  - Fetching market data...")
         market_data = {}
         for market_id in self.universe:
             try:
-                price_data = fetch_current_market_price(
-                    self.market_info[market_id]["token_ids"]
-                )
-                if price_data and "yes" in price_data:
+                price_data = None
+                if for_date:
+                    token_ids = self.market_info[market_id].get("token_ids")
+                    if token_ids:
+                        price_data = fetch_market_price_on_date(token_ids, for_date)
+                else:
+                    price_data = fetch_current_market_price(
+                        self.market_info[market_id]["token_ids"]
+                    )
+
+                if price_data and "yes_price" in price_data:
                     market_data[market_id] = {
                         "id": market_id,
                         "question": self.market_info[market_id]["question"],
                         "category": self.market_info[market_id]["category"],
-                        "price": float(price_data["yes"]),
-                        "yes_price": float(price_data["yes"]),
+                        "price": float(price_data["yes_price"]),
+                        "yes_price": float(price_data["yes_price"]),
                         "no_price": float(
-                            price_data.get("no", 1.0 - float(price_data["yes"]))
+                            price_data.get("no_price", 1.0 - float(price_data["yes_price"]))
                         ),
                         "token_ids": self.market_info[market_id]["token_ids"],
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": price_data.get("timestamp", datetime.now().isoformat()),
                     }
+                else:
+                    question = self.market_info[market_id].get("question", market_id)
+                    print(f"    - ⚠️ No price data found for '{question[:40]}...' on {for_date}. Skipping.")
             except Exception as e:
                 print(f"    - Failed to fetch data for {market_id}: {e}")
         print(f"  - ✅ Market data fetched for {len(market_data)} markets")

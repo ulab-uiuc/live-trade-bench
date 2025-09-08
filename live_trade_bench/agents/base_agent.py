@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Optional, TypeVar
+from collections import defaultdict
 
 from ..accounts import BaseAccount
+from ..utils.agent_utils import normalize_allocations
 from ..utils.agent_utils import parse_llm_response_to_json
 
 AccountType = TypeVar("AccountType", bound=BaseAccount[Any, Any])
@@ -17,6 +19,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         self.available = True
         self._history: Dict[str, List[float]] = {}
         self._last_price: Dict[str, float] = {}
+        self.price_history: Dict[str, List[float]] = defaultdict(list)
 
     def generate_allocation(
         self,
@@ -25,6 +28,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         date: str | None = None,
         news_data: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, float]]:
+        
         if not market_data or not self.available:
             return None
 
@@ -42,6 +46,9 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                     "content": self._get_portfolio_prompt(full_analysis, market_data),
                 }
             ]
+            print("\n--- LLM PROMPT ---")
+            print(messages[0]["content"])
+            print("--- END LLM PROMPT ---\n")
 
             llm_response = self._call_llm(messages)
             if not llm_response.get("success"):
@@ -50,12 +57,12 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                 )
                 return None
 
-            parsed = self._parse_portfolio_response(llm_response)
+            parsed = self._parse_allocation_response(llm_response)
             if not parsed:
                 self._log_error("Failed to parse LLM response")
                 return None
 
-            return self._create_portfolio_allocation_from_response(parsed, market_data)
+            return normalize_allocations(parsed)
         except Exception as e:
             self._log_error("LLM error", str(e))
             return None
@@ -70,7 +77,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         except Exception as e:
             return {"success": False, "content": "", "error": str(e)}
 
-    def _parse_portfolio_response(
+    def _parse_allocation_response(
         self, llm_response: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         content = llm_response.get("content", "")
@@ -129,34 +136,21 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         return f"{market_analysis}\n\n{account_analysis}\n\n{news_analysis}"
 
     @abstractmethod
-    def _create_portfolio_allocation_from_response(
-        self, parsed: Dict[str, Any], market_data: Dict[str, DataType]
-    ) -> Optional[Dict[str, float]]:
-        ...
-
-    @abstractmethod
     def _get_portfolio_prompt(
         self, analysis: str, market_data: Dict[str, DataType]
     ) -> str:
         ...
 
-    def history_tail(self, asset_id: str, k: int = 5) -> List[float]:
-        return self._history.get(asset_id, [])[-k:]
+    def prev_price(self, ticker: str) -> Optional[float]:
+        history = self.price_history.get(ticker)
+        return history[-1] if history else None
 
-    def prev_price(self, asset_id: str) -> Optional[float]:
-        hist = self._history.get(asset_id, [])
-        return hist[-2] if len(hist) >= 2 else None
+    def history_tail(self, ticker: str, n: int) -> List[float]:
+        history = self.price_history.get(ticker, [])
+        return history[-n:]
 
-    def _update_price_history(self, asset_id: str, price: float) -> None:
-        if asset_id not in self._history:
-            self._history[asset_id] = []
-
-        self._history[asset_id].append(price)
-
-        if len(self._history[asset_id]) > 10:
-            self._history[asset_id] = self._history[asset_id][-10:]
-
-        self._last_price[asset_id] = price
+    def _update_price_history(self, ticker: str, price: float) -> None:
+        self.price_history[ticker].append(price)
 
     def _log_error(self, msg: str, ctx: str = "") -> None:
         if ctx:

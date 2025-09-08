@@ -61,9 +61,8 @@ class StockFetcher(BaseFetcher):
             threads=True,
         )
         if df.empty:
-            raise RuntimeError(
-                f"No data returned for {ticker} {start_date}→{end_date} @ {interval}"
-            )
+            print(f"No data for {ticker} from {start_date} to {end_date}, likely a holiday.")
+            return df
         return df
 
     def get_current_price(self, ticker: str) -> Optional[float]:

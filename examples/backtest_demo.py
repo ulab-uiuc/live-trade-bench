@@ -1,14 +1,3 @@
-"""
-Multi-Model Parallel Backtest Demo - AI Trading Competition
-
-Quick parallel backtest demo with multiple models for testing.
-Uses parallel processing for both stock and polymarket backtests.
-For production-grade demo, see enhanced_backtest_demo.py
-
-Tests multiple AI models concurrently in historical trading scenarios.
-Requires: TOGETHER_API_KEY and OPENAI_API_KEY environment variables.
-"""
-
 import asyncio
 import os
 import sys
@@ -21,7 +10,6 @@ from live_trade_bench.backtesting import run_backtest
 
 
 async def main():
-    """Parallel backtest demo main function."""
     print("🔮 Multi-Model Parallel Portfolio Backtest Demo")
     print("Testing AI models concurrently across Stock & Polymarket")
     print("=" * 60)
@@ -29,8 +17,8 @@ async def main():
     print("   python enhanced_backtest_demo.py")
     print()
 
-    start_date = "2025-01-02"  # Avoid New Year's Day
-    end_date = "2025-01-04"  # Short test period
+    start_date = "2025-09-02"
+    end_date = "2025-09-06"
 
     print(f"🚀 Running parallel backtest: {start_date} → {end_date}")
     print(f"⏰ Started at: {datetime.now().strftime('%H:%M:%S')}")
@@ -43,15 +31,6 @@ async def main():
         for name, model_id in models:
             print(f"   • {name}: {model_id}")
 
-        # 分别运行股票和预测市场回测
-        print("📈 Running stock market backtest...")
-        stock_results = run_backtest(
-            models=models,
-            initial_cash=1000.0,
-            start_date=start_date,
-            end_date=end_date,
-            market_type="stock",
-        )
 
         print("🎯 Running polymarket backtest...")
         polymarket_results = run_backtest(
@@ -61,6 +40,16 @@ async def main():
             end_date=end_date,
             market_type="polymarket",
         )
+
+        print("📈 Running stock market backtest...")
+        stock_results = run_backtest(
+            models=models,
+            initial_cash=1000.0,
+            start_date=start_date,
+            end_date=end_date,
+            market_type="stock",
+        )
+
 
         results = {
             "stock": stock_results,
@@ -133,7 +122,6 @@ async def main():
             print(f"   Market: {best_market}")
             print(f"   Return: {best_perf.get('return_percentage', 0):+.2f}%")
 
-        # 性能统计
         total_models = len(stock_results) + len(polymarket_results)
         print("\n📊 PERFORMANCE STATS:")
         print("-" * 40)
