@@ -48,23 +48,32 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
         self.positions.clear()
 
         # Create new positions based on target allocations
-        for ticker, target_ratio in target_allocations.items():
-            if ticker == "CASH" or target_ratio <= 0:
+        for symbol, target_ratio in target_allocations.items():
+            if symbol == "CASH" or target_ratio <= 0:
                 continue
 
-            price_data = price_map.get(ticker)
+            # Polymarket symbols are expected to be in "market_id_OUTCOME" format here
+            parts = symbol.split("_")
+            if len(parts) != 2:
+                print(f"--- ⚠️ Skipping invalid Polymarket symbol format: {symbol} ---")
+                continue
+            market_id, outcome = parts[0], parts[1].lower()
+
+            price_data = price_map.get(market_id)
             if not isinstance(price_data, dict):
+                print(f"--- ⚠️ No price data found for market {market_id}. Skipping. ---")
                 continue
 
-            price = price_data.get("price")
+            price = price_data.get(f"{outcome}_price")
             if price is None or price <= 0:
+                print(f"--- ⚠️ No valid '{outcome}' price for market {market_id}. Skipping. ---")
                 continue
 
             target_value = total_value * target_ratio
             quantity = target_value / price
 
-            self.positions[ticker] = Position(
-                symbol=ticker,
+            self.positions[symbol] = Position(
+                symbol=symbol,
                 quantity=quantity,
                 average_price=price,
                 current_price=price,

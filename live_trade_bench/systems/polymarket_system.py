@@ -217,13 +217,31 @@ class PolymarketPortfolioSystem:
             account = self.accounts[agent_name]
             account_data = account.get_account_data()
 
-            allocation = agent.generate_allocation(
+            raw_allocation = agent.generate_allocation(
                 market_data, account_data, for_date, news_data=news_data
             )
-            if allocation:
-                all_allocations[agent_name] = allocation
+
+            if raw_allocation:
+                # --- DATA CLEANING & NORMALIZATION ---
+                cleaned_allocation = {}
+                for symbol, value in raw_allocation.items():
+                    # Default to YES outcome if not specified
+                    if "_" not in symbol and symbol != "CASH":
+                        symbol = f"{symbol}_YES"
+
+                    if isinstance(value, str) and "%" in value:
+                        try:
+                            cleaned_allocation[symbol] = (
+                                float(value.strip(" %")) / 100.0
+                            )
+                        except ValueError:
+                            cleaned_allocation[symbol] = 0.0
+                    elif isinstance(value, (int, float)):
+                        cleaned_allocation[symbol] = value
+
+                all_allocations[agent_name] = cleaned_allocation
                 print(
-                    f"    - ✅ Allocation for {agent_name}: { {k: f'{v:.1%}' for k, v in allocation.items()} }"
+                    f"    - ✅ Allocation for {agent_name}: { {k: f'{v:.1%}' for k, v in cleaned_allocation.items()} }"
                 )
             else:
                 print(f"    - ⚠️ No allocation generated for {agent_name}")
@@ -237,6 +255,7 @@ class PolymarketPortfolioSystem:
         print("  - Updating all accounts...")
         for agent_name, allocation in allocations.items():
             account = self.accounts[agent_name]
+            account.target_allocations = allocation  # Set target allocation first
 
             # Rebalance account to target allocation
             try:
