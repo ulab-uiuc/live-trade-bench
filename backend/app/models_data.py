@@ -6,11 +6,12 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from dataclasses import asdict
+
+from live_trade_bench.accounts.base_account import Position
 from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
 
 from .config import MODELS_DATA_FILE, get_base_model_configs
-from live_trade_bench.accounts.base_account import Position
-from dataclasses import asdict
 
 
 def generate_models_data() -> None:
@@ -57,7 +58,7 @@ def generate_models_data() -> None:
                     "current_allocations", {}
                 ),
                 "portfolio": account_data.get("portfolio", {}),
-                "chartData": { "profit_history": [] },  # Placeholder for chart data
+                "chartData": {"profit_history": []},  # Placeholder for chart data
                 "allocationHistory": account_data.get("allocation_history", []),
             }
             all_market_data.append(model_data)
@@ -66,10 +67,13 @@ def generate_models_data() -> None:
     serializable_data = []
     for model in all_market_data:
         serializable_model = model.copy()
-        if 'portfolio' in serializable_model and 'positions' in serializable_model['portfolio']:
-            serializable_model['portfolio']['positions'] = {
+        if (
+            "portfolio" in serializable_model
+            and "positions" in serializable_model["portfolio"]
+        ):
+            serializable_model["portfolio"]["positions"] = {
                 symbol: asdict(p) if isinstance(p, Position) else p
-                for symbol, p in serializable_model['portfolio']['positions'].items()
+                for symbol, p in serializable_model["portfolio"]["positions"].items()
             }
         serializable_data.append(serializable_model)
 

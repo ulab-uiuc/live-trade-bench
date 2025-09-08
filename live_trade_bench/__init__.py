@@ -10,28 +10,24 @@ This package provides tools for:
 
 from __future__ import annotations
 
-# Core Systems
-from .systems.polymarket_system import (
-    PolymarketPortfolioSystem,
-    create_polymarket_portfolio_system,
-)
-from .systems.stock_system import StockPortfolioSystem, create_stock_portfolio_system
-
 # Accounts
 from .accounts import (
     BaseAccount,
-    Position,
-    Transaction,
-    StockAccount,
-    create_stock_account,
     PolymarketAccount,
+    Position,
+    StockAccount,
+    Transaction,
     create_polymarket_account,
+    create_stock_account,
 )
 
 # Agents
 from .agents.base_agent import BaseAgent
 from .agents.polymarket_agent import LLMPolyMarketAgent
 from .agents.stock_agent import LLMStockAgent
+
+# Backtesting
+from .backtesting.backtest_runner import BacktestRunner
 
 # Fetchers
 from .fetchers.base_fetcher import BaseFetcher
@@ -47,8 +43,12 @@ from .fetchers.polymarket_fetcher import (
 from .fetchers.reddit_fetcher import RedditFetcher
 from .fetchers.stock_fetcher import StockFetcher, fetch_stock_price
 
-# Backtesting
-from .backtesting.backtest_runner import BacktestRunner
+# Core Systems
+from .systems.polymarket_system import (
+    PolymarketPortfolioSystem,
+    create_polymarket_portfolio_system,
+)
+from .systems.stock_system import StockPortfolioSystem, create_stock_portfolio_system
 
 # Utilities
 from .utils.llm_client import call_llm

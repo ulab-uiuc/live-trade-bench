@@ -4,11 +4,11 @@ Base account management system - Abstract base for all account types
 
 from __future__ import annotations
 
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, Generic, List, Optional, TypeVar
-import uuid
 
 PositionType = TypeVar("PositionType")
 TransactionType = TypeVar("TransactionType")
@@ -43,6 +43,7 @@ class Transaction:
 @dataclass
 class BaseAccount(ABC, Generic[PositionType, TransactionType]):
     """Abstract base class for all trading accounts."""
+
     initial_cash: float = 0.0
     cash_balance: float = 0.0
     target_allocations: Dict[str, float] = field(default_factory=dict)

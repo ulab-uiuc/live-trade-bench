@@ -300,9 +300,7 @@ def fetch_current_market_price(token_ids: List[str]) -> Dict[str, Any]:
             no_price = 1.0 - yes_price
 
         if question:
-            question_short = (
-                question[:40] + "..." if len(question) > 40 else question
-            )
+            question_short = question[:40] + "..." if len(question) > 40 else question
             print(f"💰 {question_short}")
             print(f"   YES: {yes_price:.3f} | NO: {no_price:.3f}")
         else:

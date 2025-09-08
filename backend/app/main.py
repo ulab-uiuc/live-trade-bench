@@ -1,7 +1,5 @@
 import logging
 import os
-import threading
-from datetime import datetime
 
 from app.config import ALLOWED_ORIGINS, UPDATE_FREQUENCY
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -10,11 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from .models_data import generate_models_data
 from .news_data import update_news_data
 from .routers import models, news, social, system
 from .social_data import update_social_data
 from .system_data import update_system_status
-from .models_data import generate_models_data
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -117,7 +115,9 @@ def startup_event():
         generate_models_data()
         logger.info("✅ Initial data generation complete.")
     except Exception as e:
-        logger.error(f"❌ Initial data generation failed during startup: {e}", exc_info=True)
+        logger.error(
+            f"❌ Initial data generation failed during startup: {e}", exc_info=True
+        )
 
     # The scheduler will now handle all subsequent, periodic updates.
     global scheduler
