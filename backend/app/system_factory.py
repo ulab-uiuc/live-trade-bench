@@ -1,22 +1,19 @@
-from .config import (
-    STOCK_MOCK_MODE,
-    POLYMARKET_MOCK_MODE,
-    MockMode,
-)
-from live_trade_bench.systems import (
-    create_polymarket_portfolio_system,
-    create_stock_portfolio_system,
-    StockPortfolioSystem,
-    PolymarketPortfolioSystem,
-)
 from live_trade_bench.mock.mock_system import (
-    create_mock_agent_stock_system,
-    create_mock_fetcher_stock_system,
+    create_mock_agent_fetcher_polymarket_system,
     create_mock_agent_fetcher_stock_system,
     create_mock_agent_polymarket_system,
+    create_mock_agent_stock_system,
     create_mock_fetcher_polymarket_system,
-    create_mock_agent_fetcher_polymarket_system,
+    create_mock_fetcher_stock_system,
 )
+from live_trade_bench.systems import (
+    PolymarketPortfolioSystem,
+    StockPortfolioSystem,
+    create_polymarket_portfolio_system,
+    create_stock_portfolio_system,
+)
+
+from .config import POLYMARKET_MOCK_MODE, STOCK_MOCK_MODE, MockMode
 
 
 def get_system(
@@ -30,10 +27,14 @@ def get_system(
     mock_mode = STOCK_MOCK_MODE if is_stock else POLYMARKET_MOCK_MODE
 
     if mock_mode == MockMode.NONE:
-        return create_stock_portfolio_system() if is_stock else create_polymarket_portfolio_system()
-    
+        return (
+            create_stock_portfolio_system()
+            if is_stock
+            else create_polymarket_portfolio_system()
+        )
+
     print(f"--- Running in {mock_mode} mode for {market_type.upper()} ---")
-    
+
     if is_stock:
         if mock_mode == MockMode.MOCK_AGENTS:
             return create_mock_agent_stock_system()
@@ -50,4 +51,8 @@ def get_system(
             return create_mock_agent_fetcher_polymarket_system()
 
     # Fallback to real system
-    return create_stock_portfolio_system() if is_stock else create_polymarket_portfolio_system()
+    return (
+        create_stock_portfolio_system()
+        if is_stock
+        else create_polymarket_portfolio_system()
+    )

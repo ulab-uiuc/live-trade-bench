@@ -8,14 +8,15 @@ if project_root not in sys.path:
 
 from dataclasses import asdict
 
+from live_trade_bench.accounts.base_account import Position
+
 from .config import (
     MODELS_DATA_FILE,
-    get_base_model_configs,
-    STOCK_MOCK_MODE,
     POLYMARKET_MOCK_MODE,
+    STOCK_MOCK_MODE,
     MockMode,
+    get_base_model_configs,
 )
-from live_trade_bench.accounts.base_account import Position
 from .system_factory import get_system
 
 
@@ -29,8 +30,13 @@ def generate_models_data() -> None:
             system = get_system(market_type)
 
             # Only add agents from config if not using mock agents
-            mock_mode = STOCK_MOCK_MODE if market_type == "stock" else POLYMARKET_MOCK_MODE
-            if mock_mode not in [MockMode.MOCK_AGENTS, MockMode.MOCK_AGENTS_AND_FETCHERS]:
+            mock_mode = (
+                STOCK_MOCK_MODE if market_type == "stock" else POLYMARKET_MOCK_MODE
+            )
+            if mock_mode not in [
+                MockMode.MOCK_AGENTS,
+                MockMode.MOCK_AGENTS_AND_FETCHERS,
+            ]:
                 model_configs = get_base_model_configs()
                 initial_cash = 1000.0 if market_type == "stock" else 500.0
                 for display_name, model_id in model_configs:
@@ -74,7 +80,9 @@ def generate_models_data() -> None:
             ):
                 serializable_model["portfolio"]["positions"] = {
                     symbol: asdict(p) if isinstance(p, Position) else p
-                    for symbol, p in serializable_model["portfolio"]["positions"].items()
+                    for symbol, p in serializable_model["portfolio"][
+                        "positions"
+                    ].items()
                 }
             serializable_data.append(serializable_model)
 
@@ -90,6 +98,7 @@ def generate_models_data() -> None:
     except Exception as e:
         print(f"❌ CRITICAL: generate_models_data failed completely: {e}")
         import traceback
+
         traceback.print_exc()
         print("🔄 Scheduler will continue with next cycle...")
 
