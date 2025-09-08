@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from ..accounts import StockAccount
-from ..utils.agent_utils import normalize_allocations
 from .base_agent import BaseAgent
 
 
@@ -29,11 +28,6 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
 
     def _create_news_query(self, ticker: str, data: Dict[str, Any]) -> str:
         return f"{ticker} stock earnings news"
-
-    def _create_portfolio_allocation_from_response(
-        self, parsed: Dict[str, Any], market_data: Dict[str, Dict[str, Any]]
-    ) -> Optional[Dict[str, float]]:
-        return normalize_allocations(parsed)
 
     def _get_portfolio_prompt(
         self, analysis: str, market_data: Dict[str, Dict[str, Any]]

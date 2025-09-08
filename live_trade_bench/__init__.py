@@ -40,7 +40,7 @@ from .systems import (
     create_polymarket_portfolio_system,
     create_stock_portfolio_system,
 )
-from .utils import call_llm, parse_portfolio_response, parse_trading_response
+from .utils import call_llm, parse_allocation_response, parse_trading_response
 
 # Define what gets exported when importing *
 __all__ = [
@@ -82,7 +82,7 @@ __all__ = [
     # Utils
     "call_llm",
     "parse_trading_response",
-    "parse_portfolio_response",
+    "parse_allocation_response",
 ]
 
 __version__ = "2.0.0"
