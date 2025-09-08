@@ -125,8 +125,10 @@ class StockPortfolioSystem:
                     news_data_map[ticker] = fetch_news_data(
                         query, start_date, end_date, max_pages=1
                     )
+                    print(f"📊 Fetched news data for {ticker}")
             except Exception:
                 news_data_map = {}
+            breakpoint()
 
             # Generate portfolio allocations for all agents
             for agent_name, agent in self.agents.items():
