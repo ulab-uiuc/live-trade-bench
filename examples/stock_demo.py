@@ -6,7 +6,7 @@ This demo showcases the new portfolio management approach using AI agents
 to generate allocation targets and automatically rebalance portfolios.
 """
 
-from live_trade_bench.agents.stock_system import StockPortfolioSystem
+from live_trade_bench.systems.stock_system import StockPortfolioSystem
 
 
 def main() -> None:
@@ -25,42 +25,10 @@ def main() -> None:
 
     try:
         print("\n🚀 Starting stock portfolio management...")
-        print("This will run for 2 minutes with 30-second cycles")
-        print("Agents will generate allocation targets and rebalance portfolios")
+        for i in range(4):
+            system.run_cycle()
 
-        # Run the system
-        system.run_continuous(interval_minutes=0.5, max_cycles=4)
-
-        print("\n📊 Final Portfolio Summary:")
-        summaries = system.get_portfolio_summaries()
-
-        # Display individual agent summaries
-        for agent_name, summary in summaries.items():
-            if agent_name != "OVERALL":
-                print(f"\n🤖 {agent_name}:")
-                print(f"   💰 Total Value: ${summary['total_value']:,.2f}")
-                print(
-                    f"   💵 Cash: ${summary['cash_value']:,.2f} ({summary['cash_allocation']:.1%})"
-                )
-                print(
-                    f"   📈 Positions: ${summary['positions_value']:,.2f} ({summary['positions_allocation']:.1%})"
-                )
-                print(f"   🎯 Target Allocations: {summary['target_allocations']}")
-                print(f"   📊 Current Allocations: {summary['current_allocations']}")
-                print(f"   🔄 Needs Rebalancing: {summary['needs_rebalancing']}")
-
-        # Display overall portfolio summary
-        if "OVERALL" in summaries:
-            overall = summaries["OVERALL"]
-            print("\n🏆 OVERALL PORTFOLIO:")
-            print(f"   💰 Total Portfolio Value: ${overall['total_value']:,.2f}")
-            print(
-                f"   💵 Total Cash: ${overall['cash_value']:,.2f} ({overall['cash_allocation']:.1%})"
-            )
-            print(
-                f"   📈 Total Positions: ${overall['positions_value']:,.2f} ({overall['positions_allocation']:.1%})"
-            )
-            print(f"   🔄 Overall Rebalancing Needed: {overall['needs_rebalancing']}")
+        print("\n📊 Demo finished.")
 
     except KeyboardInterrupt:
         print("\n⏹️ Demo stopped by user")
