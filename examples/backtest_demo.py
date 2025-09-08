@@ -6,7 +6,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from backend.app.config import get_base_model_configs
-from live_trade_bench.backtesting import run_backtest
+from live_trade_bench.backtest import run_backtest
 
 
 async def main():
