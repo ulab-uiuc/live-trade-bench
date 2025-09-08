@@ -21,11 +21,10 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({ modelsData, m
 
   return (
     <div className="dashboard-ultra-simple">
-      {/* 页面标题 */}
       <div style={{
         textAlign: 'center',
         padding: '2rem 0'
-        }}>
+      }}>
         <h1 style={{
           color: '#ffffff',
           fontSize: '2.5rem',
@@ -54,7 +53,7 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({ modelsData, m
         </p>
       </div>
 
-      {/* 只显示Polymarket模型 */}
+      {/* Polymarket */}
       <ModelsDisplay
         modelsData={polymarketModels}
         stockModels={[]}

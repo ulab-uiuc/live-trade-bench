@@ -8,10 +8,46 @@ if project_root not in sys.path:
 
 from dataclasses import asdict
 
-from live_trade_bench.accounts.base_account import Position
-from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
+from live_trade_bench.accounts.base_account import Position  # noqa: E402
+from live_trade_bench.mock.mock_system import (  # noqa: E402
+    MockAgentFetcherPolymarketSystem,
+    MockAgentFetcherStockSystem,
+    MockAgentPolymarketSystem,
+    MockAgentStockSystem,
+    MockFetcherPolymarketSystem,
+    MockFetcherStockSystem,
+)
+from live_trade_bench.systems.polymarket_system import (  # noqa: E402
+    PolymarketPortfolioSystem,
+)
+from live_trade_bench.systems.stock_system import StockPortfolioSystem  # noqa: E402
 
-from .config import MODELS_DATA_FILE, get_base_model_configs
+from .config import (  # noqa: E402
+    MODELS_DATA_FILE,
+    POLYMARKET_MOCK_MODE,
+    STOCK_MOCK_MODE,
+    MockMode,
+)
+
+
+def get_stock_system():
+    if STOCK_MOCK_MODE == MockMode.MOCK_AGENTS:
+        return MockAgentStockSystem.get_instance()
+    if STOCK_MOCK_MODE == MockMode.MOCK_FETCHERS:
+        return MockFetcherStockSystem.get_instance()
+    if STOCK_MOCK_MODE == MockMode.MOCK_AGENTS_AND_FETCHERS:
+        return MockAgentFetcherStockSystem.get_instance()
+    return StockPortfolioSystem.get_instance()
+
+
+def get_polymarket_system():
+    if POLYMARKET_MOCK_MODE == MockMode.MOCK_AGENTS:
+        return MockAgentPolymarketSystem.get_instance()
+    if POLYMARKET_MOCK_MODE == MockMode.MOCK_FETCHERS:
+        return MockFetcherPolymarketSystem.get_instance()
+    if POLYMARKET_MOCK_MODE == MockMode.MOCK_AGENTS_AND_FETCHERS:
+        return MockAgentFetcherPolymarketSystem.get_instance()
+    return PolymarketPortfolioSystem.get_instance()
 
 
 def generate_models_data() -> None:
@@ -21,9 +57,7 @@ def generate_models_data() -> None:
     for market_type in ["stock", "polymarket"]:
         print(f"--- Processing {market_type.upper()} market ---")
         system = (
-            StockPortfolioSystem.get_instance()
-            if market_type == "stock"
-            else PolymarketPortfolioSystem.get_instance()
+            get_stock_system() if market_type == "stock" else get_polymarket_system()
         )
 
         if not system.agents:

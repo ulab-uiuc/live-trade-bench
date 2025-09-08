@@ -60,7 +60,6 @@ async def main():
         print("\n📊 Backtest Results Summary:")
         print("=" * 80)
 
-        # 显示股票市场结果
         stock_results = results.get("stock", {})
         if stock_results:
             print("\n� STOCK MARKET RESULTS:")
@@ -79,7 +78,6 @@ async def main():
                 print(f"        Return:  {perf.get('return_percentage', 0):+.2f}%")
                 print()
 
-        # 显示预测市场结果
         polymarket_results = results.get("polymarket", {})
         if polymarket_results:
             print("\n🎯 POLYMARKET RESULTS:")
@@ -98,7 +96,6 @@ async def main():
                 print(f"        Return:  {perf.get('return_percentage', 0):+.2f}%")
                 print()
 
-        # 总体最佳表现者
         all_results = []
         for market, market_results in [
             ("Stock", stock_results),

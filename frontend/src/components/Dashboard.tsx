@@ -15,7 +15,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   console.log('📊 Dashboard rendering with background data!');
 
-  // 分类模型数据
+
   const stockModels = modelsData.filter((model: any) => model?.category === 'stock');
   const polymarketModels = modelsData.filter((model: any) => model?.category === 'polymarket');
 
@@ -27,7 +27,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       fontSize: '16px',
       position: 'relative' // Needed for z-index context
     }}>
-      {/* 主标题 */}
+      {/*  */}
       <div style={{
         textAlign: 'center',
         marginBottom: '3rem',
@@ -58,7 +58,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </p>
       </div>
 
-      {/* 统计信息卡片 - 无边框版本 */}
+      {/*  -  */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -188,20 +188,20 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* 两个竖条形图区域 */}
+      {/*  */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gap: '2rem',
         marginBottom: '2rem',
-        // 强制覆盖
+
         position: 'relative',
         zIndex: 1001,
         overflow: 'visible'
       }}>
-        {/* Stock Models 竖条形图 */}
+        {/* Stock Models  */}
         <div style={{
-          // 强制覆盖
+
           position: 'relative',
           zIndex: 1001,
           overflow: 'visible'
@@ -245,7 +245,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <div style={{ padding: '1rem 0' }}>
                   <div style={{ padding: '2rem 1rem' }}>
                     <div style={{ position: 'relative', height: '320px', marginBottom: '1rem' }}>
-                      {/* Y轴网格线 - centered */}
+                      {/* Y - centered */}
                       {[maxStockPerf, maxStockPerf / 2, 0, -maxStockPerf / 2, -maxStockPerf].map(value => {
                         const topPercentage = 50 - (value / maxStockPerf) * 50;
                         return (
@@ -271,7 +271,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         );
                       })}
 
-                      {/* 柱状图 */}
+                      {/*  */}
                       <div style={{
                         position: 'absolute',
                         top: 0,
@@ -328,7 +328,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 }}>
                                 </div>
 
-                                {/* 模型名称和排名 */}
+                                {/*  */}
                                 <div style={{
                                   height: '40px', // Reserve space at the bottom
                                   display: 'flex',
@@ -357,9 +357,9 @@ const Dashboard: React.FC<DashboardProps> = ({
           )}
         </div>
 
-        {/* Polymarket Models 竖条形图 */}
+        {/* Polymarket Models  */}
         <div style={{
-          // 强制覆盖
+
           position: 'relative',
           zIndex: 1001,
           overflow: 'visible'
@@ -403,7 +403,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <div style={{ padding: '1rem 0' }}>
                   <div style={{ padding: '2rem 1rem' }}>
                     <div style={{ position: 'relative', height: '320px', marginBottom: '1rem' }}>
-                      {/* Y轴网格线 - centered */}
+                      {/* Y - centered */}
                       {[maxPolyPerf, maxPolyPerf / 2, 0, -maxPolyPerf / 2, -maxPolyPerf].map(value => {
                         const topPercentage = 50 - (value / maxPolyPerf) * 50;
                         return (
@@ -429,7 +429,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         );
                       })}
 
-                      {/* 柱状图 */}
+                      {/*  */}
                       <div style={{
                         position: 'absolute',
                         top: 0,
@@ -486,7 +486,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 }}>
                                 </div>
 
-                                {/* 模型名称和排名 */}
+                                {/*  */}
                                 <div style={{
                                   height: '40px', // Reserve space at the bottom
                                   display: 'flex',

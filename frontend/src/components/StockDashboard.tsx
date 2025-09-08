@@ -21,11 +21,10 @@ const StockDashboard: React.FC<StockDashboardProps> = ({ modelsData, modelsLastR
 
   return (
     <div className="dashboard-ultra-simple">
-      {/* 页面标题 */}
       <div style={{
         textAlign: 'center',
         padding: '2rem 0'
-        }}>
+      }}>
         <h1 style={{
           color: '#ffffff',
           fontSize: '2.5rem',
@@ -54,7 +53,7 @@ const StockDashboard: React.FC<StockDashboardProps> = ({ modelsData, modelsLastR
         </p>
       </div>
 
-      {/* 只显示股票模型卡片 - 没有统计条 */}
+      {/*  -  */}
       <ModelsDisplay
         modelsData={stockModels}
         stockModels={stockModels}

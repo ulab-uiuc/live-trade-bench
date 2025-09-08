@@ -36,6 +36,9 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
         target_allocations: Dict[str, float],
         price_map: Optional[Dict[str, float]] = None,
     ) -> None:
+        # Store target allocations
+        self.target_allocations = target_allocations.copy()
+
         if not price_map:
             price_map = {
                 ticker: pos.current_price for ticker, pos in self.positions.items()
@@ -61,12 +64,16 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
 
             price_data = price_map.get(market_id)
             if not isinstance(price_data, dict):
-                print(f"--- ⚠️ No price data found for market {market_id}. Skipping. ---")
+                print(
+                    f"--- ⚠️ No price data found for market {market_id}. Skipping. ---"
+                )
                 continue
 
             price = price_data.get(f"{outcome}_price")
             if price is None or price <= 0:
-                print(f"--- ⚠️ No valid '{outcome}' price for market {market_id}. Skipping. ---")
+                print(
+                    f"--- ⚠️ No valid '{outcome}' price for market {market_id}. Skipping. ---"
+                )
                 continue
 
             target_value = total_value * target_ratio

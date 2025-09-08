@@ -36,14 +36,14 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     }
   }, [showModal]);
 
-  // 检查是否需要显示分类标签
+
   const showCategoryTabs = useMemo(() => {
     return stockModels.length > 0 && polymarketModels.length > 0;
   }, [stockModels.length, polymarketModels.length]);
 
-  // 简化的过滤逻辑
+
   const filteredModels = useMemo(() => {
-    // 如果不显示分类标签，直接返回所有数据
+
     if (!showCategoryTabs) {
       return modelsData;
     }
@@ -55,14 +55,14 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     }
   }, [selectedCategory, stockModels, polymarketModels, modelsData, showCategoryTabs]);
 
-  // 简化的状态颜色
+
   const getStatusColor = (status: string) => ({
     active: '#10b981',
     inactive: '#ef4444',
     training: '#f59e0b'
   } as const)[status as 'active' | 'inactive' | 'training'] || '#6b7280';
 
-  // 点击模型卡片处理
+
   const handleModelClick = useCallback((model: Model) => {
     console.log('🔥 Modal opening for model:', model.name, 'category:', model.category);
     setSelectedModel(model);
@@ -80,7 +80,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     setTooltip(null);
   }, []);
 
-  // 关闭模态框
+
   const closeModal = useCallback(() => {
     setShowModal(false);
     setSelectedModel(null);
@@ -142,7 +142,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       <div className="profit-chart">
         <h3>Profit History</h3>
         <svg width={width} height={height} className="chart-svg">
-          {/* 网格线 */}
+          {/*  */}
           <defs>
             <pattern id="grid" width="40" height="20" patternUnits="userSpaceOnUse">
               <path d="M 40 0 L 0 0 0 20" fill="none" stroke="#374151" strokeWidth="0.5" />
@@ -150,7 +150,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
 
-          {/* 零线 */}
+          {/*  */}
           {minProfit < 0 && maxProfit > 0 && (
             <line
               x1={padding}
@@ -163,7 +163,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
             />
           )}
 
-          {/* 利润线 */}
+          {/*  */}
           <path
             d={pathData}
             fill="none"
@@ -171,7 +171,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
             strokeWidth="2"
           />
 
-          {/* 数据点 */}
+          {/*  */}
           {chartData.map((point, index) => {
             const x = padding + (index / (chartData.length - 1)) * (width - 2 * padding);
             const y = padding + ((maxProfit - point.profit) / range) * (height - 2 * padding);
@@ -196,12 +196,12 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
             );
           })}
 
-          {/* Y轴标签 */}
+          {/* Y */}
           <text x="10" y={padding} fill="#9ca3af" fontSize="12">${maxProfit.toFixed(0)}</text>
           <text x="10" y={height - padding + 5} fill="#9ca3af" fontSize="12">${minProfit.toFixed(0)}</text>
         </svg>
 
-        {/* 图表说明 */}
+        {/*  */}
         <div className="chart-info">
           <div className="chart-stat">
             <span>Current Profit: </span>
@@ -257,7 +257,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       <div className="asset-allocation">
         <h3>Asset Allocation</h3>
 
-        {/* 横条图 */}
+        {/*  */}
         <div className="allocation-bar">
           {allocations.map((asset, index) => (
             <div
@@ -275,7 +275,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           ))}
         </div>
 
-        {/* 图例 */}
+        {/*  */}
         <div className="allocation-legend">
           {allocations.map((asset) => (
             <div key={asset.name} className="legend-item">
@@ -298,14 +298,14 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
   return (
     <div className="models-container">
-      {/* 简化的标题 */}
+      {/*  */}
       <div className="models-header">
         <h2>Trading Models</h2>
         {/* Refresh button is now conditional */}
         {onRefresh && <button onClick={onRefresh} className="refresh-btn">🔄</button>}
       </div>
 
-      {/* 只在有多种类型时显示过滤器 */}
+      {/*  */}
       {showCategoryTabs && (
         <div className="category-tabs">
         <button
@@ -329,7 +329,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       </div>
       )}
 
-      {/* 方形模型卡片，显示资产分配 */}
       <div className="models-grid-square">
         {filteredModels.map(model => {
           // Use the real (mocked) asset allocation from the model prop
@@ -349,7 +348,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               className="model-card-square"
               onClick={() => handleModelClick(model)}
             >
-              {/* 紧凑头部 */}
+              {/*  */}
               <div className="card-header-compact">
                 <h3>{model.name}</h3>
                 <div className="top-right-badges">
@@ -360,7 +359,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 </div>
               </div>
 
-              {/* 只显示回报率 */}
               <div className="card-return-only">
                 <span className="return-label">Return</span>
                 <span className={`return-value-large ${model.performance >= 0 ? 'positive' : 'negative'}`}>
@@ -368,7 +366,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 </span>
             </div>
 
-              {/* 资产分配横条 - 自定义悬停显示 */}
               <div className="card-allocation">
                 <div className="allocation-label">Asset Allocation</div>
                 <div className="allocation-bar-mini">
@@ -404,7 +401,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 </div>
               )}
 
-      {/* 模态框 */}
       {showModal && selectedModel && (
         console.log('🔥 Modal rendering for:', selectedModel.name),
         <div className="modal-overlay" onClick={closeModal}>
@@ -440,7 +436,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               />
               {/* Debug category */}
 
-              {/* 分割线 */}
+              {/*  */}
               <div style={{
                 height: '1px',
                 background: 'linear-gradient(90deg, transparent 0%, #374151 50%, transparent 100%)',
@@ -456,7 +452,6 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 onMouseLeave={handleMouseLeave}
               />
 
-              {/* 分割线 */}
               <div style={{
                 height: '1px',
                 background: 'linear-gradient(90deg, transparent 0%, #374151 50%, transparent 100%)',

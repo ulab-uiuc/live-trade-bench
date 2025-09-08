@@ -8,13 +8,13 @@ const SystemMonitoring: React.FC = () => {
     uptime: '2h 15m'
   });
 
-  // 极简的状态更新
+
   const updateStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/system/status');
       if (response.ok) {
         const data = await response.json();
-        const uptimeMinutes = Math.floor(Math.random() * 300) + 120; // 2-7小时
+        const uptimeMinutes = Math.floor(Math.random() * 300) + 120;
         const hours = Math.floor(uptimeMinutes / 60);
         const minutes = uptimeMinutes % 60;
 
@@ -31,7 +31,7 @@ const SystemMonitoring: React.FC = () => {
 
   useEffect(() => {
     updateStatus();
-    // 每5分钟更新一次，避免频繁更新
+
     const interval = setInterval(updateStatus, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [updateStatus]);
