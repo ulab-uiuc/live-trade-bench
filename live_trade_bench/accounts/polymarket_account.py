@@ -41,6 +41,9 @@ class PolymarketAccount(BaseAccount[PolymarketPosition, Dict[str, Any]]):
         target_allocations: Dict[str, float],
         price_map: Optional[Dict[str, float]] = None,
     ) -> None:
+        # Store target allocations
+        self.target_allocations = target_allocations.copy()
+
         if not price_map:
             price_map = {ticker: pos.price for ticker, pos in self.positions.items()}
 

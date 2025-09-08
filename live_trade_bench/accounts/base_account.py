@@ -61,12 +61,20 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
     def get_account_data(self) -> Dict[str, Any]:
         breakdown = self.get_breakdown()
         active_positions = self.get_positions()
+        # Convert Position objects to JSON-serializable dicts
+        serializable_positions = {}
+        for ticker, position in active_positions.items():
+            if hasattr(position, "__dict__"):
+                serializable_positions[ticker] = position.__dict__
+            else:
+                serializable_positions[ticker] = position
+
         return {
             "cash_balance": self.cash_balance,
             "total_value": breakdown["total_value"],
             "pnl": breakdown["total_value"]
             - 1000,  # Simplified PnL against a common baseline
-            "positions": active_positions,
+            "positions": serializable_positions,
             "total_positions": len(active_positions),
             "target_allocations": breakdown["target_allocations"],
             "current_allocations": breakdown["current_allocations"],

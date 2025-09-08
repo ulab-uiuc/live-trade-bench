@@ -131,11 +131,9 @@ class MockStockAgent(MockBaseAgent):
         self, parsed: Dict[str, Any], market_data: Dict[str, Dict[str, Any]]
     ) -> Optional[Dict[str, float]]:
         """Create portfolio allocation from mock response"""
-        normalized = self._normalize_allocations_from_parsed(parsed)
-        if not normalized:
-            print("� No allocations found in mock response")
-            return None
-        return normalized
+        from ..utils.agent_utils import normalize_allocations
+
+        return normalize_allocations(parsed)
 
     def _get_portfolio_prompt(
         self, analysis: str, market_data: Dict[str, Dict[str, Any]]
@@ -288,11 +286,9 @@ class MockPolymarketAgent(MockBaseAgent):
         self, parsed: Dict[str, Any], market_data: Dict[str, Dict[str, Any]]
     ) -> Optional[Dict[str, float]]:
         """Create portfolio allocation from mock response"""
-        normalized = self._normalize_allocations_from_parsed(parsed)
-        if not normalized:
-            print("� No allocations found in mock response")
-            return None
-        return normalized
+        from ..utils.agent_utils import normalize_allocations
+
+        return normalize_allocations(parsed)
 
     def _get_portfolio_prompt(
         self, analysis: str, market_data: Dict[str, Dict[str, Any]]
