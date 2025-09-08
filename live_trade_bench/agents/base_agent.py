@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Optional, TypeVar
 
@@ -105,6 +106,27 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         if not llm_response.get("success"):
             return None
 
+        content = llm_response.get("content", "")
+        if not content:
+            return None
+
+        try:
+            # Strategy 1: Find JSON block within markdown
+            if "```json" in content:
+                json_str = content.split("```json")[1].split("```")[0].strip()
+            # Strategy 2: Find the first '{' and last '}'
+            else:
+                start = content.find("{")
+                end = content.rfind("}") + 1
+                if start == -1 or end == 0:
+                    return None
+                json_str = content[start:end]
+
+            return json.loads(json_str)
+        except (json.JSONDecodeError, IndexError) as e:
+            self._log_error("JSON parsing failed", f"Error: {e}, Content: {content}")
+            return None
+
     def _normalize_allocations_from_parsed(
         self, parsed: Dict[str, Any]
     ) -> Optional[Dict[str, float]]:
@@ -146,13 +168,6 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         normalized["CASH"] = max(0.0, 1.0 - non_cash_sum)
 
         return normalized
-        try:
-            from ..utils import parse_portfolio_response
-
-            return parse_portfolio_response(llm_response["content"])
-        except Exception as e:
-            self._log_error("parse error", str(e))
-            return None
 
     # ----- Analysis Methods -----
     @abstractmethod
