@@ -4,6 +4,7 @@ Base account management system - Abstract base for all account types
 
 from __future__ import annotations
 
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -14,7 +15,35 @@ TransactionType = TypeVar("TransactionType")
 
 
 @dataclass
+class Position:
+    symbol: str
+    quantity: float
+    average_price: float
+    current_price: float
+
+    @property
+    def market_value(self) -> float:
+        return self.quantity * self.current_price
+
+    @property
+    def unrealized_pnl(self) -> float:
+        return self.quantity * (self.current_price - self.average_price)
+
+
+@dataclass
+class Transaction:
+    transaction_id: uuid.UUID
+    ticker: str
+    quantity: float
+    price: float
+    transaction_type: str
+    timestamp: datetime
+
+
+@dataclass
 class BaseAccount(ABC, Generic[PositionType, TransactionType]):
+    """Abstract base class for all trading accounts."""
+
     initial_cash: float = 0.0
     cash_balance: float = 0.0
     target_allocations: Dict[str, float] = field(default_factory=dict)
@@ -60,24 +89,25 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
 
     def get_account_data(self) -> Dict[str, Any]:
         breakdown = self.get_breakdown()
-        active_positions = self.get_positions()
-        # Convert Position objects to JSON-serializable dicts
-        serializable_positions = {}
-        for ticker, position in active_positions.items():
-            if hasattr(position, "__dict__"):
-                serializable_positions[ticker] = position.__dict__
-            else:
-                serializable_positions[ticker] = position
+        total_value = breakdown.get("total_value", self.initial_cash)
+        profit = total_value - self.initial_cash
+        performance = (profit / self.initial_cash) * 100 if self.initial_cash > 0 else 0
+
+        # Create a serializable portfolio object
+        portfolio_details = {
+            "cash": self.cash_balance,
+            "total_value": total_value,
+            "positions": self.get_positions(),
+            "target_allocations": breakdown.get("target_allocations", {}),
+            "current_allocations": breakdown.get("current_allocations", {}),
+        }
 
         return {
-            "cash_balance": self.cash_balance,
-            "total_value": breakdown["total_value"],
-            "pnl": breakdown["total_value"]
-            - 1000,  # Simplified PnL against a common baseline
-            "positions": serializable_positions,
-            "total_positions": len(active_positions),
-            "target_allocations": breakdown["target_allocations"],
-            "current_allocations": breakdown["current_allocations"],
+            "profit": profit,
+            "performance": performance,
+            "portfolio": portfolio_details,
+            "allocation_history": self.allocation_history,
+            "trades": len(self.get_transactions()),
         }
 
     @abstractmethod
@@ -94,4 +124,8 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
 
     @abstractmethod
     def get_positions(self) -> Dict[str, Any]:
+        ...
+
+    @abstractmethod
+    def get_transactions(self) -> List[Any]:
         ...

@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/models", response_model=List[Dict[str, Any]])
+@router.get("/models", response_model=List[Dict[str, Any]], include_in_schema=False)
+@router.get("/models/", response_model=List[Dict[str, Any]])
 def get_models():
     return read_json_or_404(MODELS_DATA_FILE)

@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from .models_data import generate_models_data
 from .news_data import update_news_data
 from .routers import models, news, social, system
 from .social_data import update_social_data
@@ -62,15 +63,15 @@ async def api_root():
 
 def run_initial_tasks():
     print("🚀 Kicking off initial background tasks...")
-    from .models_data import generate_models_data
-
-    generate_models_data()
+    # This function is now only for tasks that need to run *once* at startup,
+    # without interfering with existing data files.
+    # We can add things like cache warming here in the future.
     print("✅ Initial background tasks finished.")
 
 
 def schedule_background_tasks(scheduler: BackgroundScheduler):
-    from .models_data import generate_models_data
-
+    # We schedule generate_models_data to run on its interval, but not immediately,
+    # as the first run is now synchronous on startup.
     scheduler.add_job(
         generate_models_data,
         "interval",
@@ -107,8 +108,14 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
 def startup_event():
     logger.info("🚀 FastAPI app starting up...")
 
-    threading.Thread(target=run_initial_tasks, daemon=True).start()
+    # Run initial data generation in a background thread.
+    # This allows the server to start immediately and serve cached data,
+    # while the potentially slow data generation runs without blocking.
+    logger.info("Scheduling initial data generation to run in the background...")
+    threading.Thread(target=generate_models_data, daemon=True).start()
 
+    # The scheduler will handle all subsequent, periodic updates.
+    global scheduler
     scheduler = BackgroundScheduler()
     schedule_background_tasks(scheduler)
     scheduler.start()
