@@ -103,8 +103,12 @@ function App() {
         fetch('/api/social/polymarket?limit=15')
       ]);
 
+      console.log("DEBUG: 1. Raw API Response (Social)", { stock: stockResponse, polymarket: polymarketResponse });
+
       const stockPosts = stockResponse.ok ? await stockResponse.json() : [];
       const polymarketPosts = polymarketResponse.ok ? await polymarketResponse.json() : [];
+
+      console.log("DEBUG: 2. Parsed JSON Data (Social)", { stockPosts, polymarketPosts });
 
       // Transform data to match expected format
       const transformStockPosts = stockPosts.map((post: any, index: number) => ({
