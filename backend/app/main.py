@@ -75,7 +75,7 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
     scheduler.add_job(
         generate_models_data,
         "interval",
-        minutes=UPDATE_FREQUENCY["trading_cycle"],
+        seconds=UPDATE_FREQUENCY["trading_cycle"],
         id="generate_models_data",
         replace_existing=True,
     )
@@ -83,14 +83,14 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
     scheduler.add_job(
         update_news_data,
         "interval",
-        minutes=UPDATE_FREQUENCY["news_social"],
+        seconds=UPDATE_FREQUENCY["news_social"],
         id="update_news_data",
         replace_existing=True,
     )
     scheduler.add_job(
         update_social_data,
         "interval",
-        minutes=UPDATE_FREQUENCY["news_social"],
+        seconds=UPDATE_FREQUENCY["news_social"],
         id="update_social_data",
         replace_existing=True,
     )
