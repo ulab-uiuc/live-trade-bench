@@ -63,9 +63,6 @@ def run_startup_backtest():
     try:
         print("🔄 Running startup backtest...")
 
-        # Import here to avoid circular imports
-        from live_trade_bench.backtesting import run_backtest
-
         # Use SINGLE source of truth for model configurations
         # Calculate past week dates - use historical data, not future data
         end_date = datetime.now() - timedelta(days=1)  # Yesterday
@@ -74,38 +71,30 @@ def run_startup_backtest():
         # 使用统一配置源
         base_models = get_base_model_configs()
 
-        # Run backtests
-        stock_results = run_backtest(
-            models=base_models,
-            initial_cash=TRADING_CONFIG["initial_cash_stock"],
-            start_date=start_date.strftime("%Y-%m-%d"),
-            end_date=end_date.strftime("%Y-%m-%d"),
-            market_type="stock",
-        )
+        # Run parallel backtests for both markets
+        from app.models_data import run_parallel_backtest
 
-        poly_results = run_backtest(
+        backtest_results = run_parallel_backtest(
             models=base_models,
-            initial_cash=TRADING_CONFIG["initial_cash_polymarket"],
             start_date=start_date.strftime("%Y-%m-%d"),
             end_date=end_date.strftime("%Y-%m-%d"),
-            market_type="polymarket",
+            stock_initial_cash=TRADING_CONFIG["initial_cash_stock"],
+            polymarket_initial_cash=TRADING_CONFIG["initial_cash_polymarket"],
         )
 
         # Save results directly to models_data.json instead of separate file
-        backtest_results = {
-            "stock": stock_results,
-            "polymarket": poly_results,
-            "start_date": start_date.strftime("%Y-%m-%d"),
-            "end_date": end_date.strftime("%Y-%m-%d"),
-        }
+        # backtest_results 已经是正确的格式了
 
         # Import here to avoid circular dependency
         from app.models_data import _save_backtest_data_to_models
 
         _save_backtest_data_to_models(backtest_results)
 
+        stock_count = len(backtest_results.get("stock", {}))
+        poly_count = len(backtest_results.get("polymarket", {}))
+
         print(
-            f"✅ Startup backtest completed: {len(stock_results)} stock, {len(poly_results)} polymarket results"
+            f"✅ Startup backtest completed: {stock_count} stock, {poly_count} polymarket results"
         )
 
     except Exception as e:
