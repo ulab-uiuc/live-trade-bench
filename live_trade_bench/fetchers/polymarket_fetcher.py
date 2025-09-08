@@ -1,20 +1,9 @@
-"""
-Polymarket data fetcher for trading bench (simplified).
-
-Exports:
-1) PolymarketFetcher         - Core fetcher class
-2) fetch_trending_markets()  - Convenience wrapper
-3) fetch_current_market_price() - Convenience wrapper
-4) fetch_token_price()       - Convenience wrapper
-"""
-
 from typing import Any, Dict, List, Optional, Union
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
 
 class PolymarketFetcher(BaseFetcher):
-    # Global token_id to market info mapping
     _token_market_map: Dict[str, Dict[str, Any]] = {}
 
     def __init__(self, min_delay: float = 0.5, max_delay: float = 1.5):
@@ -46,28 +35,23 @@ class PolymarketFetcher(BaseFetcher):
         resp = self.make_request(url, timeout=10)
         if resp.status_code != 200:
             raise ValueError(f"Polymarket markets API error: {resp.status_code}")
-
         data = self.safe_json_parse(resp, "Polymarket markets API")
         markets = data.get("data", data) if isinstance(data, dict) else data
         if not isinstance(markets, list):
             return []
-
         out: List[Dict[str, Any]] = []
         for m in markets:
             if not isinstance(m, dict):
                 continue
             if m.get("active") is False or m.get("closed") is True:
                 continue
-            # Parse token_ids - handle both list and string formats
             token_ids = m.get("clobTokenIds")
             if isinstance(token_ids, str):
                 try:
                     import json
-
                     token_ids = json.loads(token_ids)
                 except (json.JSONDecodeError, TypeError):
                     token_ids = None
-
             market_info = {
                 "id": m.get("id"),
                 "question": m.get("question"),
@@ -75,8 +59,6 @@ class PolymarketFetcher(BaseFetcher):
                 "token_ids": token_ids if isinstance(token_ids, list) else None,
             }
             out.append(market_info)
-
-            # Update global token mapping
             if token_ids and isinstance(token_ids, list):
                 for token_id in token_ids:
                     if token_id:
@@ -103,29 +85,21 @@ class PolymarketFetcher(BaseFetcher):
 
     @classmethod
     def get_market_info_by_token(cls, token_id: str) -> Optional[Dict[str, Any]]:
-        """Get market info (question, category) from token_id."""
         return cls._token_market_map.get(token_id)
 
     def get_market_prices(self, token_ids: List[str]) -> Dict[str, Any]:
         prices: Dict[str, Any] = {}
-
-        # Get prices
         for idx, tid in enumerate(token_ids):
             if not tid:
                 continue
-            # Try buy first, then sell
             price = self.get_token_price(tid, "buy")
             if price is None:
                 price = self.get_token_price(tid, "sell")
             prices[tid] = price
             prices[f"token_{idx}"] = price
-
-        # Add yes/no mapping for binary markets
         if len(token_ids) == 2:
             prices["yes"] = prices.get("token_0")
             prices["no"] = prices.get("token_1")
-
-        # Add market info from token mapping
         if token_ids:
             first_token = token_ids[0]
             market_info = self.get_market_info_by_token(first_token)
@@ -133,13 +107,9 @@ class PolymarketFetcher(BaseFetcher):
                 prices["question"] = market_info.get("question")
                 prices["category"] = market_info.get("category")
                 prices["market_id"] = market_info.get("market_id")
-
         return prices
 
 
-# ----------------------------
-# Convenience wrappers
-# ----------------------------
 def fetch_trending_markets(limit: int = 10) -> List[Dict[str, Any]]:
     markets = PolymarketFetcher().get_trending_markets(limit=limit)
     valid_markets = [m for m in markets if m.get("token_ids")]
@@ -167,7 +137,6 @@ def fetch_current_market_price(token_ids: List[str]) -> Dict[str, Any]:
 def fetch_token_price(token_id: str, side: str = "buy") -> Optional[float]:
     price = PolymarketFetcher().get_token_price(token_id, side)
     market_info = PolymarketFetcher.get_market_info_by_token(token_id)
-
     if price:
         if market_info and market_info.get("question"):
             question_short = (
@@ -182,6 +151,5 @@ def fetch_token_price(token_id: str, side: str = "buy") -> Optional[float]:
 
 
 def get_question_by_token_id(token_id: str) -> Optional[str]:
-    """Get market question by token_id from global mapping."""
     market_info = PolymarketFetcher.get_market_info_by_token(token_id)
     return market_info.get("question") if market_info else None
