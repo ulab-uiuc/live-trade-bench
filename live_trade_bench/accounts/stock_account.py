@@ -11,36 +11,24 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from .base_account import BaseAccount
+from .base_account import BaseAccount, Position, Transaction
 
 
 @dataclass
-class StockPosition:
-    ticker: str
-    quantity: float
-    average_price: float
-    current_price: float = 0.0
+class StockAccount(BaseAccount[Position, Transaction]):
+    positions: Dict[str, Position] = field(default_factory=dict)
+    transactions: List[Transaction] = field(default_factory=list)
+    total_fees: float = 0.0
 
-    @property
-    def market_value(self) -> float:
-        return self.quantity * self.current_price
-
-    @property
-    def unrealized_pnl(self) -> float:
-        return self.quantity * (self.current_price - self.average_price)
-
-
-@dataclass
-class StockAccount(BaseAccount[StockPosition, Dict[str, Any]]):
-    positions: Dict[str, StockPosition] = field(default_factory=dict)
-    transactions: List[Dict[str, Any]] = field(default_factory=list)
-
-    def get_positions(self) -> Dict[str, StockPosition]:
+    def get_positions(self) -> Dict[str, Position]:
         return {
             ticker: pos for ticker, pos in self.positions.items() if pos.quantity > 0.01
         }
 
-    def get_position(self, ticker: str) -> Optional[StockPosition]:
+    def get_transactions(self) -> List[Transaction]:
+        return self.transactions
+
+    def get_position(self, ticker: str) -> Optional[Position]:
         return self.positions.get(ticker)
 
     def _get_position_value(self, ticker: str) -> float:
@@ -79,8 +67,8 @@ class StockAccount(BaseAccount[StockPosition, Dict[str, Any]]):
             target_value = total_value * target_ratio
             quantity = target_value / price
 
-            self.positions[ticker] = StockPosition(
-                ticker=ticker,
+            self.positions[ticker] = Position(
+                symbol=ticker,
                 quantity=quantity,
                 average_price=price,
                 current_price=price,
@@ -88,6 +76,20 @@ class StockAccount(BaseAccount[StockPosition, Dict[str, Any]]):
             self.cash_balance -= target_value
 
         self.last_rebalance = datetime.now().isoformat()
+
+    def get_account_data(self) -> Dict[str, Any]:
+        base_data = super().get_account_data()
+        base_data.update(
+            {
+                "market_type": "stock",
+                "positions": list(self.positions.values()),
+                "total_fees": self.total_fees,
+            }
+        )
+        return base_data
+
+    def _update_market_data(self) -> None:
+        pass
 
 
 def create_stock_account(initial_cash: float = 1000.0) -> StockAccount:
