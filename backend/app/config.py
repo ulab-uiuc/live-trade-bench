@@ -1,5 +1,6 @@
 import os
 import sys
+from enum import Enum
 from typing import List, Tuple
 
 PROJECT_ROOT = os.path.dirname(
@@ -96,5 +97,12 @@ def get_data_file_path(file_type: str) -> str:
     return mapping[file_type]
 
 
-USE_MOCK_AGENTS = False
-USE_MOCK_FETCHERS = False
+class MockMode(str, Enum):
+    NONE = "NONE"
+    MOCK_AGENTS = "MOCK_AGENTS"
+    MOCK_FETCHERS = "MOCK_FETCHERS"
+    MOCK_AGENTS_AND_FETCHERS = "MOCK_AGENTS_AND_FETCHERS"
+
+
+STOCK_MOCK_MODE = MockMode.NONE
+POLYMARKET_MOCK_MODE = MockMode.NONE
