@@ -3,21 +3,19 @@ Social media data provider using live_trade_bench fetchers
 """
 
 import json
-import os
 import re
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Any, Dict, List
 
-# Add live_trade_bench to path
-project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-sys.path.insert(0, project_root)
+# 条件导入fetchers
+from .config import USE_MOCK_FETCHERS
 
-from live_trade_bench.fetchers.reddit_fetcher import RedditFetcher
+if USE_MOCK_FETCHERS:
+    from live_trade_bench.mock.mock_fetcher import MockRedditFetcher as RedditFetcher
+else:
+    from live_trade_bench.fetchers.reddit_fetcher import RedditFetcher
 
 
 def _format_content(content: str) -> str:
@@ -126,7 +124,10 @@ def _classify_sentiment(content: str) -> str:
 def fetch_trending_stocks() -> List[str]:
     """Fetch trending stock tickers."""
     try:
-        from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
+        if USE_MOCK_FETCHERS:
+            from live_trade_bench.mock.mock_fetcher import fetch_trending_stocks
+        else:
+            from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
 
         stocks = fetch_trending_stocks()
         return stocks[:10]  # Limit to top 10
@@ -306,7 +307,15 @@ def extract_keywords_from_question(question: str) -> str:
 def fetch_trending_markets() -> List[str]:
     """Fetch trending polymarket topics and extract keywords."""
     try:
-        from live_trade_bench.fetchers.polymarket_fetcher import fetch_trending_markets
+        if USE_MOCK_FETCHERS:
+            # Mock polymarket fetcher - 返回空列表或简单mock数据
+            def fetch_trending_markets():
+                return [{"id": "mock_market_1", "question": "Mock market"}]
+
+        else:
+            from live_trade_bench.fetchers.polymarket_fetcher import (
+                fetch_trending_markets,
+            )
 
         markets = fetch_trending_markets()
         # Extract keywords from question text

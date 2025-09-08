@@ -8,45 +8,77 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-# Import after path modification
-from live_trade_bench.agents.polymarket_system import (  # noqa: E402
-    PolymarketPortfolioSystem,
-)
-from live_trade_bench.agents.stock_system import StockPortfolioSystem  # noqa: E402
-from live_trade_bench.fetchers.stock_fetcher import (  # noqa: E402
-    fetch_current_stock_price,
+# 使用统一配置管理
+from .config import (
+    MODELS_DATA_FILE,
+    USE_MOCK_AGENTS,
+    USE_MOCK_FETCHERS,
+    get_base_model_configs,
 )
 
-# 使用统一配置管理
-from .config import MODELS_DATA_FILE, get_base_model_configs
+# 条件导入 - 根据配置选择mock或real组件
+if USE_MOCK_FETCHERS:
+    from live_trade_bench.mock.mock_fetcher import fetch_current_stock_price
+else:
+    from live_trade_bench.fetchers.stock_fetcher import fetch_current_stock_price
+
+# 始终导入systems - 即使用mock agents也需要真实系统作为容器
+from live_trade_bench.agents.polymarket_system import PolymarketPortfolioSystem
+from live_trade_bench.agents.stock_system import StockPortfolioSystem
 
 
 def _get_stock_system():
-    """Get or create stock system with real agents"""
-    stock_system = StockPortfolioSystem.get_instance()
-    if not stock_system.agents:
-        # Use centralized model configurations
-        base_models = get_base_model_configs()
+    """Get or create stock system with real or mock agents"""
+    if USE_MOCK_AGENTS:
+        # 使用现有的mock系统 - 创建带mock agents的真实系统
+        stock_system = StockPortfolioSystem.get_instance()
+        if not stock_system.agents:
+            # 只创建一个mock agent
+            from live_trade_bench.accounts import StockAccount
+            from live_trade_bench.mock import create_mock_stock_agent
 
-        for name, model_name in base_models:
-            stock_system.add_agent(name=name, initial_cash=1000, model_name=model_name)
-
-    return stock_system
+            mock_agent = create_mock_stock_agent("Mock_Stock_Agent")
+            # 设置account
+            mock_agent.account = StockAccount(cash_balance=1000.0)
+            # 直接添加到系统中，绕过add_agent的LLM初始化
+            stock_system.agents["Mock_Stock_Agent"] = mock_agent
+        return stock_system
+    else:
+        stock_system = StockPortfolioSystem.get_instance()
+        if not stock_system.agents:
+            base_models = get_base_model_configs()
+            for name, model_name in base_models:
+                stock_system.add_agent(
+                    name=name, initial_cash=1000, model_name=model_name
+                )
+        return stock_system
 
 
 def _get_polymarket_system():
-    """Get or create polymarket system with real agents"""
-    polymarket_system = PolymarketPortfolioSystem.get_instance()
-    if not polymarket_system.agents:
-        # Use centralized model configurations
-        base_models = get_base_model_configs()
+    """Get or create polymarket system with real or mock agents"""
+    if USE_MOCK_AGENTS:
+        # 使用现有的mock系统 - 创建带mock agents的真实系统
+        polymarket_system = PolymarketPortfolioSystem.get_instance()
+        if not polymarket_system.agents:
+            # 只创建一个mock agent
+            from live_trade_bench.accounts import PolymarketAccount
+            from live_trade_bench.mock import create_mock_polymarket_agent
 
-        for name, model_name in base_models:
-            polymarket_system.add_agent(
-                name=name, initial_cash=500, model_name=model_name
-            )
-
-    return polymarket_system
+            mock_agent = create_mock_polymarket_agent("Mock_Polymarket_Agent")
+            # 设置account
+            mock_agent.account = PolymarketAccount(cash_balance=500.0)
+            # 直接添加到系统中，绕过add_agent的LLM初始化
+            polymarket_system.agents["Mock_Polymarket_Agent"] = mock_agent
+        return polymarket_system
+    else:
+        polymarket_system = PolymarketPortfolioSystem.get_instance()
+        if not polymarket_system.agents:
+            base_models = get_base_model_configs()
+            for name, model_name in base_models:
+                polymarket_system.add_agent(
+                    name=name, initial_cash=500, model_name=model_name
+                )
+        return polymarket_system
 
 
 def get_model_configurations():

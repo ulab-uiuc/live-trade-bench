@@ -122,3 +122,8 @@ def get_data_file_path(file_type: str) -> str:
         )
 
     return mapping[file_type]
+
+
+# Mock 配置
+USE_MOCK_AGENTS = False  # 改为True使用mock agents
+USE_MOCK_FETCHERS = False  # 改为True使用mock fetchers

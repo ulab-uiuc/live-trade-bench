@@ -3,20 +3,18 @@ News data provider using live_trade_bench fetchers
 """
 
 import json
-import os
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
-# Add live_trade_bench to path
-project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-sys.path.insert(0, project_root)
+# 条件导入fetchers
+from .config import USE_MOCK_FETCHERS
 
-from live_trade_bench.fetchers.news_fetcher import NewsFetcher
+if USE_MOCK_FETCHERS:
+    from live_trade_bench.mock.mock_fetcher import MockNewsFetcher as NewsFetcher
+else:
+    from live_trade_bench.fetchers.news_fetcher import NewsFetcher
 
 # Company name mapping for ticker symbols
 TICKER_TO_COMPANY = {
@@ -229,7 +227,10 @@ def _classify_sentiment(title: str, content: str) -> str:
 def fetch_trending_stocks() -> List[str]:
     """Fetch trending stock tickers."""
     try:
-        from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
+        if USE_MOCK_FETCHERS:
+            from live_trade_bench.mock.mock_fetcher import fetch_trending_stocks
+        else:
+            from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
 
         stocks = fetch_trending_stocks()
         return stocks[:10]  # Limit to top 10
@@ -409,7 +410,15 @@ def extract_keywords_from_question(question: str) -> str:
 def fetch_trending_markets() -> List[str]:
     """Fetch trending polymarket topics and extract keywords."""
     try:
-        from live_trade_bench.fetchers.polymarket_fetcher import fetch_trending_markets
+        if USE_MOCK_FETCHERS:
+            # Mock polymarket fetcher - 返回空列表或简单mock数据
+            def fetch_trending_markets():
+                return [{"id": "mock_market_1", "question": "Mock market"}]
+
+        else:
+            from live_trade_bench.fetchers.polymarket_fetcher import (
+                fetch_trending_markets,
+            )
 
         markets = fetch_trending_markets()
         # Extract keywords from question text
@@ -442,7 +451,6 @@ def fetch_stock_news(ticker: str) -> List[Dict[str, Any]]:
         news_fetcher = NewsFetcher()
         end_date = datetime.now().strftime("%Y-%m-%d")
         start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-        company_name = TICKER_TO_COMPANY.get(ticker.upper(), ticker)
         query = f"{ticker} stock OR {ticker} earnings OR {ticker} news"
         raw_news = news_fetcher.fetch(query, start_date, end_date, max_pages=1)
 
@@ -520,7 +528,6 @@ def update_news_data():
             }
 
             for future in as_completed(stock_futures):
-                ticker = stock_futures[future]
                 try:
                     news_items = future.result()
                     news_data["stock"].extend(news_items)
@@ -534,7 +541,6 @@ def update_news_data():
             }
 
             for future in as_completed(polymarket_futures):
-                topic = polymarket_futures[future]
                 try:
                     news_items = future.result()
                     news_data["polymarket"].extend(news_items)
