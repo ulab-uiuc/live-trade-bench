@@ -3,15 +3,9 @@ import logging
 import os
 import threading
 import time
-import traceback
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from app.config import (
-    ALLOWED_ORIGINS,
-    TRADING_CONFIG,
-    UPDATE_FREQUENCY,
-    get_base_model_configs,
-)
+from app.config import ALLOWED_ORIGINS, UPDATE_FREQUENCY
 from app.news_data import update_news_data
 from app.routers import models, news, social, system
 from app.social_data import update_social_data
@@ -52,57 +46,6 @@ app.include_router(models.router)
 app.include_router(news.router)
 app.include_router(social.router)
 app.include_router(system.router)
-
-# ============================================================================
-# SIMPLE STARTUP BACKTEST - Use existing live_trade_bench interface
-# ============================================================================
-
-
-def run_startup_backtest():
-    """Run backtest for past week on startup using existing system."""
-    try:
-        print("🔄 Running startup backtest...")
-
-        # Use SINGLE source of truth for model configurations
-        # Calculate past week dates - use historical data, not future data
-        end_date = datetime.now() - timedelta(days=1)  # Yesterday
-        start_date = end_date - timedelta(days=TRADING_CONFIG["backtest_days"])
-
-        base_models = get_base_model_configs()
-
-        # Run parallel backtests for both markets
-        from app.models_data import run_parallel_backtest
-
-        backtest_results = run_parallel_backtest(
-            models=base_models,
-            start_date=start_date.strftime("%Y-%m-%d"),
-            end_date=end_date.strftime("%Y-%m-%d"),
-            stock_initial_cash=TRADING_CONFIG["initial_cash_stock"],
-            polymarket_initial_cash=TRADING_CONFIG["initial_cash_polymarket"],
-        )
-
-        # Save results directly to models_data.json instead of separate file
-
-        # Import here to avoid circular dependency
-        from app.models_data import _save_backtest_data_to_models
-
-        _save_backtest_data_to_models(backtest_results)
-
-        stock_count = len(backtest_results.get("stock", {}))
-        poly_count = len(backtest_results.get("polymarket", {}))
-
-        print(
-            f"✅ Startup backtest completed: {stock_count} stock, {poly_count} polymarket results"
-        )
-
-    except Exception as e:
-        print(f"❌ Startup backtest failed: {e}")
-        traceback.print_exc()
-
-
-# ============================================================================
-# BACKGROUND UPDATES - Simple, clean, no async complexity
-# ============================================================================
 
 
 def run_background_updates():
@@ -149,18 +92,12 @@ def run_background_updates():
     logger.info("🚀 All background update threads started.")
 
 
-# ============================================================================
-# STARTUP EVENT - Clean and simple
-# ============================================================================
-
-
 @app.on_event("startup")
 def startup_event():
     """
     Run startup tasks:
     1. Initial data generation (if needed)
-    2. Backtest for the past week
-    3. Start background update threads
+    2. Start background update threads
     """
     logger.info("🚀 FastAPI app starting up...")
 
@@ -218,13 +155,7 @@ def startup_event():
             logger.error(f"Initial updates setup failed: {e}")
 
     threading.Thread(target=_kickoff_initial_updates, daemon=True).start()
-    threading.Thread(target=run_startup_backtest, daemon=True).start()
     run_background_updates()
-
-
-# ============================================================================
-# HEALTH CHECK - Simple endpoint
-# ============================================================================
 
 
 @app.get("/health")
@@ -232,10 +163,6 @@ def health_check():
     """Simple health check endpoint."""
     return {"status": "ok"}
 
-
-# ============================================================================
-# FRONTEND SERVING - Serve React build files
-# ============================================================================
 
 # Mount static files from the build directory
 static_files_path = os.path.join(
