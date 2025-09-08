@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Optional, TypeVar
 
 from ..accounts import BaseAccount
+from ..utils.agent_utils import parse_llm_response_to_json
 
 AccountType = TypeVar("AccountType", bound=BaseAccount[Any, Any])
 DataType = TypeVar("DataType")
@@ -17,31 +17,20 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         self.available = True
         self._history: Dict[str, List[float]] = {}
         self._last_price: Dict[str, float] = {}
-        self.account = None  # Will be set by the system
 
-    def generate_portfolio_allocation(
+    def generate_allocation(
         self,
         market_data: Dict[str, DataType],
-        account: AccountType,
+        account_data: Dict[str, Any],
         date: str | None = None,
         news_data: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, float]]:
-        """Generate complete portfolio allocation for all assets."""
-        if not market_data:
-            print(f"💤 No market data available for {self.name}")
-            return None
-
-        if not self.available:
+        if not market_data or not self.available:
             return None
 
         try:
-            # Display current portfolio value before generating new allocation
-            current_value = account.get_total_value()
-            print(f"💰 {self.name} current portfolio value: ${current_value:,.2f}")
-
-            # Prepare comprehensive analysis
             market_analysis = self._prepare_market_analysis(market_data)
-            account_analysis = self._prepare_account_analysis(account)
+            account_analysis = self._prepare_account_analysis(account_data)
             news_analysis = self._prepare_news_analysis(market_data, date, news_data)
             full_analysis = self._combine_analysis_data(
                 market_analysis, account_analysis, news_analysis
@@ -54,43 +43,23 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                 }
             ]
 
-            print(f"🔍 {self.name}: Calling LLM with {len(market_data)} assets...")
             llm_response = self._call_llm(messages)
-
             if not llm_response.get("success"):
-                print(
-                    f"❌ {self.name}: LLM call failed: {llm_response.get('error', 'Unknown error')}"
+                self._log_error(
+                    "LLM call failed", llm_response.get("error", "Unknown error")
                 )
                 return None
-
-            print(
-                f"✅ {self.name}: LLM response received, length: {len(llm_response.get('content', ''))}"
-            )
 
             parsed = self._parse_portfolio_response(llm_response)
-
             if not parsed:
-                print(f"❌ {self.name}: Failed to parse LLM response")
+                self._log_error("Failed to parse LLM response")
                 return None
 
-            print(f"✅ {self.name}: Response parsed successfully: {parsed}")
-
-            portfolio_allocation = self._create_portfolio_allocation_from_response(
-                parsed, market_data
-            )
-
-            if portfolio_allocation:
-                print(
-                    f"🤖 {self.name}: Generated portfolio allocation: {portfolio_allocation}"
-                )
-            else:
-                print(f"🤖 {self.name}: No portfolio allocation generated")
-            return portfolio_allocation
+            return self._create_portfolio_allocation_from_response(parsed, market_data)
         except Exception as e:
             self._log_error("LLM error", str(e))
             return None
 
-    # ----- LLM plumbing -----
     def _call_llm(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         if not self.available:
             return {"success": False, "content": "", "error": "LLM not available"}
@@ -104,92 +73,27 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
     def _parse_portfolio_response(
         self, llm_response: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
-        if not llm_response.get("success"):
-            return None
-
         content = llm_response.get("content", "")
-        if not content:
+        if not llm_response.get("success") or not content:
             return None
 
-        try:
-            # Strategy 1: Find JSON block within markdown
-            if "```json" in content:
-                json_str = content.split("```json")[1].split("```")[0].strip()
-            # Strategy 2: Find the first '{' and last '}'
-            else:
-                start = content.find("{")
-                end = content.rfind("}") + 1
-                if start == -1 or end == 0:
-                    return None
-                json_str = content[start:end]
+        parsed = parse_llm_response_to_json(content)
+        if not parsed:
+            self._log_error("JSON parsing failed", f"Content: {content}")
+        return parsed
 
-            return json.loads(json_str)
-        except (json.JSONDecodeError, IndexError) as e:
-            self._log_error("JSON parsing failed", f"Error: {e}, Content: {content}")
-            return None
-
-    def _normalize_allocations_from_parsed(
-        self, parsed: Dict[str, Any]
-    ) -> Optional[Dict[str, float]]:
-        """Normalize portfolio allocations to sum to 1.0 (including CASH).
-
-        Rules:
-        - Accepts any keys; if CASH is missing, derive CASH = max(0, 1 - sum(non-cash))
-        - Clamp individual weights to [0, 1] before normalization
-        - If total <= 0 after cleaning, return 100% CASH
-        - Finally normalize all weights so their sum equals 1.0 exactly
-        """
-        allocations = parsed.get("allocations", {}) if isinstance(parsed, dict) else {}
-        if not isinstance(allocations, dict) or not allocations:
-            return None
-
-        # Clamp non-negative and numeric
-        cleaned: Dict[str, float] = {}
-        for key, value in allocations.items():
-            if isinstance(value, (int, float)):
-                weight = float(value)
-                if weight < 0:
-                    weight = 0.0
-                cleaned[key] = min(1.0, weight)
-
-        # Derive CASH if not provided
-        if "CASH" not in cleaned:
-            non_cash_sum = sum(v for k, v in cleaned.items() if k != "CASH")
-            cleaned["CASH"] = max(0.0, 1.0 - non_cash_sum)
-
-        total = sum(cleaned.values())
-        if total <= 0:
-            return {"CASH": 1.0}
-
-        # Normalize
-        normalized = {k: (v / total) for k, v in cleaned.items()}
-
-        # Ensure exact unity by correcting CASH for any floating error
-        non_cash_sum = sum(v for k, v in normalized.items() if k != "CASH")
-        normalized["CASH"] = max(0.0, 1.0 - non_cash_sum)
-
-        return normalized
-
-    # ----- Analysis Methods -----
     @abstractmethod
     def _prepare_market_analysis(self, market_data: Dict[str, DataType]) -> str:
-        """Prepare comprehensive market data analysis for all assets."""
         ...
 
-    def _prepare_account_analysis(self, account: AccountType) -> str:
-        """Prepare account analysis with portfolio info."""
-        positions = account.get_active_positions()
-        total_positions = len(positions)
-        portfolio_value = account.get_total_value()
-        profit_loss = portfolio_value - account.cash_balance
-
+    def _prepare_account_analysis(self, account_data: Dict[str, Any]) -> str:
         return (
             f"ACCOUNT INFO:\n"
-            f"  Cash: ${account.cash_balance:.2f}\n"
-            f"  Portfolio Value: ${portfolio_value:.2f}\n"
-            f"  P&L: ${profit_loss:+.2f}\n"
-            f"  Total Positions: {total_positions}\n"
-            f"  Current Allocations: {account.target_allocations}"
+            f"  Cash: ${account_data.get('cash_balance', 0.0):.2f}\n"
+            f"  Portfolio Value: ${account_data.get('total_value', 0.0):.2f}\n"
+            f"  P&L: ${account_data.get('pnl', 0.0):+.2f}\n"
+            f"  Total Positions: {account_data.get('total_positions', 0)}\n"
+            f"  Current Allocations: {account_data.get('target_allocations', {})}"
         )
 
     def _prepare_news_analysis(
@@ -198,10 +102,8 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         date: str | None = None,
         news_data: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """Prepare news analysis for all assets."""
         try:
             news_summaries = []
-            # Prefer provided news_data if available; otherwise don't fetch here
             if news_data:
                 for asset_id, articles in list(news_data.items())[:3]:
                     if articles:
@@ -219,48 +121,38 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             return f"RECENT NEWS:\n• News fetch error: {str(e)}..."
 
     def _create_news_query(self, asset_id: str, data: DataType) -> str:
-        """Create news search query. Override in subclasses for domain-specific queries."""
         return asset_id
 
     def _combine_analysis_data(
         self, market_analysis: str, account_analysis: str, news_analysis: str
     ) -> str:
-        """Combine all analysis data into final format."""
         return f"{market_analysis}\n\n{account_analysis}\n\n{news_analysis}"
 
-    # ----- Hooks -----
     @abstractmethod
     def _create_portfolio_allocation_from_response(
         self, parsed: Dict[str, Any], market_data: Dict[str, DataType]
     ) -> Optional[Dict[str, float]]:
-        """Create complete portfolio allocation from LLM response."""
         ...
 
     @abstractmethod
     def _get_portfolio_prompt(
         self, analysis: str, market_data: Dict[str, DataType]
     ) -> str:
-        """Get portfolio allocation prompt for all assets."""
         ...
 
-    # ----- Helpers -----
     def history_tail(self, asset_id: str, k: int = 5) -> List[float]:
-        """Get last k price values for an asset."""
         return self._history.get(asset_id, [])[-k:]
 
     def prev_price(self, asset_id: str) -> Optional[float]:
-        """Get previous price for an asset."""
         hist = self._history.get(asset_id, [])
         return hist[-2] if len(hist) >= 2 else None
 
     def _update_price_history(self, asset_id: str, price: float) -> None:
-        """Update price history for an asset."""
         if asset_id not in self._history:
             self._history[asset_id] = []
 
         self._history[asset_id].append(price)
 
-        # Keep only last 10 prices
         if len(self._history[asset_id]) > 10:
             self._history[asset_id] = self._history[asset_id][-10:]
 
