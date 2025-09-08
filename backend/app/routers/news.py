@@ -1,47 +1,33 @@
-import json
-import os
 from typing import Any, Dict, List
 
+from app.config import NEWS_DATA_FILE
+from app.routers.router_utils import read_json_or_404, slice_limit
 from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix="/api/news", tags=["news"])
 
 
 @router.get("/stock")
-async def get_stock_news(limit: int = 25) -> List[Dict[str, Any]]:
-    """Get stock market news from JSON file."""
+async def get_stock_news(limit: int = 100) -> List[Dict[str, Any]]:
     try:
-        if not os.path.exists("news_data.json"):
-            raise HTTPException(status_code=404, detail="News data not ready yet.")
-
-        with open("news_data.json", "r") as f:
-            news_data = json.load(f)
-
-        return news_data.get("stock", [])
-
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Error reading news data file.")
+        data = read_json_or_404(NEWS_DATA_FILE)
+        items = data.get("stock", [])
+        return slice_limit(items, limit, 100, 500)
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error fetching stock news: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error fetching stock news: {e}")
 
 
 @router.get("/polymarket")
-async def get_polymarket_news(limit: int = 25) -> List[Dict[str, Any]]:
-    """Get polymarket news from JSON file."""
+async def get_polymarket_news(limit: int = 100) -> List[Dict[str, Any]]:
     try:
-        if not os.path.exists("news_data.json"):
-            raise HTTPException(status_code=404, detail="News data not ready yet.")
-
-        with open("news_data.json", "r") as f:
-            news_data = json.load(f)
-
-        return news_data.get("polymarket", [])
-
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Error reading news data file.")
+        data = read_json_or_404(NEWS_DATA_FILE)
+        items = data.get("polymarket", [])
+        return slice_limit(items, limit, 100, 500)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Error fetching polymarket news: {str(e)}"
+            status_code=500, detail=f"Error fetching polymarket news: {e}"
         )

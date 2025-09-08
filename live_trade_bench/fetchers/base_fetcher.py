@@ -1,10 +1,3 @@
-"""
-Base fetcher class for trading bench.
-
-This module provides a base class that all data fetchers should inherit from,
-containing common functionality like retry logic, rate limiting, and error handling.
-"""
-
 import random
 import time
 from abc import ABC, abstractmethod
@@ -21,24 +14,7 @@ from tenacity import (
 
 
 class BaseFetcher(ABC):
-    """
-    Base class for all data fetchers.
-
-    Provides common functionality like:
-    - Rate limiting with random delays
-    - Retry logic for failed requests
-    - Error handling and logging
-    - Request headers management
-    """
-
     def __init__(self, min_delay: float = 1.0, max_delay: float = 3.0):
-        """
-        Initialize the base fetcher.
-
-        Args:
-            min_delay: Minimum delay between requests in seconds
-            max_delay: Maximum delay between requests in seconds
-        """
         self.min_delay = min_delay
         self.max_delay = max_delay
         self.default_headers = {
@@ -51,12 +27,10 @@ class BaseFetcher(ABC):
         }
 
     def _rate_limit_delay(self) -> None:
-        """Apply random delay to avoid rate limiting."""
         time.sleep(random.uniform(self.min_delay, self.max_delay))
 
     @staticmethod
     def is_rate_limited(response: Any) -> bool:
-        """Check if the response indicates rate limiting."""
         try:
             return getattr(response, "status_code", None) == 429
         except Exception:
@@ -70,17 +44,6 @@ class BaseFetcher(ABC):
     def make_request(
         self, url: str, headers: Optional[Dict[str, str]] = None, **kwargs: Any
     ) -> requests.Response:
-        """
-        Make a request with retry logic for rate limiting.
-
-        Args:
-            url: URL to request
-            headers: Optional headers to use
-            **kwargs: Additional arguments for requests.get
-
-        Returns:
-            requests.Response: The response object
-        """
         self._rate_limit_delay()
 
         if headers is None:
@@ -95,49 +58,15 @@ class BaseFetcher(ABC):
         stop=stop_after_attempt(3),
     )
     def execute_with_retry(self, func: Any, *args: Any, **kwargs: Any) -> Any:
-        """
-        Execute a function with retry logic.
-
-        Args:
-            func: Function to execute
-            *args: Arguments for the function
-            **kwargs: Keyword arguments for the function
-
-        Returns:
-            Result of the function execution
-        """
         return func(*args, **kwargs)
 
     def validate_response(self, response: requests.Response, context: str = "") -> None:
-        """
-        Validate that a response is successful.
-
-        Args:
-            response: Response to validate
-            context: Context string for error messages
-
-        Raises:
-            RuntimeError: If response is not successful
-        """
         if not response.ok:
             raise RuntimeError(
                 f"{context} failed with status {response.status_code}: {response.text}"
             )
 
     def safe_json_parse(self, response: requests.Response, context: str = "") -> Any:
-        """
-        Safely parse JSON response.
-
-        Args:
-            response: Response to parse
-            context: Context string for error messages
-
-        Returns:
-            Parsed JSON data
-
-        Raises:
-            RuntimeError: If JSON parsing fails
-        """
         try:
             return response.json()
         except Exception as e:
@@ -145,23 +74,13 @@ class BaseFetcher(ABC):
 
     @abstractmethod
     def fetch(self, *args: Any, **kwargs: Any) -> Any:
-        """
-        Abstract method that all fetchers must implement.
-
-        Returns:
-            Fetched data in the appropriate format
-        """
         pass
 
     def cleanup(self) -> None:
-        """Cleanup method for any resources that need to be released."""
-        # Default implementation does nothing
         pass
 
     def __enter__(self) -> "BaseFetcher":
-        """Context manager entry."""
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """Context manager exit with cleanup."""
         self.cleanup()

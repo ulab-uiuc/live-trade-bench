@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from ..accounts import StockAccount, create_stock_account
-from ..fetchers.stock_fetcher import fetch_current_stock_price, fetch_trending_stocks
+from ..fetchers.news_fetcher import fetch_news_data
+from ..fetchers.stock_fetcher import (
+    fetch_current_stock_price,
+    fetch_stock_price_on_date,
+    fetch_trending_stocks,
+)
 from .stock_agent import LLMStockAgent
 
 
@@ -69,7 +74,7 @@ class StockPortfolioSystem:
 
         return market_data
 
-    def run_cycle(self) -> Dict[str, Any]:
+    def run_cycle(self, for_date: str | None = None) -> Dict[str, Any]:
         """Run one portfolio management cycle."""
         print(f"\n🔄 Running portfolio cycle {self.cycle_count}...")
 
@@ -78,8 +83,11 @@ class StockPortfolioSystem:
             market_data = {}
             for ticker in self.universe:
                 try:
-                    # Get current price
-                    price = fetch_current_stock_price(ticker)
+                    # Get price either for a specific date or current
+                    if for_date:
+                        price = fetch_stock_price_on_date(ticker, for_date)
+                    else:
+                        price = fetch_current_stock_price(ticker)
                     if price:
                         market_data[ticker] = {
                             "ticker": ticker,
@@ -103,7 +111,25 @@ class StockPortfolioSystem:
 
             print(f"📊 Fetched data for {len(market_data)} stocks")
 
-            # Generate portfolio allocations for each agent
+            # Prepare per-asset news (system-level fetch) for the date window
+            news_data_map: Dict[str, Any] = {}
+            try:
+                if for_date:
+                    ref = datetime.strptime(for_date, "%Y-%m-%d")
+                else:
+                    ref = datetime.now()
+                start_date = (ref - timedelta(days=3)).strftime("%Y-%m-%d")
+                end_date = ref.strftime("%Y-%m-%d")
+                for ticker in list(market_data.keys())[:3]:
+                    query = f"{ticker} stock earnings news"
+                    news_data_map[ticker] = fetch_news_data(
+                        query, start_date, end_date, max_pages=1
+                    )
+                    print(f"📊 Fetched news data for {ticker}")
+            except Exception:
+                news_data_map = {}
+
+            # Generate portfolio allocations for all agents
             for agent_name, agent in self.agents.items():
                 try:
                     print(f"\n🤖 {agent_name} generating portfolio allocation...")
@@ -118,8 +144,9 @@ class StockPortfolioSystem:
                     )
 
                     # Generate complete portfolio allocation
+                    # Build minimal per-asset news_data map if needed (None for now; backend can pass real cache)
                     allocation = agent.generate_portfolio_allocation(
-                        market_data, agent.account
+                        market_data, agent.account, for_date, news_data=news_data_map
                     )
 
                     if allocation:
@@ -131,12 +158,64 @@ class StockPortfolioSystem:
                                 )
                                 print(f"   📈 {ticker}: {target_ratio:.1%}")
 
-                        # After updating allocations, record a snapshot of the new state
+                        # Build price map for rebalance (use current market_data)
+                        price_map = {
+                            t: d.get("current_price") for t, d in market_data.items()
+                        }
+
+                        # Execute rebalancing to target so positions reflect allocations
+                        try:
+                            agent.account._simulate_rebalance_to_target(
+                                agent.account.target_allocations,
+                                price_map=price_map,
+                            )
+                            print("   🔁 Rebalanced to target allocations")
+                        except Exception as rebalance_error:
+                            print(f"   ⚠️ Rebalance failed: {rebalance_error}")
+
+                        # Record a snapshot after rebalancing
                         agent.account._record_allocation_snapshot()
 
                         print(f"   ✅ Portfolio allocation updated for {agent_name}")
+                        # Print updated portfolio value after rebalance
+                        updated_value = agent.account.get_total_value()
+                        print(f"   💰 Updated Portfolio Value: ${updated_value:,.2f}")
+                        print(
+                            f"   💵 Cash After Rebalance: ${agent.account.cash_balance:,.2f} | Positions: {len(agent.account.positions)}"
+                        )
                     else:
-                        print(f"   ⚠️ No allocation generated for {agent_name}")
+                        # Fallback: keep previous allocation unchanged
+                        print(
+                            f"   ⚠️ No allocation generated for {agent_name} — keeping previous target allocations"
+                        )
+
+                        if getattr(agent.account, "target_allocations", {}):
+                            price_map = {
+                                t: d.get("current_price")
+                                for t, d in market_data.items()
+                            }
+                            try:
+                                agent.account._simulate_rebalance_to_target(
+                                    agent.account.target_allocations,
+                                    price_map=price_map,
+                                )
+                                print("   🔁 Rebalanced to previous target allocations")
+                            except Exception as rebalance_error:
+                                print(f"   ⚠️ Rebalance failed: {rebalance_error}")
+                            # Record snapshot after keeping previous allocation
+                            agent.account._record_allocation_snapshot()
+                            updated_value = agent.account.get_total_value()
+                            print(
+                                f"   💰 Updated Portfolio Value: ${updated_value:,.2f}"
+                            )
+                            print(
+                                f"   💵 Cash After Rebalance: ${agent.account.cash_balance:,.2f} | Positions: {len(agent.account.positions)}"
+                            )
+                        else:
+                            # No previous allocation — keep 100% CASH
+                            print(
+                                "   ℹ️ No previous allocation found — staying in 100% CASH"
+                            )
 
                 except Exception as e:
                     print(f"❌ Error processing {agent_name}: {e}")
@@ -203,22 +282,26 @@ class StockPortfolioSystem:
                 for s in summaries.values()
                 if s["agent_name"] != "OVERALL"
             ),
-            "cash_allocation": sum(
-                s["cash_allocation"]
-                for s in summaries.values()
-                if s["agent_name"] != "OVERALL"
-            )
-            / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
-            if summaries
-            else 0.0,
-            "positions_allocation": sum(
-                s["positions_allocation"]
-                for s in summaries.values()
-                if s["agent_name"] != "OVERALL"
-            )
-            / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
-            if summaries
-            else 0.0,
+            "cash_allocation": (
+                sum(
+                    s["cash_allocation"]
+                    for s in summaries.values()
+                    if s["agent_name"] != "OVERALL"
+                )
+                / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
+                if summaries
+                else 0.0
+            ),
+            "positions_allocation": (
+                sum(
+                    s["positions_allocation"]
+                    for s in summaries.values()
+                    if s["agent_name"] != "OVERALL"
+                )
+                / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
+                if summaries
+                else 0.0
+            ),
             "current_allocations": {},
             "target_allocations": {},
             "needs_rebalancing": any(

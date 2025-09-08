@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from ..accounts import PolymarketAccount, create_polymarket_account
+from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.polymarket_fetcher import (
     fetch_current_market_price,
     fetch_trending_markets,
@@ -77,9 +78,12 @@ class PolymarketPortfolioSystem:
 
         return market_data
 
-    def run_cycle(self) -> Dict[str, Any]:
+    def run_cycle(self, for_date: str | None = None) -> Dict[str, Any]:
         """Run one portfolio management cycle."""
-        print(f"\n🔄 Running portfolio cycle {self.cycle_count}...")
+        mode = "Backtest" if for_date else "Live"
+        print(f"\n🔄 Running {mode} portfolio cycle {self.cycle_count}...")
+        if for_date:
+            print(f"   - Date: {for_date}")
 
         try:
             # Fetch market data for all markets
@@ -91,7 +95,30 @@ class PolymarketPortfolioSystem:
 
             print(f"📊 Fetched data for {len(market_data)} markets")
 
-            # Generate portfolio allocations for each agent
+            # Prepare per-market news (system-level fetch) for the date window
+            news_data_map: Dict[str, Any] = {}
+            try:
+                if for_date:
+                    ref = datetime.strptime(for_date, "%Y-%m-%d")
+                else:
+                    ref = datetime.now()
+                start_date = (ref - timedelta(days=3)).strftime("%Y-%m-%d")
+                end_date = ref.strftime("%Y-%m-%d")
+                for market_id in list(market_data.keys())[:3]:
+                    # Use market question/category as query basis
+                    question = self.market_info.get(market_id, {}).get(
+                        "question", str(market_id)
+                    )
+                    query = (
+                        " ".join(question.split()[:5]) if question else str(market_id)
+                    )
+                    news_data_map[market_id] = fetch_news_data(
+                        query, start_date, end_date, max_pages=1
+                    )
+            except Exception:
+                news_data_map = {}
+
+            # Generate portfolio allocations for all agents
             for agent_name, agent in self.agents.items():
                 try:
                     print(f"\n🤖 {agent_name} generating portfolio allocation...")
@@ -107,7 +134,7 @@ class PolymarketPortfolioSystem:
 
                     # Generate complete portfolio allocation
                     allocation = agent.generate_portfolio_allocation(
-                        market_data, agent.account
+                        market_data, agent.account, for_date, news_data=news_data_map
                     )
 
                     if allocation:
@@ -191,22 +218,26 @@ class PolymarketPortfolioSystem:
                 for s in summaries.values()
                 if s["agent_name"] != "OVERALL"
             ),
-            "cash_allocation": sum(
-                s["cash_allocation"]
-                for s in summaries.values()
-                if s["agent_name"] != "OVERALL"
-            )
-            / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
-            if summaries
-            else 0.0,
-            "positions_allocation": sum(
-                s["positions_allocation"]
-                for s in summaries.values()
-                if s["agent_name"] != "OVERALL"
-            )
-            / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
-            if summaries
-            else 0.0,
+            "cash_allocation": (
+                sum(
+                    s["cash_allocation"]
+                    for s in summaries.values()
+                    if s["agent_name"] != "OVERALL"
+                )
+                / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
+                if summaries
+                else 0.0
+            ),
+            "positions_allocation": (
+                sum(
+                    s["positions_allocation"]
+                    for s in summaries.values()
+                    if s["agent_name"] != "OVERALL"
+                )
+                / len([s for s in summaries.values() if s["agent_name"] != "OVERALL"])
+                if summaries
+                else 0.0
+            ),
             "current_allocations": {},
             "target_allocations": {},
             "needs_rebalancing": any(

@@ -1,8 +1,4 @@
-"""Stock data fetcher for trading bench.
-
-Provides StockFetcher and convenience wrappers.
-"""
-
+from datetime import datetime, timedelta
 from typing import Any, List, Optional, Union
 
 import yfinance as yf
@@ -12,7 +8,6 @@ from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
 class StockFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 1.0, max_delay: float = 3.0):
-        """Initialize the stock fetcher."""
         super().__init__(min_delay, max_delay)
 
     def fetch(self, mode: str, **kwargs: Any) -> Union[List[str], Optional[float]]:
@@ -22,41 +17,34 @@ class StockFetcher(BaseFetcher):
             ticker = kwargs.get("ticker")
             if ticker is None:
                 raise ValueError("ticker is required for stock_price")
-            return self.get_current_stock_price(str(ticker))
+            date = kwargs.get("date")
+            return self.get_price(str(ticker), date=date)
         else:
             raise ValueError(f"Unknown fetch mode: {mode}")
 
     def get_trending_stocks(self, limit: int = 15) -> List[str]:
         diversified_tickers = [
-            # Technology (3 stocks)
-            "AAPL",  # Apple - Consumer Electronics
-            "MSFT",  # Microsoft - Software
-            "NVDA",  # NVIDIA - Semiconductor
-            # Financial Services (2 stocks)
-            "JPM",  # JPMorgan Chase - Banking
-            "V",  # Visa - Payment Processing
-            # Healthcare (2 stocks)
-            "JNJ",  # Johnson & Johnson - Pharmaceuticals
-            "UNH",  # UnitedHealth - Health Insurance
-            # Consumer Goods (2 stocks)
-            "PG",  # Procter & Gamble - Consumer Products
-            "KO",  # Coca-Cola - Beverages
-            # Energy (1 stock)
-            "XOM",  # ExxonMobil - Oil & Gas
-            # Industrial (1 stock)
-            "CAT",  # Caterpillar - Heavy Machinery
-            # Retail (1 stock)
-            "WMT",  # Walmart - Retail
-            # Communication (1 stock)
-            "META",  # Meta - Social Media
-            # Automotive (1 stock)
-            "TSLA",  # Tesla - Electric Vehicles
-            # E-commerce (1 stock)
-            "AMZN",  # Amazon - Online Retail
+            "AAPL",
+            "MSFT",
+            "NVDA",
+            "JPM",
+            "V",
+            "JNJ",
+            "UNH",
+            "PG",
+            "KO",
+            "XOM",
+            "CAT",
+            "WMT",
+            "META",
+            "TSLA",
+            "AMZN",
         ]
         return diversified_tickers[:limit]
 
-    def get_current_stock_price(self, ticker: str) -> Optional[float]:
+    def get_price(self, ticker: str, date: Optional[str] = None) -> Optional[float]:
+        if date:
+            return self._get_price_on_date(ticker, date)
         return self.get_current_price(ticker)
 
     def _download_price_data(
@@ -69,22 +57,18 @@ class StockFetcher(BaseFetcher):
             interval=interval,
             progress=False,
             auto_adjust=True,
-            prepost=True,  # Include pre and post market data
-            threads=True,  # Use threading for faster downloads
+            prepost=True,
+            threads=True,
         )
-
         if df.empty:
             raise RuntimeError(
                 f"No data returned for {ticker} {start_date}→{end_date} @ {interval}"
             )
-
         return df
 
     def get_current_price(self, ticker: str) -> Optional[float]:
         try:
             stock = yf.Ticker(ticker)
-
-            # Strategy 1: Try fast_info (fastest)
             try:
                 fast_info = stock.fast_info
                 if hasattr(fast_info, "last_price") and fast_info.last_price:
@@ -93,31 +77,23 @@ class StockFetcher(BaseFetcher):
                         return price
             except Exception:
                 pass
-
-            # Strategy 2: Try info (more comprehensive)
             try:
                 info = stock.info
-                price_fields = ["currentPrice", "regularMarketPrice", "previousClose"]
-                for field in price_fields:
+                for field in ("currentPrice", "regularMarketPrice", "previousClose"):
                     if field in info and info[field]:
                         price = float(info[field])
                         if price > 0:
                             return price
             except Exception:
                 pass
-
-            # Strategy 3: Try 1-day history (reliable but slower)
             try:
                 history = stock.history(period="1d", interval="1m")
                 if not history.empty:
-                    # Get the latest close price
                     latest_price = history["Close"].iloc[-1]
                     if latest_price and latest_price > 0:
                         return float(latest_price)
             except Exception:
                 pass
-
-            # Strategy 4: Last resort - basic download
             try:
                 data = yf.download(ticker, period="1d", interval="1m", progress=False)
                 if not data.empty:
@@ -125,13 +101,31 @@ class StockFetcher(BaseFetcher):
                     return float(latest_price)
             except Exception:
                 pass
-
-            print(f"⚠️ Could not fetch price for {ticker}")
+            return None
+        except Exception:
             return None
 
-        except Exception as e:
-            print(f"⚠️ Error fetching price for {ticker}: {e}")
+    def _get_price_on_date(self, ticker: str, date: str) -> Optional[float]:
+        try:
+            start_date = date
+            end_date_dt = datetime.strptime(date, "%Y-%m-%d") + timedelta(days=1)
+            end_date = end_date_dt.strftime("%Y-%m-%d")
+            df = self._download_price_data(ticker, start_date, end_date, interval="1d")
+            if df is not None and not df.empty:
+                for col in ("Close", "Adj Close", "close"):
+                    if col in df.columns:
+                        series = df[col]
+                        try:
+                            return float(series.to_numpy()[-1])
+                        except Exception:
+                            val = series.iloc[-1]
+                            try:
+                                return float(getattr(val, "item", lambda: val)())
+                            except Exception:
+                                continue
+        except Exception:
             return None
+        return None
 
     def fetch_stock_data(
         self,
@@ -140,25 +134,25 @@ class StockFetcher(BaseFetcher):
         end_date: str,
         interval: str = "1d",
     ) -> Any:
-        try:
-            self._rate_limit_delay()  # Rate limiting
-            df = self._download_price_data(ticker, start_date, end_date, interval)
-            return df
-        except Exception as e:
-            print(f"Error fetching stock data for {ticker}: {e}")
-            raise
+        self._rate_limit_delay()
+        return self._download_price_data(ticker, start_date, end_date, interval)
 
 
 def fetch_trending_stocks(limit: int = 15) -> List[str]:
     fetcher = StockFetcher()
-    stocks = fetcher.get_trending_stocks(limit=limit)
-    print(f"📊 Fetched {len(stocks)} trending stocks")
-    return stocks
+    return fetcher.get_trending_stocks(limit=limit)
 
 
 def fetch_current_stock_price(ticker: str) -> Optional[float]:
     fetcher = StockFetcher()
-    price = fetcher.get_current_stock_price(ticker)
-    if price:
-        print(f"Stock price 💰 {ticker}: {price}")
-    return price
+    return fetcher.get_price(ticker)
+
+
+def fetch_stock_price_on_date(ticker: str, date: str) -> Optional[float]:
+    fetcher = StockFetcher()
+    return fetcher.get_price(ticker, date=date)
+
+
+def fetch_stock_price(ticker: str, date: Optional[str] = None) -> Optional[float]:
+    fetcher = StockFetcher()
+    return fetcher.get_price(ticker, date=date)

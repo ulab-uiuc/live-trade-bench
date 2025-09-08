@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Optional, TypeVar
 
@@ -19,7 +20,11 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         self.account = None  # Will be set by the system
 
     def generate_portfolio_allocation(
-        self, market_data: Dict[str, DataType], account: AccountType
+        self,
+        market_data: Dict[str, DataType],
+        account: AccountType,
+        date: str | None = None,
+        news_data: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, float]]:
         """Generate complete portfolio allocation for all assets."""
         if not market_data:
@@ -37,7 +42,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             # Prepare comprehensive analysis
             market_analysis = self._prepare_market_analysis(market_data)
             account_analysis = self._prepare_account_analysis(account)
-            news_analysis = self._prepare_news_analysis(market_data)
+            news_analysis = self._prepare_news_analysis(market_data, date, news_data)
             full_analysis = self._combine_analysis_data(
                 market_analysis, account_analysis, news_analysis
             )
@@ -101,13 +106,69 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
     ) -> Optional[Dict[str, Any]]:
         if not llm_response.get("success"):
             return None
-        try:
-            from ..utils import parse_portfolio_response
 
-            return parse_portfolio_response(llm_response["content"])
-        except Exception as e:
-            self._log_error("parse error", str(e))
+        content = llm_response.get("content", "")
+        if not content:
             return None
+
+        try:
+            # Strategy 1: Find JSON block within markdown
+            if "```json" in content:
+                json_str = content.split("```json")[1].split("```")[0].strip()
+            # Strategy 2: Find the first '{' and last '}'
+            else:
+                start = content.find("{")
+                end = content.rfind("}") + 1
+                if start == -1 or end == 0:
+                    return None
+                json_str = content[start:end]
+
+            return json.loads(json_str)
+        except (json.JSONDecodeError, IndexError) as e:
+            self._log_error("JSON parsing failed", f"Error: {e}, Content: {content}")
+            return None
+
+    def _normalize_allocations_from_parsed(
+        self, parsed: Dict[str, Any]
+    ) -> Optional[Dict[str, float]]:
+        """Normalize portfolio allocations to sum to 1.0 (including CASH).
+
+        Rules:
+        - Accepts any keys; if CASH is missing, derive CASH = max(0, 1 - sum(non-cash))
+        - Clamp individual weights to [0, 1] before normalization
+        - If total <= 0 after cleaning, return 100% CASH
+        - Finally normalize all weights so their sum equals 1.0 exactly
+        """
+        allocations = parsed.get("allocations", {}) if isinstance(parsed, dict) else {}
+        if not isinstance(allocations, dict) or not allocations:
+            return None
+
+        # Clamp non-negative and numeric
+        cleaned: Dict[str, float] = {}
+        for key, value in allocations.items():
+            if isinstance(value, (int, float)):
+                weight = float(value)
+                if weight < 0:
+                    weight = 0.0
+                cleaned[key] = min(1.0, weight)
+
+        # Derive CASH if not provided
+        if "CASH" not in cleaned:
+            non_cash_sum = sum(v for k, v in cleaned.items() if k != "CASH")
+            cleaned["CASH"] = max(0.0, 1.0 - non_cash_sum)
+
+        total = sum(cleaned.values())
+        if total <= 0:
+            return {"CASH": 1.0}
+
+        # Normalize
+        normalized = {k: (v / total) for k, v in cleaned.items()}
+
+        # Ensure exact unity by correcting CASH for any floating error
+        non_cash_sum = sum(v for k, v in normalized.items() if k != "CASH")
+        normalized["CASH"] = max(0.0, 1.0 - non_cash_sum)
+
+        return normalized
 
     # ----- Analysis Methods -----
     @abstractmethod
@@ -131,28 +192,26 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             f"  Current Allocations: {account.target_allocations}"
         )
 
-    def _prepare_news_analysis(self, market_data: Dict[str, DataType]) -> str:
+    def _prepare_news_analysis(
+        self,
+        market_data: Dict[str, DataType],
+        date: str | None = None,
+        news_data: Optional[Dict[str, Any]] = None,
+    ) -> str:
         """Prepare news analysis for all assets."""
         try:
-            from datetime import datetime, timedelta
-
-            from ..fetchers.news_fetcher import fetch_news_data
-
-            # Get recent news (last 3 days)
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            start_date = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
-
             news_summaries = []
-            for asset_id, data in list(market_data.items())[:3]:  # Top 3 assets
-                query = self._create_news_query(asset_id, data)
-                news = fetch_news_data(query, start_date, end_date, max_pages=1)
-
-                if news:
-                    # Summarize top news item
-                    snippet = news[0].get("snippet", "")
-                    news_summaries.append(f"• {asset_id}: {snippet[:100]}...")
-                else:
-                    news_summaries.append(f"• {asset_id}: No recent news")
+            # Prefer provided news_data if available; otherwise don't fetch here
+            if news_data:
+                for asset_id, articles in list(news_data.items())[:3]:
+                    if articles:
+                        snippet = articles[0].get("snippet", "")
+                        news_summaries.append(f"• {asset_id}: {snippet[:100]}...")
+                    else:
+                        news_summaries.append(f"• {asset_id}: No recent news")
+            else:
+                for asset_id in list(market_data.keys())[:3]:
+                    news_summaries.append(f"• {asset_id}: No news data provided")
 
             return "RECENT NEWS:\n" + "\n".join(news_summaries)
 
