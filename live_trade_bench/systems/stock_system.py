@@ -39,6 +39,15 @@ class StockPortfolioSystem:
         self.agents[name] = agent
         self.accounts[name] = account
 
+    def _format_social_content(self, content: str) -> str:
+        """Helper to format social media content for display or analysis."""
+        import re
+        content = " ".join(content.split())
+        content = re.sub(r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+", "[link]", content)
+        content = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\\1", content)
+        content = re.sub(r"\\*\\*([^*]+)\\*\\*", r"\\1", content)
+        return content[:300] + "..." if len(content) > 300 else content
+
     def run_cycle(self, for_date: str | None = None) -> None:
         print(f"\n--- 🔄 Cycle {self.cycle_count} | Processing {len(self.agents)} agents ---")
 
@@ -91,6 +100,35 @@ class StockPortfolioSystem:
             print(f"    - {ticker}: ${data['current_price']:.2f}")
         return market_data
 
+    def _fetch_social_data(self) -> Dict[str, List[Dict[str, Any]]]:
+        """Fetch social media data (Reddit) for the stock universe."""
+        print("  - Fetching social media data...")
+        from ..fetchers.reddit_fetcher import RedditFetcher
+        
+        social_data_map = {}
+        fetcher = RedditFetcher()
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        for ticker in self.universe[:3]:  # Limit to 3 tickers for performance
+            try:
+                posts = fetcher.fetch_posts_by_ticker(ticker, date=today, max_limit=3)
+                formatted_posts = []
+                for post in posts:
+                    content = self._format_social_content(post.get("content", ""))
+                    formatted_posts.append({
+                        "content": content,
+                        "author": post.get("author", "Unknown"),
+                        "platform": "Reddit",
+                        "url": post.get("url", ""),
+                        "created_at": post.get("created_at", ""),
+                    })
+                social_data_map[ticker] = formatted_posts
+            except Exception as e:
+                print(f"    - Failed to fetch social data for {ticker}: {e}")
+        
+        print(f"  - ✅ Social media data fetched for {len(social_data_map)} stocks")
+        return social_data_map
+
     def _fetch_news_data(
         self, market_data: Dict[str, Any], for_date: str | None
     ) -> Dict[str, Any]:
@@ -128,7 +166,7 @@ class StockPortfolioSystem:
         for agent_name, agent in self.agents.items():
             print(f"    - Processing agent: {agent_name}...")
             account = self.accounts[agent_name]
-            account_data = account.get_agent_data()
+            account_data = account.get_account_data()
 
             allocation = agent.generate_allocation(
                 market_data, account_data, for_date, news_data=news_data

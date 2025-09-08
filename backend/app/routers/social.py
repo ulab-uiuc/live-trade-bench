@@ -1,35 +1,11 @@
 from typing import Any, Dict, List
+from fastapi import APIRouter
+from backend.app.config import SOCIAL_DATA_FILE
+from backend.app.router_utils import read_json_file, get_paginated_data
 
-from app.config import SOCIAL_DATA_FILE
-from app.routers.router_utils import read_json_or_404, slice_limit
-from fastapi import APIRouter, HTTPException
+router = APIRouter()
 
-router = APIRouter(prefix="/api/social", tags=["social"])
-
-
-@router.get("/stock")
-async def get_stock_social(limit: int = 100) -> List[Dict[str, Any]]:
-    try:
-        data = read_json_or_404(SOCIAL_DATA_FILE)
-        items = data.get("stock", [])
-        return slice_limit(items, limit, 100, 500)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error fetching stock social data: {e}"
-        )
-
-
-@router.get("/polymarket")
-async def get_polymarket_social(limit: int = 100) -> List[Dict[str, Any]]:
-    try:
-        data = read_json_or_404(SOCIAL_DATA_FILE)
-        items = data.get("polymarket", [])
-        return slice_limit(items, limit, 100, 500)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error fetching polymarket social data: {e}"
-        )
+@router.get("/social", response_model=Dict[str, List[Dict[str, Any]]])
+def get_social_media(limit: int = 10, page: int = 1):
+    data = read_json_file(SOCIAL_DATA_FILE, "Social media data not found.")
+    return get_paginated_data(data, limit, page)
