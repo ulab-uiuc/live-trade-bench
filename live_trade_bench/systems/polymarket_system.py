@@ -192,7 +192,7 @@ class PolymarketPortfolioSystem:
                 )
                 query = " ".join(question.split()[:5]) if question else str(market_id)
                 news_data_map[market_id] = fetch_news_data(
-                    query, start_date, end_date, max_pages=1
+                    query, start_date, end_date, max_pages=1, ticker=query
                 )
         except Exception as e:
             print(f"    - News data fetch failed: {e}")

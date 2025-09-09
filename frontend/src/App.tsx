@@ -16,9 +16,8 @@ interface NewsItem {
   summary: string;
   source: string;
   published_at: string;
-  impact: string;
   category: string;
-  url: string;
+  link: string;
   stock_symbol: string | null;
 }
 

@@ -1,10 +1,4 @@
 import json
-import os
-import sys
-
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
 
 from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
 
@@ -20,8 +14,14 @@ def update_news_data() -> None:
         stock_system = StockPortfolioSystem.get_instance()
         polymarket_system = PolymarketPortfolioSystem.get_instance()
 
-        stock_market_data = stock_system._fetch_market_data()
-        polymarket_market_data = polymarket_system._fetch_market_data()
+        # Initialize systems if not already done
+        if not stock_system.universe:
+            stock_system.initialize_for_live()
+        if not polymarket_system.universe:
+            polymarket_system.initialize_for_live()
+
+        stock_market_data = stock_system._fetch_market_data(for_date=None)
+        polymarket_market_data = polymarket_system._fetch_market_data(for_date=None)
 
         stock_news = stock_system._fetch_news_data(stock_market_data, for_date=None)
         polymarket_news = polymarket_system._fetch_news_data(
