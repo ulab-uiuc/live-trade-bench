@@ -383,16 +383,16 @@
 /* 模态框样式 */
 .modal-overlay {
   position: fixed;
-  top: 0;
+  top: 64px; /* push below navigation bar */
   left: 0;
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.7);
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* stick content to the top area */
   justify-content: center;
   z-index: 1000;
-  padding: 1rem;
+  padding: 2rem 1rem 1rem; /* add extra top padding */
 }
 
 .modal-content {
@@ -401,7 +401,7 @@
   border-radius: 0.75rem;
   max-width: 600px;
   width: 100%;
-  max-height: 90vh;
+  max-height: calc(100vh - 96px); /* account for top offset and padding */
   overflow-y: auto;
 }
 
