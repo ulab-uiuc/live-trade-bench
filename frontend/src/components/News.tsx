@@ -168,7 +168,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
               lineHeight: '1.5',
               marginBottom: '1rem'
             }}>
-              {news.summary}
+              {news.snippet}
             </p>
 
             {/* News footer */}
