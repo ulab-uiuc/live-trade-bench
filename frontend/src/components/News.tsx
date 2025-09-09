@@ -1,18 +1,6 @@
 import React, { useState } from 'react';
 import './News.css';
 
-interface NewsItem {
-  id: string;
-  title: string;
-  summary: string;
-  source: string;
-  published_at: string;
-  impact: string;
-  category: string;
-  url: string;
-  stock_symbol: string | null;
-}
-
 interface NewsProps {
   newsData: {
     stock: any[];
@@ -25,21 +13,13 @@ interface NewsProps {
 const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
   const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket'>('stock');
 
-  const getImpactColor = (impact: string) => {
-    switch (impact) {
-      case 'high': return '#ef4444';
-      case 'medium': return '#f59e0b';
-      case 'low': return '#10b981';
-      default: return '#6b7280';
-    }
-  };
 
-  const getStockColor = (stockSymbol: string | null) => {
-    if (!stockSymbol) return '#6b7280';
+  const getStockColor = (tag: string | null) => {
+    if (!tag) return '#6b7280';
     const colorPalette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
     let hash = 0;
-    for (let i = 0; i < stockSymbol.length; i++) {
-      hash = stockSymbol.charCodeAt(i) + ((hash << 5) - hash);
+    for (let i = 0; i < tag.length; i++) {
+      hash = tag.charCodeAt(i) + ((hash << 5) - hash);
     }
     return colorPalette[Math.abs(hash) % colorPalette.length];
   };
@@ -99,7 +79,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
         {newsItems.map((news) => (
           <a
             key={news.id}
-            href={news.url}
+            href={news.link}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -124,14 +104,15 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
               e.currentTarget.style.boxShadow = 'none';
             }}
             onClick={(e) => {
-
-              e.currentTarget.style.transform = 'translateY(-1px) scale(0.98)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.25)';
-
+              const target = e.currentTarget;
+              target.style.transform = 'translateY(-1px) scale(0.98)';
+              target.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.25)';
 
               setTimeout(() => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)';
+                if (target) {
+                  target.style.transform = 'translateY(-2px)';
+                  target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)';
+                }
               }, 150);
             }}
           >
@@ -148,30 +129,18 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
                 gap: '0.5rem'
               }}>
                 {/* Stock Symbol Tag */}
-                {news.stock_symbol && (
+                {news.tag && (
                   <span style={{
-                    background: getStockColor(news.stock_symbol),
+                    background: getStockColor(news.tag),
                     color: '#ffffff',
                     padding: '0.25rem 0.5rem',
                     borderRadius: '0.25rem',
                     fontSize: '0.75rem',
                     fontWeight: 'bold'
                   }}>
-                    {news.stock_symbol}
+                    {news.tag}
                   </span>
                 )}
-                {/* Impact Tag */}
-                <span style={{
-                  background: getImpactColor(news.impact),
-                  color: '#ffffff',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '0.25rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold',
-                  textTransform: 'uppercase'
-                }}>
-                  {news.impact}
-                </span>
               </div>
 
               <span style={{

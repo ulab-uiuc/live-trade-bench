@@ -97,7 +97,14 @@ class NewsFetcher(BaseFetcher):
 
 
 def fetch_news_data(
-    query: str, start_date: str, end_date: str, max_pages: int = 10
+    query: str, start_date: str, end_date: str, max_pages: int = 10, ticker: str = None
 ) -> List[Dict[str, Any]]:
     fetcher = NewsFetcher()
-    return fetcher.fetch(query, start_date, end_date, max_pages)
+    news_items = fetcher.fetch(query, start_date, end_date, max_pages)
+
+    # Add ticker tag to each news item if provided
+    if ticker:
+        for item in news_items:
+            item["tag"] = ticker
+
+    return news_items

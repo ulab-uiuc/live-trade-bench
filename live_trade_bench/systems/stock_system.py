@@ -147,7 +147,7 @@ class StockPortfolioSystem:
             for ticker in list(market_data.keys())[:3]:
                 query = f"{ticker} stock earnings news"
                 news_data_map[ticker] = fetch_news_data(
-                    query, start_date, end_date, max_pages=1
+                    query, start_date, end_date, max_pages=1, ticker=ticker
                 )
         except Exception as e:
             print(f"    - News data fetch failed: {e}")
