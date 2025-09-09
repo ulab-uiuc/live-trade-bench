@@ -18,6 +18,7 @@ beautifulsoup4 = "^4.12.3"
 praw = "^7.7.1"
 fasteners = "^0.19"
 apscheduler = "*"
+tenacity = "^8.2.0"
 
 
 [tool.poetry.group.dev.dependencies]
