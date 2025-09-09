@@ -54,7 +54,7 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         total_value = self.get_total_value()
         profit = total_value - self.initial_cash
         performance = (profit / self.initial_cash) * 100 if self.initial_cash > 0 else 0
-        
+
         snapshot = {
             "timestamp": datetime.now().isoformat(),
             "total_value": total_value,

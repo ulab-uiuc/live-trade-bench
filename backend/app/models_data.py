@@ -8,7 +8,6 @@ if project_root not in sys.path:
 
 from dataclasses import asdict
 
-from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
 from live_trade_bench.accounts.base_account import Position
 
 from .config import MODELS_DATA_FILE
@@ -20,7 +19,7 @@ def generate_models_data(stock_system, polymarket_system) -> None:
         all_market_data = []
 
         systems = {"stock": stock_system, "polymarket": polymarket_system}
-        
+
         for market_type, system in systems.items():
             print(f"--- Processing {market_type.upper()} market ---")
             system.run_cycle()
@@ -44,18 +43,18 @@ def generate_models_data(stock_system, polymarket_system) -> None:
                     "asset_allocation": account_data.get("portfolio", {}).get(
                         "current_allocations", {}
                     ),
-                "portfolio": account_data.get("portfolio", {}),
-                "chartData": {
-                    "profit_history": [
-                        {
-                            "timestamp": snapshot["timestamp"],
-                            "profit": snapshot["profit"],
-                            "totalValue": snapshot["total_value"],
-                        }
-                        for snapshot in account_data.get("allocation_history", [])
-                    ]
-                },
-                "allocationHistory": account_data.get("allocation_history", []),
+                    "portfolio": account_data.get("portfolio", {}),
+                    "chartData": {
+                        "profit_history": [
+                            {
+                                "timestamp": snapshot["timestamp"],
+                                "profit": snapshot["profit"],
+                                "totalValue": snapshot["total_value"],
+                            }
+                            for snapshot in account_data.get("allocation_history", [])
+                        ]
+                    },
+                    "allocationHistory": account_data.get("allocation_history", []),
                 }
                 all_market_data.append(model_data)
 

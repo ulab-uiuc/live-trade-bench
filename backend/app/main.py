@@ -3,28 +3,34 @@ import os
 import threading
 
 from app.config import ALLOWED_ORIGINS, UPDATE_FREQUENCY
-from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from live_trade_bench.mock.mock_system import (
+    MockAgentFetcherPolymarketSystem,
+    MockAgentFetcherStockSystem,
+    MockAgentPolymarketSystem,
+    MockAgentStockSystem,
+    MockFetcherPolymarketSystem,
+    MockFetcherStockSystem,
+)
+from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
+
+from .config import (
+    POLYMARKET_MOCK_MODE,
+    STOCK_MOCK_MODE,
+    MockMode,
+    get_base_model_configs,
+)
 from .models_data import generate_models_data
 from .news_data import update_news_data
 from .routers import models, news, social, system
 from .social_data import update_social_data
 from .system_data import update_system_status
-from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
-from live_trade_bench.mock.mock_system import (
-    MockAgentStockSystem,
-    MockFetcherStockSystem,
-    MockAgentFetcherStockSystem,
-    MockAgentPolymarketSystem,
-    MockFetcherPolymarketSystem,
-    MockAgentFetcherPolymarketSystem,
-)
-from .config import get_base_model_configs, STOCK_MOCK_MODE, POLYMARKET_MOCK_MODE, MockMode
 
 # Global system instances
 stock_system = None
@@ -126,7 +132,7 @@ def startup_event():
     # Create and initialize system instances based on mock mode
     global stock_system, polymarket_system
     logger.info("Creating system instances...")
-    
+
     # Create stock system based on mock mode
     if STOCK_MOCK_MODE == MockMode.NONE:
         stock_system = StockPortfolioSystem.get_instance()
@@ -140,8 +146,8 @@ def startup_event():
         stock_system = MockFetcherStockSystem.get_instance()
     elif STOCK_MOCK_MODE == MockMode.MOCK_AGENTS_AND_FETCHERS:
         stock_system = MockAgentFetcherStockSystem.get_instance()
-    
-    # Create polymarket system based on mock mode  
+
+    # Create polymarket system based on mock mode
     if POLYMARKET_MOCK_MODE == MockMode.NONE:
         polymarket_system = PolymarketPortfolioSystem.get_instance()
         # Add agents from config for real systems
@@ -154,23 +160,21 @@ def startup_event():
         polymarket_system = MockFetcherPolymarketSystem.get_instance()
     elif POLYMARKET_MOCK_MODE == MockMode.MOCK_AGENTS_AND_FETCHERS:
         polymarket_system = MockAgentFetcherPolymarketSystem.get_instance()
-    
+
     stock_system.initialize_for_live()
     polymarket_system.initialize_for_live()
-    
+
     # Run initial data generation in a background thread.
     logger.info("Scheduling initial data generation to run in the background...")
     threading.Thread(
-        target=lambda: generate_models_data(stock_system, polymarket_system), 
-        daemon=True
+        target=lambda: generate_models_data(stock_system, polymarket_system),
+        daemon=True,
     ).start()
 
     # The scheduler will handle all subsequent, periodic updates.
     global scheduler
     # Use single-threaded executor to avoid concurrency issues
-    executors = {
-        'default': ThreadPoolExecutor(max_workers=1)
-    }
+    executors = {"default": ThreadPoolExecutor(max_workers=1)}
     scheduler = BackgroundScheduler(executors=executors)
     schedule_background_tasks(scheduler)
     scheduler.start()

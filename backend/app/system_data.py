@@ -7,8 +7,9 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from .config import SYSTEM_DATA_FILE, TRADING_CONFIG, get_base_model_configs
 from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
+
+from .config import SYSTEM_DATA_FILE, TRADING_CONFIG, get_base_model_configs
 
 
 def update_system_status() -> None:
