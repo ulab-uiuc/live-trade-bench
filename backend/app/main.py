@@ -4,6 +4,7 @@ import threading
 
 from app.config import ALLOWED_ORIGINS, UPDATE_FREQUENCY
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.executors.pool import ThreadPoolExecutor
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -14,6 +15,20 @@ from .news_data import update_news_data
 from .routers import models, news, social, system
 from .social_data import update_social_data
 from .system_data import update_system_status
+from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
+from live_trade_bench.mock.mock_system import (
+    MockAgentStockSystem,
+    MockFetcherStockSystem,
+    MockAgentFetcherStockSystem,
+    MockAgentPolymarketSystem,
+    MockFetcherPolymarketSystem,
+    MockAgentFetcherPolymarketSystem,
+)
+from .config import get_base_model_configs, STOCK_MOCK_MODE, POLYMARKET_MOCK_MODE, MockMode
+
+# Global system instances
+stock_system = None
+polymarket_system = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -73,7 +88,7 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
     # We schedule generate_models_data to run on its interval, but not immediately,
     # as the first run is now synchronous on startup.
     scheduler.add_job(
-        generate_models_data,
+        lambda: generate_models_data(stock_system, polymarket_system),
         "interval",
         seconds=UPDATE_FREQUENCY["trading_cycle"],
         id="generate_models_data",
@@ -108,15 +123,55 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
 def startup_event():
     logger.info("🚀 FastAPI app starting up...")
 
+    # Create and initialize system instances based on mock mode
+    global stock_system, polymarket_system
+    logger.info("Creating system instances...")
+    
+    # Create stock system based on mock mode
+    if STOCK_MOCK_MODE == MockMode.NONE:
+        stock_system = StockPortfolioSystem.get_instance()
+        # Add agents from config for real systems
+        model_configs = get_base_model_configs()
+        for display_name, model_id in model_configs:
+            stock_system.add_agent(display_name, 1000.0, model_id)
+    elif STOCK_MOCK_MODE == MockMode.MOCK_AGENTS:
+        stock_system = MockAgentStockSystem.get_instance()
+    elif STOCK_MOCK_MODE == MockMode.MOCK_FETCHERS:
+        stock_system = MockFetcherStockSystem.get_instance()
+    elif STOCK_MOCK_MODE == MockMode.MOCK_AGENTS_AND_FETCHERS:
+        stock_system = MockAgentFetcherStockSystem.get_instance()
+    
+    # Create polymarket system based on mock mode  
+    if POLYMARKET_MOCK_MODE == MockMode.NONE:
+        polymarket_system = PolymarketPortfolioSystem.get_instance()
+        # Add agents from config for real systems
+        model_configs = get_base_model_configs()
+        for display_name, model_id in model_configs:
+            polymarket_system.add_agent(display_name, 500.0, model_id)
+    elif POLYMARKET_MOCK_MODE == MockMode.MOCK_AGENTS:
+        polymarket_system = MockAgentPolymarketSystem.get_instance()
+    elif POLYMARKET_MOCK_MODE == MockMode.MOCK_FETCHERS:
+        polymarket_system = MockFetcherPolymarketSystem.get_instance()
+    elif POLYMARKET_MOCK_MODE == MockMode.MOCK_AGENTS_AND_FETCHERS:
+        polymarket_system = MockAgentFetcherPolymarketSystem.get_instance()
+    
+    stock_system.initialize_for_live()
+    polymarket_system.initialize_for_live()
+    
     # Run initial data generation in a background thread.
-    # This allows the server to start immediately and serve cached data,
-    # while the potentially slow data generation runs without blocking.
     logger.info("Scheduling initial data generation to run in the background...")
-    threading.Thread(target=generate_models_data, daemon=True).start()
+    threading.Thread(
+        target=lambda: generate_models_data(stock_system, polymarket_system), 
+        daemon=True
+    ).start()
 
     # The scheduler will handle all subsequent, periodic updates.
     global scheduler
-    scheduler = BackgroundScheduler()
+    # Use single-threaded executor to avoid concurrency issues
+    executors = {
+        'default': ThreadPoolExecutor(max_workers=1)
+    }
+    scheduler = BackgroundScheduler(executors=executors)
     schedule_background_tasks(scheduler)
     scheduler.start()
 

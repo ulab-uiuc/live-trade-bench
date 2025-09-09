@@ -17,8 +17,6 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
             ticker: pos for ticker, pos in self.positions.items() if pos.quantity > 0.01
         }
 
-    def get_transactions(self) -> List[Transaction]:
-        return self.transactions
 
     def get_position(self, ticker: str) -> Optional[Position]:
         return self.positions.get(ticker)
@@ -87,17 +85,6 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
             )
             self.cash_balance -= target_value
 
-            # Record this as a buy transaction
-            import uuid
-            transaction = Transaction(
-                transaction_id=uuid.uuid4(),
-                ticker=symbol,
-                quantity=quantity,
-                price=price,
-                transaction_type="buy",
-                timestamp=datetime.now(),
-            )
-            self.transactions.append(transaction)
 
         self.last_rebalance = datetime.now().isoformat()
 
