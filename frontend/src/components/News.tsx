@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './News.css';
+import { getAssetColor } from '../utils/colors';
 
 interface NewsProps {
   newsData: {
@@ -13,15 +14,22 @@ interface NewsProps {
 const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
   const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket'>('stock');
 
+  const getBrief = (news: any): string => {
+    const text = news?.snippet || '';
+    if (!text) return '';
+    const s = String(text).trim();
+    return s.length > 280 ? s.slice(0, 277) + '…' : s;
+  };
 
-  const getStockColor = (tag: string | null) => {
+  const getPublished = (news: any): string => {
+    return news?.published_at || news?.date || '';
+  };
+
+
+  const getTagColor = (tag: string | null) => {
     if (!tag) return '#6b7280';
-    const colorPalette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-    let hash = 0;
-    for (let i = 0; i < tag.length; i++) {
-      hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colorPalette[Math.abs(hash) % colorPalette.length];
+    // 复用和 allocation 一致的颜色算法
+    return getAssetColor(tag, activeCategory);
   };
 
 
@@ -91,7 +99,10 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
               cursor: 'pointer',
               textDecoration: 'none',
               color: 'inherit',
-              display: 'block'
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-start',
+              height: '100%'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = '#3b82f6';
@@ -131,7 +142,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
                 {/* Stock Symbol Tag */}
                 {news.tag && (
                   <span style={{
-                    background: getStockColor(news.tag),
+                    background: getTagColor(news.tag),
                     color: '#ffffff',
                     padding: '0.25rem 0.5rem',
                     borderRadius: '0.25rem',
@@ -147,7 +158,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
                 fontSize: '0.75rem',
                 color: '#9ca3af'
               }}>
-                {news.published_at}
+                {getPublished(news)}
               </span>
             </div>
 
@@ -162,27 +173,29 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
               {news.title}
             </h3>
 
-            <p style={{
-              fontSize: '0.875rem',
-              color: '#d1d5db',
-              lineHeight: '1.5',
-              marginBottom: '1rem'
-            }}>
-              {news.summary}
-            </p>
+            {getBrief(news) && (
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#d1d5db',
+                lineHeight: '1.5',
+                marginBottom: '1rem'
+              }}>
+                {getBrief(news)}
+              </p>
+            )}
 
-            {/* News footer */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: '0.75rem',
-              color: '#9ca3af'
-            }}>
+            {/* News footer - stick to card bottom */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '0.75rem',
+                color: '#9ca3af',
+                marginTop: 'auto'
+              }}
+            >
               <span>{news.source}</span>
-              <span>
-                {news.category === 'stock' ? '📈' : '🎯'} {news.category}
-              </span>
             </div>
           </a>
         ))}
