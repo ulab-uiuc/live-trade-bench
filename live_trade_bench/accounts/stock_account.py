@@ -25,9 +25,6 @@ class StockAccount(BaseAccount[Position, Transaction]):
             ticker: pos for ticker, pos in self.positions.items() if pos.quantity > 0.01
         }
 
-    def get_transactions(self) -> List[Transaction]:
-        return self.transactions
-
     def get_position(self, ticker: str) -> Optional[Position]:
         return self.positions.get(ticker)
 

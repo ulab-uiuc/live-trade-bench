@@ -7,16 +7,16 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
+
 from .config import SYSTEM_DATA_FILE, TRADING_CONFIG, get_base_model_configs
-from .system_factory import get_system
 
 
 def update_system_status() -> None:
     print("📊 Updating system status...")
     try:
-        # Create fresh, mock-aware, thread-safe instances
-        stock_system = get_system("stock")
-        polymarket_system = get_system("polymarket")
+        stock_system = StockPortfolioSystem.get_instance()
+        polymarket_system = PolymarketPortfolioSystem.get_instance()
 
         model_configs = get_base_model_configs()
         for display_name, model_id in model_configs:

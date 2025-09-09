@@ -51,9 +51,15 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
     last_rebalance: Optional[str] = None
 
     def record_allocation(self):
+        total_value = self.get_total_value()
+        profit = total_value - self.initial_cash
+        performance = (profit / self.initial_cash) * 100 if self.initial_cash > 0 else 0
+
         snapshot = {
             "timestamp": datetime.now().isoformat(),
-            "total_value": self.get_total_value(),
+            "total_value": total_value,
+            "profit": profit,
+            "performance": performance,
             "allocations": self.get_allocations(),
         }
         self.allocation_history.append(snapshot)
@@ -107,7 +113,6 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
             "performance": performance,
             "portfolio": portfolio_details,
             "allocation_history": self.allocation_history,
-            "trades": len(self.get_transactions()),
         }
 
     @abstractmethod
@@ -124,8 +129,4 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
 
     @abstractmethod
     def get_positions(self) -> Dict[str, Any]:
-        ...
-
-    @abstractmethod
-    def get_transactions(self) -> List[Any]:
         ...

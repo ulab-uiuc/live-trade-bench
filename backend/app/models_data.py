@@ -10,39 +10,18 @@ from dataclasses import asdict
 
 from live_trade_bench.accounts.base_account import Position
 
-from .config import (
-    MODELS_DATA_FILE,
-    POLYMARKET_MOCK_MODE,
-    STOCK_MOCK_MODE,
-    MockMode,
-    get_base_model_configs,
-)
-from .system_factory import get_system
+from .config import MODELS_DATA_FILE
 
 
-def generate_models_data() -> None:
+def generate_models_data(stock_system, polymarket_system) -> None:
     try:
         print("🚀 Starting data generation for both markets...")
         all_market_data = []
 
-        for market_type in ["stock", "polymarket"]:
+        systems = {"stock": stock_system, "polymarket": polymarket_system}
+
+        for market_type, system in systems.items():
             print(f"--- Processing {market_type.upper()} market ---")
-            system = get_system(market_type)
-
-            # Only add agents from config if not using mock agents
-            mock_mode = (
-                STOCK_MOCK_MODE if market_type == "stock" else POLYMARKET_MOCK_MODE
-            )
-            if mock_mode not in [
-                MockMode.MOCK_AGENTS,
-                MockMode.MOCK_AGENTS_AND_FETCHERS,
-            ]:
-                model_configs = get_base_model_configs()
-                initial_cash = 1000.0 if market_type == "stock" else 500.0
-                for display_name, model_id in model_configs:
-                    system.add_agent(display_name, initial_cash, model_id)
-
-            system.initialize_for_live()
             system.run_cycle()
 
             for agent_name, account in system.accounts.items():
@@ -60,12 +39,21 @@ def generate_models_data() -> None:
                     "status": "active",  # Assuming active status for now
                     "performance": account_data.get("performance", 0),
                     "profit": account_data.get("profit", 0),
-                    "trades": account_data.get("trades", 0),
+                    "trades": len(account_data.get("allocation_history", [])),
                     "asset_allocation": account_data.get("portfolio", {}).get(
                         "current_allocations", {}
                     ),
                     "portfolio": account_data.get("portfolio", {}),
-                    "chartData": {"profit_history": []},  # Placeholder for chart data
+                    "chartData": {
+                        "profit_history": [
+                            {
+                                "timestamp": snapshot["timestamp"],
+                                "profit": snapshot["profit"],
+                                "totalValue": snapshot["total_value"],
+                            }
+                            for snapshot in account_data.get("allocation_history", [])
+                        ]
+                    },
                     "allocationHistory": account_data.get("allocation_history", []),
                 }
                 all_market_data.append(model_data)
