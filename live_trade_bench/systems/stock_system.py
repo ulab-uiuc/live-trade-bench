@@ -7,6 +7,7 @@ from ..accounts import StockAccount, create_stock_account
 from ..agents.stock_agent import LLMStockAgent
 from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.stock_fetcher import (
+    fetch_company_url,
     fetch_current_stock_price,
     fetch_stock_price_on_date,
     fetch_trending_stocks,
@@ -86,12 +87,18 @@ class StockPortfolioSystem:
                     else fetch_current_stock_price(ticker)
                 )
                 if price:
+                    url = None
+                    try:
+                        url = fetch_company_url(ticker)
+                    except Exception:
+                        url = f"https://finance.yahoo.com/quote/{ticker}"
                     market_data[ticker] = {
                         "ticker": ticker,
                         "name": self.stock_info[ticker]["name"],
                         "sector": self.stock_info[ticker]["sector"],
                         "current_price": price,
                         "market_cap": self.stock_info[ticker]["market_cap"],
+                        "url": url,
                     }
                     for account in self.accounts.values():
                         account.update_position_price(ticker, price)
