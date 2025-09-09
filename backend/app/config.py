@@ -23,22 +23,33 @@ SYSTEM_DATA_FILE = os.path.join(BACKEND_ROOT, "system_data.json")
 
 def get_base_model_configs() -> List[Tuple[str, str]]:
     return [
-        ("Claude 4 Sonnet", "claude-sonnet-4-20250514"),
-        ("GPT-5", "gpt-5"),
-        ("GPT-4 Turbo", "gpt-4-turbo"),
-        ("GPT-4o Mini", "gpt-4o-mini"),
-        ("Claude 3 Haiku", "claude-3-5-haiku-latest"),
-        ("Gemini 2.5 Flash", "gemini-2-5-flash"),
+        ("GPT-5", "openai/gpt-5"),
+        ("GPT-5 Nano", "openai/gpt-5-nano"),
+        ("GPT-5 Mini", "openai/gpt-5-mini"),
+        ("GPT-4.1", "openai/gpt-4.1"),
+        ("GPT-4.1 Mini", "openai/gpt-4.1-mini"),
+        ("GPT-4.1 Nano", "openai/gpt-4.1-nano"),
+        ("GPT-4o Mini", "openai/gpt-4o-mini"),
+        ("GPT-o3", "openai/o3-2025-04-16"),
+        ("Claude Sonnet 4.1", "anthropic/claude-opus-4-1-20250805"),
+        ("Claude Sonnet 4", "anthropic/claude-sonnet-4-20250514"),
+        ("Claude Sonnet 3.7", "anthropic/claude-3-7-sonnet-latest"),
+        ("Claude Haiku 3.5", "anthropic/claude-3-5-haiku-latest"),
+        ("GPT OSS 120B", "openai/gpt-oss-120b"),
         ("Llama 4 Maverick", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"),
+        ("Llama 4 Scout", "meta-llama/Llama-4-Scout-17B-16E-Instruct"),
+        ("Llama 3.3 70B", "meta-llama/Llama-3.3-70B-Instruct-Turbo"),
         ("Qwen3 235B", "Qwen/Qwen3-235B-A22B-Instruct-2507-tput"),
+        ("DeepSeek V3", "deepseek-ai/DeepSeek-V3"),
+        ("Deepseek V3.1", "deepseek-ai/DeepSeek-V3.1"),
+        ("Kimi K2", "moonshotai/Kimi-K2-Instruct-0905"),
     ]
 
 
 UPDATE_FREQUENCY = {
     "system_status": 60,
     "news_social": 600,
-    "trading": 30,
-    "trading_cycle": 30,
+    "trading_cycle": 3600,
 }
 
 TRADING_CONFIG = {
@@ -94,5 +105,5 @@ class MockMode(str, Enum):
     MOCK_AGENTS_AND_FETCHERS = "MOCK_AGENTS_AND_FETCHERS"
 
 
-STOCK_MOCK_MODE = MockMode.MOCK_AGENTS_AND_FETCHERS
-POLYMARKET_MOCK_MODE = MockMode.MOCK_AGENTS_AND_FETCHERS
+STOCK_MOCK_MODE = MockMode.NONE
+POLYMARKET_MOCK_MODE = MockMode.NONE
