@@ -178,11 +178,33 @@ class PolymarketFetcher(BaseFetcher):
     def _format_market_info(
         self, market_data: Dict[str, Any], token_ids: Optional[List[str]]
     ) -> Dict[str, Any]:
+        market_id = market_data.get("id")
+        slug = market_data.get("slug")
+        question = market_data.get("question")
+
+        def slugify(text: Optional[str]) -> Optional[str]:
+            if not text or not isinstance(text, str):
+                return None
+            import re
+            s = text.strip().lower()
+            s = re.sub(r"[^a-z0-9]+", "-", s)
+            s = re.sub(r"-+", "-", s).strip("-")
+            return s or None
+
+        if not slug:
+            slug = slugify(question)
+
+        url = None
+        if slug:
+            url = "https://polymarket.com/event/" + slug
+
         return {
-            "id": market_data.get("id"),
-            "question": market_data.get("question"),
+            "id": market_id,
+            "question": question,
             "category": market_data.get("category"),
             "token_ids": token_ids,
+            "slug": slug,
+            "url": url,
         }
 
     def _map_tokens_to_market(self, market_data: Dict[str, Any], token_ids: List[str]):

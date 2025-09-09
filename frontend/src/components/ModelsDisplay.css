@@ -704,3 +704,40 @@
     font-size: 0.8rem;
   }
 }
+
+/* Polymarket specific styles */
+.legend-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.polymarket-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.polymarket-link {
+  color: #a78bfa;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  transition: color 0.2s ease;
+  word-break: break-word;
+  display: block;
+}
+
+.polymarket-link:hover {
+  color: #c4b5fd;
+  text-decoration: underline;
+}
+
+.legend-category {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-style: italic;
+  text-transform: capitalize;
+}

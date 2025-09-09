@@ -47,6 +47,7 @@ class PolymarketPortfolioSystem:
                 "question": m.get("question", str(market_id)),
                 "category": m.get("category", "Unknown"),
                 "token_ids": m.get("token_ids", []),
+                "url": m.get("url"),
             }
 
     def add_agent(

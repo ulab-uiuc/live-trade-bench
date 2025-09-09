@@ -2,6 +2,27 @@
 
 export type Category = 'polymarket' | 'stock';
 
+export interface Position {
+  symbol: string;
+  quantity: number;
+  average_price: number;
+  current_price: number;
+  market_value: number;
+  unrealized_pnl: number;
+  // Polymarket specific fields
+  question?: string;
+  url?: string;
+  category?: string;
+}
+
+export interface Portfolio {
+  cash: number;
+  total_value: number;
+  positions: { [key: string]: Position };
+  target_allocations: { [key: string]: number };
+  current_allocations: { [key: string]: number };
+}
+
 export interface Model {
   id: string;
   name: string;
@@ -12,7 +33,7 @@ export interface Model {
   trades: number;
   asset_allocation: { [key: string]: number };
   // Detailed data, fetched once and passed around
-  portfolio: any;
+  portfolio: Portfolio;
   chartData: any;
   allocationHistory: any;
 }

@@ -10,7 +10,7 @@ class StockFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 1.0, max_delay: float = 3.0):
         super().__init__(min_delay, max_delay)
 
-    def fetch(self, mode: str, **kwargs: Any) -> Union[List[str], Optional[float]]:
+    def fetch(self, mode: str, **kwargs: Any) -> Union[List[str], Optional[float], Optional[str]]:
         if mode == "trending_stocks":
             return self.get_trending_stocks(limit=int(kwargs.get("limit", 15)))
         elif mode == "stock_price":
@@ -19,6 +19,11 @@ class StockFetcher(BaseFetcher):
                 raise ValueError("ticker is required for stock_price")
             date = kwargs.get("date")
             return self.get_price(str(ticker), date=date)
+        elif mode == "company_url":
+            ticker = kwargs.get("ticker")
+            if ticker is None:
+                raise ValueError("ticker is required for company_url")
+            return self.get_company_url(str(ticker))
         else:
             raise ValueError(f"Unknown fetch mode: {mode}")
 
@@ -46,6 +51,25 @@ class StockFetcher(BaseFetcher):
         if date:
             return self._get_price_on_date(ticker, date)
         return self.get_current_price(ticker)
+
+    def get_company_url(self, ticker: str) -> Optional[str]:
+        try:
+            stock = yf.Ticker(ticker)
+            info = {}
+            try:
+                info = stock.info or {}
+            except Exception:
+                info = {}
+            url = info.get("website") or info.get("website_url")
+            if isinstance(url, str) and url.strip():
+                u = url.strip()
+                if not u.startswith("http://") and not u.startswith("https://"):
+                    u = "https://" + u
+                return u
+        except Exception:
+            pass
+        # Fallback to Yahoo Finance
+        return f"https://finance.yahoo.com/quote/{ticker}"
 
     def _download_price_data(
         self, ticker: str, start_date: str, end_date: str, interval: str
@@ -157,3 +181,8 @@ def fetch_stock_price_on_date(ticker: str, date: str) -> Optional[float]:
 def fetch_stock_price(ticker: str, date: Optional[str] = None) -> Optional[float]:
     fetcher = StockFetcher()
     return fetcher.get_price(ticker, date=date)
+
+
+def fetch_company_url(ticker: str) -> Optional[str]:
+    fetcher = StockFetcher()
+    return fetcher.get_company_url(ticker)

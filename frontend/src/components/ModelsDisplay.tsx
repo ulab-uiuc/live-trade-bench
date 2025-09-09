@@ -234,7 +234,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   }) => {
     const allocations = useMemo(() => {
       const target = portfolioData?.target_allocations || {};
-      return Object.entries(target)
+      const arr = Object.entries(target)
         .map(([name, ratio]) => ({
           name,
           allocation: ratio as number,
@@ -242,6 +242,13 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
         }))
         .filter(item => item.allocation > 0)
         .sort((a, b) => b.allocation - a.allocation);
+      // Move CASH to the end if present
+      const cashIndex = arr.findIndex(i => i.name === 'CASH');
+      if (cashIndex > -1) {
+        const [cashItem] = arr.splice(cashIndex, 1);
+        arr.push(cashItem);
+      }
+      return arr;
     }, [portfolioData, category]);
 
     // DEBUG: Log the category and colors
@@ -277,18 +284,68 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
         {/*  */}
         <div className="allocation-legend">
-          {allocations.map((asset) => (
-            <div key={asset.name} className="legend-item">
-              <div
-                className="legend-color"
-                style={{ backgroundColor: asset.color }}
-              />
-              <span className="legend-name">{asset.name}</span>
-              <span className="legend-percentage">
-                {(asset.allocation * 100).toFixed(1)}%
-              </span>
-            </div>
-          ))}
+          {allocations.map((asset) => {
+            // Check if this is a Polymarket position with additional info
+            const position = portfolioData?.positions?.[asset.name];
+            const isPolymarket = category === 'polymarket' && position?.question;
+            
+            // Debug logging
+            if (category === 'polymarket') {
+              console.log('Asset:', asset.name, 'Position:', position, 'IsPolymarket:', isPolymarket);
+              console.log('PortfolioData:', portfolioData);
+            }
+            
+            return (
+              <div key={asset.name} className="legend-item">
+                <div
+                  className="legend-color"
+                  style={{ backgroundColor: asset.color }}
+                />
+                <div className="legend-content">
+                  {isPolymarket ? (
+                    <div className="polymarket-item">
+                      <div className="legend-name">
+                        <a 
+                          href={position.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="polymarket-link"
+                          title={position.question}
+                        >
+                          {position.question}
+                        </a>
+                      </div>
+                      <div className="legend-category">
+                        {position.category}
+                      </div>
+                    </div>
+                  ) : (
+                    (() => {
+                      const stockLink = category === 'stock' && asset.name !== 'CASH' && position?.url
+                        ? String(position.url)
+                        : (category === 'stock' && asset.name !== 'CASH' ? `https://finance.yahoo.com/quote/${asset.name}` : undefined);
+                      return stockLink ? (
+                        <a
+                          href={stockLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="polymarket-link"
+                          title={asset.name}
+                        >
+                          {asset.name}
+                        </a>
+                      ) : (
+                        <span className="legend-name">{asset.name}</span>
+                      );
+                    })()
+                  )}
+                  <span className="legend-percentage">
+                    {(asset.allocation * 100).toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
 
@@ -333,13 +390,21 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
         {filteredModels.map(model => {
           // Use the real (mocked) asset allocation from the model prop
           const allocations = model.asset_allocation
-            ? Object.entries(model.asset_allocation)
-                .map(([name, allocation]) => ({
-                  name,
-                  allocation,
-                  color: getAssetColor(name, model.category as 'stock' | 'polymarket')
-                }))
-                .sort((a, b) => b.allocation - a.allocation)
+            ? (() => {
+                const arr = Object.entries(model.asset_allocation)
+                  .map(([name, allocation]) => ({
+                    name,
+                    allocation,
+                    color: getAssetColor(name, model.category as 'stock' | 'polymarket')
+                  }))
+                  .sort((a, b) => b.allocation - a.allocation);
+                const cashIndex = arr.findIndex(i => i.name === 'CASH');
+                if (cashIndex > -1) {
+                  const [cashItem] = arr.splice(cashIndex, 1);
+                  arr.push(cashItem);
+                }
+                return arr;
+              })()
             : []; // Default to empty if no allocation data
 
           return (
@@ -447,6 +512,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
               <AssetRatioChart
                 allocationHistory={selectedModel.allocationHistory}
+                portfolio={selectedModel.portfolio}
+                assetMeta={(selectedModel as any).asset_meta || {}}
                 category={selectedModel.category}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
@@ -478,18 +545,30 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 // Asset Ratio Chart Component (now a "dumb" component)
 const AssetRatioChart: React.FC<{
   allocationHistory: any[];
+  portfolio: any;
+  assetMeta: Record<string, { question?: string; url?: string; category?: string }>;
   category: string;
   onMouseMove: (e: React.MouseEvent, content: string) => void;
   onMouseLeave: () => void;
-}> = ({ allocationHistory, category, onMouseMove, onMouseLeave }) => {
+}> = ({ allocationHistory, portfolio, assetMeta, category, onMouseMove, onMouseLeave }) => {
 
   // Create unique ID for this chart instance to avoid SVG gradient conflicts
   const chartId = useMemo(() => Math.random().toString(36).substr(2, 9), []);
 
   const chartData = useMemo(() => {
-    if (!Array.isArray(allocationHistory) || allocationHistory.length === 0) return [];
-    // Slice to the last 30 entries and extract just the allocations object
-    return allocationHistory.slice(-30).map(snapshot => snapshot.allocations || {});
+    if (!Array.isArray(allocationHistory) || allocationHistory.length === 0) return [] as any[];
+    // Slice to the last 30 entries and normalize allocations into { [name]: weight }
+    return allocationHistory.slice(-30).map((snapshot: any) => {
+      const alloc = snapshot?.allocations;
+      if (Array.isArray(alloc)) {
+        const obj: Record<string, number> = {};
+        alloc.forEach((a: any) => {
+          if (a && a.name != null) obj[a.name] = a.weight ?? 0;
+        });
+        return obj;
+      }
+      return alloc || {};
+    });
   }, [allocationHistory]);
 
   const allAssets = useMemo(() => {
@@ -498,10 +577,11 @@ const AssetRatioChart: React.FC<{
           Object.keys(allocations).forEach(asset => assetSet.add(asset));
       });
       // Ensure CASH is last for stacking order if it exists
-      const sortedAssets = Array.from(assetSet).sort();
-      if (assetSet.has('CASH')) {
-        return ['CASH', ...sortedAssets.filter(a => a !== 'CASH')];
-      }
+      const sortedAssets = Array.from(assetSet).sort((a, b) => {
+        if (a === 'CASH') return 1;
+        if (b === 'CASH') return -1;
+        return a.localeCompare(b);
+      });
       return sortedAssets;
   }, [chartData]);
 
@@ -518,6 +598,20 @@ const AssetRatioChart: React.FC<{
         return stacked;
     });
   }, [chartData, allAssets]);
+
+  // Build meta map for latest snapshot (name -> {url, category})
+  const latestMeta = useMemo(() => {
+    const latest = Array.isArray(allocationHistory) && allocationHistory.length > 0
+      ? allocationHistory[allocationHistory.length - 1]
+      : null;
+    const map: Record<string, { url?: string; category?: string }> = {};
+    if (latest && Array.isArray(latest.allocations)) {
+      latest.allocations.forEach((a: any) => {
+        if (a && a.name) map[a.name] = { url: a.url, category: a.category };
+      });
+    }
+    return map;
+  }, [allocationHistory]);
 
   // Get colors based on the category passed as prop
   const getAssetColorForChart = (asset: string) => {
@@ -632,14 +726,34 @@ const AssetRatioChart: React.FC<{
 
       {/* Legend */}
       <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem' }}>
-        {allAssets.map((asset, index) => (
-          <div key={asset} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ width: '12px', height: '12px', backgroundColor: getAssetColorForChart(asset), borderRadius: '50%' }}></div>
-            <span style={{ color: '#d1d5db', fontSize: '0.875rem', fontWeight: '500' }}>
-              {asset}
-            </span>
-          </div>
-        ))}
+        {allAssets.map((asset, index) => {
+          const meta = latestMeta[asset];
+          const polymarketUrl = category === 'polymarket' ? meta?.url : undefined;
+          const stockUrl = category === 'stock' && asset !== 'CASH' ? (meta?.url || `https://finance.yahoo.com/quote/${asset}`) : undefined;
+          const linkUrl = polymarketUrl || stockUrl;
+          const isLink = Boolean(linkUrl);
+
+          return (
+            <div key={asset} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ width: '12px', height: '12px', backgroundColor: getAssetColorForChart(asset), borderRadius: '50%' }}></div>
+              {isLink ? (
+                <a 
+                  href={String(linkUrl)} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="polymarket-link"
+                  title={asset}
+                >
+                  {asset}
+                </a>
+              ) : (
+                <span style={{ color: '#d1d5db', fontSize: '0.875rem', fontWeight: '500' }}>
+                  {asset}
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
