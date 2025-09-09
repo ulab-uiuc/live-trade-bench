@@ -10,7 +10,9 @@ class StockFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 1.0, max_delay: float = 3.0):
         super().__init__(min_delay, max_delay)
 
-    def fetch(self, mode: str, **kwargs: Any) -> Union[List[str], Optional[float], Optional[str]]:
+    def fetch(
+        self, mode: str, **kwargs: Any
+    ) -> Union[List[str], Optional[float], Optional[str]]:
         if mode == "trending_stocks":
             return self.get_trending_stocks(limit=int(kwargs.get("limit", 15)))
         elif mode == "stock_price":

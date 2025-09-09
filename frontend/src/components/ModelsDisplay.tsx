@@ -288,13 +288,13 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
             // Check if this is a Polymarket position with additional info
             const position = portfolioData?.positions?.[asset.name];
             const isPolymarket = category === 'polymarket' && position?.question;
-            
+
             // Debug logging
             if (category === 'polymarket') {
               console.log('Asset:', asset.name, 'Position:', position, 'IsPolymarket:', isPolymarket);
               console.log('PortfolioData:', portfolioData);
             }
-            
+
             return (
               <div key={asset.name} className="legend-item">
                 <div
@@ -305,9 +305,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                   {isPolymarket ? (
                     <div className="polymarket-item">
                       <div className="legend-name">
-                        <a 
-                          href={position.url} 
-                          target="_blank" 
+                        <a
+                          href={position.url}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="polymarket-link"
                           title={position.question}
@@ -737,9 +737,9 @@ const AssetRatioChart: React.FC<{
             <div key={asset} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <div style={{ width: '12px', height: '12px', backgroundColor: getAssetColorForChart(asset), borderRadius: '50%' }}></div>
               {isLink ? (
-                <a 
-                  href={String(linkUrl)} 
-                  target="_blank" 
+                <a
+                  href={String(linkUrl)}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="polymarket-link"
                   title={asset}

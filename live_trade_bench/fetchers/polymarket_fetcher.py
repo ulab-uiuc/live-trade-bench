@@ -186,6 +186,7 @@ class PolymarketFetcher(BaseFetcher):
             if not text or not isinstance(text, str):
                 return None
             import re
+
             s = text.strip().lower()
             s = re.sub(r"[^a-z0-9]+", "-", s)
             s = re.sub(r"-+", "-", s).strip("-")

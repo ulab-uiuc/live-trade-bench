@@ -7,10 +7,10 @@ from ..accounts import StockAccount, create_stock_account
 from ..agents.stock_agent import LLMStockAgent
 from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.stock_fetcher import (
+    fetch_company_url,
     fetch_current_stock_price,
     fetch_stock_price_on_date,
     fetch_trending_stocks,
-    fetch_company_url,
 )
 
 
