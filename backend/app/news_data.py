@@ -1,18 +1,22 @@
 import json
 
-from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
-
 from .config import NEWS_DATA_FILE
 
 
 def update_news_data() -> None:
-    print("📰 Updating news data by calling core systems...")
+    print("📰 Updating news data...")
 
     all_news_data = {"stock": [], "polymarket": []}
 
     try:
-        stock_system = StockPortfolioSystem.get_instance()
-        polymarket_system = PolymarketPortfolioSystem.get_instance()
+        from backend.app.main import get_polymarket_system, get_stock_system
+
+        stock_system = get_stock_system()
+        polymarket_system = get_polymarket_system()
+
+        if not stock_system or not polymarket_system:
+            print("❌ Failed to get system instances")
+            return
 
         # Initialize systems if not already done
         if not stock_system.universe:
@@ -20,9 +24,11 @@ def update_news_data() -> None:
         if not polymarket_system.universe:
             polymarket_system.initialize_for_live()
 
+        # Fetch market data
         stock_market_data = stock_system._fetch_market_data(for_date=None)
         polymarket_market_data = polymarket_system._fetch_market_data(for_date=None)
 
+        # Fetch news data
         stock_news = stock_system._fetch_news_data(stock_market_data, for_date=None)
         polymarket_news = polymarket_system._fetch_news_data(
             polymarket_market_data, for_date=None
@@ -41,6 +47,9 @@ def update_news_data() -> None:
 
     except Exception as e:
         print(f"❌ Error updating news data: {e}")
+        import traceback
+
+        traceback.print_exc()
 
 
 if __name__ == "__main__":

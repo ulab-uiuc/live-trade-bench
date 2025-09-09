@@ -1,18 +1,22 @@
 import json
 
-from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
-
 from .config import SOCIAL_DATA_FILE
 
 
 def update_social_data() -> None:
-    print("📰 Updating social media data by calling core systems...")
+    print("📱 Updating social media data...")
 
     all_social_data = {"stock": [], "polymarket": []}
 
     try:
-        stock_system = StockPortfolioSystem.get_instance()
-        polymarket_system = PolymarketPortfolioSystem.get_instance()
+        from backend.app.main import get_polymarket_system, get_stock_system
+
+        stock_system = get_stock_system()
+        polymarket_system = get_polymarket_system()
+
+        if not stock_system or not polymarket_system:
+            print("❌ Failed to get system instances")
+            return
 
         # Initialize systems if not already done
         if not stock_system.universe:
@@ -20,6 +24,7 @@ def update_social_data() -> None:
         if not polymarket_system.universe:
             polymarket_system.initialize_for_live()
 
+        # Fetch social data
         stock_social = stock_system._fetch_social_data()
         polymarket_social = polymarket_system._fetch_social_data()
 
@@ -36,6 +41,9 @@ def update_social_data() -> None:
 
     except Exception as e:
         print(f"❌ Error updating social media data: {e}")
+        import traceback
+
+        traceback.print_exc()
 
 
 if __name__ == "__main__":

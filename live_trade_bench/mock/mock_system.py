@@ -82,17 +82,56 @@ class MockFetcherStockSystem(StockPortfolioSystem):
                     if len(article["snippet"]) > 300
                     else article["snippet"]
                 )
-                news_data_map[ticker] = {
-                    "title": article["title"],
-                    "snippet": cleaned_snippet,
-                    "source": article["source"],
-                    "date": article["date"],
-                    "link": article["link"],
-                }
+                news_data_map[ticker] = [
+                    {
+                        "title": article["title"],
+                        "snippet": cleaned_snippet,
+                        "source": article["source"],
+                        "date": article["date"],
+                        "link": article["link"],
+                        "tag": ticker,
+                    }
+                ]
                 print(f"    - News for {ticker}: {article['title'][:50]}...")
 
         print("  - ✅ News data fetched")
         return news_data_map
+
+    def _fetch_social_data(self):
+        """Fetch mock social media data for the stock universe."""
+        print("  - Fetching social media data...")
+        from datetime import datetime
+
+        from .mock_fetcher import fetch_reddit_posts_by_ticker
+
+        social_data_map = {}
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        for ticker in self.universe[:3]:  # Limit to 3 tickers for performance
+            try:
+                posts = fetch_reddit_posts_by_ticker(ticker, date=today, max_limit=3)
+                formatted_posts = []
+                for post in posts:
+                    content = (
+                        post.get("content", "")[:300] + "..."
+                        if len(post.get("content", "")) > 300
+                        else post.get("content", "")
+                    )
+                    formatted_posts.append(
+                        {
+                            "content": content,
+                            "author": post.get("author", "Unknown"),
+                            "platform": "Reddit",
+                            "url": post.get("url", ""),
+                            "created_at": post.get("posted_date", ""),
+                        }
+                    )
+                social_data_map[ticker] = formatted_posts
+            except Exception as e:
+                print(f"    - Failed to fetch social data for {ticker}: {e}")
+
+        print(f"  - ✅ Social media data fetched for {len(social_data_map)} stocks")
+        return social_data_map
 
 
 class MockAgentFetcherStockSystem(StockPortfolioSystem):
@@ -146,17 +185,56 @@ class MockAgentFetcherStockSystem(StockPortfolioSystem):
                     if len(article["snippet"]) > 300
                     else article["snippet"]
                 )
-                news_data_map[ticker] = {
-                    "title": article["title"],
-                    "snippet": cleaned_snippet,
-                    "source": article["source"],
-                    "date": article["date"],
-                    "link": article["link"],
-                }
+                news_data_map[ticker] = [
+                    {
+                        "title": article["title"],
+                        "snippet": cleaned_snippet,
+                        "source": article["source"],
+                        "date": article["date"],
+                        "link": article["link"],
+                        "tag": ticker,
+                    }
+                ]
                 print(f"    - News for {ticker}: {article['title'][:50]}...")
 
         print("  - ✅ News data fetched")
         return news_data_map
+
+    def _fetch_social_data(self):
+        """Fetch mock social media data for the stock universe."""
+        print("  - Fetching social media data...")
+        from datetime import datetime
+
+        from .mock_fetcher import fetch_reddit_posts_by_ticker
+
+        social_data_map = {}
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        for ticker in self.universe[:3]:  # Limit to 3 tickers for performance
+            try:
+                posts = fetch_reddit_posts_by_ticker(ticker, date=today, max_limit=3)
+                formatted_posts = []
+                for post in posts:
+                    content = (
+                        post.get("content", "")[:300] + "..."
+                        if len(post.get("content", "")) > 300
+                        else post.get("content", "")
+                    )
+                    formatted_posts.append(
+                        {
+                            "content": content,
+                            "author": post.get("author", "Unknown"),
+                            "platform": "Reddit",
+                            "url": post.get("url", ""),
+                            "created_at": post.get("posted_date", ""),
+                        }
+                    )
+                social_data_map[ticker] = formatted_posts
+            except Exception as e:
+                print(f"    - Failed to fetch social data for {ticker}: {e}")
+
+        print(f"  - ✅ Social media data fetched for {len(social_data_map)} stocks")
+        return social_data_map
 
 
 class MockAgentPolymarketSystem(PolymarketPortfolioSystem):
@@ -177,6 +255,45 @@ class MockAgentPolymarketSystem(PolymarketPortfolioSystem):
 
     def _fetch_market_data(self, for_date=None):
         return fetch_polymarket_data(self.universe)
+
+    def _fetch_social_data(self):
+        """Fetch mock social media data for the polymarket universe."""
+        print("  - Fetching social media data...")
+        from .mock_fetcher import MockRedditFetcher
+
+        social_data_map = {}
+        fetcher = MockRedditFetcher()
+
+        for market_id in self.universe[:3]:  # Limit for performance
+            try:
+                question = self.market_info.get(market_id, {}).get(
+                    "question", market_id
+                )
+                query = " ".join(question.split()[:5])  # Use first few words as query
+                posts = fetcher.fetch(category="market", query=query, max_limit=3)
+
+                formatted_posts = []
+                for post in posts:
+                    content = (
+                        post.get("content", "")[:300] + "..."
+                        if len(post.get("content", "")) > 300
+                        else post.get("content", "")
+                    )
+                    formatted_posts.append(
+                        {
+                            "content": content,
+                            "author": post.get("author", "Unknown"),
+                            "platform": "Reddit",
+                            "url": post.get("url", ""),
+                            "created_at": post.get("posted_date", ""),
+                        }
+                    )
+                social_data_map[market_id] = formatted_posts
+            except Exception as e:
+                print(f"    - Failed to fetch social data for {market_id}: {e}")
+
+        print(f"  - ✅ Social media data fetched for {len(social_data_map)} markets")
+        return social_data_map
 
 
 class MockFetcherPolymarketSystem(PolymarketPortfolioSystem):
@@ -218,17 +335,59 @@ class MockFetcherPolymarketSystem(PolymarketPortfolioSystem):
                     if len(article["snippet"]) > 300
                     else article["snippet"]
                 )
-                news_data_map[market_id] = {
-                    "title": article["title"],
-                    "snippet": cleaned_snippet,
-                    "source": article["source"],
-                    "date": article["date"],
-                    "link": article["link"],
-                }
+                news_data_map[market_id] = [
+                    {
+                        "title": article["title"],
+                        "snippet": cleaned_snippet,
+                        "source": article["source"],
+                        "date": article["date"],
+                        "link": article["link"],
+                        "tag": market_id,
+                    }
+                ]
                 print(f"    - News for {market_id}: {article['title'][:50]}...")
 
         print("  - ✅ News data fetched")
         return news_data_map
+
+    def _fetch_social_data(self):
+        """Fetch mock social media data for the polymarket universe."""
+        print("  - Fetching social media data...")
+        from .mock_fetcher import MockRedditFetcher
+
+        social_data_map = {}
+        fetcher = MockRedditFetcher()
+
+        for market_id in self.universe[:3]:  # Limit for performance
+            try:
+                question = self.market_info.get(market_id, {}).get(
+                    "question", market_id
+                )
+                query = " ".join(question.split()[:5])  # Use first few words as query
+                posts = fetcher.fetch(category="market", query=query, max_limit=3)
+
+                formatted_posts = []
+                for post in posts:
+                    content = (
+                        post.get("content", "")[:300] + "..."
+                        if len(post.get("content", "")) > 300
+                        else post.get("content", "")
+                    )
+                    formatted_posts.append(
+                        {
+                            "content": content,
+                            "author": post.get("author", "Unknown"),
+                            "platform": "Reddit",
+                            "url": post.get("url", ""),
+                            "created_at": post.get("posted_date", ""),
+                        }
+                    )
+                social_data_map[market_id] = formatted_posts
+            except Exception as e:
+                print(f"    - Failed to fetch social data for {market_id}: {e}")
+
+        print(f"  - ✅ Social media data fetched for {len(social_data_map)} markets")
+        return social_data_map
 
 
 class MockAgentFetcherPolymarketSystem(PolymarketPortfolioSystem):
@@ -271,17 +430,59 @@ class MockAgentFetcherPolymarketSystem(PolymarketPortfolioSystem):
                     if len(article["snippet"]) > 300
                     else article["snippet"]
                 )
-                news_data_map[market_id] = {
-                    "title": article["title"],
-                    "snippet": cleaned_snippet,
-                    "source": article["source"],
-                    "date": article["date"],
-                    "link": article["link"],
-                }
+                news_data_map[market_id] = [
+                    {
+                        "title": article["title"],
+                        "snippet": cleaned_snippet,
+                        "source": article["source"],
+                        "date": article["date"],
+                        "link": article["link"],
+                        "tag": market_id,
+                    }
+                ]
                 print(f"    - News for {market_id}: {article['title'][:50]}...")
 
         print("  - ✅ News data fetched")
         return news_data_map
+
+    def _fetch_social_data(self):
+        """Fetch mock social media data for the polymarket universe."""
+        print("  - Fetching social media data...")
+        from .mock_fetcher import MockRedditFetcher
+
+        social_data_map = {}
+        fetcher = MockRedditFetcher()
+
+        for market_id in self.universe[:3]:  # Limit for performance
+            try:
+                question = self.market_info.get(market_id, {}).get(
+                    "question", market_id
+                )
+                query = " ".join(question.split()[:5])  # Use first few words as query
+                posts = fetcher.fetch(category="market", query=query, max_limit=3)
+
+                formatted_posts = []
+                for post in posts:
+                    content = (
+                        post.get("content", "")[:300] + "..."
+                        if len(post.get("content", "")) > 300
+                        else post.get("content", "")
+                    )
+                    formatted_posts.append(
+                        {
+                            "content": content,
+                            "author": post.get("author", "Unknown"),
+                            "platform": "Reddit",
+                            "url": post.get("url", ""),
+                            "created_at": post.get("posted_date", ""),
+                        }
+                    )
+                social_data_map[market_id] = formatted_posts
+            except Exception as e:
+                print(f"    - Failed to fetch social data for {market_id}: {e}")
+
+        print(f"  - ✅ Social media data fetched for {len(social_data_map)} markets")
+        return social_data_map
 
 
 # Factory functions for thread-safe instantiation
