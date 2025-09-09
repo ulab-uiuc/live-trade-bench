@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-fastapi = "^0.110.0"
+fastapi = ">=0.110,<0.117"
 uvicorn = "^0.29.0"
 yfinance = "^0.2.37"
 finnhub-python = "^2.4.20"
