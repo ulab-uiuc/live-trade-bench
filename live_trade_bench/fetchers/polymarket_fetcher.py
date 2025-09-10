@@ -195,8 +195,9 @@ class PolymarketFetcher(BaseFetcher):
         if not slug:
             slug = slugify(question)
 
-        url = None
-        if slug:
+        # Prioritize URL from API, but construct from slug if missing.
+        url = market_data.get("url")
+        if not url and slug:
             url = "https://polymarket.com/event/" + slug
 
         return {
@@ -330,33 +331,39 @@ def fetch_current_market_price(token_ids: List[str]) -> Dict[str, Any]:
             print(f"💰 YES: {yes_price:.3f} | NO: {no_price:.3f}")
 
         return {
-            "price": yes_price,
-            "yes_price": yes_price,
-            "no_price": no_price,
-            "timestamp": datetime.now().isoformat(),
+            f"{question}_YES": {"price": yes_price, "outcome": "YES"},
+            f"{question}_NO": {"price": no_price, "outcome": "NO"},
         }
     return {}
 
 
 def fetch_market_price_on_date(
     token_ids: List[str], date: str
-) -> Optional[Dict[str, Any]]:
+) -> Dict[str, Any]:
+    """
+    Fetches the historical price for a market on a specific date and returns it
+    in the new question-based format, consistent with fetch_current_market_price.
+    """
     if not token_ids:
-        return None
+        return {}
 
     fetcher = PolymarketFetcher()
     yes_token_id = token_ids[0]
+    
+    # We need the question for the new format
+    market_info = PolymarketFetcher.get_market_info_by_token(yes_token_id)
+    if not market_info or not market_info.get("question"):
+        return {}
+    question = market_info["question"]
 
     price = fetcher.get_market_price_on_date(yes_token_id, date)
 
     if price is not None:
         return {
-            "price": price,
-            "yes_price": price,
-            "no_price": 1.0 - price,
-            "timestamp": datetime.strptime(date, "%Y-%m-%d").isoformat(),
+            f"{question}_YES": {"price": price, "outcome": "YES"},
+            f"{question}_NO": {"price": 1.0 - price, "outcome": "NO"},
         }
-    return None
+    return {}
 
 
 def fetch_token_price(token_id: str, side: str = "buy") -> Optional[float]:

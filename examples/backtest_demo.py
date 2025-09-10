@@ -13,8 +13,6 @@ async def main():
     print("🔮 Multi-Model Parallel Portfolio Backtest Demo")
     print("Testing AI models concurrently across Stock & Polymarket")
     print("=" * 60)
-    print("💡 For production-grade demo with all models, run:")
-    print("   python enhanced_backtest_demo.py")
     print()
 
     start_date = "2025-09-02"

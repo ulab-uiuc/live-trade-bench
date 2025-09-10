@@ -22,6 +22,8 @@ class PolymarketPortfolioSystem:
         self.market_info: Dict[str, Dict[str, Any]] = {}
         self.cycle_count = 0
         self.universe_size = universe_size
+        self.market_data: Dict[str, Dict[str, Any]] = {}
+        self.initialize_for_live()
 
     def initialize_for_backtest(self, trading_days: List[datetime]):
         print("--- Initializing Polymarket universe for backtest period... ---")
@@ -85,47 +87,52 @@ class PolymarketPortfolioSystem:
         self, for_date: str | None = None
     ) -> Dict[str, Dict[str, Any]]:
         print("  - Fetching market data...")
-        market_data = {}
+        market_data_expanded = {}
         for market_id in self.universe:
             try:
                 price_data = None
-                if for_date:
-                    token_ids = self.market_info[market_id].get("token_ids")
-                    if token_ids:
-                        price_data = fetch_market_price_on_date(token_ids, for_date)
-                else:
-                    price_data = fetch_current_market_price(
-                        self.market_info[market_id]["token_ids"]
-                    )
+                token_ids = self.market_info[market_id].get("token_ids")
+                if not token_ids:
+                    continue
 
-                if price_data and "yes_price" in price_data:
-                    market_data[market_id] = {
-                        "id": market_id,
-                        "question": self.market_info[market_id]["question"],
-                        "category": self.market_info[market_id]["category"],
-                        "price": float(price_data["yes_price"]),
-                        "yes_price": float(price_data["yes_price"]),
-                        "no_price": float(
-                            price_data.get(
-                                "no_price", 1.0 - float(price_data["yes_price"])
-                            )
-                        ),
-                        "token_ids": self.market_info[market_id]["token_ids"],
-                        "timestamp": price_data.get(
-                            "timestamp", datetime.now().isoformat()
-                        ),
-                    }
+                if for_date:
+                    price_data = fetch_market_price_on_date(token_ids, for_date)
+                else:
+                    price_data = fetch_current_market_price(token_ids)
+
+                if price_data:
+                    question = self.market_info[market_id]["question"]
+                    url = self.market_info[market_id].get("url")
+                    
+                    yes_key = f"{question}_YES"
+                    no_key = f"{question}_NO"
+
+                    if yes_key in price_data:
+                        price_data[yes_key].update({
+                            'id': f"{market_id}_YES",
+                            'question': question,
+                            'url': url
+                        })
+
+                    if no_key in price_data:
+                        price_data[no_key].update({
+                            'id': f"{market_id}_NO", 
+                            'question': question,
+                            'url': url
+                        })
+
+                    market_data_expanded.update(price_data)
                 else:
                     question = self.market_info[market_id].get("question", market_id)
                     print(
-                        f"    - ⚠️ No price data found for '{question[:40]}...' on {for_date}. Skipping."
+                        f"    - ⚠️ No price data found for '{question[:40]}...'. Skipping."
                     )
             except Exception as e:
                 print(f"    - Failed to fetch data for {market_id}: {e}")
-        print(f"  - ✅ Market data fetched for {len(market_data)} markets")
-        for market_id, data in list(market_data.items())[:3]:
-            print(f"    - {data['question'][:40]}...: YES @ {data['yes_price']:.2%}")
-        return market_data
+        
+        print(f"  - ✅ Market data fetched and expanded for {len(market_data_expanded) // 2} markets")
+        self.market_data = market_data_expanded # Store the expanded data
+        return self.market_data
 
     def _fetch_social_data(self) -> Dict[str, List[Dict[str, Any]]]:
         """Fetch social media data (Reddit) for the market universe."""
@@ -249,16 +256,26 @@ class PolymarketPortfolioSystem:
         return all_allocations
 
     def _update_accounts(
-        self, allocations: Dict[str, Dict[str, float]], price_map: Dict
+        self, allocations: Dict[str, Dict[str, float]], market_data: Dict
     ) -> None:
         print("  - Updating all accounts...")
+
+        # The price_map keys should be the same as allocation keys (question_outcome)
+        price_map = {key: asset['price'] for key, asset in market_data.items()}
+
         for agent_name, allocation in allocations.items():
             account = self.accounts[agent_name]
-            account.target_allocations = allocation  # Set target allocation first
+
+            # No more translation. Use question-based allocation directly.
+            account.target_allocations = allocation
 
             # Rebalance account to target allocation
             try:
-                account.apply_allocation(allocation, price_map=price_map)
+                account.apply_allocation(
+                    allocation, 
+                    price_map=price_map, 
+                    metadata_map=market_data
+                )
                 account.record_allocation()
                 print(
                     f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"

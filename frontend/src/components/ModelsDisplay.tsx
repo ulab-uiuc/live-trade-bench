@@ -296,12 +296,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
             // Check if this is a Polymarket position with additional info
             const position = portfolioData?.positions?.[asset.name];
             const isPolymarket = category === 'polymarket' && position?.question;
-
-            // Debug logging
-            if (category === 'polymarket') {
-              console.log('Asset:', asset.name, 'Position:', position, 'IsPolymarket:', isPolymarket);
-              console.log('PortfolioData:', portfolioData);
-            }
+            const linkUrl = position?.url;
 
             return (
               <div key={asset.name} className="legend-item">
@@ -310,42 +305,18 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                   style={{ backgroundColor: asset.color }}
                 />
                 <div className="legend-content">
-                  {isPolymarket ? (
-                    <div className="polymarket-item">
-                      <div className="legend-name">
-                        <a
-                          href={position.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="polymarket-link"
-                          title={position.question}
-                        >
-                          {position.question}
-                        </a>
-                      </div>
-                      <div className="legend-category">
-                        {position.category}
-                      </div>
-                    </div>
+                  {linkUrl ? (
+                    <a
+                      href={linkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="polymarket-link"
+                      title={asset.name}
+                    >
+                      {asset.name}
+                    </a>
                   ) : (
-                    (() => {
-                      const stockLink = category === 'stock' && asset.name !== 'CASH' && position?.url
-                        ? String(position.url)
-                        : (category === 'stock' && asset.name !== 'CASH' ? `https://finance.yahoo.com/quote/${asset.name}` : undefined);
-                      return stockLink ? (
-                        <a
-                          href={stockLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="polymarket-link"
-                          title={asset.name}
-                        >
-                          {asset.name}
-                        </a>
-                      ) : (
-                        <span className="legend-name">{asset.name}</span>
-                      );
-                    })()
+                    <span className="legend-name">{asset.name}</span>
                   )}
                   <span className="legend-percentage">
                     {(asset.allocation * 100).toFixed(1)}%
@@ -671,7 +642,7 @@ const AssetRatioChart: React.FC<{
       if (Array.isArray(alloc)) {
         const obj: Record<string, number> = {};
         alloc.forEach((a: any) => {
-          if (a && a.name != null) obj[a.name] = a.weight ?? 0;
+          if (a && a.name != null) obj[a.name] = a.ratio ?? 0;
         });
         return obj;
       }
@@ -707,15 +678,19 @@ const AssetRatioChart: React.FC<{
     });
   }, [chartData, allAssets]);
 
-  // Build meta map for latest snapshot (name -> {url, category})
-  const latestMeta = useMemo(() => {
-    const latest = Array.isArray(allocationHistory) && allocationHistory.length > 0
-      ? allocationHistory[allocationHistory.length - 1]
-      : null;
-    const map: Record<string, { url?: string; question?: string; category?: string }> = {};
-    if (latest && Array.isArray(latest.allocations)) {
-      latest.allocations.forEach((a: any) => {
-        if (a && a.name) map[a.name] = { url: a.url, question: a.question, category: a.category };
+  // Build a comprehensive meta map from all available history
+  const assetMetaMap = useMemo(() => {
+    const map: Record<string, { url?: string; question?: string }> = {};
+    if (Array.isArray(allocationHistory)) {
+      allocationHistory.forEach(snapshot => {
+        if (snapshot && Array.isArray(snapshot.allocations)) {
+          snapshot.allocations.forEach((a: any) => {
+            // Add to map if it has a URL, overwriting older entries is fine
+            if (a && a.name && a.url) {
+              map[a.name] = { url: a.url, question: a.question };
+            }
+          });
+        }
       });
     }
     return map;
@@ -842,18 +817,15 @@ const AssetRatioChart: React.FC<{
       {/* Legend */}
       <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem' }}>
         {allAssets.map((asset, index) => {
-          const meta = latestMeta[asset];
-          const polymarketUrl = category === 'polymarket' ? meta?.url : undefined;
-          const stockUrl = category === 'stock' && asset !== 'CASH' ? (meta?.url || `https://finance.yahoo.com/quote/${asset}`) : undefined;
-          const linkUrl = polymarketUrl || stockUrl;
-          const isLink = Boolean(linkUrl);
+          const meta = assetMetaMap[asset];
+          const linkUrl = meta?.url;
 
           return (
             <div key={asset} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <div style={{ width: '12px', height: '12px', backgroundColor: getAssetColorForChart(asset), borderRadius: '50%' }}></div>
-              {isLink ? (
+              {linkUrl ? (
                 <a
-                  href={String(linkUrl)}
+                  href={linkUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="polymarket-link"

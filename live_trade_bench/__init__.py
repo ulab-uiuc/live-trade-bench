@@ -36,11 +36,9 @@ from .fetchers.option_fetcher import OptionFetcher
 from .fetchers.polymarket_fetcher import (
     PolymarketFetcher,
     fetch_current_market_price,
-    fetch_market_price_on_date,
-    fetch_token_price,
     fetch_trending_markets,
+    fetch_token_price,
 )
-from .fetchers.reddit_fetcher import RedditFetcher
 from .fetchers.stock_fetcher import StockFetcher, fetch_stock_price
 
 # Core Systems
@@ -82,7 +80,6 @@ __all__ = [
     "PolymarketFetcher",
     "fetch_trending_markets",
     "fetch_current_market_price",
-    "fetch_market_price_on_date",
     "fetch_token_price",
     "RedditFetcher",
     # backtest

@@ -7,87 +7,22 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from dataclasses import asdict
-from typing import Any, Dict
 
 from live_trade_bench.accounts.base_account import Position
 
 from .config import MODELS_DATA_FILE
 
 
-def _process_polymarket_positions(positions, market_info):
-    """Process Polymarket positions to add question, URL, and category."""
-    processed = {}
-    for symbol, position in positions.items():
-        if "_" in symbol:
-            market_id = symbol.split("_")[0]
-            if market_id in market_info:
-                market_data = market_info[market_id]
-                position_dict = (
-                    asdict(position)
-                    if hasattr(position, "__dataclass_fields__")
-                    else position
-                )
-                processed[symbol] = {
-                    **position_dict,
-                    "question": market_data.get("question", market_id),
-                    "url": market_data.get("url"),
-                    "category": market_data.get("category", "Unknown"),
-                }
-            else:
-                processed[symbol] = (
-                    asdict(position)
-                    if hasattr(position, "__dataclass_fields__")
-                    else position
-                )
-        else:
-            processed[symbol] = (
-                asdict(position)
-                if hasattr(position, "__dataclass_fields__")
-                else position
-            )
-    return processed
-
-
-def _create_model_data(agent, account, market_type, market_info=None):
+def _create_model_data(agent, account, market_type):
     """Create model data for a single agent."""
     account_data = account.get_account_data()
     model_id = f"{agent.model_name.lower().replace(' ', '-')}-{market_type}"
 
-    # Process portfolio positions for Polymarket
     portfolio = account_data.get("portfolio", {})
-    if market_type == "polymarket" and "positions" in portfolio and market_info:
-        portfolio["positions"] = _process_polymarket_positions(
-            portfolio["positions"], market_info
-        )
+    allocation_history = account_data.get("allocation_history", [])
+    asset_allocation = portfolio.get("current_allocations", {})
 
-        # Helper to build display key: "<question> YES/NO"
-        def _display_key(symbol: str) -> str:
-            if "_" in symbol:
-                market_id, outcome = symbol.split("_", 1)
-                question = market_info.get(market_id, {}).get("question", market_id)
-                return f"{question} {outcome.upper()}"
-            return symbol
-
-        # 1) Remap positions keys to use question-based keys
-        remapped_positions = {}
-        for symbol, pos in portfolio.get("positions", {}).items():
-            new_key = _display_key(symbol)
-            # ensure symbol inside the position matches display key
-            if isinstance(pos, dict):
-                pos = {**pos, "symbol": new_key}
-            remapped_positions[new_key] = pos
-        portfolio["positions"] = remapped_positions
-
-        # 2) Remap portfolio allocations (target/current)
-        for alloc_field in ("target_allocations", "current_allocations"):
-            if alloc_field in portfolio and isinstance(portfolio[alloc_field], dict):
-                original_alloc = portfolio[alloc_field]
-                portfolio[alloc_field] = {
-                    _display_key(k): v for k, v in original_alloc.items()
-                }
-
-        # 3) Prepare remapped asset_allocation from current_allocations
-        remapped_asset_allocation = portfolio.get("current_allocations", {})
+    # No processing needed - data should already be in correct format from the system
 
     model = {
         "id": model_id,
@@ -96,10 +31,8 @@ def _create_model_data(agent, account, market_type, market_info=None):
         "status": "active",
         "performance": account_data.get("performance", 0),
         "profit": account_data.get("profit", 0),
-        "trades": len(account_data.get("allocation_history", [])),
-        "asset_allocation": remapped_asset_allocation
-        if market_type == "polymarket"
-        else account_data.get("portfolio", {}).get("current_allocations", {}),
+        "trades": len(allocation_history),
+        "asset_allocation": asset_allocation,
         "portfolio": portfolio,
         "chartData": {
             "profit_history": [
@@ -108,75 +41,11 @@ def _create_model_data(agent, account, market_type, market_info=None):
                     "profit": snapshot["profit"],
                     "totalValue": snapshot["total_value"],
                 }
-                for snapshot in account_data.get("allocation_history", [])
+                for snapshot in allocation_history
             ]
         },
-        "allocationHistory": account_data.get("allocation_history", []),
+        "allocationHistory": allocation_history,
     }
-    if market_type == "polymarket":
-        # Build union of all display keys across history to backfill zeros
-        all_display_meta: Dict[str, Dict[str, Any]] = {}
-        for snapshot in account_data.get("allocation_history", []):
-            alloc = snapshot.get("allocations", {})
-            for symbol in alloc.keys():
-                if symbol == "CASH":
-                    continue
-                display_key = _display_key(symbol)
-                if display_key not in all_display_meta:
-                    url = None
-                    category = None
-                    if "_" in symbol:
-                        market_id = symbol.split("_", 1)[0]
-                        mi = (market_info or {}).get(market_id, {})
-                        url = mi.get("url")
-                        category = mi.get("category", "Unknown")
-                    all_display_meta[display_key] = {"url": url, "category": category}
-
-        # Remap allocationHistory: inline url/category into allocations array for direct frontend use
-        remapped_history = []
-        for snapshot in model["allocationHistory"]:
-            if (
-                isinstance(snapshot, dict)
-                and "allocations" in snapshot
-                and isinstance(snapshot["allocations"], dict)
-            ):
-                alloc = snapshot["allocations"]
-                alloc_list = []
-                present_names = set()
-                for symbol, weight in alloc.items():
-                    display_key = _display_key(symbol)
-                    url = None
-                    category = None
-                    if "_" in symbol:
-                        market_id = symbol.split("_", 1)[0]
-                        mi = (market_info or {}).get(market_id, {})
-                        url = mi.get("url")
-                        category = mi.get("category", "Unknown")
-                    present_names.add(display_key)
-                    alloc_list.append(
-                        {
-                            "name": display_key,
-                            "weight": weight,
-                            "url": url,
-                            "category": category,
-                        }
-                    )
-                # Backfill zero weights for assets seen in other snapshots
-                for name, meta in all_display_meta.items():
-                    if name not in present_names:
-                        alloc_list.append(
-                            {
-                                "name": name,
-                                "weight": 0.0,
-                                "url": meta.get("url"),
-                                "category": meta.get("category"),
-                            }
-                        )
-                new_snapshot = {**snapshot, "allocations": alloc_list}
-                remapped_history.append(new_snapshot)
-            else:
-                remapped_history.append(snapshot)
-        model["allocationHistory"] = remapped_history
     return model
 
 
@@ -202,21 +71,12 @@ def generate_models_data(stock_system, polymarket_system) -> None:
             print(f"--- Processing {market_type.upper()} market ---")
             system.run_cycle()
 
-            # Get market info for Polymarket
-            market_info = (
-                system.market_info
-                if market_type == "polymarket" and hasattr(system, "market_info")
-                else None
-            )
-
             for agent_name, account in system.accounts.items():
                 agent = system.agents.get(agent_name)
                 if not agent:
                     continue
 
-                model_data = _create_model_data(
-                    agent, account, market_type, market_info
-                )
+                model_data = _create_model_data(agent, account, market_type)
                 all_market_data.append(model_data)
 
         # Serialize and save data
