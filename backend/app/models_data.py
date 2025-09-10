@@ -1,11 +1,5 @@
 import json
 import os
-import sys
-
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
 from dataclasses import asdict
 
 from live_trade_bench.accounts.base_account import Position
@@ -59,6 +53,40 @@ def _serialize_positions(model_data):
     return model_data
 
 
+def merge_model_data(
+    existing_model: Dict[str, Any], new_model: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Merge existing model data with new data, appending historical records."""
+    merged = existing_model.copy()
+
+    merged["trades"] = existing_model.get("trades", 0) + new_model.get("trades", 0)
+
+    merged["performance"] = existing_model.get("performance", 0) + new_model.get(
+        "performance", 0
+    )
+    merged["profit"] = existing_model.get("profit", 0) + new_model.get("profit", 0)
+
+    merged["portfolio"] = new_model.get("portfolio", {})
+    merged["asset_allocation"] = new_model.get("asset_allocation", {})
+
+    existing_allocation_history = existing_model.get("allocationHistory", [])
+    new_allocation_history = new_model.get("allocationHistory", [])
+    merged["allocationHistory"] = existing_allocation_history + new_allocation_history
+
+    existing_chart_data = existing_model.get("chartData", {})
+    new_chart_data = new_model.get("chartData", {})
+
+    existing_profit_history = existing_chart_data.get("profit_history", [])
+    new_profit_history = new_chart_data.get("profit_history", [])
+
+    merged["chartData"] = (
+        new_chart_data.copy() if new_chart_data else existing_chart_data.copy()
+    )
+    merged["chartData"]["profit_history"] = existing_profit_history + new_profit_history
+
+    return merged
+
+
 def generate_models_data(stock_system, polymarket_system) -> None:
     """Generate and save model data for all systems."""
     try:
@@ -79,13 +107,46 @@ def generate_models_data(stock_system, polymarket_system) -> None:
                 model_data = _create_model_data(agent, account, market_type)
                 all_market_data.append(model_data)
 
-        # Serialize and save data
-        serializable_data = [_serialize_positions(model) for model in all_market_data]
+        # Try to load existing data for merging
+        existing_data = []
+        if os.path.exists(MODELS_DATA_FILE):
+            try:
+                with open(MODELS_DATA_FILE, "r") as f:
+                    existing_data = json.load(f)
+                print(f"📖 Loaded existing data with {len(existing_data)} models")
+            except Exception as e:
+                print(f"⚠️ Could not load existing data: {e}, starting fresh")
+                existing_data = []
 
+        # Merge new data with existing data
+        merged_data = []
+        for new_model in all_market_data:
+            new_model_serialized = _serialize_positions(new_model)
+
+            # Find matching existing model by ID
+            existing_model = None
+            for existing in existing_data:
+                if existing.get("id") == new_model_serialized.get("id"):
+                    existing_model = existing
+                    break
+
+            if existing_model:
+                merged_model = merge_model_data(existing_model, new_model_serialized)
+                merged_data.append(merged_model)
+                print(
+                    f"🔄 Merged data for {new_model_serialized.get('name', 'Unknown')}"
+                )
+            else:
+                merged_data.append(new_model_serialized)
+                print(
+                    f"➕ Added new model {new_model_serialized.get('name', 'Unknown')}"
+                )
+
+        # Save merged data
         with open(MODELS_DATA_FILE, "w") as f:
-            json.dump(serializable_data, f, indent=4)
+            json.dump(merged_data, f, indent=4)
         print(
-            f"✅ Successfully wrote data for {len(all_market_data)} models to {MODELS_DATA_FILE}"
+            f"✅ Successfully wrote merged data for {len(merged_data)} models to {MODELS_DATA_FILE}"
         )
 
     except Exception as e:

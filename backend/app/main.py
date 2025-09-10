@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import threading
 from datetime import datetime
 
@@ -22,6 +23,8 @@ from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSy
 
 from .config import (
     ALLOWED_ORIGINS,
+    MODELS_DATA_FILE,
+    MODELS_DATA_INIT_FILE,
     POLYMARKET_MOCK_MODE,
     STOCK_MOCK_MODE,
     UPDATE_FREQUENCY,
@@ -128,6 +131,18 @@ async def api_root():
     }
 
 
+def load_backtest_as_initial_data() -> bool:
+    """Load backtest data as initial trading data if no live data exists."""
+    if not os.path.exists(MODELS_DATA_FILE) and os.path.exists(MODELS_DATA_INIT_FILE):
+        try:
+            shutil.copy(MODELS_DATA_INIT_FILE, MODELS_DATA_FILE)
+            logger.info("📊 Loaded backtest data as initial trading data")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Failed to load backtest data: {e}")
+    return False
+
+
 def schedule_background_tasks(scheduler: BackgroundScheduler):
     scheduler.add_job(
         lambda: generate_models_data(stock_system, polymarket_system),
@@ -174,6 +189,12 @@ def startup_event():
     scheduler.start()
 
     logger.info("✅ Background scheduler started.")
+
+    # Try to load backtest data as initial data
+    backtest_loaded = load_backtest_as_initial_data()
+
+    if backtest_loaded:
+        logger.info("🔄 Will update with live data on first trading cycle")
 
     # Run all initial data generation in background threads - don't block startup
     threading.Thread(
