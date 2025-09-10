@@ -17,14 +17,19 @@ except ImportError:
 TICKER_TO_COMPANY = {
     "AAPL": "Apple",
     "MSFT": "Microsoft",
-    "GOOGL": "Google",
-    "AMZN": "Amazon",
-    "TSLA": "Tesla",
     "NVDA": "Nvidia",
-    "META": "Meta",
-    "AMD": "AMD",
-    "INTC": "Intel",
-    "NFLX": "Netflix",
+    "JPM": "JPMorgan Chase",
+    "V": "Visa",
+    "JNJ": "Johnson & Johnson",
+    "UNH": "UnitedHealth Group",
+    "PG": "Procter & Gamble",
+    "KO": "Coca-Cola",
+    "XOM": "ExxonMobil",
+    "CAT": "Caterpillar",
+    "WMT": "Walmart",
+    "META": "Meta Platforms",
+    "TSLA": "Tesla",
+    "AMZN": "Amazon",
 }
 
 CATEGORY_SUBREDDITS = {
@@ -64,12 +69,34 @@ class RedditFetcher(BaseFetcher):
         max_limit: int = 50,
         time_filter: str = "week",
     ) -> List[Dict[str, Any]]:
+        processed_query = query  # Start with the original query
+
+        if query and category == "market":
+            # For polymarket questions, if a ticker is embedded, augment the query
+            words = query.split()
+            tickers_found_in_polymarket_query = []
+            for word in words:
+                # Check for direct ticker matches or company names that might be tickers
+                if len(word) <= 5 and word.upper() in TICKER_TO_COMPANY:
+                    tickers_found_in_polymarket_query.append(word.upper())
+            
+            if tickers_found_in_polymarket_query:
+                # Get unique company names for expansion
+                company_names = list(set([TICKER_TO_COMPANY[t] for t in tickers_found_in_polymarket_query]))
+                # Combine original polymarket query with company names for broader search
+                if company_names:
+                    processed_query = f"{query} OR {' OR '.join(company_names)}"
+                print(f"      - Fetcher: Polymarket query augmented for tickers: '{processed_query}'")
+
+        # For "company_news" category, the query is expected to be already structured by fetch_posts_by_ticker
+        # So, no further processing of 'query' is needed here for 'company_news'.
+
         if self.reddit:
             try:
-                return self._fetch_with_praw(category, query, max_limit, time_filter)
+                return self._fetch_with_praw(category, processed_query, max_limit, time_filter)
             except Exception:
                 pass
-        return self._fetch_with_json(category, query, max_limit, time_filter)
+        return self._fetch_with_json(category, processed_query, max_limit, time_filter)
 
     def _fetch_with_praw(
         self, category: str, query: Optional[str], max_limit: int, time_filter: str
