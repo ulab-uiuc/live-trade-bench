@@ -183,33 +183,9 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                 )}
 
                 {/* Tag for Stock or Polymarket Question */}
-<<<<<<< HEAD
                 {((activeCategory === 'stock' && post.tag) || (activeCategory === 'polymarket' && (post.question || post.tag))) && (
                   <span style={{
                     background: getTagColor((activeCategory === 'polymarket' ? (post.question || post.tag) : post.tag) || null),
-||||||| fb228d5
-                {post.tag && (
-                  <span style={{
-                    background: getTagColor(post.tag),
-                    color: '#ffffff',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold'
-                  }}>
-                    {post.tag}
-                  </span>
-                )}
-                
-                {/* Polymarket Question Tag */}
-                {post.question && (
-                  <span style={{
-                    background: getTagColor(post.question),
-=======
-                {((activeCategory === 'stock' && post.tag) || (activeCategory === 'polymarket' && (post.question || post.tag))) && (
-                  <span style={{
-                    background: getTagColor((activeCategory === 'polymarket' ? (post.question || post.tag) : post.tag) || null),
->>>>>>> be89a7d451c18fe98e2160e32470ff2eed89f89d
                     color: '#ffffff',
                     padding: '0.25rem 0.5rem',
                     borderRadius: '0.25rem',
@@ -223,40 +199,10 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                     {activeCategory === 'polymarket' ? (post.question || post.tag) : post.tag}
                   </span>
                 )}
-<<<<<<< HEAD
 
                 {/* Removed separate Polymarket Question Tag block */}
 
                 {/* Removed sentiment tag block */}
-||||||| fb228d5
-                
-                <span style={{
-                  background: getSentimentColor(post.sentiment),
-                  color: '#ffffff',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '0.25rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold',
-                  textTransform: 'uppercase'
-                }}>
-                  {post.sentiment}
-                </span>
-=======
-
-                {/* Removed separate Polymarket Question Tag block */}
-
-                <span style={{
-                  background: getSentimentColor(post.sentiment),
-                  color: '#ffffff',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '0.25rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold',
-                  textTransform: 'uppercase'
-                }}>
-                  {post.sentiment}
-                </span>
->>>>>>> be89a7d451c18fe98e2160e32470ff2eed89f89d
               </div>
 
               <div style={{
