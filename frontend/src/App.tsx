@@ -30,7 +30,6 @@ export interface SocialPost {
   created_at: string;
   upvotes: number;
   num_comments: number;
-  sentiment: string;
   avatar: string;
   url: string; // Re-added url
   stock_symbols?: string[]; // Re-added stock_symbols
@@ -123,7 +122,6 @@ function App() {
         created_at: post.created_at || '',
         upvotes: post.upvotes || 0,
         num_comments: post.num_comments || 0,
-        sentiment: post.sentiment || 'neutral',
         avatar: '📈',
         tag: post.tag,
         stock_symbols: post.stock_symbols || [], // Ensure stock_symbols is an array
@@ -140,7 +138,6 @@ function App() {
         created_at: post.created_at || '',
         upvotes: post.upvotes || 0,
         num_comments: post.num_comments || 0,
-        sentiment: post.sentiment || 'neutral',
         avatar: '🎯',
         question: post.question,
         url: post.url || '',
