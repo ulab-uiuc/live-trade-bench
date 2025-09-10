@@ -6,7 +6,6 @@ import re
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
-# 尝试导入 PRAW
 try:
     import praw
     import os
@@ -15,7 +14,6 @@ except ImportError:
     praw = None
     HAS_PRAW = False
 
-# 股票别名映射
 TICKER_TO_COMPANY = {
     "AAPL": "Apple",
     "MSFT": "Microsoft", 
@@ -29,7 +27,6 @@ TICKER_TO_COMPANY = {
     "NFLX": "Netflix",
 }
 
-# 分类对应的subreddit
 CATEGORY_SUBREDDITS = {
     "company_news": ["stocks", "investing", "StockMarket", "wallstreetbets"],
     "market": ["StockMarket", "investing", "stocks"],
@@ -43,7 +40,6 @@ class RedditFetcher(BaseFetcher):
         self.reddit = self._init_praw() if HAS_PRAW else None
 
     def _init_praw(self):
-        """初始化 PRAW，需要环境变量"""
         if not HAS_PRAW:
             return None
         
@@ -70,21 +66,15 @@ class RedditFetcher(BaseFetcher):
         max_limit: int = 50,
         time_filter: str = "week"
     ) -> List[Dict[str, Any]]:
-        """
-        核心fetch方法 - 优先用PRAW，失败则用JSON API
-        """
-        # 优先使用 PRAW
         if self.reddit:
             try:
                 return self._fetch_with_praw(category, query, max_limit, time_filter)
             except Exception:
                 pass
         
-        # 回退到 JSON API
         return self._fetch_with_json(category, query, max_limit, time_filter)
 
     def _fetch_with_praw(self, category: str, query: Optional[str], max_limit: int, time_filter: str) -> List[Dict[str, Any]]:
-        """使用 PRAW 获取数据"""
         subreddits = CATEGORY_SUBREDDITS.get(category, ["investing"])
         posts = []
         seen_ids = set()
@@ -94,10 +84,8 @@ class RedditFetcher(BaseFetcher):
                 subreddit = self.reddit.subreddit(subreddit_name)
                 
                 if query:
-                    # 搜索特定查询
                     submissions = subreddit.search(query, sort="top", time_filter=time_filter, limit=10)
                 else:
-                    # 获取热门帖子
                     submissions = subreddit.top(time_filter=time_filter, limit=10)
                 
                 for post in submissions:
@@ -128,7 +116,6 @@ class RedditFetcher(BaseFetcher):
         return posts[:max_limit]
 
     def _fetch_with_json(self, category: str, query: Optional[str], max_limit: int, time_filter: str) -> List[Dict[str, Any]]:
-        """使用 JSON API 获取数据（备用方案）"""
         subreddits = CATEGORY_SUBREDDITS.get(category, ["investing"])
         posts = []
         seen_ids = set()
@@ -136,11 +123,9 @@ class RedditFetcher(BaseFetcher):
         for subreddit_name in subreddits:
             try:
                 if query:
-                    # 搜索API
                     encoded_query = urllib.parse.quote(query)
                     url = f"https://www.reddit.com/r/{subreddit_name}/search.json?q={encoded_query}&restrict_sr=1&sort=top&t={time_filter}&limit=10&raw_json=1"
                 else:
-                    # 热门API
                     url = f"https://www.reddit.com/r/{subreddit_name}/top.json?t={time_filter}&limit=10&raw_json=1"
                 
                 response = self.make_request(url, timeout=5)
@@ -182,12 +167,10 @@ class RedditFetcher(BaseFetcher):
                 
         return posts[:max_limit]
 
-    # 以下都是基于核心fetch的wrapper方法
     def fetch_top_from_category(self, category: str, date: str, max_limit: int, query: Optional[str] = None) -> List[Dict[str, Any]]:
         return self.fetch(category=category, query=query, max_limit=max_limit)
 
     def fetch_posts_by_ticker(self, ticker: str, date: str, max_limit: int = 50) -> List[Dict[str, Any]]:
-        # 构建查询：$TICKER + 公司名
         queries = [f"${ticker}"]
         if ticker in TICKER_TO_COMPANY:
             queries.append(TICKER_TO_COMPANY[ticker])
@@ -241,7 +224,6 @@ class RedditFetcher(BaseFetcher):
         }
 
 
-# 保持原有的顶层函数接口
 def fetch_top_from_category(category: str, date: str, max_limit: int, query: Optional[str] = None) -> List[Dict[str, Any]]:
     fetcher = RedditFetcher()
     return fetcher.fetch_top_from_category(category, date, max_limit, query)
