@@ -56,19 +56,12 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         profit = total_value - self.initial_cash
         performance = (profit / self.initial_cash) * 100 if self.initial_cash > 0 else 0
 
-        # Convert allocations dict to a list of objects
-        allocations_dict = self.get_allocations()
-        allocations_list = [
-            {"name": symbol, "ratio": ratio}
-            for symbol, ratio in allocations_dict.items()
-        ]
-
         snapshot = {
             "timestamp": datetime.now().isoformat(),
             "total_value": total_value,
             "profit": profit,
             "performance": performance,
-            "allocations": allocations_list,
+            "allocations": self.get_allocations(),
         }
         self.allocation_history.append(snapshot)
 

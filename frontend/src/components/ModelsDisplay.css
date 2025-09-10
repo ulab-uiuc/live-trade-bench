@@ -505,18 +505,19 @@
 
 .chart-info {
   margin-top: 1rem;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  justify-content: center;
   gap: 1rem;
 }
 
 .chart-stat {
   background: #374151;
-  padding: 0.75rem;
+  padding: 0.75rem 1.25rem;
   border-radius: 0.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-width: 180px;
 }
 
 .chart-stat span:first-child {
@@ -732,6 +733,19 @@
 
 .polymarket-link:hover {
   color: #E0FFFF; /* Lighter cyan on hover */
+  text-decoration: underline;
+}
+
+.stock-link {
+  color: #F0E68C; /* Light yellow (khaki) */
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
+.stock-link:hover {
+  color: #FFFFE0; /* Lighter yellow on hover */
   text-decoration: underline;
 }
 

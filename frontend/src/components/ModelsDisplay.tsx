@@ -26,6 +26,16 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   onRefresh,
   // assetMetadata // Removed from destructuring
 }) => {
+  // Format Polymarket asset names from "Question_YES" to "Question buy YES"
+  const formatAssetName = useCallback((name: string, category: string) => {
+    if (category === 'polymarket' && name.includes('_')) {
+      const lastUnderscoreIndex = name.lastIndexOf('_');
+      const question = name.substring(0, lastUnderscoreIndex);
+      const outcome = name.substring(lastUnderscoreIndex + 1);
+      return `${question} Buy ${outcome}`;
+    }
+    return name;
+  }, []);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock'>('all');
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -105,29 +115,31 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
     const chartData = useMemo(() => Array.isArray(data) ? data.slice(-30) : [], [data]);
 
-    const { maxProfit, minProfit, range, pathData } = useMemo(() => {
+    const { maxPerformance, minPerformance, range, pathData } = useMemo(() => {
       // Ensure data is an array before mapping
       const validData = chartData;
-      const profits = validData.map(d => d.profit);
+      const performances = validData.map(d => (d.profit / d.totalValue) * 100 || 0);
 
-      const maxP = profits.length > 0 ? Math.max(...profits) : 0;
-      const minP = profits.length > 0 ? Math.min(...profits) : 0;
-      const r = maxP - minP || 100;
+      const maxP = performances.length > 0 ? Math.max(...performances) : 0;
+      const minP = performances.length > 0 ? Math.min(...performances) : 0;
+      const r = maxP - minP || 10;
 
       let path;
       if (validData.length === 1) {
         // If only one point, draw a horizontal line across the chart
-        const y = padding + ((maxP - validData[0].profit) / r) * (height - 2 * padding);
+        const performance = (validData[0].profit / validData[0].totalValue) * 100 || 0;
+        const y = padding + ((maxP - performance) / r) * (height - 2 * padding);
         path = `M ${padding},${y} L ${width - padding},${y}`;
       } else {
         path = validData.map((point, index) => {
+          const performance = (point.profit / point.totalValue) * 100 || 0;
           const x = padding + (index / (validData.length - 1)) * (width - 2 * padding);
-          const y = padding + ((maxP - point.profit) / r) * (height - 2 * padding);
+          const y = padding + ((maxP - performance) / r) * (height - 2 * padding);
           return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
         }).join(' ');
       }
 
-      return { maxProfit: maxP, minProfit: minP, range: r, pathData: path };
+      return { maxPerformance: maxP, minPerformance: minP, range: r, pathData: path };
     }, [chartData]);
 
     if (chartData.length === 0) {
@@ -154,12 +166,12 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           <rect width="100%" height="100%" fill="url(#grid)" />
 
           {/*  */}
-          {minProfit < 0 && maxProfit > 0 && (
+          {minPerformance < 0 && maxPerformance > 0 && (
             <line
               x1={padding}
-              y1={padding + (maxProfit / range) * (height - 2 * padding)}
+              y1={padding + (maxPerformance / range) * (height - 2 * padding)}
               x2={width - padding}
-              y2={padding + (maxProfit / range) * (height - 2 * padding)}
+              y2={padding + (maxPerformance / range) * (height - 2 * padding)}
               stroke="#6b7280"
               strokeWidth="1"
               strokeDasharray="5,5"
@@ -176,19 +188,20 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
           {/*  */}
           {chartData.map((point, index) => {
+            const performance = (point.profit / point.totalValue) * 100 || 0;
             const x = padding + (index / (chartData.length - 1)) * (width - 2 * padding);
-            const y = padding + ((maxProfit - point.profit) / range) * (height - 2 * padding);
+            const y = padding + ((maxPerformance - performance) / range) * (height - 2 * padding);
             return (
               <circle
                 key={index}
                 cx={x}
                 cy={y}
                 r="4"
-                fill={profit >= 0 ? '#10b981' : '#ef4444'}
+                fill={performance >= 0 ? '#10b981' : '#ef4444'}
                 style={{ cursor: 'pointer', transition: 'r 0.2s' }}
                 onMouseMove={(e) => {
                   const date = new Date(point.date).toLocaleDateString();
-                  onMouseMove(e, `Date: ${date} | Profit: $${point.profit.toFixed(2)}`);
+                  onMouseMove(e, `Date: ${date} | Performance: ${performance.toFixed(2)}%`);
                 }}
                 onMouseEnter={(e) => e.currentTarget.setAttribute('r', '6')}
                 onMouseLeave={(e) => {
@@ -200,20 +213,14 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           })}
 
           {/* Y */}
-          <text x="10" y={padding} fill="#9ca3af" fontSize="12">${maxProfit.toFixed(0)}</text>
-          <text x="10" y={height - padding + 5} fill="#9ca3af" fontSize="12">${minProfit.toFixed(0)}</text>
+          <text x="10" y={padding} fill="#9ca3af" fontSize="12">{maxPerformance.toFixed(1)}%</text>
+          <text x="10" y={height - padding + 5} fill="#9ca3af" fontSize="12">{minPerformance.toFixed(1)}%</text>
         </svg>
 
         {/*  */}
         <div className="chart-info">
           <div className="chart-stat">
             <span>Current Profit: </span>
-            <span className={profit >= 0 ? 'positive' : 'negative'}>
-              ${profit.toFixed(2)}
-            </span>
-          </div>
-          <div className="chart-stat">
-            <span>Performance: </span>
             <span className={performance >= 0 ? 'positive' : 'negative'}>
               {performance.toFixed(1)}%
             </span>
@@ -283,8 +290,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 backgroundColor: asset.color,
                 minWidth: '10px' // Ensure minimum clickable area
               }}
-              title={`${asset.name}: ${(asset.allocation * 100).toFixed(1)}%`}
-              onMouseMove={(e) => onMouseMove(e, `${asset.name}: ${(asset.allocation * 100).toFixed(1)}%`)}
+              title={`${formatAssetName(asset.name, category)}: ${(asset.allocation * 100).toFixed(1)}%`}
+              onMouseMove={(e) => onMouseMove(e, `${formatAssetName(asset.name, category)}: ${(asset.allocation * 100).toFixed(1)}%`)}
               onMouseLeave={onMouseLeave}
             />
           ))}
@@ -310,13 +317,13 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                       href={linkUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="polymarket-link"
+                      className={category === 'stock' ? 'stock-link' : 'polymarket-link'}
                       title={asset.name}
                     >
-                      {asset.name}
+                      {formatAssetName(asset.name, category)}
                     </a>
                   ) : (
-                    <span className="legend-name">{asset.name}</span>
+                    <span className="legend-name">{formatAssetName(asset.name, category)}</span>
                   )}
                   <span className="legend-percentage">
                     {(asset.allocation * 100).toFixed(1)}%
@@ -521,7 +528,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                         width: `${asset.allocation * 100}%`,
                         backgroundColor: asset.color
                       }}
-                      onMouseMove={(e) => handleMouseMove(e, `${asset.name}: ${(asset.allocation * 100).toFixed(1)}%`)}
+                      onMouseMove={(e) => handleMouseMove(e, `${formatAssetName(asset.name, model.category)}: ${(asset.allocation * 100).toFixed(1)}%`)}
                       onMouseLeave={handleMouseLeave}
                     />
                   ))}
@@ -594,6 +601,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 portfolio={selectedModel.portfolio}
                 // assetMeta={(selectedModel as any).asset_meta || {}} // Removed this prop
                 category={selectedModel.category}
+                formatAssetName={formatAssetName}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
               />
@@ -627,9 +635,10 @@ const AssetRatioChart: React.FC<{
   portfolio: any;
   // assetMeta: Record<string, { question?: string; url?: string; category?: string }>; // Removed this prop
   category: string;
+  formatAssetName: (name: string, category: string) => string;
   onMouseMove: (e: React.MouseEvent, content: string) => void;
   onMouseLeave: () => void;
-}> = ({ allocationHistory, portfolio, category, onMouseMove, onMouseLeave }) => {
+}> = ({ allocationHistory, portfolio, category, formatAssetName, onMouseMove, onMouseLeave }) => {
 
   // Create unique ID for this chart instance to avoid SVG gradient conflicts
   const chartId = useMemo(() => Math.random().toString(36).substr(2, 9), []);
@@ -678,9 +687,20 @@ const AssetRatioChart: React.FC<{
     });
   }, [chartData, allAssets]);
 
-  // Build a comprehensive meta map from all available history
+  // Build a comprehensive meta map from portfolio positions and allocation history
   const assetMetaMap = useMemo(() => {
     const map: Record<string, { url?: string; question?: string }> = {};
+    
+    // First, get URLs from current portfolio positions
+    if (portfolio?.positions) {
+      Object.entries(portfolio.positions).forEach(([assetName, position]: [string, any]) => {
+        if (position?.url) {
+          map[assetName] = { url: position.url, question: position.question };
+        }
+      });
+    }
+    
+    // Then, get URLs from allocation history (if format supports it)
     if (Array.isArray(allocationHistory)) {
       allocationHistory.forEach(snapshot => {
         if (snapshot && Array.isArray(snapshot.allocations)) {
@@ -693,8 +713,9 @@ const AssetRatioChart: React.FC<{
         }
       });
     }
+    
     return map;
-  }, [allocationHistory]);
+  }, [allocationHistory, portfolio]);
 
   // Get colors based on the category passed as prop
   const getAssetColorForChart = useCallback(
@@ -828,14 +849,14 @@ const AssetRatioChart: React.FC<{
                   href={linkUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="polymarket-link"
+                  className={category === 'stock' ? 'stock-link' : 'polymarket-link'}
                   title={asset}
                 >
-                  {asset}
+                  {formatAssetName(asset, category)}
                 </a>
               ) : (
                 <span style={{ color: '#d1d5db', fontSize: '0.875rem', fontWeight: '500' }}>
-                  {asset}
+                  {formatAssetName(asset, category)}
                 </span>
               )}
             </div>
