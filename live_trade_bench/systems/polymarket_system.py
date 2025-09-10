@@ -58,20 +58,6 @@ class PolymarketPortfolioSystem:
         self.agents[name] = agent
         self.accounts[name] = account
 
-    def _format_social_content(self, content: str) -> str:
-        """Helper to format social media content for display or analysis."""
-        import re
-
-        content = " ".join(content.split())
-        content = re.sub(
-            r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
-            "[link]",
-            content,
-        )
-        content = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\\1", content)
-        content = re.sub(r"\\*\\*([^*]+)\\*\\*", r"\\1", content)
-        return content[:300] + "..." if len(content) > 300 else content
-
     def run_cycle(self, for_date: str | None = None) -> None:
         print(
             f"\n--- 🔄 Cycle {self.cycle_count} | Processing {len(self.agents)} agents ---"
@@ -149,24 +135,36 @@ class PolymarketPortfolioSystem:
         social_data_map = {}
         fetcher = RedditFetcher()
 
-        for market_id in self.universe[:3]:  # Limit for performance
+        for market_id in self.universe:  # Fetch social data for all available markets
             try:
+                print(f"    - Fetching social data for polymarket: {market_id}...")
                 question = self.market_info.get(market_id, {}).get(
                     "question", market_id
                 )
                 query = " ".join(question.split()[:5])  # Use first few words as query
-                posts = fetcher.fetch(category="market", query=query, max_limit=3)
+                posts = fetcher.fetch(
+                    category="market", query=query, max_limit=10
+                )  # Increased max_limit
+                print(f"    - Fetched {len(posts)} social posts for {market_id}.")
 
                 formatted_posts = []
                 for post in posts:
-                    content = self._format_social_content(post.get("content", ""))
+                    content = post.get("content", "")  # No longer format content here
                     formatted_posts.append(
                         {
                             "content": content,
                             "author": post.get("author", "Unknown"),
                             "platform": "Reddit",
                             "url": post.get("url", ""),
-                            "created_at": post.get("created_at", ""),
+                            "created_at": post.get(
+                                "created_utc", ""
+                            ),  # Use created_utc
+                            "subreddit": post.get("subreddit", ""),  # Add subreddit
+                            "upvotes": post.get("upvotes", 0),  # Add upvotes
+                            "num_comments": post.get(
+                                "num_comments", 0
+                            ),  # Add num_comments
+                            "tag": query,  # Add query as tag
                         }
                     )
                 social_data_map[market_id] = formatted_posts

@@ -284,6 +284,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       }}>
                         {stockModels
                           .sort((a: any, b: any) => (b?.performance || 0) - (a?.performance || 0))
+                          .slice(0, 6) // Limit to top 6 models
                           .map((model: any, index: number) => {
                             const performance = model?.performance || 0;
                             const isPositive = performance >= 0;
@@ -292,7 +293,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                             return (
                               <div key={model?.id || index} style={{
                                 flex: 1,
-                                maxWidth: '80px',
                                 position: 'relative',
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -307,7 +307,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                     ? { bottom: `calc(50% + ${barHeight}px + 5px)` }
                                     : { top: `calc(50% + ${barHeight}px + 5px)` }),
                                   color: isPositive ? '#10b981' : '#ef4444',
-                                  fontSize: '0.75rem',
+                                  fontSize: '1rem', // Increased font size
                                   fontWeight: '700',
                                   whiteSpace: 'nowrap',
                                 }}>
@@ -337,10 +337,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 }}>
                                   <span style={{
                                     color: '#ffffff',
-                                    fontSize: '0.6rem',
+                                    fontSize: '0.875rem', // Increased font size
                                     fontWeight: '600',
                                     textAlign: 'center',
-                                    wordBreak: 'break-word',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
                                   }}>
                                     {model?.name || 'Unknown'}
                                   </span>
@@ -442,6 +444,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       }}>
                         {polymarketModels
                           .sort((a: any, b: any) => (b?.performance || 0) - (a?.performance || 0))
+                          .slice(0, 6) // Limit to top 6 models
                           .map((model: any, index: number) => {
                             const performance = model?.performance || 0;
                             const isPositive = performance >= 0;
@@ -450,7 +453,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                             return (
                               <div key={model?.id || index} style={{
                                 flex: 1,
-                                maxWidth: '80px',
                                 position: 'relative',
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -465,7 +467,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                     ? { bottom: `calc(50% + ${barHeight}px + 5px)` }
                                     : { top: `calc(50% + ${barHeight}px + 5px)` }),
                                   color: isPositive ? '#a78bfa' : '#ef4444',
-                                  fontSize: '0.75rem',
+                                  fontSize: '1rem', // Increased font size
                                   fontWeight: '700',
                                   whiteSpace: 'nowrap',
                                 }}>
@@ -495,10 +497,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 }}>
                                   <span style={{
                                     color: '#ffffff',
-                                    fontSize: '0.6rem',
+                                    fontSize: '0.875rem', // Increased font size
                                     fontWeight: '600',
                                     textAlign: 'center',
-                                    wordBreak: 'break-word',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
                                   }}>
                                     {model?.name || 'Unknown'}
                                   </span>
@@ -514,6 +518,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             })()
           )}
         </div>
+
       </div>
 
     </div>

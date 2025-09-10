@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import './SocialMedia.css';
 import { getAssetColor } from '../utils/colors';
-
+import type { SocialPost } from '../App'; // Import SocialPost type
 
 interface SocialMediaProps {
   socialData: {
-    stock: any[];
-    polymarket: any[];
+    stock: SocialPost[]; // Use SocialPost type
+    polymarket: SocialPost[]; // Use SocialPost type
   };
   lastRefresh: Date;
   isLoading: boolean;
@@ -17,11 +17,17 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
 
   const posts = useMemo(() => {
     const rawPosts = activeCategory === 'stock' ? socialData.stock : socialData.polymarket;
-    return rawPosts.map((post: any, index: number) => ({
-      ...post,
-      id: post.id || `${activeCategory}-${index}`,
-      sentiment: post.sentiment || 'neutral'
-    }));
+    console.log("DEBUG: activeCategory in posts useMemo", activeCategory); // Debug activeCategory
+    return rawPosts.map((post: SocialPost, index: number) => {
+      if (activeCategory === 'polymarket') {
+        console.log("DEBUG: Polymarket post data", { question: post.question, tag: post.tag, id: post.id });
+      }
+      return {
+        ...post,
+        id: post.id || `${activeCategory}-${index}`,
+        sentiment: post.sentiment || 'neutral',
+      };
+    });
   }, [activeCategory, socialData]);
 
   // Collect and sort all unique tags for consistent color assignment
@@ -59,7 +65,14 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
 
   const formatTimeAgo = (timeString: string) => {
     try {
-      const time = new Date(timeString);
+      let time: Date;
+      // Check if timeString is a number (Unix timestamp)
+      if (!isNaN(Number(timeString)) && !isNaN(parseFloat(timeString))) {
+        time = new Date(Number(timeString) * 1000); // Convert seconds to milliseconds
+      } else {
+        time = new Date(timeString);
+      }
+
       if (isNaN(time.getTime())) {
         return 'Unknown time';
       }
@@ -86,7 +99,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
   return (
     <div className="social-media-container">
       <div className="social-media-header">
-        <h1>Social Media</h1>
+        <h1>📱 Social Media</h1>
         <div className="social-media-controls">
           <div className="social-media-category-tabs">
             {(['stock', 'polymarket'] as const).map((market) => (
@@ -163,7 +176,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                 flexWrap: 'wrap'
               }}>
                 {/* Stock Symbol Tags */}
-                {post.stock_symbols && post.stock_symbols.length > 0 && (
+                {activeCategory === 'stock' && post.stock_symbols && post.stock_symbols.length > 0 && (
                   post.stock_symbols.map((symbol: string) => (
                     <span key={symbol} style={{
                       background: getTagColor(symbol),
@@ -177,39 +190,27 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                     </span>
                   ))
                 )}
-                
+
                 {/* Tag for Stock or Polymarket Question */}
-                {post.tag && (
+                {((activeCategory === 'stock' && post.tag) || (activeCategory === 'polymarket' && (post.question || post.tag))) && (
                   <span style={{
-                    background: getTagColor(post.tag),
-                    color: '#ffffff',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold'
-                  }}>
-                    {post.tag}
-                  </span>
-                )}
-                
-                {/* Polymarket Question Tag */}
-                {post.question && (
-                  <span style={{
-                    background: getTagColor(post.question),
+                    background: getTagColor((activeCategory === 'polymarket' ? (post.question || post.tag) : post.tag) || null),
                     color: '#ffffff',
                     padding: '0.25rem 0.5rem',
                     borderRadius: '0.25rem',
                     fontSize: '0.75rem',
                     fontWeight: 'bold',
-                    maxWidth: '200px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    maxWidth: activeCategory === 'polymarket' ? '200px' : 'none',
+                    overflow: activeCategory === 'polymarket' ? 'hidden' : 'visible',
+                    textOverflow: activeCategory === 'polymarket' ? 'ellipsis' : 'clip',
+                    whiteSpace: activeCategory === 'polymarket' ? 'nowrap' : 'normal',
                   }}>
-                    {post.question}
+                    {activeCategory === 'polymarket' ? (post.question || post.tag) : post.tag}
                   </span>
                 )}
-                
+
+                {/* Removed separate Polymarket Question Tag block */}
+
                 <span style={{
                   background: getSentimentColor(post.sentiment),
                   color: '#ffffff',
@@ -223,12 +224,14 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                 </span>
               </div>
 
-              <span style={{
+              <div style={{
                 fontSize: '0.75rem',
-                color: '#9ca3af'
+                color: '#9ca3af',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}>
-                {formatTimeAgo(post.time || post.created_at || '')}
-              </span>
+                {formatTimeAgo(post.created_at || '')}
+              </div>
             </div>
 
             {/* Post content */}
@@ -260,9 +263,8 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                 gap: '1rem',
                 alignItems: 'center'
               }}>
-                <span>❤️ {post.likes || post.upvotes || 0}</span>
-                <span>🔄 {post.retweets || 0}</span>
-                <span>💬 {post.replies || 0}</span>
+                <span>❤️ {post.upvotes || 0}</span>
+                <span>💬 {post.num_comments || 0}</span>
               </div>
             </div>
           </div>

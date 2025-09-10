@@ -194,7 +194,7 @@ export function generateColorMap(
   category: 'stock' | 'polymarket'
 ): Record<string, string> {
   const colorMap: Record<string, string> = {};
-  
+
   // Sort assets alphabetically to match the display order
   const sortedAssets = [...assets].sort((a, b) => {
     if (a === 'CASH') return 1;

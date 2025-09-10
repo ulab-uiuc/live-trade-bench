@@ -368,7 +368,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     if (selectedCategory === 'stock') {
       const aggregatedAllocations: Record<string, number> = {};
       filteredModels.forEach(model => { // Use filteredModels
-        if (model.category === 'stock') { 
+        if (model.category === 'stock') {
           Object.entries(model.asset_allocation).forEach(([name, allocation]) => {
             if (allocation > 0) {
               aggregatedAllocations[name] = (aggregatedAllocations[name] || 0) + allocation;
@@ -484,21 +484,21 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
         {filteredModels.map(model => {
           // Use the real (mocked) asset allocation from the model prop
           const modelAllocationAssets = Object.entries(model.asset_allocation || {});
-          
+
           const allocations = modelAllocationAssets.length > 0
             ? (() => {
               const arr = modelAllocationAssets
                 .map(([name, allocation]) => ({
                   name,
                   allocation,
-                  // The color for mini-allocation bar needs to be consistent, 
+                  // The color for mini-allocation bar needs to be consistent,
                   // so we use the index from its own sorted list
-                  color: getAssetColor(name, 
+                  color: getAssetColor(name,
                     [...Object.keys(model.asset_allocation || {})].sort((a, b) => {
                       if (a === 'CASH') return 1;
                       if (b === 'CASH') return -1;
                       return a.localeCompare(b);
-                    }).indexOf(name), 
+                    }).indexOf(name),
                     model.category as 'stock' | 'polymarket')
                 }))
                 .sort((a, b) => {
@@ -730,7 +730,7 @@ const AssetRatioChart: React.FC<{
       }
       return getCashColor();
     },
-    [allAssets, category] 
+    [allAssets, category]
   );
 
   // This ensures the chart uses the same sorted and colored allocations
