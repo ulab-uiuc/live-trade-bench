@@ -165,17 +165,7 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
 def startup_event():
     logger.info("🚀 FastAPI app starting up...")
 
-    # Run initial data generation in background thread
-    threading.Thread(
-        target=lambda: generate_models_data(stock_system, polymarket_system),
-        daemon=True,
-    ).start()
-
-    # Run initial news and social data updates immediately
-    update_news_data()
-    update_social_data()
-
-    # Start background scheduler
+    # Start background scheduler immediately - don't wait for data
     global scheduler
     executors = {"default": ThreadPoolExecutor(max_workers=1)}
     scheduler = BackgroundScheduler(executors=executors)
@@ -183,6 +173,17 @@ def startup_event():
     scheduler.start()
 
     logger.info("✅ Background scheduler started.")
+
+    # Run all initial data generation in background threads - don't block startup
+    threading.Thread(
+        target=lambda: generate_models_data(stock_system, polymarket_system),
+        daemon=True,
+    ).start()
+
+    threading.Thread(target=update_news_data, daemon=True).start()
+    threading.Thread(target=update_social_data, daemon=True).start()
+
+    logger.info("🚀 FastAPI app startup completed - data loading in background")
 
 
 @app.get("/health")
