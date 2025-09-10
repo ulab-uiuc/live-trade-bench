@@ -33,6 +33,8 @@ interface SocialPost {
   replies: number;
   sentiment: string;
   avatar: string;
+  tag?: string;
+  question?: string;
 }
 
 function App() {
@@ -125,7 +127,8 @@ function App() {
         url: post.url,
         author: post.author,
         created_at: post.created_at,
-        stock_symbols: post.stock_symbols
+        stock_symbols: post.stock_symbols,
+        tag: post.tag
       }));
 
       const transformPolymarketPosts = polymarketPosts.map((post: any, index: number) => ({
@@ -143,7 +146,8 @@ function App() {
         url: post.url,
         author: post.author,
         created_at: post.created_at,
-        stock_symbols: post.stock_symbols
+        stock_symbols: post.stock_symbols,
+        question: post.question
       }));
 
       setSocialData({

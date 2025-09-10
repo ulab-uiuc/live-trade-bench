@@ -1,8 +1,9 @@
 import logging
+from datetime import datetime
 import os
 import threading
 
-from app.config import ALLOWED_ORIGINS, UPDATE_FREQUENCY
+from .config import ALLOWED_ORIGINS, UPDATE_FREQUENCY
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException
@@ -140,6 +141,7 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         seconds=UPDATE_FREQUENCY["news_social"],
         id="update_news_data",
         replace_existing=True,
+        next_run_time=datetime.now(),  # run immediately once
     )
     scheduler.add_job(
         update_social_data,
@@ -147,6 +149,7 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         seconds=UPDATE_FREQUENCY["news_social"],
         id="update_social_data",
         replace_existing=True,
+        next_run_time=datetime.now(),  # run immediately once
     )
     scheduler.add_job(
         update_system_status,
@@ -154,6 +157,7 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         seconds=UPDATE_FREQUENCY["system_status"],
         id="update_system_status",
         replace_existing=True,
+        next_run_time=datetime.now(),  # run immediately once
     )
 
 

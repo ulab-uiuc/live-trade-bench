@@ -9,7 +9,7 @@ def update_news_data() -> None:
     all_news_data = {"stock": [], "polymarket": []}
 
     try:
-        from backend.app.main import get_polymarket_system, get_stock_system
+        from .main import get_polymarket_system, get_stock_system
 
         stock_system = get_stock_system()
         polymarket_system = get_polymarket_system()
