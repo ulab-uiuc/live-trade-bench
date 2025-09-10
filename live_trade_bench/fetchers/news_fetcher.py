@@ -1,14 +1,32 @@
-from datetime import datetime
-from typing import Any, Dict, List
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 from bs4 import BeautifulSoup
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
+from live_trade_bench.fetchers.reddit_fetcher import TICKER_TO_COMPANY # Import TICKER_TO_COMPANY
 
 
 class NewsFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 2.0, max_delay: float = 6.0):
         super().__init__(min_delay, max_delay)
+
+    def _parse_relative_time(self, date_str: str) -> Optional[float]:
+        """Parses relative time strings (e.g., '2 hours ago') to Unix timestamp."""
+        now = datetime.now()
+        if "hour" in date_str:
+            hours_ago = int(date_str.split(" ")[0])
+            return (now - timedelta(hours=hours_ago)).timestamp()
+        elif "day" in date_str:
+            days_ago = int(date_str.split(" ")[0])
+            return (now - timedelta(days=days_ago)).timestamp()
+        elif "minute" in date_str:
+            minutes_ago = int(date_str.split(" ")[0])
+            return (now - timedelta(minutes=minutes_ago)).timestamp()
+        elif "second" in date_str:
+            seconds_ago = int(date_str.split(" ")[0])
+            return (now - timedelta(seconds=seconds_ago)).timestamp()
+        return None
 
     def fetch(
         self, query: str, start_date: str, end_date: str, max_pages: int = 10
@@ -70,12 +88,22 @@ class NewsFetcher(BaseFetcher):
                             continue
                         source = source_el.get_text()
 
+                        # Convert relative time to Unix timestamp
+                        parsed_date = self._parse_relative_time(date)
+                        if parsed_date is None:
+                            # Fallback if relative time parsing fails (e.g., specific date string)
+                            try:
+                                # Attempt to parse as a standard date string if it's not relative
+                                parsed_date = datetime.strptime(date, "%b %d, %Y").timestamp() # e.g., 'Sep 09, 2025'
+                            except ValueError:
+                                parsed_date = datetime.now().timestamp() # Default to now if all parsing fails
+
                         news_results.append(
                             {
                                 "link": link,
                                 "title": title,
                                 "snippet": snippet,
-                                "date": date,
+                                "date": parsed_date, # Store as Unix timestamp
                                 "source": source,
                             }
                         )
@@ -97,10 +125,17 @@ class NewsFetcher(BaseFetcher):
 
 
 def fetch_news_data(
-    query: str, start_date: str, end_date: str, max_pages: int = 10, ticker: str = None
+    query: str, start_date: str, end_date: str, max_pages: int = 10, ticker: Optional[str] = None # Corrected type hint
 ) -> List[Dict[str, Any]]:
     fetcher = NewsFetcher()
-    news_items = fetcher.fetch(query, start_date, end_date, max_pages)
+
+    augmented_query = query
+    if ticker and ticker.upper() in TICKER_TO_COMPANY:
+        company_name = TICKER_TO_COMPANY[ticker.upper()]
+        augmented_query = f"{query} OR {company_name}"
+        print(f"  - News fetcher: Query augmented for ticker '{ticker}': '{augmented_query}'")
+    
+    news_items = fetcher.fetch(augmented_query, start_date, end_date, max_pages)
 
     # Add ticker tag to each news item if provided
     if ticker:

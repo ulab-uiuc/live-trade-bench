@@ -10,15 +10,14 @@ import './App.css';
 import type { Model } from './types';
 
 // Global data interfaces
-interface NewsItem {
-  id: string;
+export interface NewsItem {
+  id: string; // Add id for keying
   title: string;
-  summary: string;
+  snippet: string; // Renamed from summary
   source: string;
-  published_at: string;
-  category: string;
+  date: string; // Renamed from published_at
   link: string;
-  stock_symbol: string | null;
+  tag?: string; // Renamed from stock_symbol and made optional
 }
 
 export interface SocialPost {

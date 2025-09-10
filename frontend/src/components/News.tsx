@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import './News.css';
 import { getAssetColor } from '../utils/colors';
+import type { NewsItem } from '../App'; // Import NewsItem type
+import { formatTimeAgo } from '../utils/time'; // Import formatTimeAgo
 
 interface NewsProps {
   newsData: {
-    stock: any[];
-    polymarket: any[];
+    stock: NewsItem[]; // Use NewsItem type
+    polymarket: NewsItem[]; // Use NewsItem type
   };
   lastRefresh: Date;
   isLoading: boolean;
@@ -14,17 +16,14 @@ interface NewsProps {
 const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
   const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket'>('stock');
 
-  const getBrief = (news: any): string => {
+  const getBrief = (news: NewsItem): string => {
     const text = news?.snippet || '';
     if (!text) return '';
     const s = String(text).trim();
     return s.length > 280 ? s.slice(0, 277) + '…' : s;
   };
 
-  const getPublished = (news: any): string => {
-    return news?.published_at || news?.date || '';
-  };
-
+  // Removed getPublished function
 
   // Collect and sort all unique tags for consistent color assignment
   const allUniqueTags = useMemo(() => {
@@ -173,7 +172,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
                 whiteSpace: 'nowrap',
                 flexShrink: 0
               }}>
-                {getPublished(news)}
+                {formatTimeAgo(news.date || '')}
               </div>
             </div>
 
