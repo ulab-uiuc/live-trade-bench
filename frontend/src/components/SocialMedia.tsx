@@ -25,7 +25,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
       return {
         ...post,
         id: post.id || `${activeCategory}-${index}`,
-        sentiment: post.sentiment || 'neutral',
+        // Removed sentiment fallback
       };
     });
   }, [activeCategory, socialData]);
@@ -44,16 +44,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
     return Array.from(tags).sort((a, b) => a.localeCompare(b));
   }, [socialData]);
 
-
-  const getSentimentColor = (sentiment: string) => {
-    switch (sentiment.toLowerCase()) {
-      case 'bullish':
-      case 'positive': return '#10b981';
-      case 'bearish':
-      case 'negative': return '#ef4444';
-      default: return '#6b7280';
-    }
-  };
+  // Removed getSentimentColor function
 
   const getTagColor = (tag: string | null) => {
     if (!tag) return '#6b7280';
@@ -211,17 +202,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
 
                 {/* Removed separate Polymarket Question Tag block */}
 
-                <span style={{
-                  background: getSentimentColor(post.sentiment),
-                  color: '#ffffff',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '0.25rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold',
-                  textTransform: 'uppercase'
-                }}>
-                  {post.sentiment}
-                </span>
+                {/* Removed sentiment tag block */}
               </div>
 
               <div style={{
