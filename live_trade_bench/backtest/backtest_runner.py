@@ -82,7 +82,7 @@ def run_backtest(
     start_date: str,
     end_date: str,
     market_type: str = "stock",
-) -> Dict[str, Any]:
+) -> tuple[Dict[str, Any], StockPortfolioSystem | PolymarketPortfolioSystem]:
     system: StockPortfolioSystem | PolymarketPortfolioSystem
     if market_type == "stock":
         system = StockPortfolioSystem()
@@ -93,4 +93,5 @@ def run_backtest(
         system.add_agent(name=name, initial_cash=initial_cash, model_name=model_id)
 
     runner = BacktestRunner(system, start_date, end_date)
-    return runner.run()
+    results = runner.run()
+    return results, system
