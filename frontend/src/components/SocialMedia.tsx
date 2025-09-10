@@ -190,7 +190,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                     </span>
                   ))
                 )}
-                
+
                 {/* Tag for Stock or Polymarket Question */}
                 {((activeCategory === 'stock' && post.tag) || (activeCategory === 'polymarket' && (post.question || post.tag))) && (
                   <span style={{
@@ -210,7 +210,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                 )}
 
                 {/* Removed separate Polymarket Question Tag block */}
-                
+
                 <span style={{
                   background: getSentimentColor(post.sentiment),
                   color: '#ffffff',

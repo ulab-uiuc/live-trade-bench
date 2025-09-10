@@ -108,27 +108,35 @@ class StockPortfolioSystem:
         latest_trending_stocks = fetch_trending_stocks(limit=self.universe_size)
         if latest_trending_stocks:
             self.universe = latest_trending_stocks
-            print(f"  - Updated social media universe to {len(self.universe)} trending stocks.")
+            print(
+                f"  - Updated social media universe to {len(self.universe)} trending stocks."
+            )
 
         for ticker in self.universe:  # Fetch social data for all available tickers
             try:
                 print(f"    - Fetching social data for stock: {ticker}...")
-                posts = fetcher.fetch_posts_by_ticker(ticker, date=today, max_limit=10) # Increased max_limit
+                posts = fetcher.fetch_posts_by_ticker(
+                    ticker, date=today, max_limit=10
+                )  # Increased max_limit
                 print(f"    - Fetched {len(posts)} social posts for {ticker}.")
                 formatted_posts = []
                 for post in posts:
-                    content = post.get("content", "") # No longer format content here
+                    content = post.get("content", "")  # No longer format content here
                     formatted_posts.append(
                         {
                             "content": content,
                             "author": post.get("author", "Unknown"),
                             "platform": "Reddit",
                             "url": post.get("url", ""),
-                            "created_at": post.get("created_utc", ""),  # Use created_utc
+                            "created_at": post.get(
+                                "created_utc", ""
+                            ),  # Use created_utc
                             "subreddit": post.get("subreddit", ""),  # Add subreddit
                             "upvotes": post.get("upvotes", 0),  # Add upvotes
-                            "num_comments": post.get("num_comments", 0),  # Add num_comments
-                            "tag": ticker, # Add ticker as tag
+                            "num_comments": post.get(
+                                "num_comments", 0
+                            ),  # Add num_comments
+                            "tag": ticker,  # Add ticker as tag
                         }
                     )
                 social_data_map[ticker] = formatted_posts
@@ -149,10 +157,16 @@ class StockPortfolioSystem:
             )
             start_date = (ref - timedelta(days=3)).strftime("%Y-%m-%d")
             end_date = ref.strftime("%Y-%m-%d")
-            for ticker in list(market_data.keys()): # Fetch news for all available tickers
+            for ticker in list(
+                market_data.keys()
+            ):  # Fetch news for all available tickers
                 query = f"{ticker} stock earnings news"
                 news_data_map[ticker] = fetch_news_data(
-                    query, start_date, end_date, max_pages=3, ticker=ticker # Fetch more pages
+                    query,
+                    start_date,
+                    end_date,
+                    max_pages=3,
+                    ticker=ticker,  # Fetch more pages
                 )
         except Exception as e:
             print(f"    - News data fetch failed: {e}")

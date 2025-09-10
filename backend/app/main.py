@@ -1,9 +1,8 @@
 import logging
-from datetime import datetime
 import os
 import threading
+from datetime import datetime
 
-from .config import ALLOWED_ORIGINS, UPDATE_FREQUENCY
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException
@@ -22,8 +21,10 @@ from live_trade_bench.mock.mock_system import (
 from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
 
 from .config import (
+    ALLOWED_ORIGINS,
     POLYMARKET_MOCK_MODE,
     STOCK_MOCK_MODE,
+    UPDATE_FREQUENCY,
     MockMode,
     get_base_model_configs,
 )

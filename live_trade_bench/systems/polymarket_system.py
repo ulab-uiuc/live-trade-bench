@@ -142,23 +142,29 @@ class PolymarketPortfolioSystem:
                     "question", market_id
                 )
                 query = " ".join(question.split()[:5])  # Use first few words as query
-                posts = fetcher.fetch(category="market", query=query, max_limit=10) # Increased max_limit
+                posts = fetcher.fetch(
+                    category="market", query=query, max_limit=10
+                )  # Increased max_limit
                 print(f"    - Fetched {len(posts)} social posts for {market_id}.")
 
                 formatted_posts = []
                 for post in posts:
-                    content = post.get("content", "") # No longer format content here
+                    content = post.get("content", "")  # No longer format content here
                     formatted_posts.append(
                         {
                             "content": content,
                             "author": post.get("author", "Unknown"),
                             "platform": "Reddit",
                             "url": post.get("url", ""),
-                            "created_at": post.get("created_utc", ""),  # Use created_utc
+                            "created_at": post.get(
+                                "created_utc", ""
+                            ),  # Use created_utc
                             "subreddit": post.get("subreddit", ""),  # Add subreddit
                             "upvotes": post.get("upvotes", 0),  # Add upvotes
-                            "num_comments": post.get("num_comments", 0),  # Add num_comments
-                            "tag": query, # Add query as tag
+                            "num_comments": post.get(
+                                "num_comments", 0
+                            ),  # Add num_comments
+                            "tag": query,  # Add query as tag
                         }
                     )
                 social_data_map[market_id] = formatted_posts

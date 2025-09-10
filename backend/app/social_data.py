@@ -10,7 +10,11 @@ def update_social_data() -> None:
     all_social_data: Dict[str, List[Dict]] = {"stock": [], "polymarket": []}
 
     try:
-        from .main import get_polymarket_system, get_stock_system # Import system getters
+        from .main import (  # Import system getters
+            get_polymarket_system,
+            get_stock_system,
+        )
+
         stock_system = get_stock_system()
         polymarket_system = get_polymarket_system()
 
@@ -27,11 +31,15 @@ def update_social_data() -> None:
         # Fetch social data using system methods
         print("  - Fetching stock social media data...")
         stock_social = stock_system._fetch_social_data()
-        print(f"  - Fetched {len([item for sublist in stock_social.values() for item in sublist])} stock social media posts.")
+        print(
+            f"  - Fetched {len([item for sublist in stock_social.values() for item in sublist])} stock social media posts."
+        )
 
         print("  - Fetching polymarket social media data...")
         polymarket_social = polymarket_system._fetch_social_data()
-        print(f"  - Fetched {len([item for sublist in polymarket_social.values() for item in sublist])} polymarket social media posts.")
+        print(
+            f"  - Fetched {len([item for sublist in polymarket_social.values() for item in sublist])} polymarket social media posts."
+        )
 
         all_social_data["stock"] = [
             item for sublist in stock_social.values() for item in sublist
