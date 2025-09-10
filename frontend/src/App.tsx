@@ -119,9 +119,22 @@ function App() {
         username: `u/${post.author}`,
         displayName: `u/${post.author}`,
         content: post.content || post.title || 'Stock discussion',
+<<<<<<< HEAD
         created_at: post.created_at || '',
         upvotes: post.upvotes || 0,
         num_comments: post.num_comments || 0,
+||||||| fb228d5
+        time: post.created_at,
+        likes: post.upvotes || Math.floor(Math.random() * 300),
+        retweets: post.num_comments || Math.floor(Math.random() * 100),
+        replies: Math.floor(Math.random() * 50),
+        sentiment: post.sentiment || 'neutral',
+=======
+        created_at: post.created_at || '',
+        upvotes: post.upvotes || 0,
+        num_comments: post.num_comments || 0,
+        sentiment: post.sentiment || 'neutral',
+>>>>>>> be89a7d451c18fe98e2160e32470ff2eed89f89d
         avatar: '📈',
         tag: post.tag,
         stock_symbols: post.stock_symbols || [], // Ensure stock_symbols is an array
@@ -135,9 +148,22 @@ function App() {
         username: `u/${post.author}`,
         displayName: `u/${post.author}`,
         content: post.content || post.title || 'Political/prediction discussion',
+<<<<<<< HEAD
         created_at: post.created_at || '',
         upvotes: post.upvotes || 0,
         num_comments: post.num_comments || 0,
+||||||| fb228d5
+        time: post.created_at || '2 hours ago',
+        likes: post.upvotes || Math.floor(Math.random() * 300),
+        retweets: post.num_comments || Math.floor(Math.random() * 100),
+        replies: Math.floor(Math.random() * 50),
+        sentiment: post.sentiment || 'neutral',
+=======
+        created_at: post.created_at || '',
+        upvotes: post.upvotes || 0,
+        num_comments: post.num_comments || 0,
+        sentiment: post.sentiment || 'neutral',
+>>>>>>> be89a7d451c18fe98e2160e32470ff2eed89f89d
         avatar: '🎯',
         question: post.question,
         url: post.url || '',
