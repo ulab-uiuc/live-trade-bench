@@ -3,7 +3,7 @@ from datetime import datetime
 import os
 import threading
 
-from app.config import ALLOWED_ORIGINS, UPDATE_FREQUENCY
+from .config import ALLOWED_ORIGINS, UPDATE_FREQUENCY
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException

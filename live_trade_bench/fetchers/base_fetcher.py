@@ -49,6 +49,9 @@ class BaseFetcher(ABC):
         if headers is None:
             headers = self.default_headers
 
+        # Ensure we always have a reasonable timeout to avoid hangs
+        if "timeout" not in kwargs:
+            kwargs["timeout"] = 8
         response = requests.get(url, headers=headers, **kwargs)
         return response
 

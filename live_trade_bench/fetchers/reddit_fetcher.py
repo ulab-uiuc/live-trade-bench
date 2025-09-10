@@ -1,281 +1,211 @@
-import os
 from datetime import datetime
+import time
 from typing import Any, Dict, List, Optional, Union
+import urllib.parse
 import re
-
-import praw
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
-# ---- 常见股票别名（保留你的接口与键值） ----
+# 尝试导入 PRAW
+try:
+    import praw
+    import os
+    HAS_PRAW = True
+except ImportError:
+    praw = None
+    HAS_PRAW = False
+
+# 股票别名映射
 TICKER_TO_COMPANY = {
     "AAPL": "Apple",
-    "MSFT": "Microsoft",
+    "MSFT": "Microsoft", 
     "GOOGL": "Google",
     "AMZN": "Amazon",
     "TSLA": "Tesla",
     "NVDA": "Nvidia",
-    "TSM": "Taiwan Semiconductor Manufacturing Company OR TSMC",
-    "JPM": "JPMorgan Chase OR JP Morgan",
-    "JNJ": "Johnson & Johnson OR JNJ",
-    "V": "Visa",
-    "WMT": "Walmart",
-    "META": "Meta OR Facebook",
+    "META": "Meta",
     "AMD": "AMD",
     "INTC": "Intel",
-    "QCOM": "Qualcomm",
-    "BABA": "Alibaba",
-    "ADBE": "Adobe",
     "NFLX": "Netflix",
-    "CRM": "Salesforce",
-    "PYPL": "PayPal",
-    "PLTR": "Palantir",
-    "MU": "Micron",
-    "SQ": "Block OR Square",
-    "ZM": "Zoom",
-    "CSCO": "Cisco",
-    "SHOP": "Shopify",
-    "ORCL": "Oracle",
-    "X": "Twitter OR X",
-    "SPOT": "Spotify",
-    "AVGO": "Broadcom",
-    "ASML": "ASML",  # 修正尾部空格
-    "TWLO": "Twilio",
-    "SNAP": "Snap Inc.",
-    "TEAM": "Atlassian",
-    "SQSP": "Squarespace",
-    "UBER": "Uber",
-    "ROKU": "Roku",
-    "PINS": "Pinterest",
 }
 
+# 分类对应的subreddit
 CATEGORY_SUBREDDITS = {
-    "company_news": [
-        # 将 "all" 放在最后以降低不稳定性；如需可移除
-        "StockMarket",
-        "stocks",
-        "investing",
-        "wallstreetbets",
-        "SecurityAnalysis",
-        "ValueInvesting",
-        "all",
-    ],
-    "options": ["options", "thetagang", "wallstreetbets"],
-    "market": ["StockMarket", "investing", "wallstreetbets", "stocks"],
-    "tech": ["technology", "stocks", "investing"],
+    "company_news": ["stocks", "investing", "StockMarket", "wallstreetbets"],
+    "market": ["StockMarket", "investing", "stocks"],
+    "tech": ["technology", "stocks"],
 }
 
 
 class RedditFetcher(BaseFetcher):
-    def __init__(self, min_delay: float = 1.0, max_delay: float = 3.0):
+    def __init__(self, min_delay: float = 0.5, max_delay: float = 1.0):
         super().__init__(min_delay, max_delay)
-        self.reddit = self._initialize_reddit_client()
+        self.reddit = self._init_praw() if HAS_PRAW else None
 
-    def _initialize_reddit_client(self) -> praw.Reddit:
+    def _init_praw(self):
+        """初始化 PRAW，需要环境变量"""
+        if not HAS_PRAW:
+            return None
+        
         client_id = os.getenv("REDDIT_CLIENT_ID")
-        client_secret = os.getenv("REDDIT_CLIENT_SECRET")
-        user_agent = os.getenv("REDDIT_USER_AGENT") or "live-trade-bench/1.0 (contact: you@example.com)"
-
+        client_secret = os.getenv("REDDIT_CLIENT_SECRET") 
+        user_agent = os.getenv("REDDIT_USER_AGENT", "live-trade-bench/1.0")
+        
         if not client_id or not client_secret:
-            raise RuntimeError(
-                "Missing Reddit credentials. Please set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET."
+            return None
+            
+        try:
+            return praw.Reddit(
+                client_id=client_id,
+                client_secret=client_secret,
+                user_agent=user_agent
             )
-
-        return praw.Reddit(
-            client_id=client_id,
-            client_secret=client_secret,
-            user_agent=user_agent,
-            check_for_async=False,  # PRAW 建议在同步环境下显式关闭
-            # requestor_kwargs={"timeout": 30},  # 如需可开启
-        )
+        except Exception:
+            return None
 
     def fetch(
         self,
         category: str,
-        query: Optional[Union[str, List[str]]] = None,
+        query: Optional[str] = None,
         max_limit: int = 50,
-        time_filter: str = "day",
+        time_filter: str = "week"
     ) -> List[Dict[str, Any]]:
-        """按类别和可选查询词抓取帖子；保持原接口。"""
+        """
+        核心fetch方法 - 优先用PRAW，失败则用JSON API
+        """
+        # 优先使用 PRAW
+        if self.reddit:
+            try:
+                return self._fetch_with_praw(category, query, max_limit, time_filter)
+            except Exception:
+                pass
+        
+        # 回退到 JSON API
+        return self._fetch_with_json(category, query, max_limit, time_filter)
+
+    def _fetch_with_praw(self, category: str, query: Optional[str], max_limit: int, time_filter: str) -> List[Dict[str, Any]]:
+        """使用 PRAW 获取数据"""
         subreddits = CATEGORY_SUBREDDITS.get(category, ["investing"])
-        # 将 r/all 放到最后，稳定性更好；若不在列表中则不动
-        subs_has_all = [s.lower() for s in subreddits]
-        subs_ordered = [s for s in subreddits if s.lower() != "all"]
-        if "all" in subs_has_all:
-            subs_ordered.append("all")
-
-        # 统一为查询列表（可为 None 表示不带 query）
-        if isinstance(query, list):
-            queries: List[Optional[str]] = [q for q in query if q]
-        elif isinstance(query, str) and query.strip():
-            queries = [query.strip()]
-        else:
-            queries = [None]
-
-        all_posts: List[Dict[str, Any]] = []
+        posts = []
         seen_ids = set()
-        per_sub = max(2, max_limit // max(1, len(subreddits)))
-
-        for subreddit_name in subs_ordered:
+        
+        for subreddit_name in subreddits:
             try:
                 subreddit = self.reddit.subreddit(subreddit_name)
-                collected_count_this_sub = 0
-
-                for q in queries:
-                    candidates = []
-                    try:
-                        if q:
-                            # 多策略 + 多时间窗口，尽量补足
-                            for srt in ("relevance", "new", "top", "hot"):
-                                for tf in (time_filter, "week", "month"):
-                                    try:
-                                        found = list(
-                                            subreddit.search(q, sort=srt, time_filter=tf, limit=per_sub)
-                                        )
-                                        candidates.extend(found)
-                                        if len(candidates) >= per_sub:
-                                            break
-                                if len(candidates) >= per_sub:
-                                    break
-                        else:
-                            candidates = list(subreddit.top(time_filter=time_filter, limit=per_sub))
-                            # 兜底追加周榜
-                            try:
-                                candidates += list(subreddit.top(time_filter="week", limit=per_sub))
-                            except Exception:
-                                pass
-                    except Exception as e:
-                        print(f"Error searching r/{subreddit_name} with q={q}: {e}")
+                
+                if query:
+                    # 搜索特定查询
+                    submissions = subreddit.search(query, sort="top", time_filter=time_filter, limit=10)
+                else:
+                    # 获取热门帖子
+                    submissions = subreddit.top(time_filter=time_filter, limit=10)
+                
+                for post in submissions:
+                    if post.id in seen_ids or len(posts) >= max_limit:
                         continue
-
-                    # 处理 / 过滤 / 去重
-                    for post in candidates:
-                        try:
-                            if post.id in seen_ids:
-                                continue
-                            if q and not self._post_matches_query(post, q):
-                                continue
-
-                            post_data = {
-                                "title": getattr(post, "title", "") or "",
-                                "content": getattr(post, "selftext", "") or "",
-                                "url": getattr(post, "url", "") or "",
-                                "upvotes": getattr(post, "ups", 0),
-                                "posted_date": datetime.fromtimestamp(post.created_utc).strftime("%Y-%m-%d"),
-                                "subreddit": post.subreddit.display_name,
-                                "score": getattr(post, "score", 0),
-                                "num_comments": getattr(post, "num_comments", 0),
-                                "author": str(post.author) if getattr(post, "author", None) else "deleted",
-                                "created_utc": post.created_utc,
-                                "id": post.id,
-                            }
-
-                            all_posts.append(post_data)
-                            seen_ids.add(post.id)
-                            collected_count_this_sub += 1
-
-                            if len(all_posts) >= max_limit:
-                                break
-                        except Exception as e:
-                            print(f"Error processing post from r/{subreddit_name}: {e}")
-                            continue
-
-                    if len(all_posts) >= max_limit:
+                    
+                    seen_ids.add(post.id)
+                    posts.append({
+                        "title": post.title,
+                        "content": post.selftext,
+                        "url": post.url,
+                        "upvotes": post.ups,
+                        "score": post.score,
+                        "num_comments": post.num_comments,
+                        "subreddit": post.subreddit.display_name,
+                        "author": str(post.author) if post.author else "deleted",
+                        "posted_date": datetime.fromtimestamp(post.created_utc).strftime("%Y-%m-%d"),
+                        "created_utc": post.created_utc,
+                        "id": post.id,
+                    })
+                    
+                    if len(posts) >= max_limit:
                         break
-
-                print(f"Fetched {collected_count_this_sub} posts from r/{subreddit_name}")
-                self._rate_limit_delay()
-
-            except Exception as e:
-                print(f"Error fetching from r/{subreddit_name}: {e}")
+                        
+            except Exception:
                 continue
+                
+        return posts[:max_limit]
 
-            if len(all_posts) >= max_limit:
-                break
-
-        return all_posts[:max_limit]
-
-    def _post_matches_query(self, post: Any, query: str) -> bool:
-        """尽量严格但实用的匹配：优先 $TICKER，其次公司别名。"""
-        if not query:
-            return True
-        title = getattr(post, "title", "") or ""
-        body = getattr(post, "selftext", "") or ""
-        text = f"{title} {body}"
-        q = query.strip().upper()
-
-        # $T / $TSLA / TSLA 等
-        try:
-            if len(q) <= 2:
-                pat = re.compile(rf"\${re.escape(q)}\b", re.IGNORECASE)
-            else:
-                pat = re.compile(rf"(\${re.escape(q)}\b|\b{re.escape(q)}\b)", re.IGNORECASE)
-            if pat.search(text):
-                return True
-        except re.error:
-            pass
-
-        # 公司别名
-        if q in TICKER_TO_COMPANY:
-            names = TICKER_TO_COMPANY[q]
-            aliases = names.split(" OR ") if "OR" in names else [names]
-            for name in aliases:
-                try:
-                    if re.search(rf"\b{re.escape(name)}\b", text, re.IGNORECASE):
-                        return True
-                except re.error:
+    def _fetch_with_json(self, category: str, query: Optional[str], max_limit: int, time_filter: str) -> List[Dict[str, Any]]:
+        """使用 JSON API 获取数据（备用方案）"""
+        subreddits = CATEGORY_SUBREDDITS.get(category, ["investing"])
+        posts = []
+        seen_ids = set()
+        
+        for subreddit_name in subreddits:
+            try:
+                if query:
+                    # 搜索API
+                    encoded_query = urllib.parse.quote(query)
+                    url = f"https://www.reddit.com/r/{subreddit_name}/search.json?q={encoded_query}&restrict_sr=1&sort=top&t={time_filter}&limit=10&raw_json=1"
+                else:
+                    # 热门API
+                    url = f"https://www.reddit.com/r/{subreddit_name}/top.json?t={time_filter}&limit=10&raw_json=1"
+                
+                response = self.make_request(url, timeout=5)
+                data = self.safe_json_parse(response, f"reddit r/{subreddit_name}")
+                
+                if not data or "data" not in data:
                     continue
-        return False
+                    
+                children = data["data"].get("children", [])
+                for child in children:
+                    post_data = child.get("data", {})
+                    post_id = post_data.get("id")
+                    
+                    if post_id in seen_ids or len(posts) >= max_limit:
+                        continue
+                        
+                    seen_ids.add(post_id)
+                    created_utc = post_data.get("created_utc", 0)
+                    
+                    posts.append({
+                        "title": post_data.get("title", ""),
+                        "content": post_data.get("selftext", ""),
+                        "url": post_data.get("url", ""),
+                        "upvotes": post_data.get("ups", 0),
+                        "score": post_data.get("score", 0),
+                        "num_comments": post_data.get("num_comments", 0),
+                        "subreddit": post_data.get("subreddit", ""),
+                        "author": post_data.get("author", "deleted"),
+                        "posted_date": datetime.fromtimestamp(created_utc).strftime("%Y-%m-%d") if created_utc else "",
+                        "created_utc": created_utc,
+                        "id": post_id,
+                    })
+                    
+                    if len(posts) >= max_limit:
+                        break
+                        
+            except Exception:
+                continue
+                
+        return posts[:max_limit]
 
-    # ---- 下面这些方法保持原接口不变 ----
-    def fetch_top_from_category(
-        self,
-        category: str,
-        date: str,
-        max_limit: int,
-        query: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+    # 以下都是基于核心fetch的wrapper方法
+    def fetch_top_from_category(self, category: str, date: str, max_limit: int, query: Optional[str] = None) -> List[Dict[str, Any]]:
         return self.fetch(category=category, query=query, max_limit=max_limit)
 
-    def fetch_posts_by_ticker(
-        self, ticker: str, date: str, max_limit: int = 50
-    ) -> List[Dict[str, Any]]:
-        q = ticker.strip().upper()
-        queries: List[str] = []
+    def fetch_posts_by_ticker(self, ticker: str, date: str, max_limit: int = 50) -> List[Dict[str, Any]]:
+        # 构建查询：$TICKER + 公司名
+        queries = [f"${ticker}"]
+        if ticker in TICKER_TO_COMPANY:
+            queries.append(TICKER_TO_COMPANY[ticker])
+        
+        query = " OR ".join(queries)
+        return self.fetch(category="company_news", query=query, max_limit=max_limit, time_filter="day")
 
-        # 优先 $TICKER；长度>2 再加裸 TICKER（避免误伤短词）
-        queries.append(f"${q}")
-        if len(q) > 2:
-            queries.append(q)
-
-        # 别名
-        aliases = []
-        if q in TICKER_TO_COMPANY:
-            names = TICKER_TO_COMPANY[q]
-            aliases = names.split(" OR ") if "OR" in names else [names]
-        for name in aliases:
-            queries.append(f'"{name}"')
-
-        # 去重保持顺序
-        seen_q = set()
-        queries = [x for x in queries if not (x in seen_q or seen_q.add(x))]
-
-        return self.fetch(category="company_news", query=queries, max_limit=max_limit, time_filter="day")
-
-    def fetch_sentiment_data(
-        self, category: str, date: str, max_limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    def fetch_sentiment_data(self, category: str, date: str, max_limit: int = 100) -> List[Dict[str, Any]]:
         posts = self.fetch(category=category, max_limit=max_limit)
         for post in posts:
-            post["text_for_sentiment"] = f"{post.get('title','')} {post.get('content','')}".strip()
-            post["engagement_score"] = int(post.get("upvotes", 0)) + int(post.get("num_comments", 0)) * 2
+            post["text_for_sentiment"] = f"{post.get('title', '')} {post.get('content', '')}".strip()
+            post["engagement_score"] = post.get("upvotes", 0) + post.get("num_comments", 0) * 2
         return posts
 
     def get_available_categories(self) -> List[str]:
         return list(CATEGORY_SUBREDDITS.keys())
 
     def get_available_dates(self, category: str) -> List[str]:
-        # Reddit 时间范围动态，这里仍返回“今天”占位，保持接口
         return [datetime.now().strftime("%Y-%m-%d")]
 
     def get_statistics(self, category: str, date: str) -> Dict[str, Any]:
@@ -290,16 +220,18 @@ class RedditFetcher(BaseFetcher):
                 "top_post": None,
                 "subreddits": [],
             }
-        total_upvotes = sum(int(p.get("upvotes", 0)) for p in posts)
-        total_comments = sum(int(p.get("num_comments", 0)) for p in posts)
-        subreddits = sorted({p.get("subreddit", "") for p in posts if p.get("subreddit")})
-        top_post = max(posts, key=lambda x: int(x.get("upvotes", 0)))
+        
+        total_upvotes = sum(p.get("upvotes", 0) for p in posts)
+        total_comments = sum(p.get("num_comments", 0) for p in posts)
+        subreddits = list({p.get("subreddit", "") for p in posts if p.get("subreddit")})
+        top_post = max(posts, key=lambda x: x.get("upvotes", 0))
+        
         return {
             "total_posts": len(posts),
             "total_upvotes": total_upvotes,
             "total_comments": total_comments,
-            "avg_upvotes": total_upvotes / len(posts),
-            "avg_comments": total_comments / len(posts),
+            "avg_upvotes": total_upvotes / len(posts) if posts else 0,
+            "avg_comments": total_comments / len(posts) if posts else 0,
             "top_post": {
                 "title": top_post.get("title", ""),
                 "upvotes": top_post.get("upvotes", 0),
@@ -309,40 +241,26 @@ class RedditFetcher(BaseFetcher):
         }
 
 
-# ---- 顶层函数（保持原接口） ----
-def fetch_top_from_category(
-    category: str,
-    date: str,
-    max_limit: int,
-    query: Optional[str] = None,
-) -> List[Dict[str, Any]]:
+# 保持原有的顶层函数接口
+def fetch_top_from_category(category: str, date: str, max_limit: int, query: Optional[str] = None) -> List[Dict[str, Any]]:
     fetcher = RedditFetcher()
     return fetcher.fetch_top_from_category(category, date, max_limit, query)
 
-
-def fetch_reddit_posts_by_ticker(
-    ticker: str, date: str, max_limit: int = 50
-) -> List[Dict[str, Any]]:
+def fetch_reddit_posts_by_ticker(ticker: str, date: str, max_limit: int = 50) -> List[Dict[str, Any]]:
     fetcher = RedditFetcher()
     return fetcher.fetch_posts_by_ticker(ticker, date, max_limit)
 
-
-def fetch_reddit_sentiment_data(
-    category: str, date: str, max_limit: int = 100
-) -> List[Dict[str, Any]]:
+def fetch_reddit_sentiment_data(category: str, date: str, max_limit: int = 100) -> List[Dict[str, Any]]:
     fetcher = RedditFetcher()
     return fetcher.fetch_sentiment_data(category, date, max_limit)
-
 
 def get_available_categories() -> List[str]:
     fetcher = RedditFetcher()
     return fetcher.get_available_categories()
 
-
 def get_available_dates(category: str) -> List[str]:
     fetcher = RedditFetcher()
     return fetcher.get_available_dates(category)
-
 
 def get_reddit_statistics(category: str, date: str) -> Dict[str, Any]:
     fetcher = RedditFetcher()
