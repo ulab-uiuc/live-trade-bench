@@ -71,7 +71,6 @@ class RedditFetcher(BaseFetcher):
                 return self._fetch_with_praw(category, query, max_limit, time_filter)
             except Exception:
                 pass
-        
         return self._fetch_with_json(category, query, max_limit, time_filter)
 
     def _fetch_with_praw(self, category: str, query: Optional[str], max_limit: int, time_filter: str) -> List[Dict[str, Any]]:

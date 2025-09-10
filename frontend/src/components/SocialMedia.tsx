@@ -1,24 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import './SocialMedia.css';
+import { getAssetColor } from '../utils/colors';
 
-interface SocialPost {
-  id: string;
-  platform: string;
-  username: string;
-  displayName: string;
-  content: string;
-  time: string;
-  likes: number;
-  retweets: number;
-  replies: number;
-  sentiment: string;
-  avatar: string;
-  url?: string;
-  upvotes?: number;
-  author?: string;
-  created_at?: string;
-  stock_symbols?: string[];
-}
 
 interface SocialMediaProps {
   socialData: {
@@ -32,21 +15,14 @@ interface SocialMediaProps {
 const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLoading }) => {
   const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket'>('stock');
 
-  const posts = useMemo(() =>
-    activeCategory === 'stock' ? socialData.stock : socialData.polymarket,
-    [activeCategory, socialData]
-  );
-
-  const getPlatformColor = (platform: string) => {
-    switch (platform.toLowerCase()) {
-      case 'twitter': return '#1da1f2';
-      case 'linkedin': return '#0077b5';
-      case 'reddit': return '#ff4500';
-      case 'discord': return '#7289da';
-      case 'telegram': return '#0088cc';
-      default: return '#6366f1';
-    }
-  };
+  const posts = useMemo(() => {
+    const rawPosts = activeCategory === 'stock' ? socialData.stock : socialData.polymarket;
+    return rawPosts.map((post: any, index: number) => ({
+      ...post,
+      id: post.id || `${activeCategory}-${index}`,
+      sentiment: post.sentiment || 'neutral'
+    }));
+  }, [activeCategory, socialData]);
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment.toLowerCase()) {
@@ -56,6 +32,11 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
       case 'negative': return '#ef4444';
       default: return '#6b7280';
     }
+  };
+
+  const getTagColor = (tag: string | null) => {
+    if (!tag) return '#6b7280';
+    return getAssetColor(tag, activeCategory);
   };
 
   const formatTimeAgo = (timeString: string) => {
@@ -178,16 +159,39 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                     </span>
                   ))
                 )}
-                <span style={{
-                  background: getPlatformColor(post.platform),
-                  color: '#ffffff',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '0.25rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold'
-                }}>
-                  {post.platform}
-                </span>
+                
+                {/* Tag for Stock or Polymarket Question */}
+                {post.tag && (
+                  <span style={{
+                    background: getTagColor(post.tag),
+                    color: '#ffffff',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold'
+                  }}>
+                    {post.tag}
+                  </span>
+                )}
+                
+                {/* Polymarket Question Tag */}
+                {post.question && (
+                  <span style={{
+                    background: getTagColor(post.question),
+                    color: '#ffffff',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    maxWidth: '200px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {post.question}
+                  </span>
+                )}
+                
                 <span style={{
                   background: getSentimentColor(post.sentiment),
                   color: '#ffffff',
