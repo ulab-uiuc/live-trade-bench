@@ -79,21 +79,32 @@ class RedditFetcher(BaseFetcher):
                 # Check for direct ticker matches or company names that might be tickers
                 if len(word) <= 5 and word.upper() in TICKER_TO_COMPANY:
                     tickers_found_in_polymarket_query.append(word.upper())
-            
+
             if tickers_found_in_polymarket_query:
                 # Get unique company names for expansion
-                company_names = list(set([TICKER_TO_COMPANY[t] for t in tickers_found_in_polymarket_query]))
+                company_names = list(
+                    set(
+                        [
+                            TICKER_TO_COMPANY[t]
+                            for t in tickers_found_in_polymarket_query
+                        ]
+                    )
+                )
                 # Combine original polymarket query with company names for broader search
                 if company_names:
                     processed_query = f"{query} OR {' OR '.join(company_names)}"
-                print(f"      - Fetcher: Polymarket query augmented for tickers: '{processed_query}'")
+                print(
+                    f"      - Fetcher: Polymarket query augmented for tickers: '{processed_query}'"
+                )
 
         # For "company_news" category, the query is expected to be already structured by fetch_posts_by_ticker
         # So, no further processing of 'query' is needed here for 'company_news'.
 
         if self.reddit:
             try:
-                return self._fetch_with_praw(category, processed_query, max_limit, time_filter)
+                return self._fetch_with_praw(
+                    category, processed_query, max_limit, time_filter
+                )
             except Exception:
                 pass
         return self._fetch_with_json(category, processed_query, max_limit, time_filter)
