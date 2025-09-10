@@ -21,20 +21,21 @@ interface NewsItem {
   stock_symbol: string | null;
 }
 
-interface SocialPost {
+export interface SocialPost {
   id: string;
   platform: string;
   username: string;
   displayName: string;
   content: string;
-  time: string;
-  likes: number;
-  retweets: number;
-  replies: number;
+  created_at: string;
+  upvotes: number;
+  num_comments: number;
   sentiment: string;
   avatar: string;
+  url: string; // Re-added url
+  stock_symbols?: string[]; // Re-added stock_symbols
   tag?: string;
-  question?: string;
+  question?: string; // Re-added question
 }
 
 function App() {
@@ -113,41 +114,36 @@ function App() {
 
       // Transform data to match expected format
       const transformStockPosts = stockPosts.map((post: any, index: number) => ({
+        ...post, // Keep original post data first
         id: post.id || `stock_${index}`,
         platform: post.platform || 'Reddit',
         username: `u/${post.author}`,
         displayName: `u/${post.author}`,
         content: post.content || post.title || 'Stock discussion',
-        time: post.created_at,
-        likes: post.upvotes || Math.floor(Math.random() * 300),
-        retweets: post.num_comments || Math.floor(Math.random() * 100),
-        replies: Math.floor(Math.random() * 50),
+        created_at: post.created_at || '',
+        upvotes: post.upvotes || 0,
+        num_comments: post.num_comments || 0,
         sentiment: post.sentiment || 'neutral',
         avatar: '📈',
-        url: post.url,
-        author: post.author,
-        created_at: post.created_at,
-        stock_symbols: post.stock_symbols,
-        tag: post.tag
+        tag: post.tag,
+        stock_symbols: post.stock_symbols || [], // Ensure stock_symbols is an array
+        url: post.url || '',
       }));
 
       const transformPolymarketPosts = polymarketPosts.map((post: any, index: number) => ({
+        ...post, // Keep original post data first
         id: post.id || `poly_${index}`,
         platform: post.platform || 'Reddit',
         username: `u/${post.author}`,
         displayName: `u/${post.author}`,
         content: post.content || post.title || 'Political/prediction discussion',
-        time: post.created_at || '2 hours ago',
-        likes: post.upvotes || Math.floor(Math.random() * 300),
-        retweets: post.num_comments || Math.floor(Math.random() * 100),
-        replies: Math.floor(Math.random() * 50),
+        created_at: post.created_at || '',
+        upvotes: post.upvotes || 0,
+        num_comments: post.num_comments || 0,
         sentiment: post.sentiment || 'neutral',
         avatar: '🎯',
-        url: post.url,
-        author: post.author,
-        created_at: post.created_at,
-        stock_symbols: post.stock_symbols,
-        question: post.question
+        question: post.question,
+        url: post.url || '',
       }));
 
       setSocialData({

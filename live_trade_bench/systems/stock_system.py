@@ -104,6 +104,12 @@ class StockPortfolioSystem:
         fetcher = RedditFetcher()
         today = datetime.now().strftime("%Y-%m-%d")
 
+        # Update universe with latest trending stocks for social media fetching
+        latest_trending_stocks = fetch_trending_stocks(limit=self.universe_size)
+        if latest_trending_stocks:
+            self.universe = latest_trending_stocks
+            print(f"  - Updated social media universe to {len(self.universe)} trending stocks.")
+
         for ticker in self.universe:  # Fetch social data for all available tickers
             try:
                 print(f"    - Fetching social data for stock: {ticker}...")

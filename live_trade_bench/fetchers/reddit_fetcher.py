@@ -98,7 +98,7 @@ class RedditFetcher(BaseFetcher):
                     posts.append({
                         "title": post.title,
                         "content": post.selftext,
-                        "url": post.url,
+                        "url": f"https://www.reddit.com{post.permalink}", # Use permalink
                         "upvotes": post.ups,
                         "score": post.score,
                         "num_comments": post.num_comments,
@@ -161,7 +161,7 @@ class RedditFetcher(BaseFetcher):
                     posts.append({
                         "title": post_data.get("title", ""),
                         "content": post_data.get("selftext", ""),
-                        "url": post_data.get("url", ""),
+                        "url": f'https://www.reddit.com{post_data.get("permalink", "")}', # Use permalink
                         "upvotes": post_data.get("ups", 0),
                         "score": post_data.get("score", 0),
                         "num_comments": post_data.get("num_comments", 0),
