@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import './ModelsDisplay.css';
 import type { Model } from '../types';
-import { getAssetColor } from '../utils/colors';
+import { getAssetColor, getCashColor } from '../utils/colors';
+// Removed: import { AllocationHistoryItem, AssetAllocation, AssetMetadata } from '../types';
 
 // Custom Tooltip State
 type TooltipInfo = {
@@ -15,13 +16,15 @@ interface ModelsDisplayProps {
   stockModels: Model[];
   polymarketModels: Model[];
   onRefresh?: () => void;
+  // Removed assetMetadata prop
 }
 
 const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   modelsData,
   stockModels,
   polymarketModels,
-  onRefresh
+  onRefresh,
+  // assetMetadata // Removed from destructuring
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'polymarket' | 'stock'>('all');
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
@@ -233,23 +236,28 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     onMouseLeave: () => void;
   }) => {
     const allocations = useMemo(() => {
-      const target = portfolioData?.target_allocations || {};
-      const arr = Object.entries(target)
-        .map(([name, ratio]) => ({
+      if (!portfolioData) return [];
+
+      const sortedAssetNames = Object.keys(portfolioData.target_allocations)
+        .sort((a, b) => {
+          if (a === 'CASH') return 1;
+          if (b === 'CASH') return -1;
+          return a.localeCompare(b);
+        });
+
+      return sortedAssetNames.map((name, index) => {
+        const allocation = portfolioData.target_allocations[name] || 0;
+        return {
           name,
-          allocation: ratio as number,
-          color: getAssetColor(name, category as 'stock' | 'polymarket')
-        }))
-        .filter(item => item.allocation > 0)
-        .sort((a, b) => b.allocation - a.allocation);
-      // Move CASH to the end if present
-      const cashIndex = arr.findIndex(i => i.name === 'CASH');
-      if (cashIndex > -1) {
-        const [cashItem] = arr.splice(cashIndex, 1);
-        arr.push(cashItem);
-      }
-      return arr;
-    }, [portfolioData, category]);
+          allocation,
+          isCash: name === 'CASH',
+          isPolymarket: category === 'polymarket',
+          url: portfolioData.target_allocations[name]?.url || '', // Extract URL from target_allocations
+          question: portfolioData.target_allocations[name]?.question || '', // Extract question from target_allocations
+          color: getAssetColor(name, index, category as 'stock' | 'polymarket'), // Cast category here
+        };
+      });
+    }, [portfolioData, category]); // Removed assetMetadata from dependencies
 
     // DEBUG: Log the category and colors
     if (allocations.find(a => a.name === 'AAPL')) {
@@ -353,6 +361,92 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     );
   });
 
+  const miniAllocations = useMemo(() => {
+    if (filteredModels.length === 0) return []; // Use filteredModels here
+
+    // Aggregate allocations across all filtered models for the mini-chart
+    if (selectedCategory === 'stock') {
+      const aggregatedAllocations: Record<string, number> = {};
+      filteredModels.forEach(model => { // Use filteredModels
+        if (model.category === 'stock') { 
+          Object.entries(model.asset_allocation).forEach(([name, allocation]) => {
+            if (allocation > 0) {
+              aggregatedAllocations[name] = (aggregatedAllocations[name] || 0) + allocation;
+            }
+          });
+        }
+      });
+
+      const assetNames = Object.keys(aggregatedAllocations);
+      const sortedAssetNames = [...assetNames].sort((a, b) => {
+        if (a === 'CASH') return 1;
+        if (b === 'CASH') return -1;
+        return a.localeCompare(b);
+      });
+
+      return sortedAssetNames.map((name, index) => {
+        return {
+          name,
+          allocation: aggregatedAllocations[name] || 0,
+          color: getAssetColor(name, index, 'stock'), // Explicitly pass 'stock' category
+        };
+      });
+    } else if (selectedCategory === 'polymarket') {
+      // For Polymarket, aggregate YES/NO outcomes for the same market
+      const polymarketAggregatedAllocations: Record<string, { allocation: number; url: string; question: string }> = {};
+
+      filteredModels.forEach(model => { // Use filteredModels
+        if (model.category === 'polymarket') { // Ensure we only aggregate polymarket models here
+          Object.entries(model.asset_allocation).forEach(([marketKey, allocation]) => {
+            if (allocation > 0) {
+              const parts = marketKey.split('_');
+              const marketId = parts.slice(0, -1).join('_');
+              // Safely access market_info from the model for question and url
+              const marketInfo = model.portfolio.positions[marketKey]; // marketKey from model.asset_allocation can be a full key like 'marketId_YES'
+
+              const existing = polymarketAggregatedAllocations[marketId] || { allocation: 0, url: '', question: '' };
+              existing.allocation += allocation;
+              existing.url = marketInfo?.url || '';
+              existing.question = marketInfo?.question || '';
+              polymarketAggregatedAllocations[marketId] = existing;
+            }
+          });
+        }
+      });
+
+      const sortedMarketKeys = Object.keys(polymarketAggregatedAllocations)
+        .sort((a, b) => {
+          // For Polymarket mini-chart, still sort alphabetically by marketKey for consistent color assignment
+          return a.localeCompare(b);
+        });
+
+      return sortedMarketKeys.map((marketKey, index) => {
+        const { allocation, url, question } = polymarketAggregatedAllocations[marketKey];
+        return {
+          name: question || marketKey,
+          allocation,
+          isPolymarket: true,
+          url,
+          question,
+          color: getAssetColor(marketKey, index, 'polymarket'), // Explicitly pass 'polymarket' category
+        };
+      });
+    }
+    return [];
+  }, [filteredModels, selectedCategory]); // Corrected dependencies
+
+  // Common function to handle mouse move for tooltips
+  const onMouseMove = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>, content: string) => {
+      setTooltip({ x: event.clientX + 10, y: event.clientY + 10, content });
+    },
+    []
+  );
+
+  const onMouseLeave = useCallback(() => {
+    setTooltip(null);
+  }, []);
+
   return (
     <div className="models-container">
       {/*  */}
@@ -389,22 +483,36 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       <div className="models-grid-square">
         {filteredModels.map(model => {
           // Use the real (mocked) asset allocation from the model prop
-          const allocations = model.asset_allocation
+          const modelAllocationAssets = Object.entries(model.asset_allocation || {});
+          
+          const allocations = modelAllocationAssets.length > 0
             ? (() => {
-                const arr = Object.entries(model.asset_allocation)
-                  .map(([name, allocation]) => ({
-                    name,
-                    allocation,
-                    color: getAssetColor(name, model.category as 'stock' | 'polymarket')
-                  }))
-                  .sort((a, b) => b.allocation - a.allocation);
-                const cashIndex = arr.findIndex(i => i.name === 'CASH');
-                if (cashIndex > -1) {
-                  const [cashItem] = arr.splice(cashIndex, 1);
-                  arr.push(cashItem);
-                }
-                return arr;
-              })()
+              const arr = modelAllocationAssets
+                .map(([name, allocation]) => ({
+                  name,
+                  allocation,
+                  // The color for mini-allocation bar needs to be consistent, 
+                  // so we use the index from its own sorted list
+                  color: getAssetColor(name, 
+                    [...Object.keys(model.asset_allocation || {})].sort((a, b) => {
+                      if (a === 'CASH') return 1;
+                      if (b === 'CASH') return -1;
+                      return a.localeCompare(b);
+                    }).indexOf(name), 
+                    model.category as 'stock' | 'polymarket')
+                }))
+                .sort((a, b) => {
+                  if (a.name === 'CASH') return 1;
+                  if (b.name === 'CASH') return -1;
+                  return a.name.localeCompare(b.name);
+                });
+              const cashIndex = arr.findIndex(i => i.name === 'CASH');
+              if (cashIndex > -1) {
+                const [cashItem] = arr.splice(cashIndex, 1);
+                arr.push(cashItem);
+              }
+              return arr;
+            })()
             : []; // Default to empty if no allocation data
 
           return (
@@ -513,7 +621,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               <AssetRatioChart
                 allocationHistory={selectedModel.allocationHistory}
                 portfolio={selectedModel.portfolio}
-                assetMeta={(selectedModel as any).asset_meta || {}}
+                // assetMeta={(selectedModel as any).asset_meta || {}} // Removed this prop
                 category={selectedModel.category}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
@@ -546,11 +654,11 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 const AssetRatioChart: React.FC<{
   allocationHistory: any[];
   portfolio: any;
-  assetMeta: Record<string, { question?: string; url?: string; category?: string }>;
+  // assetMeta: Record<string, { question?: string; url?: string; category?: string }>; // Removed this prop
   category: string;
   onMouseMove: (e: React.MouseEvent, content: string) => void;
   onMouseLeave: () => void;
-}> = ({ allocationHistory, portfolio, assetMeta, category, onMouseMove, onMouseLeave }) => {
+}> = ({ allocationHistory, portfolio, category, onMouseMove, onMouseLeave }) => {
 
   // Create unique ID for this chart instance to avoid SVG gradient conflicts
   const chartId = useMemo(() => Math.random().toString(36).substr(2, 9), []);
@@ -604,24 +712,31 @@ const AssetRatioChart: React.FC<{
     const latest = Array.isArray(allocationHistory) && allocationHistory.length > 0
       ? allocationHistory[allocationHistory.length - 1]
       : null;
-    const map: Record<string, { url?: string; category?: string }> = {};
+    const map: Record<string, { url?: string; question?: string; category?: string }> = {};
     if (latest && Array.isArray(latest.allocations)) {
       latest.allocations.forEach((a: any) => {
-        if (a && a.name) map[a.name] = { url: a.url, category: a.category };
+        if (a && a.name) map[a.name] = { url: a.url, question: a.question, category: a.category };
       });
     }
     return map;
   }, [allocationHistory]);
 
   // Get colors based on the category passed as prop
-  const getAssetColorForChart = (asset: string) => {
-    const color = getAssetColor(asset, category as 'stock' | 'polymarket');
-    // DEBUG: Log the category and color
-    if (asset === 'AAPL') {
-      console.log('DEBUG (AssetRatioChart) for AAPL:', { category, color });
-    }
-    return color;
-  };
+  const getAssetColorForChart = useCallback(
+    (assetName: string) => {
+      const foundAssetIndex = allAssets.indexOf(assetName);
+      if (foundAssetIndex !== -1) {
+        return getAssetColor(assetName, foundAssetIndex, category as 'stock' | 'polymarket'); // Add type assertion here
+      }
+      return getCashColor();
+    },
+    [allAssets, category] 
+  );
+
+  // This ensures the chart uses the same sorted and colored allocations
+  const chartAllocations = useMemo(() => {
+    return allAssets.map(item => ({ name: item, value: 1 })); // Simple value for legend
+  }, [allAssets]);
 
   if (chartData.length === 0 || allAssets.length === 0) {
     return (

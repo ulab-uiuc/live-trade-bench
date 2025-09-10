@@ -9,5 +9,11 @@
   "engines": {
     "node": "18.x",
     "npm": "9.x"
+  },
+  "dependencies": {
+    "tinycolor2": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/tinycolor2": "^1.4.6"
   }
 }

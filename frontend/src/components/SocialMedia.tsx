@@ -24,6 +24,21 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
     }));
   }, [activeCategory, socialData]);
 
+  // Collect and sort all unique tags for consistent color assignment
+  const allUniqueTags = useMemo(() => {
+    const tags = new Set<string>();
+    socialData.stock.forEach(item => {
+      item.stock_symbols?.forEach((symbol: string) => tags.add(symbol));
+      item.tag && tags.add(item.tag);
+    });
+    socialData.polymarket.forEach(item => {
+      item.question && tags.add(item.question);
+      item.tag && tags.add(item.tag);
+    });
+    return Array.from(tags).sort((a, b) => a.localeCompare(b));
+  }, [socialData]);
+
+
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment.toLowerCase()) {
       case 'bullish':
@@ -36,7 +51,10 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
 
   const getTagColor = (tag: string | null) => {
     if (!tag) return '#6b7280';
-    return getAssetColor(tag, activeCategory);
+    // Find the index of the tag in the sorted list
+    const index = allUniqueTags.indexOf(tag);
+    if (index === -1) return '#6b7280'; // Fallback color if tag not found
+    return getAssetColor(tag, index, activeCategory);
   };
 
   const formatTimeAgo = (timeString: string) => {
@@ -146,9 +164,9 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
               }}>
                 {/* Stock Symbol Tags */}
                 {post.stock_symbols && post.stock_symbols.length > 0 && (
-                  post.stock_symbols.map((symbol: string, index: number) => (
-                    <span key={index} style={{
-                      background: '#3b82f6',
+                  post.stock_symbols.map((symbol: string) => (
+                    <span key={symbol} style={{
+                      background: getTagColor(symbol),
                       color: '#ffffff',
                       padding: '0.25rem 0.5rem',
                       borderRadius: '0.25rem',
