@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import sys
 from datetime import datetime
@@ -6,6 +7,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from backend.app.config import get_base_model_configs
+from backend.app.models_data import _create_model_data, _serialize_positions
 from live_trade_bench.backtest import run_backtest
 
 
@@ -17,8 +19,8 @@ async def main():
     print("   python enhanced_backtest_demo.py")
     print()
 
-    start_date = "2025-09-02"
-    end_date = "2025-09-06"
+    start_date = "2025-09-03"
+    end_date = "2025-09-09"
 
     print(f"🚀 Running parallel backtest: {start_date} → {end_date}")
     print(f"⏰ Started at: {datetime.now().strftime('%H:%M:%S')}")
@@ -32,7 +34,7 @@ async def main():
             print(f"   • {name}: {model_id}")
 
         print("🎯 Running polymarket backtest...")
-        polymarket_results = run_backtest(
+        polymarket_results, polymarket_system = run_backtest(
             models=models,
             initial_cash=500.0,
             start_date=start_date,
@@ -41,7 +43,7 @@ async def main():
         )
 
         print("📈 Running stock market backtest...")
-        stock_results = run_backtest(
+        stock_results, stock_system = run_backtest(
             models=models,
             initial_cash=1000.0,
             start_date=start_date,
@@ -129,6 +131,42 @@ async def main():
         print("\n📰 Note: All models used same historical data and news analysis")
         print("💡 Tip: Set TOGETHER_API_KEY and OPENAI_API_KEY for all models to work")
         print("🚀 Parallel processing significantly reduces total execution time!")
+
+        # Save detailed results to JSON file using the same format as live trading
+        print("\n💾 Saving detailed backtest data to backend/models_data_init.json...")
+        all_models_data = []
+
+        # Process stock system data
+        if hasattr(stock_system, "accounts") and hasattr(stock_system, "agents"):
+            market_info = getattr(stock_system, "market_info", None)
+            for agent_name, account in stock_system.accounts.items():
+                if agent_name in stock_system.agents:
+                    agent = stock_system.agents[agent_name]
+                    model_data = _create_model_data(
+                        agent, account, "stock", market_info
+                    )
+                    all_models_data.append(_serialize_positions(model_data))
+
+        # Process polymarket system data
+        if hasattr(polymarket_system, "accounts") and hasattr(
+            polymarket_system, "agents"
+        ):
+            market_info = getattr(polymarket_system, "market_info", None)
+            for agent_name, account in polymarket_system.accounts.items():
+                if agent_name in polymarket_system.agents:
+                    agent = polymarket_system.agents[agent_name]
+                    model_data = _create_model_data(
+                        agent, account, "polymarket", market_info
+                    )
+                    all_models_data.append(_serialize_positions(model_data))
+
+        # Save in the same array format as live trading data
+        with open("backend/models_data_init.json", "w") as f:
+            json.dump(all_models_data, f, indent=4)
+
+        print(
+            f"✅ Backtest data saved successfully! Generated {len(all_models_data)} model entries."
+        )
 
     except Exception as e:
         print(f"❌ Parallel backtest failed: {e}")
