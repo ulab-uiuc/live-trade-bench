@@ -238,7 +238,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     const allocations = useMemo(() => {
       if (!portfolioData) return [];
 
-      const sortedAssetNames = Object.keys(portfolioData.target_allocations)
+      const allocSource = portfolioData.current_allocations || {};
+
+      const sortedAssetNames = Object.keys(allocSource)
         .sort((a, b) => {
           if (a === 'CASH') return 1;
           if (b === 'CASH') return -1;
@@ -246,18 +248,16 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
         });
 
       return sortedAssetNames.map((name, index) => {
-        const allocation = portfolioData.target_allocations[name] || 0;
+        const allocation = allocSource[name] || 0;
         return {
           name,
           allocation,
           isCash: name === 'CASH',
           isPolymarket: category === 'polymarket',
-          url: portfolioData.target_allocations[name]?.url || '', // Extract URL from target_allocations
-          question: portfolioData.target_allocations[name]?.question || '', // Extract question from target_allocations
-          color: getAssetColor(name, index, category as 'stock' | 'polymarket'), // Cast category here
+          color: getAssetColor(name, index, category as 'stock' | 'polymarket'),
         };
       });
-    }, [portfolioData, category]); // Removed assetMetadata from dependencies
+    }, [portfolioData, category]);
 
     // DEBUG: Log the category and colors
     if (allocations.find(a => a.name === 'AAPL')) {

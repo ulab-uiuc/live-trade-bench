@@ -720,7 +720,7 @@
 }
 
 .polymarket-link {
-  color: #a78bfa;
+  color: #ADD8E6; /* Very light blue */
   text-decoration: none;
   font-weight: 500;
   font-size: 0.875rem;
@@ -731,7 +731,7 @@
 }
 
 .polymarket-link:hover {
-  color: #c4b5fd;
+  color: #E0FFFF; /* Lighter cyan on hover */
   text-decoration: underline;
 }
 
