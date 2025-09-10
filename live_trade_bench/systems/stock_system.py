@@ -39,20 +39,6 @@ class StockPortfolioSystem:
         self.agents[name] = agent
         self.accounts[name] = account
 
-    def _format_social_content(self, content: str) -> str:
-        """Helper to format social media content for display or analysis."""
-        import re
-
-        content = " ".join(content.split())
-        content = re.sub(
-            r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
-            "[link]",
-            content,
-        )
-        content = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\\1", content)
-        content = re.sub(r"\\*\\*([^*]+)\\*\\*", r"\\1", content)
-        return content[:300] + "..." if len(content) > 300 else content
-
     def run_cycle(self, for_date: str | None = None) -> None:
         print(
             f"\n--- 🔄 Cycle {self.cycle_count} | Processing {len(self.agents)} agents ---"
@@ -118,19 +104,25 @@ class StockPortfolioSystem:
         fetcher = RedditFetcher()
         today = datetime.now().strftime("%Y-%m-%d")
 
-        for ticker in self.universe[:3]:  # Limit to 3 tickers for performance
+        for ticker in self.universe:  # Fetch social data for all available tickers
             try:
-                posts = fetcher.fetch_posts_by_ticker(ticker, date=today, max_limit=3)
+                print(f"    - Fetching social data for stock: {ticker}...")
+                posts = fetcher.fetch_posts_by_ticker(ticker, date=today, max_limit=10) # Increased max_limit
+                print(f"    - Fetched {len(posts)} social posts for {ticker}.")
                 formatted_posts = []
                 for post in posts:
-                    content = self._format_social_content(post.get("content", ""))
+                    content = post.get("content", "") # No longer format content here
                     formatted_posts.append(
                         {
                             "content": content,
                             "author": post.get("author", "Unknown"),
                             "platform": "Reddit",
                             "url": post.get("url", ""),
-                            "created_at": post.get("created_at", ""),
+                            "created_at": post.get("created_utc", ""),  # Use created_utc
+                            "subreddit": post.get("subreddit", ""),  # Add subreddit
+                            "upvotes": post.get("upvotes", 0),  # Add upvotes
+                            "num_comments": post.get("num_comments", 0),  # Add num_comments
+                            "tag": ticker, # Add ticker as tag
                         }
                     )
                 social_data_map[ticker] = formatted_posts
@@ -151,10 +143,10 @@ class StockPortfolioSystem:
             )
             start_date = (ref - timedelta(days=3)).strftime("%Y-%m-%d")
             end_date = ref.strftime("%Y-%m-%d")
-            for ticker in list(market_data.keys())[:3]:
+            for ticker in list(market_data.keys()): # Fetch news for all available tickers
                 query = f"{ticker} stock earnings news"
                 news_data_map[ticker] = fetch_news_data(
-                    query, start_date, end_date, max_pages=1, ticker=ticker
+                    query, start_date, end_date, max_pages=3, ticker=ticker # Fetch more pages
                 )
         except Exception as e:
             print(f"    - News data fetch failed: {e}")

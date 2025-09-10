@@ -76,8 +76,8 @@ function App() {
     try {
       console.log('🔄 Background fetching news data...');
       const [stockResponse, polymarketResponse] = await Promise.all([
-        fetch('/api/news/stock?limit=25'),
-        fetch('/api/news/polymarket?limit=25')
+        fetch('/api/news/stock?limit=500'), // Increase limit for more news articles
+        fetch('/api/news/polymarket?limit=500') // Increase limit for more news articles
       ]);
 
       if (stockResponse.ok && polymarketResponse.ok) {
@@ -100,8 +100,8 @@ function App() {
     try {
       console.log('🔄 Background fetching social data...');
       const [stockResponse, polymarketResponse] = await Promise.all([
-        fetch('/api/social/stock?limit=15'),
-        fetch('/api/social/polymarket?limit=15')
+        fetch('/api/social/stock?limit=500'), // Increase limit for more social media posts
+        fetch('/api/social/polymarket?limit=500') // Increase limit for more social media posts
       ]);
 
       console.log("DEBUG: 1. Raw API Response (Social)", { stock: stockResponse, polymarket: polymarketResponse });

@@ -86,7 +86,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
   return (
     <div className="social-media-container">
       <div className="social-media-header">
-        <h1>Social Media</h1>
+        <h1>📱 Social Media</h1>
         <div className="social-media-controls">
           <div className="social-media-category-tabs">
             {(['stock', 'polymarket'] as const).map((market) => (
@@ -223,12 +223,14 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                 </span>
               </div>
 
-              <span style={{
+              <div style={{
                 fontSize: '0.75rem',
-                color: '#9ca3af'
+                color: '#9ca3af',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}>
                 {formatTimeAgo(post.time || post.created_at || '')}
-              </span>
+              </div>
             </div>
 
             {/* Post content */}
@@ -260,9 +262,8 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                 gap: '1rem',
                 alignItems: 'center'
               }}>
-                <span>❤️ {post.likes || post.upvotes || 0}</span>
-                <span>🔄 {post.retweets || 0}</span>
-                <span>💬 {post.replies || 0}</span>
+                <span>❤️ {post.upvotes || 0}</span>
+                <span>💬 {post.num_comments || 0}</span>
               </div>
             </div>
           </div>

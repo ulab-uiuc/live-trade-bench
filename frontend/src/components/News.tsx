@@ -57,7 +57,9 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
   return (
     <div className="news-container">
       <div className="news-header">
-        <h1>Market News</h1>
+        <h1>
+         📰 Market News
+        </h1>
         <div className="news-controls">
           <div className="news-category-tabs">
             {(['stock', 'polymarket'] as const).map((market) => (
@@ -165,12 +167,14 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
                 )}
               </div>
 
-              <span style={{
+              <div style={{
                 fontSize: '0.75rem',
-                color: '#9ca3af'
+                color: '#9ca3af',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}>
                 {getPublished(news)}
-              </span>
+              </div>
             </div>
 
             {/* News content */}

@@ -78,17 +78,20 @@ class RedditFetcher(BaseFetcher):
         posts = []
         seen_ids = set()
         
+        print(f"      - PRAW: Fetching from subreddits: {subreddits} for query '{query}' (limit: {max_limit})")
+
         for subreddit_name in subreddits:
             try:
                 subreddit = self.reddit.subreddit(subreddit_name)
                 
                 if query:
-                    submissions = subreddit.search(query, sort="top", time_filter=time_filter, limit=10)
+                    submissions = subreddit.search(query, sort="top", time_filter=time_filter, limit=max_limit)
                 else:
-                    submissions = subreddit.top(time_filter=time_filter, limit=10)
+                    submissions = subreddit.top(time_filter=time_filter, limit=max_limit)
                 
                 for post in submissions:
                     if post.id in seen_ids or len(posts) >= max_limit:
+                        print(f"        - PRAW: Skipping duplicate or max limit reached for {subreddit_name}")
                         continue
                     
                     seen_ids.add(post.id)
@@ -105,40 +108,51 @@ class RedditFetcher(BaseFetcher):
                         "created_utc": post.created_utc,
                         "id": post.id,
                     })
-                    
+                    print(f"        - PRAW: Collected {len(posts)} posts from {subreddit_name}")
+
                     if len(posts) >= max_limit:
+                        print(f"        - PRAW: Max limit {max_limit} reached for PRAW fetch. Breaking.")
                         break
                         
-            except Exception:
+            except Exception as e:
+                print(f"        - PRAW: Error fetching from {subreddit_name}: {e}")
                 continue
                 
-        return posts[:max_limit]
+        print(f"      - PRAW: Returning {len(posts)} total posts.")
+        return posts
 
     def _fetch_with_json(self, category: str, query: Optional[str], max_limit: int, time_filter: str) -> List[Dict[str, Any]]:
         subreddits = CATEGORY_SUBREDDITS.get(category, ["investing"])
         posts = []
         seen_ids = set()
-        
+
+        print(f"      - JSON: Fetching from subreddits: {subreddits} for query '{query}' (limit: {max_limit})")
+
         for subreddit_name in subreddits:
             try:
                 if query:
                     encoded_query = urllib.parse.quote(query)
-                    url = f"https://www.reddit.com/r/{subreddit_name}/search.json?q={encoded_query}&restrict_sr=1&sort=top&t={time_filter}&limit=10&raw_json=1"
+                    url = f"https://www.reddit.com/r/{subreddit_name}/search.json?q={encoded_query}&restrict_sr=1&sort=top&t={time_filter}&limit={max_limit}&raw_json=1"
                 else:
-                    url = f"https://www.reddit.com/r/{subreddit_name}/top.json?t={time_filter}&limit=10&raw_json=1"
+                    url = f"https://www.reddit.com/r/{subreddit_name}/top.json?t={time_filter}&limit={max_limit}&raw_json=1"
                 
+                print(f"        - JSON: Requesting URL: {url}")
                 response = self.make_request(url, timeout=5)
                 data = self.safe_json_parse(response, f"reddit r/{subreddit_name}")
                 
                 if not data or "data" not in data:
+                    print(f"        - JSON: No data or invalid data for {subreddit_name}")
                     continue
                     
                 children = data["data"].get("children", [])
+                print(f"        - JSON: Found {len(children)} raw items for {subreddit_name}")
+
                 for child in children:
                     post_data = child.get("data", {})
                     post_id = post_data.get("id")
                     
                     if post_id in seen_ids or len(posts) >= max_limit:
+                        print(f"        - JSON: Skipping duplicate or max limit reached for {subreddit_name}")
                         continue
                         
                     seen_ids.add(post_id)
@@ -157,14 +171,18 @@ class RedditFetcher(BaseFetcher):
                         "created_utc": created_utc,
                         "id": post_id,
                     })
-                    
+                    print(f"        - JSON: Collected {len(posts)} posts from {subreddit_name}")
+
                     if len(posts) >= max_limit:
+                        print(f"        - JSON: Max limit {max_limit} reached for JSON fetch. Breaking.")
                         break
                         
-            except Exception:
+            except Exception as e:
+                print(f"        - JSON: Error fetching from {subreddit_name}: {e}")
                 continue
                 
-        return posts[:max_limit]
+        print(f"      - JSON: Returning {len(posts)} total posts.")
+        return posts
 
     def fetch_top_from_category(self, category: str, date: str, max_limit: int, query: Optional[str] = None) -> List[Dict[str, Any]]:
         return self.fetch(category=category, query=query, max_limit=max_limit)
