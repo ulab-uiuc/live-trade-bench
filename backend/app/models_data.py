@@ -194,8 +194,10 @@ def merge_model_data(
 
     merged["trades"] = existing_model.get("trades", 0) + new_model.get("trades", 0)
 
-    merged["performance"] = new_model.get("performance", 0)
-    merged["profit"] = new_model.get("profit", 0)
+    merged["performance"] = existing_model.get("performance", 0) + new_model.get(
+        "performance", 0
+    )
+    merged["profit"] = existing_model.get("profit", 0) + new_model.get("profit", 0)
     merged["portfolio"] = new_model.get("portfolio", {})
     merged["asset_allocation"] = new_model.get("asset_allocation", {})
 
