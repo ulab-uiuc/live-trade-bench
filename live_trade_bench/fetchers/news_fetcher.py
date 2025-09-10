@@ -4,7 +4,9 @@ from typing import Any, Dict, List, Optional
 from bs4 import BeautifulSoup
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
-from live_trade_bench.fetchers.reddit_fetcher import TICKER_TO_COMPANY # Import TICKER_TO_COMPANY
+from live_trade_bench.fetchers.reddit_fetcher import (
+    TICKER_TO_COMPANY,  # Import TICKER_TO_COMPANY
+)
 
 
 class NewsFetcher(BaseFetcher):
@@ -94,16 +96,20 @@ class NewsFetcher(BaseFetcher):
                             # Fallback if relative time parsing fails (e.g., specific date string)
                             try:
                                 # Attempt to parse as a standard date string if it's not relative
-                                parsed_date = datetime.strptime(date, "%b %d, %Y").timestamp() # e.g., 'Sep 09, 2025'
+                                parsed_date = datetime.strptime(
+                                    date, "%b %d, %Y"
+                                ).timestamp()  # e.g., 'Sep 09, 2025'
                             except ValueError:
-                                parsed_date = datetime.now().timestamp() # Default to now if all parsing fails
+                                parsed_date = (
+                                    datetime.now().timestamp()
+                                )  # Default to now if all parsing fails
 
                         news_results.append(
                             {
                                 "link": link,
                                 "title": title,
                                 "snippet": snippet,
-                                "date": parsed_date, # Store as Unix timestamp
+                                "date": parsed_date,  # Store as Unix timestamp
                                 "source": source,
                             }
                         )
@@ -125,7 +131,11 @@ class NewsFetcher(BaseFetcher):
 
 
 def fetch_news_data(
-    query: str, start_date: str, end_date: str, max_pages: int = 10, ticker: Optional[str] = None # Corrected type hint
+    query: str,
+    start_date: str,
+    end_date: str,
+    max_pages: int = 10,
+    ticker: Optional[str] = None,  # Corrected type hint
 ) -> List[Dict[str, Any]]:
     fetcher = NewsFetcher()
 
@@ -133,8 +143,10 @@ def fetch_news_data(
     if ticker and ticker.upper() in TICKER_TO_COMPANY:
         company_name = TICKER_TO_COMPANY[ticker.upper()]
         augmented_query = f"{query} OR {company_name}"
-        print(f"  - News fetcher: Query augmented for ticker '{ticker}': '{augmented_query}'")
-    
+        print(
+            f"  - News fetcher: Query augmented for ticker '{ticker}': '{augmented_query}'"
+        )
+
     news_items = fetcher.fetch(augmented_query, start_date, end_date, max_pages)
 
     # Add ticker tag to each news item if provided
