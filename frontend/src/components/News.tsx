@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import './News.css';
 import { getAssetColor } from '../utils/colors';
 
@@ -26,10 +26,21 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
   };
 
 
+  // Collect and sort all unique tags for consistent color assignment
+  const allUniqueTags = useMemo(() => {
+    const tags = new Set<string>();
+    newsData.stock.forEach(item => item.tag && tags.add(item.tag));
+    newsData.polymarket.forEach(item => item.tag && tags.add(item.tag));
+    return Array.from(tags).sort((a, b) => a.localeCompare(b));
+  }, [newsData]);
+
   const getTagColor = (tag: string | null) => {
     if (!tag) return '#6b7280';
+    // Find the index of the tag in the sorted list
+    const index = allUniqueTags.indexOf(tag);
+    if (index === -1) return '#6b7280'; // Fallback color if tag not found
     // 复用和 allocation 一致的颜色算法
-    return getAssetColor(tag, activeCategory);
+    return getAssetColor(tag, index, activeCategory);
   };
 
 
