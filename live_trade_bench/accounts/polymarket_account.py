@@ -63,7 +63,7 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
             target_value = total_value * target_ratio
             quantity = target_value / price
 
-            # Get URL and other metadata if available  
+            # Get URL and other metadata if available
             url = None
             if metadata_map and ticker in metadata_map:
                 url = metadata_map[ticker].get("url")

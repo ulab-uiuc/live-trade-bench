@@ -34,7 +34,7 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
     ) -> str:
         # market_data keys are already in the format "{question}_YES" or "{question}_NO"
         asset_list = list(market_data.keys())
-        
+
         example_allocations = ""
         if len(asset_list) >= 2:
             example_allocations = (
@@ -43,10 +43,7 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
                 '   "CASH": 0.60'
             )
         elif asset_list:
-             example_allocations = (
-                f'   "{asset_list[0]}": 0.50,\n'
-                '   "CASH": 0.50'
-            )
+            example_allocations = f'   "{asset_list[0]}": 0.50,\n' '   "CASH": 0.50'
         else:
             example_allocations = '   "CASH": 1.0'
 
@@ -74,6 +71,7 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
         )
 
     # No longer need to override get_allocations. It will use the base class method.
+
 
 def create_polymarket_agent(
     name: str, model_name: str = "gpt-4o-mini"

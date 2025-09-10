@@ -690,7 +690,7 @@ const AssetRatioChart: React.FC<{
   // Build a comprehensive meta map from portfolio positions and allocation history
   const assetMetaMap = useMemo(() => {
     const map: Record<string, { url?: string; question?: string }> = {};
-    
+
     // First, get URLs from current portfolio positions
     if (portfolio?.positions) {
       Object.entries(portfolio.positions).forEach(([assetName, position]: [string, any]) => {
@@ -699,7 +699,7 @@ const AssetRatioChart: React.FC<{
         }
       });
     }
-    
+
     // Then, get URLs from allocation history (if format supports it)
     if (Array.isArray(allocationHistory)) {
       allocationHistory.forEach(snapshot => {
@@ -713,7 +713,7 @@ const AssetRatioChart: React.FC<{
         }
       });
     }
-    
+
     return map;
   }, [allocationHistory, portfolio]);
 

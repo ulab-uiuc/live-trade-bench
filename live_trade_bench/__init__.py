@@ -36,8 +36,8 @@ from .fetchers.option_fetcher import OptionFetcher
 from .fetchers.polymarket_fetcher import (
     PolymarketFetcher,
     fetch_current_market_price,
-    fetch_trending_markets,
     fetch_token_price,
+    fetch_trending_markets,
 )
 from .fetchers.stock_fetcher import StockFetcher, fetch_stock_price
 

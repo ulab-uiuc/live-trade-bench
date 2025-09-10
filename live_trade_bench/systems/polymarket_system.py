@@ -103,23 +103,19 @@ class PolymarketPortfolioSystem:
                 if price_data:
                     question = self.market_info[market_id]["question"]
                     url = self.market_info[market_id].get("url")
-                    
+
                     yes_key = f"{question}_YES"
                     no_key = f"{question}_NO"
 
                     if yes_key in price_data:
-                        price_data[yes_key].update({
-                            'id': f"{market_id}_YES",
-                            'question': question,
-                            'url': url
-                        })
+                        price_data[yes_key].update(
+                            {"id": f"{market_id}_YES", "question": question, "url": url}
+                        )
 
                     if no_key in price_data:
-                        price_data[no_key].update({
-                            'id': f"{market_id}_NO", 
-                            'question': question,
-                            'url': url
-                        })
+                        price_data[no_key].update(
+                            {"id": f"{market_id}_NO", "question": question, "url": url}
+                        )
 
                     market_data_expanded.update(price_data)
                 else:
@@ -129,9 +125,11 @@ class PolymarketPortfolioSystem:
                     )
             except Exception as e:
                 print(f"    - Failed to fetch data for {market_id}: {e}")
-        
-        print(f"  - ✅ Market data fetched and expanded for {len(market_data_expanded) // 2} markets")
-        self.market_data = market_data_expanded # Store the expanded data
+
+        print(
+            f"  - ✅ Market data fetched and expanded for {len(market_data_expanded) // 2} markets"
+        )
+        self.market_data = market_data_expanded  # Store the expanded data
         return self.market_data
 
     def _fetch_social_data(self) -> Dict[str, List[Dict[str, Any]]]:
@@ -261,7 +259,7 @@ class PolymarketPortfolioSystem:
         print("  - Updating all accounts...")
 
         # The price_map keys should be the same as allocation keys (question_outcome)
-        price_map = {key: asset['price'] for key, asset in market_data.items()}
+        price_map = {key: asset["price"] for key, asset in market_data.items()}
 
         for agent_name, allocation in allocations.items():
             account = self.accounts[agent_name]
@@ -272,9 +270,7 @@ class PolymarketPortfolioSystem:
             # Rebalance account to target allocation
             try:
                 account.apply_allocation(
-                    allocation, 
-                    price_map=price_map, 
-                    metadata_map=market_data
+                    allocation, price_map=price_map, metadata_map=market_data
                 )
                 account.record_allocation()
                 print(

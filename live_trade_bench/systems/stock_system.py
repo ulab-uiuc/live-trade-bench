@@ -216,9 +216,7 @@ class StockPortfolioSystem:
             account.target_allocations = allocation
             try:
                 account.apply_allocation(
-                    allocation, 
-                    price_map=price_map, 
-                    metadata_map=market_data
+                    allocation, price_map=price_map, metadata_map=market_data
                 )
                 account.record_allocation()
                 print(

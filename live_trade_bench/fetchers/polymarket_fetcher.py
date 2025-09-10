@@ -337,9 +337,7 @@ def fetch_current_market_price(token_ids: List[str]) -> Dict[str, Any]:
     return {}
 
 
-def fetch_market_price_on_date(
-    token_ids: List[str], date: str
-) -> Dict[str, Any]:
+def fetch_market_price_on_date(token_ids: List[str], date: str) -> Dict[str, Any]:
     """
     Fetches the historical price for a market on a specific date and returns it
     in the new question-based format, consistent with fetch_current_market_price.
@@ -349,7 +347,7 @@ def fetch_market_price_on_date(
 
     fetcher = PolymarketFetcher()
     yes_token_id = token_ids[0]
-    
+
     # We need the question for the new format
     market_info = PolymarketFetcher.get_market_info_by_token(yes_token_id)
     if not market_info or not market_info.get("question"):

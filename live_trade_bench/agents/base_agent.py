@@ -110,7 +110,9 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             news_summaries = []
             if news_data:
                 for asset_id, articles in list(news_data.items())[:3]:
-                    display_name = market_data.get(asset_id, {}).get("question", asset_id)
+                    display_name = market_data.get(asset_id, {}).get(
+                        "question", asset_id
+                    )
                     if articles:
                         snippet = articles[0].get("snippet", "")
                         news_summaries.append(f"• {display_name}: {snippet[:100]}...")
@@ -118,7 +120,9 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                         news_summaries.append(f"• {display_name}: No recent news")
             else:
                 for asset_id in list(market_data.keys())[:3]:
-                    display_name = market_data.get(asset_id, {}).get("question", asset_id)
+                    display_name = market_data.get(asset_id, {}).get(
+                        "question", asset_id
+                    )
                     news_summaries.append(f"• {display_name}: No news data provided")
 
             return "RECENT NEWS:\n" + "\n".join(news_summaries)
