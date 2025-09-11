@@ -39,6 +39,12 @@
   border-bottom: 1px solid #374151;
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .models-header h2 {
   font-size: 1.5rem;
   color: var(--theme-color-primary, #ffffff);
@@ -66,6 +72,33 @@
 .refresh-btn:hover {
   border-color: var(--theme-color-primary, #6366f1);
   color: var(--theme-color-primary, #6366f1);
+}
+
+.sort-control {
+  background: #1f2937;
+  border: 1px solid #374151;
+  color: #9ca3af;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  min-width: 140px;
+}
+
+.sort-control:hover {
+  border-color: var(--theme-color-primary, #6366f1);
+  color: var(--theme-color-primary, #6366f1);
+}
+
+.sort-control:focus {
+  outline: none;
+  border-color: var(--theme-color-primary, #6366f1);
+  color: #ffffff;
+}
+
+.sort-control option {
+  background: #1f2937;
+  color: #9ca3af;
 }
 
 /* 简化的分类标签 */
@@ -697,6 +730,16 @@
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
+  }
+
+  .header-controls {
+    align-self: stretch;
+    justify-content: space-between;
+  }
+
+  .sort-control {
+    min-width: 120px;
+    font-size: 0.8rem;
   }
 
   .model-item {

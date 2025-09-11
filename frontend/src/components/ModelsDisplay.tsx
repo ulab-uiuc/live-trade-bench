@@ -40,6 +40,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null);
+  const [sortOrder, setSortOrder] = useState<'default' | 'performance-asc' | 'performance-desc'>('default');
 
   // Pre-warm the tooltip system to avoid first-hover delay
   useEffect(() => {
@@ -56,17 +57,30 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
 
   const filteredModels = useMemo(() => {
+    let models;
 
     if (!showCategoryTabs) {
-      return modelsData;
+      models = modelsData;
+    } else {
+      switch (selectedCategory) {
+        case 'stock': models = stockModels; break;
+        case 'polymarket': models = polymarketModels; break;
+        default: models = modelsData; break;
+      }
     }
 
-    switch (selectedCategory) {
-      case 'stock': return stockModels;
-      case 'polymarket': return polymarketModels;
-      default: return modelsData;
-    }
-  }, [selectedCategory, stockModels, polymarketModels, modelsData, showCategoryTabs]);
+    const sortedModels = [...models].sort((a, b) => {
+      if (sortOrder === 'performance-asc') {
+        return a.performance - b.performance;
+      } else if (sortOrder === 'performance-desc') {
+        return b.performance - a.performance;
+      }
+      // Default: alphabetical order by name
+      return a.name.localeCompare(b.name);
+    });
+
+    return sortedModels;
+  }, [selectedCategory, stockModels, polymarketModels, modelsData, showCategoryTabs, sortOrder]);
 
 
   const getStatusColor = (status: string) => ({
@@ -430,8 +444,19 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       {/*  */}
       <div className="models-header">
         <h2>Trading Models</h2>
-        {/* Refresh button is now conditional */}
-        {onRefresh && <button onClick={onRefresh} className="refresh-btn">🔄</button>}
+        <div className="header-controls">
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as 'default' | 'performance-asc' | 'performance-desc')}
+            className="sort-control"
+          >
+            <option value="default">Name A-Z</option>
+            <option value="performance-desc">Return Rate ↓</option>
+            <option value="performance-asc">Return Rate ↑</option>
+          </select>
+          {/* Refresh button is now conditional */}
+          {onRefresh && <button onClick={onRefresh} className="refresh-btn">🔄</button>}
+        </div>
       </div>
 
       {/*  */}
