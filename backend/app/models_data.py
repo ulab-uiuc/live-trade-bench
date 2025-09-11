@@ -13,9 +13,9 @@ def _create_model_data(agent, account, market_type):
     account_data = account.get_account_data()
     model_id = f"{agent.model_name.lower().replace(' ', '-')}-{market_type}"
 
-    portfolio = account_data.get("portfolio", {})
+    portfolio = account_data.get("portfolio")
     allocation_history = account_data.get("allocation_history", [])
-    asset_allocation = portfolio.get("current_allocations", {})
+    asset_allocation = portfolio.get("current_allocations")
 
     # No processing needed - data should already be in correct format from the system
 
@@ -67,8 +67,10 @@ def merge_model_data(
     )
     merged["profit"] = existing_model.get("profit", 0) + new_model.get("profit", 0)
 
-    merged["portfolio"] = new_model.get("portfolio", {})
-    merged["asset_allocation"] = new_model.get("asset_allocation", {})
+    merged["portfolio"] = new_model.get("portfolio", existing_model.get("portfolio"))
+    merged["asset_allocation"] = new_model.get(
+        "asset_allocation", existing_model.get("asset_allocation")
+    )
 
     existing_allocation_history = existing_model.get("allocationHistory", [])
     new_allocation_history = new_model.get("allocationHistory", [])
@@ -131,6 +133,26 @@ def generate_models_data(stock_system, polymarket_system) -> None:
                 if not agent:
                     continue
 
+                # Check if LLM allocation was successful by looking at allocation history
+                account_data = account.get_account_data()
+                allocation_history = account_data.get("allocation_history")
+
+                # If no allocation history, or last allocation has no valid allocations, skip
+                if not allocation_history:
+                    print(f"⚠️ Skipping {agent_name}: No allocation history")
+                    continue
+
+                last_allocation = allocation_history[-1].get("allocations")
+                if not last_allocation or all(
+                    v == 0
+                    for v in last_allocation.values()
+                    if isinstance(v, (int, float))
+                ):
+                    print(
+                        f"⚠️ Skipping {agent_name}: LLM failed in last cycle (empty allocation)"
+                    )
+                    continue
+
                 model_data = _create_model_data(agent, account, market_type)
                 all_market_data.append(model_data)
 
@@ -147,13 +169,18 @@ def generate_models_data(stock_system, polymarket_system) -> None:
 
         # Merge new data with existing data
         merged_data = []
+        processed_ids = set()
+
+        # First, process all new successful models
         for new_model in all_market_data:
             new_model_serialized = _serialize_positions(new_model)
+            model_id = new_model_serialized.get("id")
+            processed_ids.add(model_id)
 
             # Find matching existing model by ID
             existing_model = None
             for existing in existing_data:
-                if existing.get("id") == new_model_serialized.get("id"):
+                if existing.get("id") == model_id:
                     existing_model = existing
                     break
 
@@ -169,7 +196,16 @@ def generate_models_data(stock_system, polymarket_system) -> None:
                     f"➕ Added new model {new_model_serialized.get('name', 'Unknown')}"
                 )
 
-        # Save merged data
+        # Then, preserve existing models that weren't updated (LLM failed cases)
+        for existing_model in existing_data:
+            existing_id = existing_model.get("id")
+            if existing_id not in processed_ids:
+                merged_data.append(existing_model)
+                print(
+                    f"📋 Preserved existing data for {existing_model.get('name', 'Unknown')} (no update)"
+                )
+
+        # Save merged data (including preserved existing data)
         with open(MODELS_DATA_FILE, "w") as f:
             json.dump(merged_data, f, indent=4)
         print(
