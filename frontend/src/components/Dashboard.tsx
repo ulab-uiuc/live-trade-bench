@@ -159,10 +159,11 @@ const LeaderboardCard: React.FC<{
   const [showAll, setShowAll] = useState(false);
 
   // Sort by score desc, compute rank
-  const sortedItems = [...items].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-
-  const rows = (showAll ? sortedItems : sortedItems.slice(0, 10))
+  const sortedItemsWithRank = [...items]
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
     .map((x, i) => ({ ...x, rank: i + 1 }));
+
+  const rows = showAll ? sortedItemsWithRank : sortedItemsWithRank.slice(0, 10);
 
   const getScoreClass = (score: number) => {
     if (score > 0) return "positive";
@@ -171,12 +172,7 @@ const LeaderboardCard: React.FC<{
   };
 
   const getRankDisplay = (rank: number) => {
-    switch (rank) {
-      case 1: return '🥇';
-      case 2: return '🥈';
-      case 3: return '🥉';
-      default: return rank.toString();
-    }
+    return rank.toString();
   };
 
   return (
@@ -189,7 +185,7 @@ const LeaderboardCard: React.FC<{
         <div className="card-updated">{relativeTime(updatedAt)}</div>
       </div>
 
-      {/* Table */}
+      {/* Desktop Table */}
       <div className="leaderboard-table">
         {/* Header */}
         <div className="table-header">
@@ -203,7 +199,7 @@ const LeaderboardCard: React.FC<{
         {rows.map((row) => (
           <div key={row.id} className="table-row">
             {/* Rank */}
-            <div className={`rank-cell ${row.rank <= 3 ? 'top-3' : ''}`}>
+            <div className={`rank-cell ${row.rank <= 3 ? `top-3 rank-${row.rank}` : ''}`}>
               {getRankDisplay(row.rank)}
             </div>
 
@@ -225,6 +221,7 @@ const LeaderboardCard: React.FC<{
           </div>
         ))}
       </div>
+
 
       {/* Footer */}
       {items.length > 10 && (
