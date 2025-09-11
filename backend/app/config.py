@@ -50,7 +50,7 @@ def get_base_model_configs() -> List[Tuple[str, str]]:
 UPDATE_FREQUENCY = {
     "system_status": 60,
     "news_social": 600,
-    "trading_cycle": 3600,
+    "trading_cycle": 3600 * 3,
 }
 
 TRADING_CONFIG = {
