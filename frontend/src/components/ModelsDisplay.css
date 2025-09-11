@@ -643,8 +643,8 @@
 
 /* 图例 */
 .allocation-legend {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   margin-bottom: 1rem;
 }
@@ -657,6 +657,7 @@
   background: #374151;
   border-radius: 0.375rem;
   font-size: 0.875rem;
+  flex: 1 1 100px;
 }
 
 .legend-color {
@@ -813,10 +814,6 @@
     padding: 0.5rem 0.75rem;
   }
 
-  .allocation-legend {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
 
   .allocation-bar {
     height: 28px;
@@ -955,9 +952,6 @@
     grid-template-columns: 1fr;
   }
 
-  .allocation-legend {
-    grid-template-columns: repeat(2, 1fr);
-  }
 
   .allocation-bar {
     height: 32px;
@@ -980,9 +974,6 @@
     padding: 0.875rem;
   }
 
-  .allocation-legend {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }
 
 /* Mobile responsive styles and touch improvements */
