@@ -40,12 +40,19 @@ class StockAccount(BaseAccount[Position, Transaction]):
         self,
         target_allocations: Dict[str, float],
         price_map: Optional[Dict[str, float]] = None,
+        metadata_map: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> None:
         if not price_map:
             price_map = {
                 ticker: pos.current_price for ticker, pos in self.positions.items()
             }
 
+        # CRITICAL: Update prices of existing positions to reflect market changes
+        for ticker, pos in self.positions.items():
+            if ticker in price_map:
+                pos.current_price = price_map[ticker]
+
+        # Now, calculate total value based on the NEW prices
         total_value = self.get_total_value()
 
         # Clear existing non-cash positions
@@ -64,11 +71,17 @@ class StockAccount(BaseAccount[Position, Transaction]):
             target_value = total_value * target_ratio
             quantity = target_value / price
 
+            # Get URL from metadata if available
+            url = None
+            if metadata_map and ticker in metadata_map:
+                url = metadata_map[ticker].get("url")
+
             self.positions[ticker] = Position(
                 symbol=ticker,
                 quantity=quantity,
                 average_price=price,
                 current_price=price,
+                url=url,
             )
             self.cash_balance -= target_value
 

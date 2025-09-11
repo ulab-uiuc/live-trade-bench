@@ -33,7 +33,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         try:
             market_analysis = self._prepare_market_analysis(market_data)
             account_analysis = self._prepare_account_analysis(account_data)
-            news_analysis = self._prepare_news_analysis(market_data, date, news_data)
+            news_analysis = self._prepare_news_analysis(market_data, news_data)
             full_analysis = self._combine_analysis_data(
                 market_analysis, account_analysis, news_analysis
             )
@@ -103,27 +103,33 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
 
     def _prepare_news_analysis(
         self,
-        market_data: Dict[str, DataType],
-        date: str | None = None,
+        market_data: Dict[str, Any],
         news_data: Optional[Dict[str, Any]] = None,
     ) -> str:
         try:
             news_summaries = []
             if news_data:
                 for asset_id, articles in list(news_data.items())[:3]:
+                    display_name = market_data.get(asset_id, {}).get(
+                        "question", asset_id
+                    )
                     if articles:
                         snippet = articles[0].get("snippet", "")
-                        news_summaries.append(f"• {asset_id}: {snippet[:100]}...")
+                        news_summaries.append(f"• {display_name}: {snippet[:100]}...")
                     else:
-                        news_summaries.append(f"• {asset_id}: No recent news")
+                        news_summaries.append(f"• {display_name}: No recent news")
             else:
                 for asset_id in list(market_data.keys())[:3]:
-                    news_summaries.append(f"• {asset_id}: No news data provided")
+                    display_name = market_data.get(asset_id, {}).get(
+                        "question", asset_id
+                    )
+                    news_summaries.append(f"• {display_name}: No news data provided")
 
             return "RECENT NEWS:\n" + "\n".join(news_summaries)
 
         except Exception as e:
-            return f"RECENT NEWS:\n• News fetch error: {str(e)}..."
+            print(f"Error preparing news analysis: {e}")
+            return "RECENT NEWS: Error preparing news analysis."
 
     def _create_news_query(self, asset_id: str, data: DataType) -> str:
         return asset_id

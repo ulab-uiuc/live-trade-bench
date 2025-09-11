@@ -18,7 +18,9 @@ def main() -> None:
     system = PolymarketPortfolioSystem()
 
     # Add AI agents for portfolio management
-    system.add_agent("Portfolio_Manager", 2000.0, "gpt-4o-mini")
+    system.add_agent(
+        "Portfolio_Manager", 2000.0, "anthropic/claude-3-5-sonnet-20240620"
+    )
 
     print(f"✅ Created system with {len(system.universe)} markets")
     print(f"✅ Added agents: {list(system.agents.keys())}")

@@ -215,7 +215,9 @@ class StockPortfolioSystem:
             account = self.accounts[agent_name]
             account.target_allocations = allocation
             try:
-                account.apply_allocation(allocation, price_map=price_map)
+                account.apply_allocation(
+                    allocation, price_map=price_map, metadata_map=market_data
+                )
                 account.record_allocation()
                 print(
                     f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"
