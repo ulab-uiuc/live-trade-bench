@@ -41,24 +41,23 @@ function normalize(raw: any): ModelRow {
   // Map backend model data to UI format
   // Performance/profit is likely stored as a decimal (e.g., 0.05 = 5%)
   let score = 0;
-  
-  if (typeof raw?.currentProfit === "number") {
+  if (typeof raw?.performance === "number") {
+    score = raw.performance;
+  } else if (typeof raw?.currentProfit === "number") {
     // Convert profit to percentage
     score = raw.currentProfit * 100;
   } else if (typeof raw?.profit === "number") {
     score = raw.profit * 100;
-  } else if (typeof raw?.performance === "number") {
-    score = raw.performance;
   } else if (typeof raw?.score === "number") {
     score = raw.score;
   }
 
   // Count trades/allocations
-  const trades = raw?.allocationHistory?.length || 
-                raw?.trades || 
-                raw?.votes || 
-                raw?.popularity || 
-                0;
+  const trades = raw?.allocationHistory?.length ||
+    raw?.trades ||
+    raw?.votes ||
+    raw?.popularity ||
+    0;
 
   return {
     id: raw?.id ?? raw?.name ?? Math.random().toString(36).slice(2),
@@ -88,7 +87,7 @@ const ProviderIcon: React.FC<{ name?: string; provider?: string }> = ({ name, pr
   const getProviderIcon = (provider?: string, name?: string) => {
     const p = provider?.toLowerCase() || "";
     const n = name?.toLowerCase() || "";
-    
+
     if (p.includes("openai") || p.includes("gpt") || n.includes("gpt")) {
       return "./openai.png";
     }
@@ -132,9 +131,9 @@ const ProviderIcon: React.FC<{ name?: string; provider?: string }> = ({ name, pr
   return (
     <div className={`model-avatar ${cls}`} title={provider || name}>
       {isPng ? (
-        <img 
-          src={icon} 
-          alt={provider || name} 
+        <img
+          src={icon}
+          alt={provider || name}
           style={{ width: '18px', height: '18px', objectFit: 'contain' }}
           onError={(e) => {
             console.log('Failed to load image:', icon, 'for provider:', provider, 'name:', name);
@@ -161,7 +160,7 @@ const LeaderboardCard: React.FC<{
 
   // Sort by score desc, compute rank
   const sortedItems = [...items].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-  
+
   const rows = (showAll ? sortedItems : sortedItems.slice(0, 10))
     .map((x, i) => ({ ...x, rank: i + 1 }));
 
@@ -211,7 +210,7 @@ const LeaderboardCard: React.FC<{
             {/* Model */}
             <div className="model-cell">
               <ProviderIcon name={row.name} provider={row.provider} />
-                <div className="model-name">{row.name}</div>
+              <div className="model-name">{row.name}</div>
             </div>
 
             {/* Score/Performance */}
@@ -262,19 +261,19 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
       </div>
 
       <div className="leaderboard-grid">
-        <LeaderboardCard 
+        <LeaderboardCard
           key="stock-leaderboard"
-          title="Stock Market" 
-          updatedAt={modelsLastRefresh} 
-          items={stock} 
-          category="stock" 
+          title="Stock Market"
+          updatedAt={modelsLastRefresh}
+          items={stock}
+          category="stock"
         />
-        <LeaderboardCard 
+        <LeaderboardCard
           key="polymarket-leaderboard"
-          title="Polymarket" 
-          updatedAt={modelsLastRefresh} 
-          items={poly} 
-          category="polymarket" 
+          title="Polymarket"
+          updatedAt={modelsLastRefresh}
+          items={poly}
+          category="polymarket"
         />
       </div>
     </div>
