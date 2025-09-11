@@ -13,7 +13,7 @@
 }
 
 .dashboard-title {
-  color: #6366f1;
+  color: #9c9ef8;
   font-size: 3.5rem;
   font-weight: 800;
   margin-bottom: 1rem;
@@ -73,11 +73,11 @@
 }
 
 .leaderboard-card.stock .card-title {
-  color: #f59e0b; /* Amber 500 */
+  color: #9597f3; /* Fuchsia 500 */
 }
 
 .leaderboard-card.polymarket .card-title {
-  color: #06b6d4; /* Cyan 500 */
+  color: #9597f3; /* Sky 500 */
 }
 
 .card-updated {
@@ -245,11 +245,11 @@
 }
 
 .score-cell.positive {
-  color: #f59e0b; /* Amber 500 */
+  color: #9c9ef8; /* Fuchsia 500 */
 }
 
 .score-cell.negative {
-  color: #ef4444;
+  color: #dadaf5;
 }
 
 .score-cell.neutral {

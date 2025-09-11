@@ -44,14 +44,19 @@
   padding-bottom: 1rem;
 }
 
-.news-container .news-header h1 {
-  font-size: 2rem !important;
-  font-weight: bold !important;
-  margin-bottom: 1.5rem !important;
-  color: #ffffff !important;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
+.news-header h1 {
+  color: #9c9ef8;
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.news-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.2rem;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
 }
 
 .news-category-tabs button {

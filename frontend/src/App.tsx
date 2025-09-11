@@ -22,6 +22,7 @@ export interface NewsItem {
 
 export interface SocialPost {
   id: string;
+  title?: string; // Add title for Reddit posts
   platform: string;
   username: string;
   displayName: string;
@@ -117,7 +118,8 @@ function App() {
         platform: post.platform || 'Reddit',
         username: `u/${post.author}`,
         displayName: `u/${post.author}`,
-        content: post.content || post.title || 'Stock discussion',
+        title: post.title, // Explicitly map title
+        content: post.content || '', // Correctly map content, fallback to empty string
         created_at: post.created_at || '',
         upvotes: post.upvotes || 0,
         num_comments: post.num_comments || 0,
@@ -133,7 +135,8 @@ function App() {
         platform: post.platform || 'Reddit',
         username: `u/${post.author}`,
         displayName: `u/${post.author}`,
-        content: post.content || post.title || 'Political/prediction discussion',
+        title: post.title, // Also map for polymarket in case it exists
+        content: post.content || '', // Correctly map content, fallback to empty string
         created_at: post.created_at || '',
         upvotes: post.upvotes || 0,
         num_comments: post.num_comments || 0,

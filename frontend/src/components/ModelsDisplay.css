@@ -1102,6 +1102,10 @@
   text-decoration: underline;
 }
 
+.theme-polymarket .allocation-legend {
+  grid-template-columns: 1fr 1fr;
+}
+
 .legend-category {
   font-size: 0.75rem;
   color: #9ca3af;
