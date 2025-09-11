@@ -214,7 +214,10 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 fill={performance >= 0 ? '#10b981' : '#ef4444'}
                 style={{ cursor: 'pointer', transition: 'r 0.2s' }}
                 onMouseMove={(e) => {
-                  const date = new Date(point.date).toLocaleDateString();
+                  const date = new Date(point.timestamp).toLocaleString('zh-CN', {
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', hour12: false
+                  }).replace(/\//g, '-').replace(',', '');
                   onMouseMove(e, `Date: ${date} | Performance: ${performance.toFixed(2)}%`);
                 }}
                 onMouseEnter={(e) => e.currentTarget.setAttribute('r', '6')}
