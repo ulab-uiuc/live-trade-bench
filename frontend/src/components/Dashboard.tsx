@@ -1,528 +1,284 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useState } from "react";
+import "./Dashboard.css";
 
-interface DashboardProps {
-  modelsData: any[];
-  modelsLastRefresh: Date;
-  systemStatus: any;
-  systemLastRefresh: Date;
+// ------- Types -------
+export type ModelRow = {
+  id: string | number;
+  name: string;
+  provider?: string; // e.g., OpenAI, Google, Anthropic
+  score: number; // higher is better
+  votes?: number;
+  logoUrl?: string; // optional small logo
+};
+
+export type DashboardProps = {
+  modelsData?: any[]; // raw input from your backend
+  modelsLastRefresh?: Date | string;
+  systemStatus?: any;
+  systemLastRefresh?: Date | string;
+};
+
+// ------- Helpers -------
+function relativeTime(dateLike?: Date | string) {
+  if (!dateLike) return "";
+  const date = typeof dateLike === "string" ? new Date(dateLike) : dateLike;
+  const diffMs = Date.now() - date.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min${mins === 1 ? "" : "s"} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({
-  modelsData,
-  modelsLastRefresh,
-  systemStatus,
-  systemLastRefresh
-}) => {
-  console.log('📊 Dashboard rendering with background data!');
+// Utility function for conditional class names (keeping for potential future use)
+// function clsx(...xs: Array<string | false | null | undefined>) {
+//   return xs.filter(Boolean).join(" ");
+// }
 
+function normalize(raw: any): ModelRow {
+  // Map backend model data to UI format
+  // Performance/profit is likely stored as a decimal (e.g., 0.05 = 5%)
+  let score = 0;
+  
+  if (typeof raw?.currentProfit === "number") {
+    // Convert profit to percentage
+    score = raw.currentProfit * 100;
+  } else if (typeof raw?.profit === "number") {
+    score = raw.profit * 100;
+  } else if (typeof raw?.performance === "number") {
+    score = raw.performance;
+  } else if (typeof raw?.score === "number") {
+    score = raw.score;
+  }
 
-  const stockModels = modelsData.filter((model: any) => model?.category === 'stock');
-  const polymarketModels = modelsData.filter((model: any) => model?.category === 'polymarket');
+  // Count trades/allocations
+  const trades = raw?.allocationHistory?.length || 
+                raw?.trades || 
+                raw?.votes || 
+                raw?.popularity || 
+                0;
+
+  return {
+    id: raw?.id ?? raw?.name ?? Math.random().toString(36).slice(2),
+    name: raw?.name ?? raw?.model ?? "Unknown Model",
+    provider: extractProvider(raw?.name),
+    score: Number(score.toFixed(2)),
+    votes: trades,
+    logoUrl: raw?.logoUrl,
+  } as ModelRow;
+}
+
+function extractProvider(name?: string): string {
+  if (!name) return "Unknown";
+  const n = name.toLowerCase();
+  if (n.includes("gpt") || n.includes("openai")) return "OpenAI";
+  if (n.includes("claude") || n.includes("anthropic")) return "Anthropic";
+  if (n.includes("gemini") || n.includes("google")) return "Google";
+  if (n.includes("llama") || n.includes("meta")) return "Meta";
+  if (n.includes("qwen")) return "Qwen";
+  if (n.includes("deepseek")) return "DeepSeek";
+  if (n.includes("grok")) return "xAI";
+  return "Other";
+}
+
+// ------- Provider Icon -------
+const ProviderIcon: React.FC<{ name?: string; provider?: string }> = ({ name, provider }) => {
+  const getProviderIcon = (provider?: string, name?: string) => {
+    const p = provider?.toLowerCase() || "";
+    const n = name?.toLowerCase() || "";
+    
+    if (p.includes("openai") || p.includes("gpt") || n.includes("gpt")) {
+      return "./openai.png";
+    }
+    if (p.includes("anthropic") || p.includes("claude") || n.includes("claude")) {
+      return `${process.env.PUBLIC_URL}/claude.png`;
+    }
+    if (p.includes("google") || p.includes("gemini") || n.includes("gemini")) {
+      return "./google.png";
+    }
+    if (p.includes("meta") || p.includes("llama") || n.includes("llama")) {
+      return "./meta.png";
+    }
+    if (p.includes("qwen") || n.includes("qwen") || p.includes("kimi") || n.includes("kimi")) {
+      return "./kimi.png";
+    }
+    if (p.includes("deepseek") || n.includes("deepseek")) {
+      return "./deepseek.png";
+    }
+    if (p.includes("xai") || p.includes("grok") || n.includes("grok")) {
+      return "❌"; // Keep emoji for xAI as no PNG available
+    }
+    return "⚡"; // Default emoji
+  };
+
+  const getProviderClass = (provider?: string, name?: string) => {
+    const p = provider?.toLowerCase() || "";
+    const n = name?.toLowerCase() || "";
+    if (p.includes("openai") || p.includes("gpt") || n.includes("gpt")) return "openai";
+    if (p.includes("anthropic") || p.includes("claude") || n.includes("claude")) return "anthropic";
+    if (p.includes("google") || p.includes("gemini") || n.includes("gemini")) return "google";
+    if (p.includes("meta") || p.includes("llama") || n.includes("llama")) return "meta";
+    if (p.includes("qwen") || n.includes("qwen") || p.includes("kimi") || n.includes("kimi")) return "kimi";
+    if (p.includes("deepseek") || n.includes("deepseek")) return "deepseek";
+    return "other";
+  };
+
+  const icon = getProviderIcon(provider, name);
+  const cls = getProviderClass(provider, name);
+  const isPng = icon.endsWith('.png');
 
   return (
-    <div style={{
-      padding: '2rem',
-      color: '#ffffff',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
-      fontSize: '16px',
-      position: 'relative' // Needed for z-index context
-    }}>
-      {/*  */}
-      <div style={{
-        textAlign: 'center',
-        marginBottom: '3rem',
-        position: 'relative',
-        zIndex: 1 // Ensure title is below navigation
-      }}>
-        <h1 style={{
-          color: '#ffffff',
-          fontSize: '3.5rem',
-          marginBottom: '1rem',
-          fontWeight: '800',
-          background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          textShadow: '0 4px 8px rgba(0,0,0,0.3)',
-          letterSpacing: '-0.025em'
-        }}>
-          Leaderboard
-        </h1>
-        <p style={{
-          color: '#94a3b8',
-          fontSize: '1.125rem',
-          margin: 0,
-          fontWeight: '500'
-        }}>
-          Real-time leaderboard on LLM-based stock and polymarket porfolio management
-        </p>
-      </div>
-
-      {/*  -  */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '1.5rem',
-        marginBottom: '3rem',
-        position: 'relative',
-        zIndex: 1001,
-        overflow: 'visible'
-      }}>
-        {/* Total Models */}
-        <div style={{
-          padding: '1.5rem',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            width: '200px',
-            height: '48px',
-            background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 1rem auto',
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#ffffff'
-          }}>
-            TOTAL MODELS
-          </div>
-          <p style={{ color: '#ffffff', margin: 0, fontSize: '2.5rem', fontWeight: '800' }}>{modelsData.length}</p>
-        </div>
-
-        {/* Stock Models */}
-        <div style={{
-          padding: '1.5rem',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            width: '200px',
-            height: '48px',
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 1rem auto',
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#ffffff'
-          }}>
-            STOCK MODELS
-          </div>
-          <p style={{ color: '#10b981', margin: 0, fontSize: '2.5rem', fontWeight: '800' }}>{stockModels.length}</p>
-        </div>
-
-        {/* Polymarket Models */}
-        <div style={{
-          padding: '1.5rem',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            width: '200px',
-            height: '48px',
-            background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 1rem auto',
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#ffffff'
-          }}>
-            POLYMARKET MODELS
-          </div>
-          <p style={{ color: '#a78bfa', margin: 0, fontSize: '2.5rem', fontWeight: '800' }}>{polymarketModels.length}</p>
-        </div>
-
-        {/* Last Updated */}
-        <div style={{
-          padding: '1.5rem',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            width: '200px',
-            height: '48px',
-            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 1.5rem auto',
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#ffffff'
-          }}>
-            LAST UPDATED
-          </div>
-                      <p style={{
-              color: '#f59e0b',
-              margin: '0 0 0.5rem 0',
-              fontSize: '2.5rem',
-              fontWeight: '800',
-              fontFamily: 'monospace',
-              letterSpacing: '-0.025em',
-              lineHeight: '1'
-            }}>
-              {new Date(modelsLastRefresh).toLocaleString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              })}
-            </p>
-            <p style={{
-              color: '#94a3b8',
-              margin: '0.25rem 0 0 0',
-              fontSize: '0.75rem',
-              fontWeight: '500',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
-            }}>
-              {new Date(modelsLastRefresh).toLocaleDateString('en-US', {
-                month: 'short',
-                day: '2-digit'
-              })}
-            </p>
-        </div>
-      </div>
-
-      {/*  */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '2rem',
-        marginBottom: '2rem',
-
-        position: 'relative',
-        zIndex: 1001,
-        overflow: 'visible'
-      }}>
-        {/* Stock Models  */}
-        <div style={{
-
-          position: 'relative',
-          zIndex: 1001,
-          overflow: 'visible'
-        }}>
-          <h2 style={{
-            color: '#ffffff',
-            fontSize: '1.75rem',
-            marginBottom: '2rem',
-            textAlign: 'center',
-            fontWeight: '700',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem'
-          }}>
-            <span style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}>
-              Stock Model Leaderboard
-            </span>
-          </h2>
-
-          {stockModels.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '3rem 1rem',
-              color: '#94a3b8'
-            }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
-              <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>No stock models available</p>
-            </div>
-          ) : (
-            (() => {
-              const stockPerformances = stockModels.map((m: any) => m?.performance || 0);
-              const maxStockPerf = Math.ceil(Math.max(...stockPerformances.map(Math.abs), 25) / 5) * 5;
-
-              return (
-                <div style={{ padding: '1rem 0' }}>
-                  <div style={{ padding: '2rem 1rem' }}>
-                    <div style={{ position: 'relative', height: '320px', marginBottom: '1rem' }}>
-                      {/* Y - centered */}
-                      {[maxStockPerf, maxStockPerf / 2, 0, -maxStockPerf / 2, -maxStockPerf].map(value => {
-                        const topPercentage = 50 - (value / maxStockPerf) * 50;
-                        return (
-                          <div key={value} style={{
-                            position: 'absolute',
-                            left: '40px',
-                            right: '20px',
-                            top: `${topPercentage}%`,
-                            height: '1px',
-                            background: value === 0 ? '#64748b' : 'rgba(148, 163, 184, 0.15)',
-                            borderTop: value === 0 ? '2px solid #64748b' : '1px dashed rgba(148, 163, 184, 0.1)',
-                            transform: 'translateY(-50%)'
-                          }}>
-                            <span style={{
-                              position: 'absolute',
-                              left: '-40px',
-                              top: '-8px',
-                              fontSize: '0.75rem',
-                              color: '#94a3b8',
-                              fontWeight: '500'
-                            }}>{value.toFixed(0)}%</span>
-                          </div>
-                        );
-                      })}
-
-                      {/*  */}
-                      <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        bottom: 0,
-                        left: '50px',
-                        right: '30px',
-                        display: 'flex',
-                        justifyContent: 'space-around',
-                        gap: '0.3rem'
-                      }}>
-                        {stockModels
-                          .sort((a: any, b: any) => (b?.performance || 0) - (a?.performance || 0))
-                          .slice(0, 6) // Limit to top 6 models
-                          .map((model: any, index: number) => {
-                            const performance = model?.performance || 0;
-                            const isPositive = performance >= 0;
-                            const barHeight = Math.min((Math.abs(performance) / maxStockPerf) * 150, 150);
-
-                            return (
-                              <div key={model?.id || index} style={{
-                                flex: 1,
-                                position: 'relative',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'flex-end'
-                              }}>
-                                {/* Performance Label */}
-                                <div style={{
-                                  position: 'absolute',
-                                  left: '50%',
-                                  transform: 'translateX(-50%)',
-                                  ...(isPositive
-                                    ? { bottom: `calc(50% + ${barHeight}px + 5px)` }
-                                    : { top: `calc(50% + ${barHeight}px + 5px)` }),
-                                  color: isPositive ? '#10b981' : '#ef4444',
-                                  fontSize: '1rem', // Increased font size
-                                  fontWeight: '700',
-                                  whiteSpace: 'nowrap',
-                                }}>
-                                  {isPositive ? '+' : ''}{performance.toFixed(1)}%
-                                </div>
-
-                                {/* Bar */}
-                                <div style={{
-                                  position: 'absolute',
-                                  left: '10%',
-                                  right: '10%',
-                                  ...(isPositive
-                                    ? { bottom: '50%', height: `${barHeight}px` }
-                                    : { top: '50%', height: `${barHeight}px` }),
-                                  background: isPositive ? '#10b981' : '#ef4444',
-                                  transition: 'all 0.3s ease',
-                                  cursor: 'pointer'
-                                }}>
-                                </div>
-
-                                {/*  */}
-                                <div style={{
-                                  height: '40px', // Reserve space at the bottom
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                }}>
-                                  <span style={{
-                                    color: '#ffffff',
-                                    fontSize: '0.875rem', // Increased font size
-                                    fontWeight: '600',
-                                    textAlign: 'center',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                  }}>
-                                    {model?.name || 'Unknown'}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()
-          )}
-        </div>
-
-        {/* Polymarket Models  */}
-        <div style={{
-
-          position: 'relative',
-          zIndex: 1001,
-          overflow: 'visible'
-        }}>
-          <h2 style={{
-            color: '#ffffff',
-            fontSize: '1.75rem',
-            marginBottom: '2rem',
-            textAlign: 'center',
-            fontWeight: '700',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem'
-          }}>
-            <span style={{
-              background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}>
-              Polymarket Model Leaderboard
-            </span>
-          </h2>
-
-          {polymarketModels.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '3rem 1rem',
-              color: '#94a3b8'
-            }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎯</div>
-              <p style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>No polymarket models available</p>
-            </div>
-          ) : (
-            (() => {
-              const polyPerformances = polymarketModels.map((m: any) => m?.performance || 0);
-              const maxPolyPerf = Math.ceil(Math.max(...polyPerformances.map(Math.abs), 25) / 5) * 5;
-
-              return (
-                <div style={{ padding: '1rem 0' }}>
-                  <div style={{ padding: '2rem 1rem' }}>
-                    <div style={{ position: 'relative', height: '320px', marginBottom: '1rem' }}>
-                      {/* Y - centered */}
-                      {[maxPolyPerf, maxPolyPerf / 2, 0, -maxPolyPerf / 2, -maxPolyPerf].map(value => {
-                        const topPercentage = 50 - (value / maxPolyPerf) * 50;
-                        return (
-                          <div key={value} style={{
-                            position: 'absolute',
-                            left: '40px',
-                            right: '20px',
-                            top: `${topPercentage}%`,
-                            height: '1px',
-                            background: value === 0 ? '#8b5cf6' : 'rgba(167, 139, 250, 0.15)',
-                            borderTop: value === 0 ? '2px solid #8b5cf6' : '1px dashed rgba(167, 139, 250, 0.1)',
-                            transform: 'translateY(-50%)'
-                          }}>
-                            <span style={{
-                              position: 'absolute',
-                              left: '-40px',
-                              top: '-8px',
-                              fontSize: '0.75rem',
-                              color: '#c4b5fd',
-                              fontWeight: '500'
-                            }}>{value.toFixed(0)}%</span>
-                          </div>
-                        );
-                      })}
-
-                      {/*  */}
-                      <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        bottom: 0,
-                        left: '50px',
-                        right: '30px',
-                        display: 'flex',
-                        justifyContent: 'space-around',
-                        gap: '0.3rem'
-                      }}>
-                        {polymarketModels
-                          .sort((a: any, b: any) => (b?.performance || 0) - (a?.performance || 0))
-                          .slice(0, 6) // Limit to top 6 models
-                          .map((model: any, index: number) => {
-                            const performance = model?.performance || 0;
-                            const isPositive = performance >= 0;
-                            const barHeight = Math.min((Math.abs(performance) / maxPolyPerf) * 150, 150);
-
-                            return (
-                              <div key={model?.id || index} style={{
-                                flex: 1,
-                                position: 'relative',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'flex-end'
-                              }}>
-                                {/* Performance Label */}
-                                <div style={{
-                                  position: 'absolute',
-                                  left: '50%',
-                                  transform: 'translateX(-50%)',
-                                  ...(isPositive
-                                    ? { bottom: `calc(50% + ${barHeight}px + 5px)` }
-                                    : { top: `calc(50% + ${barHeight}px + 5px)` }),
-                                  color: isPositive ? '#a78bfa' : '#ef4444',
-                                  fontSize: '1rem', // Increased font size
-                                  fontWeight: '700',
-                                  whiteSpace: 'nowrap',
-                                }}>
-                                  {isPositive ? '+' : ''}{performance.toFixed(1)}%
-                                </div>
-
-                                {/* Bar */}
-                                <div style={{
-                                  position: 'absolute',
-                                  left: '10%',
-                                  right: '10%',
-                                  ...(isPositive
-                                    ? { bottom: '50%', height: `${barHeight}px` }
-                                    : { top: '50%', height: `${barHeight}px` }),
-                                  background: isPositive ? '#a78bfa' : '#ef4444',
-                                  transition: 'all 0.3s ease',
-                                  cursor: 'pointer'
-                                }}>
-                                </div>
-
-                                {/*  */}
-                                <div style={{
-                                  height: '40px', // Reserve space at the bottom
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                }}>
-                                  <span style={{
-                                    color: '#ffffff',
-                                    fontSize: '0.875rem', // Increased font size
-                                    fontWeight: '600',
-                                    textAlign: 'center',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                  }}>
-                                    {model?.name || 'Unknown'}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()
-          )}
-        </div>
-
-      </div>
-
+    <div className={`model-avatar ${cls}`} title={provider || name}>
+      {isPng ? (
+        <img 
+          src={icon} 
+          alt={provider || name} 
+          style={{ width: '18px', height: '18px', objectFit: 'contain' }}
+          onError={(e) => {
+            console.log('Failed to load image:', icon, 'for provider:', provider, 'name:', name);
+            // Fallback to emoji if image fails to load
+            e.currentTarget.style.display = 'none';
+            e.currentTarget.parentElement!.innerHTML = '<span style="line-height: 1; display: block;">⚡</span>';
+          }}
+        />
+      ) : (
+        <span style={{ lineHeight: 1, display: 'block' }}>{icon}</span>
+      )}
     </div>
   );
 };
 
-export default Dashboard;
+// ------- Modern Leaderboard Card -------
+const LeaderboardCard: React.FC<{
+  title: string;
+  updatedAt?: Date | string;
+  items: ModelRow[];
+  category: "stock" | "polymarket";
+}> = ({ title, updatedAt, items, category }) => {
+  const [showAll, setShowAll] = useState(false);
+
+  // Sort by score desc, compute rank
+  const sortedItems = [...items].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  
+  const rows = (showAll ? sortedItems : sortedItems.slice(0, 10))
+    .map((x, i) => ({ ...x, rank: i + 1 }));
+
+  const getScoreClass = (score: number) => {
+    if (score > 0) return "positive";
+    if (score < 0) return "negative";
+    return "neutral";
+  };
+
+  const getRankDisplay = (rank: number) => {
+    switch (rank) {
+      case 1: return '🥇';
+      case 2: return '🥈';
+      case 3: return '🥉';
+      default: return rank.toString();
+    }
+  };
+
+  return (
+    <div className={`leaderboard-card ${category}`}>
+      {/* Header */}
+      <div className="card-header">
+        <div className="card-title-section">
+          <h3 className="card-title">{title}</h3>
+        </div>
+        <div className="card-updated">{relativeTime(updatedAt)}</div>
+      </div>
+
+      {/* Table */}
+      <div className="leaderboard-table">
+        {/* Header */}
+        <div className="table-header">
+          <div>Rank</div>
+          <div>Model</div>
+          <div>Return</div>
+          <div>#Trades</div>
+        </div>
+
+        {/* Rows */}
+        {rows.map((row) => (
+          <div key={row.id} className="table-row">
+            {/* Rank */}
+            <div className={`rank-cell ${row.rank <= 3 ? 'top-3' : ''}`}>
+              {getRankDisplay(row.rank)}
+            </div>
+
+            {/* Model */}
+            <div className="model-cell">
+              <ProviderIcon name={row.name} provider={row.provider} />
+                <div className="model-name">{row.name}</div>
+            </div>
+
+            {/* Score/Performance */}
+            <div className={`score-cell ${getScoreClass(row.score)}`}>
+              {row.score > 0 ? '+' : ''}{row.score.toFixed(1)}%
+            </div>
+
+            {/* Votes/Trades */}
+            <div className="votes-cell">
+              {row.votes}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      {items.length > 10 && (
+        <div className="card-footer">
+          <button
+            className="view-all-btn"
+            onClick={() => setShowAll(!showAll)}
+          >
+            {showAll ? 'Show Less' : `View All Models (${items.length})`}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ------- Main Dashboard Component -------
+
+const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], modelsLastRefresh = new Date(), systemStatus, systemLastRefresh }) => {
+  const stock = modelsData.filter((m) => (m?.category ?? "").toString().toLowerCase() === "stock").map(normalize);
+  const poly = modelsData
+    .filter((m) => (m?.category ?? "").toString().toLowerCase().includes("poly"))
+    .map(normalize);
+
+  return (
+    <div className="dashboard-container">
+      <div className="dashboard-header">
+        <h1 className="dashboard-title">
+          Live Trade Bench
+        </h1>
+        <p className="dashboard-subtitle">
+          Real-time leaderboard for LLM-powered portfolio management
+        </p>
+      </div>
+
+      <div className="leaderboard-grid">
+        <LeaderboardCard 
+          key="stock-leaderboard"
+          title="Stock Market" 
+          updatedAt={modelsLastRefresh} 
+          items={stock} 
+          category="stock" 
+        />
+        <LeaderboardCard 
+          key="polymarket-leaderboard"
+          title="Polymarket" 
+          updatedAt={modelsLastRefresh} 
+          items={poly} 
+          category="polymarket" 
+        />
+      </div>
+    </div>
+  );
+};
+
+export default TwoPanelLeaderboard;

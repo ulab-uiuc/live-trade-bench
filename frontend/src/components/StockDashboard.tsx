@@ -20,27 +20,27 @@ const StockDashboard: React.FC<StockDashboardProps> = ({ modelsData, modelsLastR
   }
 
   return (
-    <div className="dashboard-ultra-simple">
+    <div className="theme-stock">
       <div style={{
         textAlign: 'center',
         padding: '2rem 0'
       }}>
         <h1 style={{
-          color: '#ffffff',
-          fontSize: '2.5rem',
+          color: '#f59e0b',
+          fontSize: '3.5rem',
+          fontWeight: '800',
           margin: '0 0 0.5rem 0',
-          fontWeight: '700',
           display: 'block',
           visibility: 'visible',
           opacity: 1,
           position: 'relative',
           zIndex: 1000
         }}>
-          📈 Stock Models
+          Stock Models
         </h1>
         <p style={{
-          color: '#ffffff',
-          fontSize: '1rem',
+          color: 'rgba(255, 255, 255, 0.7)',
+          fontSize: '1.2rem',
           margin: 0,
           fontWeight: '500',
           display: 'block',

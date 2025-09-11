@@ -1,4 +1,28 @@
 /* 简化的模型显示样式 */
+:root {
+  /* Stock Theme */
+  --stock-color-primary: #f59e0b; /* Amber 500 */
+  --stock-color-hover-border: #f59e0b;
+  --stock-color-positive: #f59e0b;
+
+  /* Polymarket Theme */
+  --polymarket-color-primary: #06b6d4; /* Cyan 500 */
+  --polymarket-color-hover-border: #06b6d4;
+  --polymarket-color-positive: #06b6d4;
+}
+
+.theme-stock {
+  --theme-color-primary: var(--stock-color-primary);
+  --theme-color-hover-border: var(--stock-color-hover-border);
+  --theme-color-positive: var(--stock-color-positive);
+}
+
+.theme-polymarket {
+  --theme-color-primary: var(--polymarket-color-primary);
+  --theme-color-hover-border: var(--polymarket-color-hover-border);
+  --theme-color-positive: var(--polymarket-color-positive);
+}
+
 .models-container {
   padding: 1rem;
   max-width: 1200px;
@@ -17,8 +41,17 @@
 
 .models-header h2 {
   font-size: 1.5rem;
-  color: #ffffff;
+  color: var(--theme-color-primary, #ffffff);
   margin: 0;
+}
+
+/* Theme-specific title colors */
+.theme-stock .models-header h2 {
+  color: #f59e0b; /* Amber 500 */
+}
+
+.theme-polymarket .models-header h2 {
+  color: #06b6d4; /* Cyan 500 */
 }
 
 .refresh-btn {
@@ -31,8 +64,8 @@
 }
 
 .refresh-btn:hover {
-  border-color: #6366f1;
-  color: #6366f1;
+  border-color: var(--theme-color-primary, #6366f1);
+  color: var(--theme-color-primary, #6366f1);
 }
 
 /* 简化的分类标签 */
@@ -58,8 +91,8 @@
 }
 
 .category-tabs button.active {
-  background: #6366f1;
-  border-color: #6366f1;
+  background: var(--theme-color-primary, #6366f1);
+  border-color: var(--theme-color-primary, #6366f1);
   color: #ffffff;
 }
 
@@ -67,7 +100,7 @@
 .models-grid-square {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
 }
 
 /* 简化的模型卡片 */
@@ -79,7 +112,7 @@
 }
 
 .model-item:hover {
-  border-color: #6366f1;
+  border-color: var(--theme-color-hover-border, #6366f1);
 }
 
 .model-item.clickable {
@@ -87,7 +120,7 @@
 }
 
 .model-item.clickable:hover {
-  border-color: #6366f1;
+  border-color: var(--theme-color-hover-border, #6366f1);
   background: #2d3748;
 }
 
@@ -148,7 +181,7 @@
 }
 
 .stat .value.positive {
-  color: #10b981;
+  color: var(--theme-color-positive, #10b981);
 }
 
 .stat .value.negative {
@@ -182,7 +215,7 @@
 }
 
 .stat-mini .value-mini.positive {
-  color: #10b981;
+  color: var(--theme-color-positive, #10b981);
 }
 
 .stat-mini .value-mini.negative {
@@ -206,7 +239,7 @@
 }
 
 .model-card-square:hover {
-  border-color: #3b82f6;
+  border-color: var(--theme-color-hover-border, #3b82f6);
   background: #2d3748;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
@@ -248,11 +281,11 @@
 }
 
 .category-tag.stock {
-  background: #6366f1;
+  background: var(--stock-color-primary, #6366f1);
 }
 
 .category-tag.polymarket {
-  background: #8b5cf6;
+  background: var(--polymarket-color-primary, #8b5cf6);
 }
 
 .status-dot-small {
@@ -307,7 +340,7 @@
 }
 
 .return-value-large.positive {
-  color: #10b981;
+  color: var(--theme-color-positive, #10b981);
 }
 
 .return-value-large.negative {
@@ -460,7 +493,7 @@
 }
 
 .category-badge {
-  background: #6366f1;
+  background: var(--theme-color-primary, #6366f1);
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
@@ -628,7 +661,7 @@
 /* 响应式设计 */
 @media (max-width: 768px) {
   .models-grid-square {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
   }
 
