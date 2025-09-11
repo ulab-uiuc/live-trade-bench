@@ -74,4 +74,6 @@ See `examples/` directory for demo scripts.
 
 ## License
 
-MIT
+This project is licensed under the PolyForm Noncommercial License 1.0.0 - see the [LICENSE](LICENSE) file for details.
+
+For commercial licensing, please see [LICENSE.COMMERCIAL](LICENSE.COMMERCIAL).
