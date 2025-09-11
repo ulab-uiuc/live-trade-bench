@@ -171,12 +171,7 @@ const LeaderboardCard: React.FC<{
   };
 
   const getRankDisplay = (rank: number) => {
-    switch (rank) {
-      case 1: return '🥇';
-      case 2: return '🥈';
-      case 3: return '🥉';
-      default: return rank.toString();
-    }
+    return rank.toString();
   };
 
   return (
@@ -189,7 +184,7 @@ const LeaderboardCard: React.FC<{
         <div className="card-updated">{relativeTime(updatedAt)}</div>
       </div>
 
-      {/* Table */}
+      {/* Desktop Table */}
       <div className="leaderboard-table">
         {/* Header */}
         <div className="table-header">
@@ -203,7 +198,7 @@ const LeaderboardCard: React.FC<{
         {rows.map((row) => (
           <div key={row.id} className="table-row">
             {/* Rank */}
-            <div className={`rank-cell ${row.rank <= 3 ? 'top-3' : ''}`}>
+            <div className={`rank-cell ${row.rank <= 3 ? `top-3 rank-${row.rank}` : ''}`}>
               {getRankDisplay(row.rank)}
             </div>
 
@@ -221,6 +216,38 @@ const LeaderboardCard: React.FC<{
             {/* Votes/Trades */}
             <div className="votes-cell">
               {row.votes}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Mobile Card Layout */}
+      <div className="mobile-table">
+        {rows.map((row) => (
+          <div key={row.id} className="mobile-card">
+            <div className="mobile-card-left">
+              {/* Rank */}
+              <div className={`mobile-rank ${row.rank <= 3 ? `top-3 rank-${row.rank}` : ''}`}>
+                {getRankDisplay(row.rank)}
+              </div>
+
+              {/* Model Info */}
+              <div className="mobile-model-info">
+                <ProviderIcon name={row.name} provider={row.provider} />
+                <div className="mobile-model-name">{row.name}</div>
+              </div>
+            </div>
+
+            <div className="mobile-card-right">
+              {/* Score */}
+              <div className={`mobile-score ${getScoreClass(row.score)}`}>
+                {row.score > 0 ? '+' : ''}{row.score.toFixed(1)}%
+              </div>
+
+              {/* Trades */}
+              <div className="mobile-trades">
+                {row.votes} trades
+              </div>
             </div>
           </div>
         ))}

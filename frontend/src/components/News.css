@@ -4,6 +4,35 @@
   margin: 0 auto;
 }
 
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .news-container {
+    padding: 1rem;
+  }
+
+  .news-header {
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .news-container .news-header h1 {
+    font-size: 1.75rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .news-category-tabs {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .news-category-tabs button {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.875rem;
+    min-height: 44px;
+  }
+}
+
 .news-header {
   display: flex;
   flex-direction: column;

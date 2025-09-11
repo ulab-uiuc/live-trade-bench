@@ -4,6 +4,35 @@
   margin: 0 auto;
 }
 
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .social-media-container {
+    padding: 1rem;
+  }
+
+  .social-media-header {
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .social-media-container .social-media-header h1 {
+    font-size: 1.75rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .social-media-controls {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .social-media-controls button {
+    min-height: 44px;
+    font-size: 0.875rem;
+  }
+}
+
 .social-media-header {
   display: flex;
   flex-direction: column;

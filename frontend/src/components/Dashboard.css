@@ -156,10 +156,37 @@
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.9);
   line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
 }
 
 .rank-cell.top-3 {
-  color: #fbbf24;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+}
+
+.rank-cell.rank-1 {
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  color: #8b5000;
+  box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+}
+
+.rank-cell.rank-2 {
+  background: linear-gradient(135deg, #c0c0c0, #e5e5e5);
+  color: #4a4a4a;
+  box-shadow: 0 2px 4px rgba(192, 192, 192, 0.3);
+}
+
+.rank-cell.rank-3 {
+  background: linear-gradient(135deg, #cd7f32, #daa656);
+  color: #4a2c17;
+  box-shadow: 0 2px 4px rgba(205, 127, 50, 0.3);
 }
 
 .model-avatar {
@@ -256,34 +283,112 @@
   border-color: rgba(255, 255, 255, 0.15);
 }
 
-/* Responsive */
+/* Mobile Card Layout */
+@media (max-width: 640px) {
+  .dashboard-container {
+    padding: 1rem 0.75rem;
+  }
+
+  .dashboard-title {
+    font-size: 2.5rem;
+  }
+
+  .dashboard-subtitle {
+    font-size: 1rem;
+    padding: 0 1rem;
+  }
+
+  .leaderboard-card {
+    padding: 0.75rem;
+  }
+
+  /* Keep desktop table layout on all screen sizes */
+  .table-header,
+  .table-row {
+    display: grid !important;
+    grid-template-columns: 40px minmax(0, 1fr) 80px 60px;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  /* Hide mobile card layout */
+  .mobile-table {
+    display: none !important;
+  }
+
+  .model-name {
+    font-size: 0.8rem;
+  }
+
+  .score-cell,
+  .votes-cell {
+    font-size: 0.8rem;
+  }
+
+  /* Smaller circles for mobile - all ranks get same size */
+  .rank-cell {
+    width: 20px;
+    height: 20px;
+    font-size: 0.75rem;
+  }
+
+  .rank-cell.top-3 {
+    font-size: 0.7rem;
+  }
+
+  /* Ensure card header stays on one line */
+  .card-header {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+
+  .card-updated {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+}
+
+/* Mobile and Tablet responsiveness - Always single column below 1024px */
 @media (max-width: 1024px) {
   .leaderboard-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
+
+  .dashboard-title {
+    font-size: 3rem;
+  }
 }
 
-@media (max-width: 768px) {
+/* Small tablet adjustments */
+@media (max-width: 768px) and (min-width: 641px) {
   .dashboard-title {
-    font-size: 2.5rem;
+    font-size: 2.8rem;
   }
-  
+
   .table-header,
   .table-row {
-    grid-template-columns: 50px 1fr 80px 60px;
+    grid-template-columns: 50px 1fr 85px 65px;
     gap: 0.5rem;
   }
-  
+
   .model-name {
     font-size: 0.85rem;
   }
-  
+
   .score-cell,
   .votes-cell {
     font-size: 0.85rem;
   }
 }
+
 
 /* 数字和模型名称使用等宽字体以保证对齐 */
 .model-name,

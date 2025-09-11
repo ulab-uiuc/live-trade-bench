@@ -60,6 +60,23 @@
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Responsive breakpoints */
+  --breakpoint-xs: 320px;  /* Small phones */
+  --breakpoint-sm: 480px;  /* Large phones */
+  --breakpoint-md: 640px;  /* Small tablets */
+  --breakpoint-lg: 768px;  /* Large tablets */
+  --breakpoint-xl: 1024px; /* Small desktops */
+  --breakpoint-2xl: 1280px; /* Large desktops */
+
+  /* Mobile-first spacing adjustments */
+  --mobile-spacing-md: 0.5rem;
+  --mobile-spacing-lg: 0.75rem;
+  --mobile-spacing-xl: 1rem;
+
+  /* Touch-friendly sizes */
+  --touch-target-min: 44px;
+  --touch-spacing: 0.5rem;
 }
 
 body {
@@ -328,17 +345,221 @@ a:hover {
   }
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* ===== MOBILE-FIRST RESPONSIVE DESIGN ===== */
+
+/* Base mobile styles (320px+) */
+@media (max-width: 479px) {
+  body {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: var(--mobile-spacing-lg);
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: var(--mobile-spacing-lg);
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: var(--mobile-spacing-md);
+  }
+
+  h4, h5, h6 {
+    font-size: 1rem;
+    margin-bottom: var(--mobile-spacing-md);
+  }
+
+  p {
+    margin-bottom: var(--mobile-spacing-lg);
+    font-size: 0.9rem;
+  }
+
+  /* Touch-friendly buttons */
+  button {
+    min-height: var(--touch-target-min);
+    font-size: 0.9rem;
+    padding: var(--mobile-spacing-lg) var(--mobile-spacing-xl);
+  }
+
+  /* Reduced animations on small screens */
+  * {
+    animation-duration: 0.2s !important;
+    animation-delay: 0s !important;
+  }
+
+  /* Better scrollbar for mobile */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  /* Prevent horizontal scroll */
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+}
+
+/* Large mobile (480px - 640px) */
+@media (min-width: 480px) and (max-width: 639px) {
+  body {
+    font-size: 15px;
+  }
+
   h1 {
     font-size: 2rem;
   }
 
   h2 {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
   }
 
   h3 {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
   }
+
+  button {
+    font-size: 0.95rem;
+    padding: var(--mobile-spacing-lg) var(--spacing-md);
+  }
+}
+
+/* Small tablets (640px - 768px) */
+@media (min-width: 640px) and (max-width: 767px) {
+  body {
+    font-size: 16px;
+  }
+
+  h1 {
+    font-size: 2.25rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+  }
+
+  h3 {
+    font-size: 1.4rem;
+  }
+
+  button {
+    font-size: 1rem;
+    padding: var(--spacing-sm) var(--spacing-lg);
+  }
+}
+
+/* Tablets and up (768px+) */
+@media (min-width: 768px) {
+  body {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* Restore desktop typography */
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+  }
+
+  h2 {
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  /* Desktop button styles */
+  button {
+    font-size: 1rem;
+    padding: var(--spacing-sm) var(--spacing-lg);
+  }
+
+  /* Restore full animations */
+  * {
+    animation-duration: initial !important;
+    animation-delay: initial !important;
+  }
+
+  /* Desktop scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+/* Large tablets and small desktops (1024px+) */
+@media (min-width: 1024px) {
+  h1 {
+    font-size: 3rem;
+  }
+
+  h2 {
+    font-size: 2.25rem;
+  }
+}
+
+/* Large desktops (1280px+) */
+@media (min-width: 1280px) {
+  h1 {
+    font-size: 3.5rem;
+  }
+
+  h2 {
+    font-size: 2.5rem;
+  }
+}
+
+/* ===== TOUCH DEVICE OPTIMIZATIONS ===== */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover effects on touch devices */
+  .glass-hover:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Larger touch targets */
+  button,
+  a {
+    min-height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+  }
+
+  /* Remove complex animations that can cause performance issues */
+  button::before {
+    display: none;
+  }
+
+  /* Better focus states for touch */
+  button:focus,
+  a:focus {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* ===== ACCESSIBILITY IMPROVEMENTS ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  /* Future: light theme support can be added here */
 }
