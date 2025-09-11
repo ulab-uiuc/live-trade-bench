@@ -32,15 +32,19 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
         self,
         target_allocations: Dict[str, float],
         price_map: Optional[Dict[str, float]] = None,
+        metadata_map: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> None:
-        # Store target allocations
-        self.target_allocations = target_allocations.copy()
-
         if not price_map:
             price_map = {
                 ticker: pos.current_price for ticker, pos in self.positions.items()
             }
 
+        # CRITICAL: Update prices of existing positions to reflect market changes
+        for ticker, pos in self.positions.items():
+            if ticker in price_map:
+                pos.current_price = price_map[ticker]
+
+        # Now, calculate total value based on the NEW prices
         total_value = self.get_total_value()
 
         # Clear existing non-cash positions
@@ -48,43 +52,33 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
         self.positions.clear()
 
         # Create new positions based on target allocations
-        for symbol, target_ratio in target_allocations.items():
-            if symbol == "CASH" or target_ratio <= 0:
+        for ticker, target_ratio in target_allocations.items():
+            if ticker == "CASH" or target_ratio <= 0:
                 continue
 
-            # Polymarket symbols are expected to be in "market_id_OUTCOME" format here
-            parts = symbol.split("_")
-            if len(parts) != 2:
-                print(f"--- ⚠️ Skipping invalid Polymarket symbol format: {symbol} ---")
-                continue
-            market_id, outcome = parts[0], parts[1].lower()
-
-            price_data = price_map.get(market_id)
-            if not isinstance(price_data, dict):
-                print(
-                    f"--- ⚠️ No price data found for market {market_id}. Skipping. ---"
-                )
-                continue
-
-            price = price_data.get(f"{outcome}_price")
+            price = price_map.get(ticker)
             if price is None or price <= 0:
-                print(
-                    f"--- ⚠️ No valid '{outcome}' price for market {market_id}. Skipping. ---"
-                )
                 continue
 
             target_value = total_value * target_ratio
             quantity = target_value / price
 
-            self.positions[symbol] = Position(
-                symbol=symbol,
+            # Get URL and other metadata if available
+            url = None
+            if metadata_map and ticker in metadata_map:
+                url = metadata_map[ticker].get("url")
+
+            self.positions[ticker] = Position(
+                symbol=ticker,
                 quantity=quantity,
                 average_price=price,
                 current_price=price,
+                url=url,
             )
             self.cash_balance -= target_value
 
         self.last_rebalance = datetime.now().isoformat()
+        print(self.positions)
 
 
 def create_polymarket_account(initial_cash: float = 500.0) -> PolymarketAccount:

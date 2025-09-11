@@ -20,6 +20,7 @@ class Position:
     quantity: float
     average_price: float
     current_price: float
+    url: Optional[str] = None
 
     @property
     def market_value(self) -> float:
@@ -60,7 +61,7 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
             "total_value": total_value,
             "profit": profit,
             "performance": performance,
-            "allocations": self.get_allocations(),
+            "allocations": self.target_allocations,
         }
         self.allocation_history.append(snapshot)
 
