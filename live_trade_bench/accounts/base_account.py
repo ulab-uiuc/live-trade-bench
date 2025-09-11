@@ -61,7 +61,7 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
             "total_value": total_value,
             "profit": profit,
             "performance": performance,
-            "allocations": self.get_allocations(),
+            "allocations": self.target_allocations,
         }
         self.allocation_history.append(snapshot)
 
