@@ -165,7 +165,7 @@
 .model-avatar {
   width: 20px;
   height: 20px;
-  border-radius: 4px;
+  border-radius: 6px;
   display: grid;
   place-items: center;
   line-height: 1;
@@ -179,7 +179,7 @@
 }
 
 .model-avatar img {
-  border-radius: 4px; /* Apply border-radius to the images */
+  border-radius: 6px; /* Apply border-radius to the images */
 }
 
 /* Only apply background to emoji icons (other/unknown providers) */
