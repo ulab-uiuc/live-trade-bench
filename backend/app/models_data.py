@@ -83,7 +83,33 @@ def merge_model_data(
     merged["chartData"] = (
         new_chart_data.copy() if new_chart_data else existing_chart_data.copy()
     )
-    merged["chartData"]["profit_history"] = existing_profit_history + new_profit_history
+
+    # ✅ Fix profit_history cumulative calculation
+    if existing_profit_history and new_profit_history:
+        # Get the last profit value from existing history as base
+        base_profit = existing_profit_history[-1]["profit"]
+        base_total_value = existing_profit_history[-1]["totalValue"]
+
+        # Adjust new profit history to be cumulative
+        adjusted_new_history = []
+        for entry in new_profit_history:
+            adjusted_entry = entry.copy()
+            # Add the base profit to make it cumulative
+            adjusted_entry["profit"] = entry["profit"] + base_profit
+            # Also adjust totalValue to maintain consistency
+            adjusted_entry["totalValue"] = entry["totalValue"] + (
+                base_total_value - entry.get("profit", 0) + base_profit
+            )
+            adjusted_new_history.append(adjusted_entry)
+
+        merged["chartData"]["profit_history"] = (
+            existing_profit_history + adjusted_new_history
+        )
+    else:
+        # If no existing history or no new history, just concatenate
+        merged["chartData"]["profit_history"] = (
+            existing_profit_history + new_profit_history
+        )
 
     return merged
 
