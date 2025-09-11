@@ -159,10 +159,11 @@ const LeaderboardCard: React.FC<{
   const [showAll, setShowAll] = useState(false);
 
   // Sort by score desc, compute rank
-  const sortedItems = [...items].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-
-  const rows = (showAll ? sortedItems : sortedItems.slice(0, 10))
+  const sortedItemsWithRank = [...items]
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
     .map((x, i) => ({ ...x, rank: i + 1 }));
+
+  const rows = showAll ? sortedItemsWithRank : sortedItemsWithRank.slice(0, 10);
 
   const getScoreClass = (score: number) => {
     if (score > 0) return "positive";
@@ -221,37 +222,6 @@ const LeaderboardCard: React.FC<{
         ))}
       </div>
 
-      {/* Mobile Card Layout */}
-      <div className="mobile-table">
-        {rows.map((row) => (
-          <div key={row.id} className="mobile-card">
-            <div className="mobile-card-left">
-              {/* Rank */}
-              <div className={`mobile-rank ${row.rank <= 3 ? `top-3 rank-${row.rank}` : ''}`}>
-                {getRankDisplay(row.rank)}
-              </div>
-
-              {/* Model Info */}
-              <div className="mobile-model-info">
-                <ProviderIcon name={row.name} provider={row.provider} />
-                <div className="mobile-model-name">{row.name}</div>
-              </div>
-            </div>
-
-            <div className="mobile-card-right">
-              {/* Score */}
-              <div className={`mobile-score ${getScoreClass(row.score)}`}>
-                {row.score > 0 ? '+' : ''}{row.score.toFixed(1)}%
-              </div>
-
-              {/* Trades */}
-              <div className="mobile-trades">
-                {row.votes} trades
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
 
       {/* Footer */}
       {items.length > 10 && (
