@@ -20,7 +20,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
   const posts = useMemo(() => {
     const rawPosts = activeCategory === 'stock' ? socialData.stock : socialData.polymarket;
     console.log("DEBUG: activeCategory in posts useMemo", activeCategory); // Debug activeCategory
-    
+
     const mappedPosts = rawPosts.map((post: SocialPost, index: number) => {
       if (activeCategory === 'polymarket') {
         console.log("DEBUG: Polymarket post data", { question: post.question, tag: post.tag, id: post.id });

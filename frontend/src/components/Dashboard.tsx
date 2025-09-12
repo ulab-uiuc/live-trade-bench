@@ -229,10 +229,10 @@ const LeaderboardCard: React.FC<{
         {/* Rows */}
         {rows.map((row) => {
           const homepageUrl = getHomepageUrl(row.name);
-          
+
           return (
-            <div 
-              key={row.id} 
+            <div
+              key={row.id}
               className="table-row"
               onClick={homepageUrl ? () => window.open(homepageUrl, '_blank') : undefined}
               style={{ cursor: homepageUrl ? 'pointer' : 'default' }}

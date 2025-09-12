@@ -157,7 +157,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         lines = []
         day_descriptions = [
             "1 day ago",
-            "2 days ago", 
+            "2 days ago",
             "3 days ago",
             "4 days ago",
             "5 days ago",
