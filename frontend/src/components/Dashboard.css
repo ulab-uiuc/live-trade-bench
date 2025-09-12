@@ -33,7 +33,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
-  align-items: start; /* Prevents cards from stretching to match height */
+  align-items: start;
+  /* Prevents cards from stretching to match height */
 }
 
 .leaderboard-card {
@@ -73,11 +74,13 @@
 }
 
 .leaderboard-card.stock .card-title {
-  color: #9597f3; /* Fuchsia 500 */
+  color: #9597f3;
+  /* Fuchsia 500 */
 }
 
 .leaderboard-card.polymarket .card-title {
-  color: #9597f3; /* Sky 500 */
+  color: #9597f3;
+  /* Sky 500 */
 }
 
 .card-updated {
@@ -107,7 +110,7 @@
   letter-spacing: 0.05em;
 }
 
-.table-header > div {
+.table-header>div {
   display: flex;
   align-items: center;
 }
@@ -138,10 +141,26 @@
 }
 
 /* Specific header alignment (overrides general .table-header flex) */
-.table-header > div:first-child { justify-content: center; } /* Rank */
-.table-header > div:nth-child(2) { justify-content: flex-start; } /* Model */
-.table-header > div:nth-child(3) { justify-content: center; } /* Return */
-.table-header > div:nth-child(4) { justify-content: center; } /* Trades */
+.table-header>div:first-child {
+  justify-content: center;
+}
+
+/* Rank */
+.table-header>div:nth-child(2) {
+  justify-content: flex-start;
+}
+
+/* Model */
+.table-header>div:nth-child(3) {
+  justify-content: center;
+}
+
+/* Return */
+.table-header>div:nth-child(4) {
+  justify-content: center;
+}
+
+/* Trades */
 
 /* 数字对齐更稳 */
 .rank-cell,
@@ -200,13 +219,17 @@
   color: white;
   flex-shrink: 0;
   position: relative;
-  top: -1px; /* Nudge icon up to match text baseline */
-  background: transparent; /* No background for PNG icons */
-  overflow: hidden; /* Ensure child images respect border-radius */
+  top: -1px;
+  /* Nudge icon up to match text baseline */
+  background: transparent;
+  /* No background for PNG icons */
+  overflow: hidden;
+  /* Ensure child images respect border-radius */
 }
 
 .model-avatar img {
-  border-radius: 6px; /* Apply border-radius to the images */
+  border-radius: 6px;
+  /* Apply border-radius to the images */
 }
 
 /* Only apply background to emoji icons (other/unknown providers) */
@@ -233,6 +256,17 @@
   /* line-height is removed to allow natural flex alignment */
 }
 
+.model-link {
+  color: white !important;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.model-link:hover {
+  color: #9c9ef8 !important;
+  text-decoration: underline;
+}
+
 .model-provider {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.5);
@@ -245,7 +279,8 @@
 }
 
 .score-cell.positive {
-  color: #9c9ef8; /* Fuchsia 500 */
+  color: #9c9ef8;
+  /* Fuchsia 500 */
 }
 
 .score-cell.negative {
