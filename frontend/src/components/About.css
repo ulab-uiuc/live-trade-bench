@@ -28,6 +28,18 @@
   margin: 0 auto;
 }
 
+.ulab-link {
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.ulab-link:hover {
+  color: #818cf8;
+  text-decoration: underline;
+}
+
 .team-section {
   margin-bottom: 4rem;
 }
