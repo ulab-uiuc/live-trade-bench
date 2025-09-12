@@ -82,6 +82,37 @@ function extractProvider(name?: string): string {
   return "Other";
 }
 
+function getHomepageUrl(modelName?: string): string {
+  if (!modelName) return "";
+
+  // 直接映射20个固定模型的homepage链接
+  const homepageMap: { [key: string]: string } = {
+    // OpenAI models
+    "GPT-5": "https://platform.openai.com/docs/models/gpt-5",
+    "GPT-5 Nano": "https://platform.openai.com/docs/models/gpt-5-nano",
+    "GPT-5 Mini": "https://openai.com/gpt-5",
+    "GPT-4.1": "https://openai.com/index/gpt-4-1/",
+    "GPT-4.1 Mini": "https://openai.com/index/gpt-4-1/",
+    "GPT-4.1 Nano": "https://openai.com/index/gpt-4-1/",
+    "GPT-4o Mini": "https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/",
+    "GPT-o3": "https://openai.com/index/introducing-o3-and-o4-mini/",
+    "GPT OSS 120B": "https://openai.com/index/introducing-gpt-oss/",
+    "Claude Opus 4.1": "https://www.anthropic.com/news/claude-opus-4-1",
+    "Claude Sonnet 4": "https://www.anthropic.com/news/claude-4",
+    "Claude Sonnet 3.7": "https://www.anthropic.com/news/claude-3-7-sonnet",
+    "Claude Haiku 3.5": "https://www.anthropic.com/news/3-5-models-and-computer-use",
+    "Llama 4 Maverick": "https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+    "Llama 4 Scout": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+    "Llama 3.3 70B": "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct",
+    "Qwen3 235B": "https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507",
+    "DeepSeek V3": "https://huggingface.co/deepseek-ai/DeepSeek-V3",
+    "Deepseek V3.1": "https://huggingface.co/deepseek-ai/DeepSeek-V3.1",
+    "Kimi K2": "https://huggingface.co/moonshotai/Kimi-K2-Instruct-0905",
+  };
+
+  return homepageMap[modelName] || "";
+}
+
 // ------- Provider Icon -------
 const ProviderIcon: React.FC<{ name?: string; provider?: string }> = ({ name, provider }) => {
   const getProviderIcon = (provider?: string, name?: string) => {
@@ -206,7 +237,18 @@ const LeaderboardCard: React.FC<{
             {/* Model */}
             <div className="model-cell">
               <ProviderIcon name={row.name} provider={row.provider} />
-              <div className="model-name">{row.name}</div>
+              {getHomepageUrl(row.name) ? (
+                <a
+                  href={getHomepageUrl(row.name)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="model-name model-link"
+                >
+                  {row.name}
+                </a>
+              ) : (
+                <div className="model-name">{row.name}</div>
+              )}
             </div>
 
             {/* Score/Performance */}
