@@ -125,30 +125,74 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         market_data: Dict[str, Any],
         news_data: Optional[Dict[str, Any]] = None,
     ) -> str:
-        try:
-            news_summaries = []
-            if news_data:
-                for asset_id, articles in list(news_data.items())[:3]:
-                    display_name = market_data.get(asset_id, {}).get(
-                        "question", asset_id
-                    )
-                    if articles:
-                        snippet = articles[0].get("snippet", "")
-                        news_summaries.append(f"• {display_name}: {snippet[:100]}...")
-                    else:
-                        news_summaries.append(f"• {display_name}: No recent news")
-            else:
-                for asset_id in list(market_data.keys())[:3]:
-                    display_name = market_data.get(asset_id, {}).get(
-                        "question", asset_id
-                    )
-                    news_summaries.append(f"• {display_name}: No news data provided")
+        if not news_data:
+            return "RECENT NEWS: No news data available."
 
-            return "RECENT NEWS:\n" + "\n".join(news_summaries)
+        news_summaries = []
+        for asset_id, articles in news_data.items():
+            display_name = market_data.get(asset_id, {}).get("question", asset_id)
 
-        except Exception as e:
-            print(f"Error preparing news analysis: {e}")
-            return "RECENT NEWS: Error preparing news analysis."
+            if not articles:
+                news_summaries.append(f"• {display_name}: No recent news")
+                continue
+
+            for i, article in enumerate(articles[:3]):
+                title = article.get("title", "")
+                snippet = article.get("snippet", "")
+
+                if i == 0:
+                    news_summaries.append(f"• {display_name}:\n  - {title}")
+                else:
+                    news_summaries.append(f"  - {title}")
+
+                if snippet:
+                    news_summaries.append(f"    {snippet}...")
+
+        return "RECENT NEWS:\n" + "\n".join(news_summaries)
+
+    def _format_price_history(
+        self, price_history: List[Dict], ticker: str, is_stock: bool = True
+    ) -> List[str]:
+        """Format price history with relative day descriptions"""
+        lines = []
+        day_descriptions = [
+            "1 day ago",
+            "2 days ago", 
+            "3 days ago",
+            "4 days ago",
+            "5 days ago",
+        ]
+
+        if price_history:
+            # price_history is already in chronological order (oldest to newest)
+            # We want to display from newest to oldest (1 day ago to 5 days ago)
+            recent_history = price_history[-5:]  # Get last 5 days
+            for i, h in enumerate(
+                reversed(recent_history)
+            ):  # Reverse to show newest first
+                hist_price = h.get("price", 0.0)
+                day_desc = (
+                    day_descriptions[i]
+                    if i < len(day_descriptions)
+                    else f"{i+1} days ago"
+                )
+                if is_stock:
+                    lines.append(f"  - {day_desc} closing price: ${hist_price:.2f}")
+                else:
+                    lines.append(f"    {day_desc}: {hist_price:.3f}")
+        else:
+            # Fallback to internal history for stocks
+            if is_stock:
+                hist_prices = self.history_tail(ticker, 5)
+                for i, hist_price in enumerate(hist_prices):
+                    day_desc = (
+                        day_descriptions[i]
+                        if i < len(day_descriptions)
+                        else f"{i+1} days ago"
+                    )
+                    lines.append(f"  - {day_desc}: ${hist_price:.2f}")
+
+        return lines
 
     def _create_news_query(self, asset_id: str, data: DataType) -> str:
         return asset_id
@@ -156,7 +200,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
     def _combine_analysis_data(
         self, market_analysis: str, account_analysis: str, news_analysis: str
     ) -> str:
-        return f"{market_analysis}\n\n{account_analysis}\n\n{news_analysis}"
+        return f"{market_analysis}\n\n{news_analysis}\n\n{account_analysis}"
 
     @abstractmethod
     def _get_portfolio_prompt(

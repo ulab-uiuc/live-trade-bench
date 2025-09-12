@@ -293,6 +293,63 @@ class PolymarketFetcher(BaseFetcher):
             # print(f"Error fetching historical data for token {token_id} on {date}: {e}")
             return None
 
+    def get_market_price_with_history(
+        self, token_ids: List[str], date: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Get current price and 5-day price history for Polymarket tokens"""
+        try:
+            from datetime import timedelta
+
+            if date:
+                # For backtest, get 5 days before the given date
+                ref_date = datetime.strptime(date, "%Y-%m-%d")
+                start_date = (ref_date - timedelta(days=5)).strftime("%Y-%m-%d")
+            else:
+                # For live trading, get 5 days before today
+                start_date = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
+
+            # Get current prices
+            current_prices = {}
+            for token_id in token_ids:
+                if date:
+                    price = self.get_market_price_on_date(token_id, date)
+                else:
+                    price = self.get_token_price(token_id)
+                current_prices[token_id] = price
+
+            # Get historical data for each token
+            price_history = {}
+            for token_id in token_ids:
+                token_history = []
+                for i in range(5):  # 5 days
+                    current_date = (
+                        datetime.strptime(start_date, "%Y-%m-%d") + timedelta(days=i)
+                    ).strftime("%Y-%m-%d")
+                    try:
+                        daily_price = self.get_market_price_on_date(
+                            token_id, current_date
+                        )
+                        if daily_price is not None:
+                            token_history.append(
+                                {
+                                    "date": current_date,
+                                    "price": daily_price,
+                                    "token_id": token_id,
+                                }
+                            )
+                    except Exception:
+                        continue
+                price_history[token_id] = token_history
+
+            return {
+                "current_prices": current_prices,
+                "price_history": price_history,
+                "token_ids": token_ids,
+            }
+        except Exception as e:
+            print(f"Error fetching market price with history: {e}")
+            return {"current_prices": {}, "price_history": {}, "token_ids": token_ids}
+
 
 def fetch_trending_markets(
     limit: int = 10, for_date: Optional[str] = None
@@ -383,3 +440,11 @@ def fetch_token_price(token_id: str, side: str = "buy") -> Optional[float]:
 def get_question_by_token_id(token_id: str) -> Optional[str]:
     market_info = PolymarketFetcher.get_market_info_by_token(token_id)
     return market_info.get("question") if market_info else None
+
+
+def fetch_market_price_with_history(
+    token_ids: List[str], date: Optional[str] = None
+) -> Dict[str, Any]:
+    """Fetch current price and 5-day price history for Polymarket tokens"""
+    fetcher = PolymarketFetcher()
+    return fetcher.get_market_price_with_history(token_ids, date)
