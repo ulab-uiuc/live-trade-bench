@@ -227,41 +227,39 @@ const LeaderboardCard: React.FC<{
         </div>
 
         {/* Rows */}
-        {rows.map((row) => (
-          <div key={row.id} className="table-row">
-            {/* Rank */}
-            <div className={`rank-cell ${row.rank <= 3 ? `top-3 rank-${row.rank}` : ''}`}>
-              {getRankDisplay(row.rank)}
-            </div>
+        {rows.map((row) => {
+          const homepageUrl = getHomepageUrl(row.name);
 
-            {/* Model */}
-            <div className="model-cell">
-              <ProviderIcon name={row.name} provider={row.provider} />
-              {getHomepageUrl(row.name) ? (
-                <a
-                  href={getHomepageUrl(row.name)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="model-name model-link"
-                >
-                  {row.name}
-                </a>
-              ) : (
+          return (
+            <div
+              key={row.id}
+              className="table-row"
+              onClick={homepageUrl ? () => window.open(homepageUrl, '_blank') : undefined}
+              style={{ cursor: homepageUrl ? 'pointer' : 'default' }}
+            >
+              {/* Rank */}
+              <div className={`rank-cell ${row.rank <= 3 ? `top-3 rank-${row.rank}` : ''}`}>
+                {getRankDisplay(row.rank)}
+              </div>
+
+              {/* Model */}
+              <div className="model-cell">
+                <ProviderIcon name={row.name} provider={row.provider} />
                 <div className="model-name">{row.name}</div>
-              )}
-            </div>
+              </div>
 
-            {/* Score/Performance */}
-            <div className={`score-cell ${getScoreClass(row.score)}`}>
-              {row.score > 0 ? '+' : ''}{row.score.toFixed(1)}%
-            </div>
+              {/* Score/Performance */}
+              <div className={`score-cell ${getScoreClass(row.score)}`}>
+                {row.score > 0 ? '+' : ''}{row.score.toFixed(1)}%
+              </div>
 
-            {/* Votes/Trades */}
-            <div className="votes-cell">
-              {row.votes}
+              {/* Votes/Trades */}
+              <div className="votes-cell">
+                {row.votes}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
 
@@ -302,7 +300,7 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
       <div className="leaderboard-grid">
         <LeaderboardCard
           key="stock-leaderboard"
-          title="Stock Market"
+          title="Stock"
           updatedAt={modelsLastRefresh}
           items={stock}
           category="stock"

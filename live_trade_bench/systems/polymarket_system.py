@@ -297,7 +297,7 @@ class PolymarketPortfolioSystem:
                 account.apply_allocation(
                     allocation, price_map=price_map, metadata_map=market_data
                 )
-                account.record_allocation()
+                account.record_allocation(metadata_map=market_data)
                 print(
                     f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"
                 )

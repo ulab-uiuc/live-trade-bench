@@ -4,7 +4,7 @@
   padding: 2rem;
   line-height: 1.6;
   color: #e5e7eb;
-  background: #111827;
+  background: #0f1419;
   min-height: 100vh;
 }
 
@@ -14,11 +14,7 @@
 }
 
 .about-header h1 {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
+  color: #9c9ef8;
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
@@ -30,6 +26,18 @@
   color: #9ca3af;
   max-width: 900px;
   margin: 0 auto;
+}
+
+.ulab-link {
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.ulab-link:hover {
+  color: #818cf8;
+  text-decoration: underline;
 }
 
 .team-section {
@@ -124,7 +132,7 @@
   color: #9ca3af;
   margin: 0;
   padding: 0rem 0.5rem;
-  background: #111827;
+  background: #0f1419;
   border-radius: 12px;
 }
 
@@ -132,7 +140,7 @@
   text-decoration: none;
   color: inherit;
   transition: transform 0.2s ease;
-  background: #111827;
+  background: #0f1419;
   border-radius: 12px;
   padding: 1rem;
 }
@@ -145,7 +153,7 @@
   text-decoration: none;
   color: inherit;
   transition: all 0.2s ease;
-  background: #111827;
+  background: #0f1419;
   border-radius: 12px;
   padding: 0.5rem 1rem;
 }
@@ -160,11 +168,7 @@
 }
 
 .project-section h2 {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
+  color: #9c9ef8;
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 2rem;
@@ -179,7 +183,7 @@
 
 .project-description,
 .project-features {
-  background: #111827;
+  background: #0f1419;
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -277,7 +281,7 @@
 
 .contact-section {
   text-align: center;
-  background: #111827;
+  background: #0f1419;
   color: #e5e7eb;
   padding: 1.5rem 2rem;
   border-radius: 12px;

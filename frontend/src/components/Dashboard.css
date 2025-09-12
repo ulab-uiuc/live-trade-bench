@@ -119,11 +119,17 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   cursor: pointer;
   min-height: 44px;
+  transition: all 0.2s ease;
 }
 
 .table-row:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
 }
+
+/* Removed .table-row-link styles since we're using onClick instead */
 
 /* 所有单元格都用 flex 居中，避免基线差异 */
 .rank-cell,
@@ -256,16 +262,7 @@
   /* line-height is removed to allow natural flex alignment */
 }
 
-.model-link {
-  color: white !important;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.model-link:hover {
-  color: #9c9ef8 !important;
-  text-decoration: underline;
-}
+/* Removed .model-link styles since entire row is now clickable */
 
 .model-provider {
   font-size: 0.8rem;

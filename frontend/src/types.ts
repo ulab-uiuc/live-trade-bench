@@ -34,7 +34,7 @@ export interface Model {
   asset_allocation: { [key: string]: number };
   // Detailed data, fetched once and passed around
   portfolio: Portfolio;
-  chartData: any;
+  profitHistory: any;
   allocationHistory: any;
 }
 
