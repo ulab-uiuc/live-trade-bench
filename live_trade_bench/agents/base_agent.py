@@ -137,11 +137,11 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         """Format price history with relative day descriptions"""
         lines = []
         day_descriptions = [
-            "5 days ago",
-            "4 days ago",
-            "3 days ago",
-            "2 days ago",
             "1 day ago",
+            "2 days ago", 
+            "3 days ago",
+            "4 days ago",
+            "5 days ago",
         ]
 
         if price_history:
