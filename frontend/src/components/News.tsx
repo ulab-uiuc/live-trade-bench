@@ -56,9 +56,10 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
   return (
     <div className="news-container">
       <div className="news-header">
-        <h1>
-         📰 Market News
-        </h1>
+        <h1>Market News</h1>
+        <p className="news-subtitle">
+          Stay updated with the latest news affecting stock and polymarket prices.
+        </p>
         <div className="news-controls">
           <div className="news-category-tabs">
             {(['stock', 'polymarket'] as const).map((market) => (

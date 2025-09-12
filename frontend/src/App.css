@@ -54,7 +54,7 @@
 .brand-button {
   background: none;
   border: none;
-  color: #ffffff;
+  color: #9c9ef8;
   font-size: 1.25rem;
   font-weight: bold;
   cursor: pointer;
@@ -85,7 +85,7 @@
   padding: 0.625rem 1.25rem;
   border-radius: 0.5rem;
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 1.15rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -240,7 +240,7 @@
   border: 1px solid transparent;
   padding: 1rem 1.5rem;
   border-radius: 0.5rem;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;

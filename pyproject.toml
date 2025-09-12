@@ -3,7 +3,7 @@ name = "live-trade-bench"
 version = "0.0.1b"
 description = "Live evaluation of trading agents"
 authors = ["Haofei Yu <yuhaofei44@gmail.com>"]
-license = "MIT License"
+license = "PolyForm-Noncommercial-1.0.0"
 readme = "README.md"
 
 [tool.poetry.dependencies]

@@ -13,7 +13,7 @@ class MockBaseFetcher(BaseFetcher):
     """Mock base fetcher that eliminates network delays and external dependencies"""
 
     def __init__(self, min_delay: float = 0.01, max_delay: float = 0.05):
-        # Minimal delays for mock - no network calls
+        # minimal delays for mock - no network calls
         super().__init__(min_delay, max_delay)
 
     def make_request(
