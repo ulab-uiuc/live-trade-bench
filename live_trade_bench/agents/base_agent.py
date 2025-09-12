@@ -92,13 +92,28 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         ...
 
     def _prepare_account_analysis(self, account_data: Dict[str, Any]) -> str:
+        # Handle both direct account data and nested portfolio structure
+        portfolio = account_data.get("portfolio", account_data)
+
+        cash_balance = portfolio.get("cash", account_data.get("cash_balance", 0.0))
+        total_value = portfolio.get("total_value", account_data.get("total_value", 0.0))
+        pnl = account_data.get("profit", account_data.get("pnl", 0.0))
+
+        # Count total positions
+        positions = portfolio.get("positions", account_data.get("positions", {}))
+        total_positions = len(positions) if isinstance(positions, dict) else 0
+
+        target_allocations = portfolio.get(
+            "target_allocations", account_data.get("target_allocations", {})
+        )
+
         return (
             f"ACCOUNT INFO:\n"
-            f"  Cash: ${account_data.get('cash_balance', 0.0):.2f}\n"
-            f"  Portfolio Value: ${account_data.get('total_value', 0.0):.2f}\n"
-            f"  P&L: ${account_data.get('pnl', 0.0):+.2f}\n"
-            f"  Total Positions: {account_data.get('total_positions', 0)}\n"
-            f"  Current Allocations: {account_data.get('target_allocations', {})}"
+            f"  Cash: ${cash_balance:.2f}\n"
+            f"  Portfolio Value: ${total_value:.2f}\n"
+            f"  P&L: ${pnl:+.2f}\n"
+            f"  Total Positions: {total_positions}\n"
+            f"  Current Allocations: {target_allocations}"
         )
 
     def _prepare_news_analysis(
