@@ -663,7 +663,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               </div>
 
               <ProfitChart
-                data={selectedModel.chartData.profit_history}
+                data={selectedModel.profitHistory}
                 profit={selectedModel.profit}
                 performance={selectedModel.performance}
                 onMouseMove={handleMouseMove}
@@ -793,7 +793,7 @@ const AssetRatioChart: React.FC<{
       <div style={{
         padding: '2rem',
         textAlign: 'center',
-        background: '#1f2937',
+        background: '#0f1419',
         borderRadius: '0.5rem',
         margin: '1rem 0'
       }}>

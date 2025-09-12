@@ -15,6 +15,7 @@ interface NewsProps {
 
 const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
   const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket'>('stock');
+  const [sortBy, setSortBy] = useState<'ticker' | 'time'>('time');
 
   const getBrief = (news: NewsItem): string => {
     const text = news?.snippet || '';
@@ -33,6 +34,25 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
     return Array.from(tags).sort((a, b) => a.localeCompare(b));
   }, [newsData]);
 
+  // Sort news items based on selected criteria
+  const sortedNews = useMemo(() => {
+    const news = newsData[activeCategory];
+    if (!news) return [];
+
+    return [...news].sort((a, b) => {
+      if (sortBy === 'ticker') {
+        const tickerA = a.tag || '';
+        const tickerB = b.tag || '';
+        return tickerA.localeCompare(tickerB);
+      } else {
+        // Sort by time (newest first)
+        const timeA = new Date(a.date || 0).getTime();
+        const timeB = new Date(b.date || 0).getTime();
+        return timeB - timeA;
+      }
+    });
+  }, [newsData, activeCategory, sortBy]);
+
   const getTagColor = (tag: string | null) => {
     if (!tag) return '#6b7280';
     // Find the index of the tag in the sorted list
@@ -43,9 +63,9 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
   };
 
 
-  const newsItems = activeCategory === 'stock' ? newsData.stock : newsData.polymarket;
+  // Use sortedNews instead of direct newsData access
 
-  if (isLoading && newsItems.length === 0) {
+  if (isLoading && sortedNews.length === 0) {
     return (
       <div className="loading-indicator">
         <span>Loading news...</span>
@@ -75,10 +95,12 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   fontSize: '0.875rem',
-                  fontWeight: activeCategory === market ? 'bold' : 'normal'
+                  fontWeight: activeCategory === market ? 'bold' : 'normal',
+                  minWidth: '100px',
+                  textAlign: 'center'
                 }}
               >
-                {market === 'stock' ? 'Stock Market' : 'Polymarket'}
+                {market === 'stock' ? 'Stock' : 'Polymarket'}
               </button>
             ))}
           </div>
@@ -87,7 +109,26 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
             fontSize: '0.875rem',
             color: '#9ca3af'
           }}>
-            {newsItems.length} articles • Last updated: {lastRefresh.toLocaleTimeString()}
+            {sortedNews.length} articles • Last updated: {lastRefresh.toLocaleTimeString()}
+          </div>
+
+          <div className="news-sort-controls">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'ticker' | 'time')}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #374151',
+                background: '#0f1419',
+                color: '#e5e7eb',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="time">Sort by Time</option>
+              <option value="ticker">Sort by Ticker A-Z</option>
+            </select>
           </div>
         </div>
       </div>
@@ -97,14 +138,14 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
         gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
         gap: '1.5rem'
       }}>
-        {newsItems.map((news) => (
+        {sortedNews.map((news) => (
           <a
             key={news.id}
             href={news.link}
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              background: '#1f2937',
+              background: '#0f1419',
               border: '1px solid #374151',
               borderRadius: '0.5rem',
               padding: '1.5rem',

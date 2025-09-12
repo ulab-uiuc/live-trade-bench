@@ -300,7 +300,7 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
       <div className="leaderboard-grid">
         <LeaderboardCard
           key="stock-leaderboard"
-          title="Stock Market"
+          title="Stock"
           updatedAt={modelsLastRefresh}
           items={stock}
           category="stock"

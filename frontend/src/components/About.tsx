@@ -120,7 +120,7 @@ const About: React.FC = () => {
         </p>
         <div className="contact-buttons">
           <a href="mailto:jiaxuan@illinois.edu?cc=haofeiy2@illinois.edu" className="contact-button primary">
-            Contact the Team
+            Contact Us
           </a>
         </div>
       </div>

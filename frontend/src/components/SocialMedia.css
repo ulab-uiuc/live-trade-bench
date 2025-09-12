@@ -65,6 +65,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
+  width: 100%;
 }
 
 .social-media-category-tabs {
@@ -85,6 +86,8 @@
   transition: all 0.2s ease;
   font-size: 0.875rem;
   font-weight: normal;
+  min-width: 100px;
+  text-align: center;
 }
 
 .social-media-category-tabs button.active {
@@ -105,7 +108,7 @@
 }
 
 .social-media-card {
-  background: #1f2937;
+  background: #0f1419;
   border: 1px solid #374151;
   border-radius: 0.5rem;
   padding: 1.5rem;

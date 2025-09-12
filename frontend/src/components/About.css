@@ -4,7 +4,7 @@
   padding: 2rem;
   line-height: 1.6;
   color: #e5e7eb;
-  background: #111827;
+  background: #0f1419;
   min-height: 100vh;
 }
 
@@ -120,7 +120,7 @@
   color: #9ca3af;
   margin: 0;
   padding: 0rem 0.5rem;
-  background: #111827;
+  background: #0f1419;
   border-radius: 12px;
 }
 
@@ -128,7 +128,7 @@
   text-decoration: none;
   color: inherit;
   transition: transform 0.2s ease;
-  background: #111827;
+  background: #0f1419;
   border-radius: 12px;
   padding: 1rem;
 }
@@ -141,7 +141,7 @@
   text-decoration: none;
   color: inherit;
   transition: all 0.2s ease;
-  background: #111827;
+  background: #0f1419;
   border-radius: 12px;
   padding: 0.5rem 1rem;
 }
@@ -171,7 +171,7 @@
 
 .project-description,
 .project-features {
-  background: #111827;
+  background: #0f1419;
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -269,7 +269,7 @@
 
 .contact-section {
   text-align: center;
-  background: #111827;
+  background: #0f1419;
   color: #e5e7eb;
   padding: 1.5rem 2rem;
   border-radius: 12px;

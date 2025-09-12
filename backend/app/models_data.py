@@ -29,16 +29,14 @@ def _create_model_data(agent, account, market_type):
         "trades": len(allocation_history),
         "asset_allocation": asset_allocation,
         "portfolio": portfolio,
-        "chartData": {
-            "profit_history": [
-                {
-                    "timestamp": snapshot["timestamp"],
-                    "profit": snapshot["profit"],
-                    "totalValue": snapshot["total_value"],
-                }
-                for snapshot in allocation_history
-            ]
-        },
+        "profitHistory": [
+            {
+                "timestamp": snapshot["timestamp"],
+                "profit": snapshot["profit"],
+                "totalValue": snapshot["total_value"],
+            }
+            for snapshot in allocation_history
+        ],
         "allocationHistory": allocation_history,
     }
     return model
@@ -76,15 +74,8 @@ def merge_model_data(
     new_allocation_history = new_model.get("allocationHistory", [])
     merged["allocationHistory"] = existing_allocation_history + new_allocation_history
 
-    existing_chart_data = existing_model.get("chartData", {})
-    new_chart_data = new_model.get("chartData", {})
-
-    existing_profit_history = existing_chart_data.get("profit_history", [])
-    new_profit_history = new_chart_data.get("profit_history", [])
-
-    merged["chartData"] = (
-        new_chart_data.copy() if new_chart_data else existing_chart_data.copy()
-    )
+    existing_profit_history = existing_model.get("profitHistory", [])
+    new_profit_history = new_model.get("profitHistory", [])
 
     # ✅ Fix profit_history cumulative calculation
     if existing_profit_history and new_profit_history:
@@ -104,14 +95,10 @@ def merge_model_data(
             )
             adjusted_new_history.append(adjusted_entry)
 
-        merged["chartData"]["profit_history"] = (
-            existing_profit_history + adjusted_new_history
-        )
+        merged["profitHistory"] = existing_profit_history + adjusted_new_history
     else:
         # If no existing history or no new history, just concatenate
-        merged["chartData"]["profit_history"] = (
-            existing_profit_history + new_profit_history
-        )
+        merged["profitHistory"] = existing_profit_history + new_profit_history
 
     return merged
 

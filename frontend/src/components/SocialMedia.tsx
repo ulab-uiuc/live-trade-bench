@@ -15,11 +15,13 @@ interface SocialMediaProps {
 
 const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLoading }) => {
   const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket'>('stock');
+  const [sortBy, setSortBy] = useState<'ticker' | 'time'>('time');
 
   const posts = useMemo(() => {
     const rawPosts = activeCategory === 'stock' ? socialData.stock : socialData.polymarket;
     console.log("DEBUG: activeCategory in posts useMemo", activeCategory); // Debug activeCategory
-    return rawPosts.map((post: SocialPost, index: number) => {
+    
+    const mappedPosts = rawPosts.map((post: SocialPost, index: number) => {
       if (activeCategory === 'polymarket') {
         console.log("DEBUG: Polymarket post data", { question: post.question, tag: post.tag, id: post.id });
       }
@@ -29,7 +31,21 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
         // Removed sentiment fallback
       };
     });
-  }, [activeCategory, socialData]);
+
+    // Sort posts based on selected criteria
+    return mappedPosts.sort((a, b) => {
+      if (sortBy === 'ticker') {
+        const tickerA = a.tag || '';
+        const tickerB = b.tag || '';
+        return tickerA.localeCompare(tickerB);
+      } else {
+        // Sort by time (newest first)
+        const timeA = new Date(a.created_at || 0).getTime();
+        const timeB = new Date(b.created_at || 0).getTime();
+        return timeB - timeA;
+      }
+    });
+  }, [activeCategory, socialData, sortBy]);
 
   // Collect and sort all unique tags for consistent color assignment
   const allUniqueTags = useMemo(() => {
@@ -78,13 +94,32 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                 onClick={() => setActiveCategory(market)}
                 className={activeCategory === market ? 'active' : ''}
               >
-                {market === 'stock' ? 'Stock Market' : 'Polymarket'}
+                {market === 'stock' ? 'Stock' : 'Polymarket'}
               </button>
             ))}
           </div>
 
           <div className="social-media-stats">
             {posts.length} posts • Last updated: {lastRefresh.toLocaleTimeString()}
+          </div>
+
+          <div className="social-media-sort-controls">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'ticker' | 'time')}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #374151',
+                background: '#0f1419',
+                color: '#e5e7eb',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="time">Sort by Time</option>
+              <option value="ticker">Sort by Ticker A-Z</option>
+            </select>
           </div>
         </div>
       </div>

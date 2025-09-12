@@ -60,7 +60,7 @@
 }
 
 .news-category-tabs button {
-  background: #1f2937;
+  background: #0f1419;
   border: 1px solid #374151;
   color: #9ca3af;
   padding: 0.5rem 1rem;
@@ -82,7 +82,7 @@
 }
 
 .news-card {
-  background: #1f2937;
+  background: #0f1419;
   border: 1px solid #374151;
   border-radius: 0.5rem;
   padding: 1rem;
@@ -116,6 +116,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
+  width: 100%;
 }
 
 .news-category-tabs {
