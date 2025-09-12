@@ -31,7 +31,7 @@ from .config import (
     MockMode,
     get_base_model_configs,
 )
-from .models_data import generate_models_data
+from .models_data import generate_models_data, load_historical_data_to_accounts
 from .news_data import update_news_data
 from .routers import models, news, social, system
 from .social_data import update_social_data
@@ -71,6 +71,11 @@ if POLYMARKET_MOCK_MODE == MockMode.NONE:
 
 stock_system.initialize_for_live()
 polymarket_system.initialize_for_live()
+
+# 🆕 加载历史数据到Account内存中
+print("🔄 Loading historical data to account memory...")
+load_historical_data_to_accounts(stock_system, polymarket_system)
+print("✅ Historical data loading completed")
 
 
 def get_stock_system():
@@ -190,11 +195,8 @@ def startup_event():
 
     logger.info("✅ Background scheduler started.")
 
-    # Try to load backtest data as initial data
-    backtest_loaded = load_backtest_as_initial_data()
-
-    if backtest_loaded:
-        logger.info("🔄 Will update with live data on first trading cycle")
+    # 不再需要load_backtest_as_initial_data，因为数据已经在内存中
+    # backtest_loaded = load_backtest_as_initial_data()
 
     # Run all initial data generation in background threads - don't block startup
     threading.Thread(
