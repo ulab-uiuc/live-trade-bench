@@ -7,8 +7,6 @@ from ..accounts import StockAccount, create_stock_account
 from ..agents.stock_agent import LLMStockAgent
 from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.stock_fetcher import (
-    fetch_current_stock_price,
-    fetch_stock_price_on_date,
     fetch_stock_price_with_history,
     fetch_trending_stocks,
 )
@@ -71,7 +69,7 @@ class StockPortfolioSystem:
                 price_data = fetch_stock_price_with_history(ticker, for_date)
                 current_price = price_data.get("current_price")
                 price_history = price_data.get("price_history", [])
-                
+
                 if current_price:
                     url = f"https://finance.yahoo.com/quote/{ticker}"
                     market_data[ticker] = {

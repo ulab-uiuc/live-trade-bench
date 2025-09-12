@@ -113,37 +113,51 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         news_summaries = []
         for asset_id, articles in news_data.items():
             display_name = market_data.get(asset_id, {}).get("question", asset_id)
-            
+
             if not articles:
                 news_summaries.append(f"• {display_name}: No recent news")
                 continue
-                
+
             for i, article in enumerate(articles[:3]):
                 title = article.get("title", "")
                 snippet = article.get("snippet", "")
-                
+
                 if i == 0:
                     news_summaries.append(f"• {display_name}:\n  - {title}")
                 else:
                     news_summaries.append(f"  - {title}")
-                
+
                 if snippet:
                     news_summaries.append(f"    {snippet}...")
 
         return "RECENT NEWS:\n" + "\n".join(news_summaries)
-    
-    def _format_price_history(self, price_history: List[Dict], ticker: str, is_stock: bool = True) -> List[str]:
+
+    def _format_price_history(
+        self, price_history: List[Dict], ticker: str, is_stock: bool = True
+    ) -> List[str]:
         """Format price history with relative day descriptions"""
         lines = []
-        day_descriptions = ["5 days ago", "4 days ago", "3 days ago", "2 days ago", "1 day ago"]
-        
+        day_descriptions = [
+            "5 days ago",
+            "4 days ago",
+            "3 days ago",
+            "2 days ago",
+            "1 day ago",
+        ]
+
         if price_history:
             # price_history is already in chronological order (oldest to newest)
             # We want to display from newest to oldest (1 day ago to 5 days ago)
             recent_history = price_history[-5:]  # Get last 5 days
-            for i, h in enumerate(reversed(recent_history)):  # Reverse to show newest first
+            for i, h in enumerate(
+                reversed(recent_history)
+            ):  # Reverse to show newest first
                 hist_price = h.get("price", 0.0)
-                day_desc = day_descriptions[i] if i < len(day_descriptions) else f"{i+1} days ago"
+                day_desc = (
+                    day_descriptions[i]
+                    if i < len(day_descriptions)
+                    else f"{i+1} days ago"
+                )
                 if is_stock:
                     lines.append(f"  - {day_desc} closing price: ${hist_price:.2f}")
                 else:
@@ -153,9 +167,13 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             if is_stock:
                 hist_prices = self.history_tail(ticker, 5)
                 for i, hist_price in enumerate(hist_prices):
-                    day_desc = day_descriptions[i] if i < len(day_descriptions) else f"{i+1} days ago"
+                    day_desc = (
+                        day_descriptions[i]
+                        if i < len(day_descriptions)
+                        else f"{i+1} days ago"
+                    )
                     lines.append(f"  - {day_desc}: ${hist_price:.2f}")
-        
+
         return lines
 
     def _create_news_query(self, asset_id: str, data: DataType) -> str:

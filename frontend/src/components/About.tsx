@@ -10,21 +10,21 @@ type Member = {
 };
 
 const MEMBERS: Member[] = [
-  { 
+  {
     name: "Haofei Yu",
     role: "Leader",
     photo: "/team-photos/haofei.png",
     initials: "HY",
     website: "https://haofeiyu.me"
   },
-  { 
+  {
     name: "Fenghai Li",
     role: "Co-Lead",
     photo: "/team-photos/fenghai.png",
     initials: "FH",
     website: "https://fenghaili.com"
   },
-  { 
+  {
     name: "Jiaxuan You",
     role: "Advisor",
     photo: "/team-photos/jiaxuan.png",
@@ -47,10 +47,10 @@ const About: React.FC = () => {
         <ul className="team-grid" aria-label="Core Team Members">
           {MEMBERS.map((member) => (
             <li className="team-member" key={member.name}>
-              <a 
-                href={member.website} 
-                className="member-avatar-link" 
-                target="_blank" 
+              <a
+                href={member.website}
+                className="member-avatar-link"
+                target="_blank"
                 rel="noopener noreferrer"
               >
                 <div className="member-avatar">
@@ -69,10 +69,10 @@ const About: React.FC = () => {
                   </div>
                 </div>
               </a>
-              <a 
-                href={member.website} 
-                className="member-name-link" 
-                target="_blank" 
+              <a
+                href={member.website}
+                className="member-name-link"
+                target="_blank"
                 rel="noopener noreferrer"
               >
                 <div className="member-name">{member.name}</div>
@@ -86,13 +86,13 @@ const About: React.FC = () => {
       <div className="project-section">
         <h2>About Our Project</h2>
         <div className="project-content">
-          
+
           <div className="project-features">
             <h3><span className="highlight-text">Our Mission</span></h3>
             <p>
               Live Trading Benchmark evaluates AI trading agents in real time across multiple asset classes—so researchers, developers, and traders can compare strategies under identical market, data, and execution conditions, using capital-aware, risk-adjusted metrics.
             </p>
-            
+
             <h3><span className="highlight-text">Why live testing?</span></h3>
             <p>
               <strong>Backtests can lie.</strong> They often overfit and leak future information, while glossing over real-world frictions—latency, slippage, liquidity, borrow fees, halts. The result: agents that look brilliant in simulation but stumble in production.
@@ -100,7 +100,7 @@ const About: React.FC = () => {
             <p>
               <strong>Markets shift.</strong> Regimes change with news, policy, and crowd behavior. Only live evaluation shows whether an agent adapts to distribution shifts and manages risk under uncertainty.
             </p>
-            
+
             <h3><span className="highlight-text">Why portfolio management?</span></h3>
             <p>
               <strong>Think globally, act locally.</strong> Buy/sell calls are local actions; performance is driven by global choices—allocation, position sizing, correlation, rebalancing, and risk limits.

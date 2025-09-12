@@ -15,15 +15,17 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
         for ticker, data in market_data.items():
             price = data.get("current_price", 0.0)
             price_history = data.get("price_history", [])
-            
+
             # Format current price
             current_info = f"{ticker}: Current price is ${price:.2f}"
             analysis_parts.append(current_info)
-            
+
             # Format 5-day history with relative days
-            history_lines = self._format_price_history(price_history, ticker, is_stock=True)
+            history_lines = self._format_price_history(
+                price_history, ticker, is_stock=True
+            )
             analysis_parts.extend(history_lines)
-            
+
             analysis_parts.append("")  # Empty line for separation
             self._update_price_history(ticker, price)
         return "MARKET ANALYSIS:\n" + "\n".join(analysis_parts)

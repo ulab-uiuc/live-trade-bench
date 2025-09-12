@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, List, Optional, Union, Dict
+from typing import Any, Dict, List, Optional, Union
 
 import yfinance as yf
 
@@ -10,9 +10,7 @@ class StockFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 1.0, max_delay: float = 3.0):
         super().__init__(min_delay, max_delay)
 
-    def fetch(
-        self, mode: str, **kwargs: Any
-    ) -> Union[List[str], Optional[float]]:
+    def fetch(self, mode: str, **kwargs: Any) -> Union[List[str], Optional[float]]:
         if mode == "trending_stocks":
             return self.get_trending_stocks(limit=int(kwargs.get("limit", 15)))
         elif mode == "stock_price":
@@ -49,11 +47,13 @@ class StockFetcher(BaseFetcher):
             return self._get_price_on_date(ticker, date)
         return self.get_current_price(ticker)
 
-    def get_price_with_history(self, ticker: str, date: Optional[str] = None) -> Dict[str, Any]:
+    def get_price_with_history(
+        self, ticker: str, date: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Get current price and 5-day price history for a stock"""
         try:
             from datetime import datetime, timedelta
-            
+
             if date:
                 # For backtest, get 5 days before the given date
                 ref_date = datetime.strptime(date, "%Y-%m-%d")
@@ -63,35 +63,36 @@ class StockFetcher(BaseFetcher):
                 # For live trading, get 5 days before today
                 end_date = datetime.now().strftime("%Y-%m-%d")
                 start_date = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
-            
+
             # Get current price
             current_price = self.get_price(ticker, date)
-            
+
             # Get historical data
             df = self._download_price_data(ticker, start_date, end_date, interval="1d")
-            
+
             price_history = []
             if df is not None and not df.empty:
                 for i, (idx, row) in enumerate(df.iterrows()):
-                    price_history.append({
-                        "date": idx.strftime("%Y-%m-%d"),
-                        "price": float(row["Close"].iloc[0]) if "Close" in row else 0.0,
-                        "volume": int(row["Volume"].iloc[0]) if "Volume" in row else 0
-                    })
-            
+                    price_history.append(
+                        {
+                            "date": idx.strftime("%Y-%m-%d"),
+                            "price": float(row["Close"].iloc[0])
+                            if "Close" in row
+                            else 0.0,
+                            "volume": int(row["Volume"].iloc[0])
+                            if "Volume" in row
+                            else 0,
+                        }
+                    )
+
             return {
                 "current_price": current_price,
                 "price_history": price_history,
-                "ticker": ticker
+                "ticker": ticker,
             }
         except Exception as e:
             print(f"Error fetching price with history for {ticker}: {e}")
-            return {
-                "current_price": None,
-                "price_history": [],
-                "ticker": ticker
-            }
-
+            return {"current_price": None, "price_history": [], "ticker": ticker}
 
     def _download_price_data(
         self, ticker: str, start_date: str, end_date: str, interval: str
@@ -205,7 +206,9 @@ def fetch_stock_price(ticker: str, date: Optional[str] = None) -> Optional[float
     return fetcher.get_price(ticker, date=date)
 
 
-def fetch_stock_price_with_history(ticker: str, date: Optional[str] = None) -> Dict[str, Any]:
+def fetch_stock_price_with_history(
+    ticker: str, date: Optional[str] = None
+) -> Dict[str, Any]:
     """Fetch current price and 5-day price history for a stock"""
     fetcher = StockFetcher()
     return fetcher.get_price_with_history(ticker, date=date)

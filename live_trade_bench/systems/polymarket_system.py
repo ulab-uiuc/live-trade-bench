@@ -7,8 +7,6 @@ from ..accounts import PolymarketAccount, create_polymarket_account
 from ..agents.polymarket_agent import LLMPolyMarketAgent
 from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.polymarket_fetcher import (
-    fetch_current_market_price,
-    fetch_market_price_on_date,
     fetch_market_price_with_history,
     fetch_trending_markets,
     fetch_verified_historical_markets,
@@ -97,7 +95,9 @@ class PolymarketPortfolioSystem:
                     continue
 
                 # Use the new function that gets both current prices and history
-                price_data_with_history = fetch_market_price_with_history(token_ids, for_date)
+                price_data_with_history = fetch_market_price_with_history(
+                    token_ids, for_date
+                )
                 current_prices = price_data_with_history.get("current_prices", {})
                 price_history = price_data_with_history.get("price_history", {})
 
@@ -114,7 +114,7 @@ class PolymarketPortfolioSystem:
 
                     # Create price data with history
                     price_data = {}
-                    
+
                     if yes_token_id and yes_token_id in current_prices:
                         yes_price = current_prices[yes_token_id]
                         if yes_price is not None:
@@ -124,7 +124,7 @@ class PolymarketPortfolioSystem:
                                 "id": f"{market_id}_YES",
                                 "question": question,
                                 "url": url,
-                                "price_history": price_history.get(yes_token_id, [])
+                                "price_history": price_history.get(yes_token_id, []),
                             }
 
                     if no_token_id and no_token_id in current_prices:
@@ -136,7 +136,7 @@ class PolymarketPortfolioSystem:
                                 "id": f"{market_id}_NO",
                                 "question": question,
                                 "url": url,
-                                "price_history": price_history.get(no_token_id, [])
+                                "price_history": price_history.get(no_token_id, []),
                             }
 
                     market_data_expanded.update(price_data)
