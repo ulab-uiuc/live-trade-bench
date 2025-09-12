@@ -19,14 +19,46 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             question = data["question"]
             if question not in grouped_by_question:
                 grouped_by_question[question] = {}
-            grouped_by_question[question][data["outcome"]] = data["price"]
+            grouped_by_question[question][data["outcome"]] = {
+                "price": data["price"],
+                "price_history": data.get("price_history", []),
+            }
 
         for question, outcomes in grouped_by_question.items():
-            yes_price = outcomes.get("YES", 0.0)
-            no_price = outcomes.get("NO", 0.0)
-            analysis_parts.append(
-                f"Question: {question} | YES_PRICE: {yes_price:.3f}, NO_PRICE: {no_price:.3f}"
+            yes_data = outcomes.get("YES", {"price": 0.0, "price_history": []})
+            no_data = outcomes.get("NO", {"price": 0.0, "price_history": []})
+
+            yes_price = yes_data["price"]
+            no_price = no_data["price"]
+            yes_history = yes_data["price_history"]
+            no_history = no_data["price_history"]
+
+            # Format current prices
+            analysis_parts.append(f"Question: {question}")
+            analysis_parts.append(f"  - Betting YES current price: {yes_price:.3f}")
+            analysis_parts.append(f"  - Betting NO current price: {no_price:.3f}")
+
+            # Format 5-day history with relative days for YES
+            analysis_parts.append("  - Betting YES History:")
+            yes_history_lines = self._format_price_history(
+                yes_history, "", is_stock=False
             )
+            if yes_history_lines:
+                analysis_parts.extend(yes_history_lines)
+            else:
+                analysis_parts.append("    N/A")
+
+            # Format 5-day history with relative days for NO
+            analysis_parts.append("  - Betting NO History:")
+            no_history_lines = self._format_price_history(
+                no_history, "", is_stock=False
+            )
+            if no_history_lines:
+                analysis_parts.extend(no_history_lines)
+            else:
+                analysis_parts.append("    N/A")
+
+            analysis_parts.append("")  # Empty line for separation
         return "MARKET ANALYSIS:\n" + "\n".join(analysis_parts)
 
     def _get_portfolio_prompt(

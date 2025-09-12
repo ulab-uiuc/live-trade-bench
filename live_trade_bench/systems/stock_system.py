@@ -7,9 +7,7 @@ from ..accounts import StockAccount, create_stock_account
 from ..agents.stock_agent import LLMStockAgent
 from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.stock_fetcher import (
-    fetch_company_url,
-    fetch_current_stock_price,
-    fetch_stock_price_on_date,
+    fetch_stock_price_with_history,
     fetch_trending_stocks,
 )
 
@@ -67,27 +65,24 @@ class StockPortfolioSystem:
         market_data = {}
         for ticker in self.universe:
             try:
-                price = (
-                    fetch_stock_price_on_date(ticker, for_date)
-                    if for_date
-                    else fetch_current_stock_price(ticker)
-                )
-                if price:
-                    url = None
-                    try:
-                        url = fetch_company_url(ticker)
-                    except Exception:
-                        url = f"https://finance.yahoo.com/quote/{ticker}"
+                # Use the new function that gets both current price and history
+                price_data = fetch_stock_price_with_history(ticker, for_date)
+                current_price = price_data.get("current_price")
+                price_history = price_data.get("price_history", [])
+
+                if current_price:
+                    url = f"https://finance.yahoo.com/quote/{ticker}"
                     market_data[ticker] = {
                         "ticker": ticker,
                         "name": self.stock_info[ticker]["name"],
                         "sector": self.stock_info[ticker]["sector"],
-                        "current_price": price,
+                        "current_price": current_price,
+                        "price_history": price_history,
                         "market_cap": self.stock_info[ticker]["market_cap"],
                         "url": url,
                     }
                     for account in self.accounts.values():
-                        account.update_position_price(ticker, price)
+                        account.update_position_price(ticker, current_price)
             except Exception as e:
                 print(f"    - Failed to fetch data for {ticker}: {e}")
         print(f"  - ✅ Market data fetched for {len(market_data)} stocks")
@@ -172,9 +167,13 @@ class StockPortfolioSystem:
         except Exception as e:
             print(f"    - News data fetch failed: {e}")
         print("  - ✅ News data fetched")
-        for ticker, news in list(news_data_map.items())[:2]:
+        for ticker, news in news_data_map.items():
             if news:
-                print(f"    - News for {ticker}: {news[0].get('title', 'N/A')[:50]}...")
+                print(f"    - News for {ticker}: {len(news)} articles")
+                for i, article in enumerate(news[:3]):
+                    print(f"      {i+1}. {article.get('title', 'N/A')[:60]}...")
+            else:
+                print(f"    - News for {ticker}: No articles found")
         return news_data_map
 
     def _generate_allocations(
