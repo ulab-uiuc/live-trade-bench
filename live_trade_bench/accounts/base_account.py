@@ -51,17 +51,36 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
     allocation_history: List[Dict[str, Any]] = field(default_factory=list)
     last_rebalance: Optional[str] = None
 
-    def record_allocation(self):
+    def record_allocation(
+        self, metadata_map: Optional[Dict[str, Dict[str, Any]]] = None
+    ):
         total_value = self.get_total_value()
         profit = total_value - self.initial_cash
         performance = (profit / self.initial_cash) * 100 if self.initial_cash > 0 else 0
+
+        # Create allocation array format with URL information for frontend compatibility
+        allocations_array = []
+        for asset, allocation in self.target_allocations.items():
+            asset_info = {"name": asset, "allocation": allocation}
+
+            # Add URL if available in metadata
+            if metadata_map and asset in metadata_map:
+                url = metadata_map[asset].get("url")
+                if url:
+                    asset_info["url"] = url
+                question = metadata_map[asset].get("question")
+                if question:
+                    asset_info["question"] = question
+
+            allocations_array.append(asset_info)
 
         snapshot = {
             "timestamp": datetime.now().isoformat(),
             "total_value": total_value,
             "profit": profit,
             "performance": performance,
-            "allocations": self.target_allocations,
+            "allocations": self.target_allocations,  # Keep original format for compatibility
+            "allocations_array": allocations_array,  # New format for frontend
         }
         self.allocation_history.append(snapshot)
 

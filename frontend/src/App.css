@@ -1,12 +1,12 @@
 .App {
-  background-color: #111827;
+  background-color: #0f1419;
   min-height: 100vh;
   position: relative;
 }
 
 /* Navigation Bar - Mobile-First Design */
 .navigation {
-  background-color: #111827;
+  background-color: #0f1419;
   border-bottom: 1px solid #374151;
   padding: 1rem;
   position: sticky;
@@ -182,7 +182,7 @@
   right: -100%;
   width: 280px;
   height: 100vh;
-  background-color: #111827;
+  background-color: #0f1419;
   border-left: 1px solid #374151;
   padding: 0;
   transition: right 0.3s ease;
@@ -199,7 +199,7 @@
   justify-content: flex-end;
   align-items: center;
   padding: 1.5rem;
-  background-color: #111827;
+  background-color: #0f1419;
 }
 
 
@@ -313,7 +313,7 @@
   }
 
   .brand-button {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
   }
 }
 

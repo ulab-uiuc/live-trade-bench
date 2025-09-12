@@ -26,16 +26,14 @@ def _create_model_data(agent, account, market_type):
         "trades": len(allocation_history),
         "asset_allocation": asset_allocation,
         "portfolio": portfolio,
-        "chartData": {
-            "profit_history": [
-                {
-                    "timestamp": snapshot["timestamp"],
-                    "profit": snapshot["profit"],
-                    "totalValue": snapshot["total_value"],
-                }
-                for snapshot in allocation_history
-            ]
-        },
+        "profitHistory": [
+            {
+                "timestamp": snapshot["timestamp"],
+                "profit": snapshot["profit"],
+                "totalValue": snapshot["total_value"],
+            }
+            for snapshot in allocation_history
+        ],
         "allocationHistory": allocation_history,
     }
     return model

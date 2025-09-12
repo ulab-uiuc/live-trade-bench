@@ -12,21 +12,21 @@ type Member = {
 const MEMBERS: Member[] = [
   {
     name: "Haofei Yu",
-    role: "Leader",
+    role: "Core contributor",
     photo: "/team-photos/haofei.png",
     initials: "HY",
     website: "https://haofeiyu.me"
   },
   {
     name: "Fenghai Li",
-    role: "Co-Lead",
+    role: "Core contributor",
     photo: "/team-photos/fenghai.png",
     initials: "FH",
     website: "https://fenghaili.com"
   },
   {
     name: "Jiaxuan You",
-    role: "Advisor",
+    role: "Core Advisor",
     photo: "/team-photos/jiaxuan.png",
     initials: "JX",
     website: "https://cs.stanford.edu/~jiaxuan/"
@@ -39,7 +39,7 @@ const About: React.FC = () => {
       <div className="about-header">
         <h1>About Us </h1>
         <p className="about-subtitle">
-          Researchers at ULab from the University of Illinois at Urbana-Champaign
+          Researchers at <a href="https://ulab-uiuc.github.io/" target="_blank" rel="noopener noreferrer" className="ulab-link">ULab</a> from the University of Illinois at Urbana-Champaign
         </p>
       </div>
 
@@ -120,7 +120,7 @@ const About: React.FC = () => {
         </p>
         <div className="contact-buttons">
           <a href="mailto:jiaxuan@illinois.edu?cc=haofeiy2@illinois.edu" className="contact-button primary">
-            Contact the Team
+            Contact Us
           </a>
         </div>
       </div>
