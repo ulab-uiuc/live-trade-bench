@@ -5,6 +5,7 @@ import StockDashboard from './components/StockDashboard';
 import PolymarketDashboard from './components/PolymarketDashboard';
 import News from './components/News';
 import SocialMedia from './components/SocialMedia';
+import About from './components/About';
 import Navigation from './components/Navigation';
 import './App.css';
 import type { Model } from './types';
@@ -328,6 +329,7 @@ function App() {
               isLoading={isLoading}
             />
           } />
+          <Route path="/about" element={<About />} />
         </Routes>
       </div>
     </Router>
