@@ -5,6 +5,7 @@ import StockDashboard from './components/StockDashboard';
 import PolymarketDashboard from './components/PolymarketDashboard';
 import News from './components/News';
 import SocialMedia from './components/SocialMedia';
+import About from './components/About';
 import Navigation from './components/Navigation';
 import './App.css';
 import type { Model } from './types';
@@ -22,6 +23,7 @@ export interface NewsItem {
 
 export interface SocialPost {
   id: string;
+  title?: string; // Add title for Reddit posts
   platform: string;
   username: string;
   displayName: string;
@@ -117,7 +119,8 @@ function App() {
         platform: post.platform || 'Reddit',
         username: `u/${post.author}`,
         displayName: `u/${post.author}`,
-        content: post.content || post.title || 'Stock discussion',
+        title: post.title, // Explicitly map title
+        content: post.content || '', // Correctly map content, fallback to empty string
         created_at: post.created_at || '',
         upvotes: post.upvotes || 0,
         num_comments: post.num_comments || 0,
@@ -133,7 +136,8 @@ function App() {
         platform: post.platform || 'Reddit',
         username: `u/${post.author}`,
         displayName: `u/${post.author}`,
-        content: post.content || post.title || 'Political/prediction discussion',
+        title: post.title, // Also map for polymarket in case it exists
+        content: post.content || '', // Correctly map content, fallback to empty string
         created_at: post.created_at || '',
         upvotes: post.upvotes || 0,
         num_comments: post.num_comments || 0,
@@ -325,6 +329,7 @@ function App() {
               isLoading={isLoading}
             />
           } />
+          <Route path="/about" element={<About />} />
         </Routes>
       </div>
     </Router>

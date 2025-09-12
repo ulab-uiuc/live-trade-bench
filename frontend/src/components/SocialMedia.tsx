@@ -66,63 +66,34 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
   return (
     <div className="social-media-container">
       <div className="social-media-header">
-        <h1>📱 Social Media</h1>
+        <h1>Social Media</h1>
+        <p className="social-media-subtitle">
+          Track real-time social media discussions about stocks and polymarkets.
+        </p>
         <div className="social-media-controls">
           <div className="social-media-category-tabs">
             {(['stock', 'polymarket'] as const).map((market) => (
               <button
                 key={market}
                 onClick={() => setActiveCategory(market)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.375rem',
-                  border: 'none',
-                  background: activeCategory === market ? '#6366f1' : 'transparent',
-                  color: activeCategory === market ? '#ffffff' : '#d1d5db',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  fontSize: '0.875rem',
-                  fontWeight: activeCategory === market ? 'bold' : 'normal'
-                }}
+                className={activeCategory === market ? 'active' : ''}
               >
                 {market === 'stock' ? 'Stock Market' : 'Polymarket'}
               </button>
             ))}
           </div>
 
-          <div style={{
-            fontSize: '0.875rem',
-            color: '#9ca3af'
-          }}>
+          <div className="social-media-stats">
             {posts.length} posts • Last updated: {lastRefresh.toLocaleTimeString()}
           </div>
         </div>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-        gap: '1.5rem'
-      }}>
+      <div className="social-media-grid">
         {posts.map((post) => (
           <div
             key={post.id}
-            style={{
-              background: '#1f2937',
-              border: '1px solid #374151',
-              borderRadius: '0.5rem',
-              padding: '1.5rem',
-              transition: 'all 0.2s ease',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#3b82f6';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#374151';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
+            className="social-media-card"
             onClick={() => {
               if (post.url) {
                 window.open(post.url, '_blank', 'noopener,noreferrer');
@@ -130,29 +101,12 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
             }}
           >
             {/* Post header */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              marginBottom: '1rem'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                flexWrap: 'wrap'
-              }}>
+            <div className="social-media-card-header">
+              <div className="social-media-tags">
                 {/* Stock Symbol Tags */}
                 {activeCategory === 'stock' && post.stock_symbols && post.stock_symbols.length > 0 && (
                   post.stock_symbols.map((symbol: string) => (
-                    <span key={symbol} style={{
-                      background: getTagColor(symbol),
-                      color: '#ffffff',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 'bold'
-                    }}>
+                    <span key={symbol} className="social-media-tag" style={{ backgroundColor: getTagColor(symbol) }}>
                       {symbol}
                     </span>
                   ))
@@ -160,68 +114,34 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
 
                 {/* Tag for Stock or Polymarket Question */}
                 {((activeCategory === 'stock' && post.tag) || (activeCategory === 'polymarket' && (post.question || post.tag))) && (
-                  <span style={{
-                    background: getTagColor((activeCategory === 'polymarket' ? (post.question || post.tag) : post.tag) || null),
-                    color: '#ffffff',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    maxWidth: activeCategory === 'polymarket' ? '200px' : 'none',
-                    overflow: activeCategory === 'polymarket' ? 'hidden' : 'visible',
-                    textOverflow: activeCategory === 'polymarket' ? 'ellipsis' : 'clip',
-                    whiteSpace: activeCategory === 'polymarket' ? 'nowrap' : 'normal',
-                  }}>
+                  <span className="social-media-tag" style={{ backgroundColor: getTagColor((activeCategory === 'polymarket' ? (post.question || post.tag) : post.tag) || null) }}>
                     {activeCategory === 'polymarket' ? (post.question || post.tag) : post.tag}
                   </span>
                 )}
-
-                {/* Removed separate Polymarket Question Tag block */}
-
-                {/* Removed sentiment tag block */}
               </div>
 
-              <div style={{
-                fontSize: '0.75rem',
-                color: '#9ca3af',
-                whiteSpace: 'nowrap',
-                flexShrink: 0
-              }}>
+              <div className="social-media-time">
                 {formatTimeAgo(post.created_at || '')}
               </div>
             </div>
 
             {/* Post content */}
-            <p style={{
-              fontSize: '0.875rem',
-              color: '#d1d5db',
-              lineHeight: '1.5',
-              marginBottom: '1rem',
-              maxHeight: '120px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              display: '-webkit-box',
-              WebkitLineClamp: 4,
-              WebkitBoxOrient: 'vertical'
-            }}>
-              {post.content.length > 200 ? `${post.content.substring(0, 200)}...` : post.content}
+            {post.title && <h3 className="social-media-title">{post.title}</h3>}
+            <p className="social-media-content">
+              {post.content && post.content.length > 200 ? `${post.content.substring(0, 200)}...` : post.content}
             </p>
 
             {/* Post footer */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-start',
-              alignItems: 'center',
-              fontSize: '0.75rem',
-              color: '#9ca3af'
-            }}>
-              <div style={{
-                display: 'flex',
-                gap: '1rem',
-                alignItems: 'center'
-              }}>
-                <span>❤️ {post.upvotes || 0}</span>
-                <span>💬 {post.num_comments || 0}</span>
+            <div className="social-media-footer">
+              <div className="social-media-metrics">
+                <span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-heart"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                  {post.upvotes || 0}
+                </span>
+                <span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                  {post.num_comments || 0}
+                </span>
               </div>
             </div>
           </div>

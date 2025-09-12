@@ -250,7 +250,7 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
     <div className="dashboard-container">
       <div className="dashboard-header">
         <h1 className="dashboard-title">
-          Live Trade Bench
+          Live Trading Benchmark
         </h1>
         <p className="dashboard-subtitle">
           Real-time leaderboard for LLM-powered portfolio management

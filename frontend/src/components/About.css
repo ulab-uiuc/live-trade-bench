@@ -1,0 +1,367 @@
+.about-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  line-height: 1.6;
+  color: #e5e7eb;
+  background: #111827;
+  min-height: 100vh;
+}
+
+.about-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.about-header h1 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.about-subtitle {
+  font-size: 1.4rem;
+  color: #9ca3af;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.team-section {
+  margin-bottom: 4rem;
+}
+
+.team-title {
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  justify-items: center;
+}
+
+.team-member {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.member-avatar {
+  flex-shrink: 0;
+  position: relative;
+}
+
+.avatar-image {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  object-fit: cover;
+  transition: all 0.2s ease;
+}
+
+.avatar-image:hover {
+  transform: scale(1.05);
+}
+
+.avatar-fallback {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 3rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.member-name {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin: 0;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: all 0.2s ease;
+}
+
+.member-name-link:hover .member-name {
+  color: #667eea;
+  text-decoration-color: #667eea;
+}
+
+.member-role {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #9ca3af;
+  margin: 0;
+  padding: 0rem 0.5rem;
+  background: #111827;
+  border-radius: 12px;
+}
+
+.member-avatar-link {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease;
+  background: #111827;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.member-avatar-link:hover {
+  transform: scale(1.05);
+}
+
+.member-name-link {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  background: #111827;
+  border-radius: 12px;
+  padding: 0.5rem 1rem;
+}
+
+.member-name-link:hover {
+  transform: translateY(-2px);
+}
+
+
+.project-section {
+  margin-bottom: 4rem;
+}
+
+.project-section h2 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.project-content {
+  display: grid;
+  gap: 2rem;
+}
+
+.project-description,
+.project-features {
+  background: #111827;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.project-description h3,
+.project-features h3 {
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: #667eea;
+  margin-bottom: 1rem;
+}
+
+.highlight-text {
+  background: #9c9ef8;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  text-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+}
+
+.project-description p,
+.project-features p {
+  color: #ffffff;
+  font-size: 1.2rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.project-features li {
+  color: #ffffff;
+  font-size: 1.2rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.project-features p {
+  margin-bottom: 2rem;
+}
+
+.project-features ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1.5rem;
+}
+
+.project-features li {
+  padding: 0.75rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+
+.project-features li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #9c9ef8;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.tech-item {
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.tech-item strong {
+  color: #334155;
+}
+
+.contact-section {
+  text-align: center;
+  background: #111827;
+  color: #e5e7eb;
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  margin-top: 1rem;
+  border: 1px solid #374151;
+}
+
+.contact-section h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.contact-section p {
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.9;
+}
+
+.contact-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.contact-button {
+  display: inline-block;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.contact-button.primary {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.contact-button.primary:hover {
+  background: #5a67d8;
+  border-color: #5a67d8;
+}
+
+.contact-button.secondary {
+  background: transparent;
+  color: #e5e7eb;
+  border-color: #374151;
+}
+
+.contact-button.secondary:hover {
+  background: #374151;
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .about-container {
+    padding: 1rem;
+  }
+
+  .about-header h1,
+  .project-section h2 {
+    font-size: 2rem;
+  }
+
+  .about-subtitle {
+    font-size: 1.3rem;
+  }
+
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-member {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .tech-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .contact-button {
+    width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-header h1,
+  .project-section h2 {
+    font-size: 1.8rem;
+  }
+
+  .project-description,
+  .project-features {
+    padding: 1.5rem;
+  }
+
+  .contact-section {
+    padding: 2rem 1rem;
+  }
+}

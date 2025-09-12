@@ -157,6 +157,7 @@ class PolymarketPortfolioSystem:
                     content = post.get("content", "")  # No longer format content here
                     formatted_posts.append(
                         {
+                            "title": post.get("title", ""),
                             "content": content,
                             "author": post.get("author", "Unknown"),
                             "platform": "Reddit",
