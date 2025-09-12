@@ -14,11 +14,7 @@
 }
 
 .about-header h1 {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
+  color: #9c9ef8;
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
@@ -160,11 +156,7 @@
 }
 
 .project-section h2 {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
+  color: #9c9ef8;
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 2rem;
