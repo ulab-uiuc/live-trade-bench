@@ -92,29 +92,33 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         ...
 
     def _prepare_account_analysis(self, account_data: Dict[str, Any]) -> str:
-        # Handle both direct account data and nested portfolio structure
-        portfolio = account_data.get("portfolio", account_data)
+        allocation_history = account_data.get("allocation_history", [])
+        current_performance = account_data.get("performance", 0.0)
 
-        cash_balance = portfolio.get("cash", account_data.get("cash_balance", 0.0))
-        total_value = portfolio.get("total_value", account_data.get("total_value", 0.0))
-        pnl = account_data.get("profit", account_data.get("pnl", 0.0))
+        if allocation_history:
+            recent_allocations = allocation_history[-5:]  # Get last 5 records
+            all_allocations = []
+            for i, snapshot in enumerate(recent_allocations):
+                timestamp = snapshot.get("timestamp", f"Record {i+1}")
+                allocations = snapshot.get("allocations", {})
+                performance = snapshot.get("performance", 0.0)
+                all_allocations.append(
+                    f"    {timestamp}: {allocations} (Performance: {performance:.1f}%)"
+                )
 
-        # Count total positions
-        positions = portfolio.get("positions", account_data.get("positions", {}))
-        total_positions = len(positions) if isinstance(positions, dict) else 0
+            allocations_text = "\n".join(all_allocations)
 
-        target_allocations = portfolio.get(
-            "target_allocations", account_data.get("target_allocations", {})
-        )
-
-        return (
-            f"ACCOUNT INFO:\n"
-            f"  Cash: ${cash_balance:.2f}\n"
-            f"  Portfolio Value: ${total_value:.2f}\n"
-            f"  P&L: ${pnl:+.2f}\n"
-            f"  Total Positions: {total_positions}\n"
-            f"  Current Allocations: {target_allocations}"
-        )
+            return (
+                f"ACCOUNT INFO:\n"
+                f"  Current Performance: {current_performance:.1f}%\n"
+                f"  Recenet Five Historical Allocations:\n{allocations_text}"
+            )
+        else:
+            return (
+                f"ACCOUNT INFO:\n"
+                f"  Current Performance: {current_performance:.1f}%\n"
+                f"  Recenet Five Historical Allocations: No history available"
+            )
 
     def _prepare_news_analysis(
         self,
