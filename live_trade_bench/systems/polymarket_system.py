@@ -9,6 +9,7 @@ from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.polymarket_fetcher import (
     fetch_current_market_price,
     fetch_market_price_on_date,
+    fetch_market_price_with_history,
     fetch_trending_markets,
     fetch_verified_historical_markets,
 )
@@ -95,27 +96,48 @@ class PolymarketPortfolioSystem:
                 if not token_ids:
                     continue
 
-                if for_date:
-                    price_data = fetch_market_price_on_date(token_ids, for_date)
-                else:
-                    price_data = fetch_current_market_price(token_ids)
+                # Use the new function that gets both current prices and history
+                price_data_with_history = fetch_market_price_with_history(token_ids, for_date)
+                current_prices = price_data_with_history.get("current_prices", {})
+                price_history = price_data_with_history.get("price_history", {})
 
-                if price_data:
+                if current_prices:
                     question = self.market_info[market_id]["question"]
                     url = self.market_info[market_id].get("url")
+
+                    # Get YES and NO token IDs
+                    yes_token_id = token_ids[0] if len(token_ids) > 0 else None
+                    no_token_id = token_ids[1] if len(token_ids) > 1 else None
 
                     yes_key = f"{question}_YES"
                     no_key = f"{question}_NO"
 
-                    if yes_key in price_data:
-                        price_data[yes_key].update(
-                            {"id": f"{market_id}_YES", "question": question, "url": url}
-                        )
+                    # Create price data with history
+                    price_data = {}
+                    
+                    if yes_token_id and yes_token_id in current_prices:
+                        yes_price = current_prices[yes_token_id]
+                        if yes_price is not None:
+                            price_data[yes_key] = {
+                                "price": yes_price,
+                                "outcome": "YES",
+                                "id": f"{market_id}_YES",
+                                "question": question,
+                                "url": url,
+                                "price_history": price_history.get(yes_token_id, [])
+                            }
 
-                    if no_key in price_data:
-                        price_data[no_key].update(
-                            {"id": f"{market_id}_NO", "question": question, "url": url}
-                        )
+                    if no_token_id and no_token_id in current_prices:
+                        no_price = current_prices[no_token_id]
+                        if no_price is not None:
+                            price_data[no_key] = {
+                                "price": no_price,
+                                "outcome": "NO",
+                                "id": f"{market_id}_NO",
+                                "question": question,
+                                "url": url,
+                                "price_history": price_history.get(no_token_id, [])
+                            }
 
                     market_data_expanded.update(price_data)
                 else:
@@ -191,22 +213,24 @@ class PolymarketPortfolioSystem:
             )
             start_date = (ref - timedelta(days=3)).strftime("%Y-%m-%d")
             end_date = ref.strftime("%Y-%m-%d")
-            for market_id in list(market_data.keys())[:3]:
+            for market_id in list(market_data.keys()):
                 question = self.market_info.get(market_id, {}).get(
                     "question", str(market_id)
                 )
                 query = " ".join(question.split()[:5]) if question else str(market_id)
                 news_data_map[market_id] = fetch_news_data(
-                    query, start_date, end_date, max_pages=1, ticker=query
+                    query, start_date, end_date, max_pages=3, ticker=query
                 )
         except Exception as e:
             print(f"    - News data fetch failed: {e}")
         print("  - ✅ News data fetched")
-        for market_id, news in list(news_data_map.items())[:2]:
+        for market_id, news in news_data_map.items():
             if news:
-                print(
-                    f"    - News for {market_id}: {news[0].get('title', 'N/A')[:50]}..."
-                )
+                print(f"    - News for {market_id}: {len(news)} articles")
+                for i, article in enumerate(news[:3]):
+                    print(f"      {i+1}. {article.get('title', 'N/A')[:60]}...")
+            else:
+                print(f"    - News for {market_id}: No articles found")
         return news_data_map
 
     def _generate_allocations(

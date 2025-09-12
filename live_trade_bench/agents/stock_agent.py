@@ -14,15 +14,17 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
         analysis_parts = []
         for ticker, data in market_data.items():
             price = data.get("current_price", 0.0)
-            name = data.get("name", ticker)
-            sector = data.get("sector", "Unknown")
-            prev = self.prev_price(ticker)
-            pct = 0.0 if prev is None else ((price - prev) / prev) * 100.0
-            trend = "up" if pct > 0 else ("down" if pct < 0 else "flat")
-            hist = ", ".join(f"{p:.2f}" for p in self.history_tail(ticker, 3))
-            analysis_parts.append(
-                f"{ticker} ({name}): ${price:.2f} | {pct:+.2f}% ({trend}) | Sector: {sector} | History: [{hist}]"
-            )
+            price_history = data.get("price_history", [])
+            
+            # Format current price
+            current_info = f"{ticker}: Current price is ${price:.2f}"
+            analysis_parts.append(current_info)
+            
+            # Format 5-day history with relative days
+            history_lines = self._format_price_history(price_history, ticker, is_stock=True)
+            analysis_parts.extend(history_lines)
+            
+            analysis_parts.append("")  # Empty line for separation
             self._update_price_history(ticker, price)
         return "MARKET ANALYSIS:\n" + "\n".join(analysis_parts)
 
@@ -35,7 +37,7 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
         stock_list = list(market_data.keys())
         return (
             "You are a professional portfolio manager. Analyze the market data and generate a complete portfolio allocation.\n\n"
-            f"Market Analysis:\n{analysis}\n\n"
+            f"{analysis}\n\n"
             "PORTFOLIO MANAGEMENT PRINCIPLES:\n"
             "- Diversify across sectors and market caps\n"
             "- Consider market momentum and fundamentals\n"
@@ -53,7 +55,7 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
             f'   "{stock_list[2]}": 0.15,\n'
             '   "CASH": 0.40\n'
             " },\n"
-            ' "reasoning": "brief explanation"\n'
+            ' "reasoning": "brief explanation about why you made this allocation"\n'
             "}\n\n"
             "IMPORTANT RULES:\n"
             "1. Return ONLY the JSON object\n"
