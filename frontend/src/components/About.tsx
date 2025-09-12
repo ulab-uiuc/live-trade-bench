@@ -39,7 +39,7 @@ const About: React.FC = () => {
       <div className="about-header">
         <h1>About Us </h1>
         <p className="about-subtitle">
-          Researchers at ULab from University of Illinois at Urbana-Champaign
+          Researchers at ULab from the University of Illinois at Urbana-Champaign
         </p>
       </div>
 

@@ -54,6 +54,16 @@
   justify-items: center;
 }
 
+/* Mobile-first approach for team grid */
+@media (max-width: 640px) {
+  .team-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+}
+
 .team-member {
   display: flex;
   flex-direction: column;
@@ -200,6 +210,21 @@
   margin-bottom: 1rem;
 }
 
+/* Better text readability on mobile */
+@media (max-width: 768px) {
+  .project-features p {
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+}
+
+@media (max-width: 480px) {
+  .project-features p {
+    font-size: 0.95rem;
+    line-height: 1.8;
+  }
+}
+
 .project-features li {
   color: #ffffff;
   font-size: 1.2rem;
@@ -318,22 +343,75 @@
     padding: 1rem;
   }
 
+  .about-header {
+    margin-bottom: 2rem;
+  }
+
   .about-header h1,
   .project-section h2 {
     font-size: 2rem;
   }
 
   .about-subtitle {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
+    line-height: 1.5;
   }
 
   .team-grid {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 
   .team-member {
     flex-direction: column;
     text-align: center;
+  }
+
+  /* Smaller avatars for mobile */
+  .avatar-image,
+  .avatar-fallback {
+    width: 120px;
+    height: 120px;
+  }
+
+  .avatar-fallback {
+    font-size: 2rem;
+  }
+
+  .member-avatar-link {
+    padding: 0.75rem;
+  }
+
+  .member-name {
+    font-size: 1.2rem;
+  }
+
+  .member-role {
+    font-size: 1rem;
+  }
+
+  /* Better mobile spacing for project section */
+  .project-section {
+    margin-bottom: 2rem;
+  }
+
+  .project-content {
+    gap: 1.5rem;
+  }
+
+  .project-description,
+  .project-features {
+    padding: 1.5rem;
+  }
+
+  .project-features h3 {
+    font-size: 1.4rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .project-features p {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
   }
 
   .tech-grid {
@@ -343,25 +421,123 @@
   .contact-buttons {
     flex-direction: column;
     align-items: center;
+    gap: 0.75rem;
   }
 
   .contact-button {
-    width: 200px;
+    width: 100%;
+    max-width: 280px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
   }
 }
 
 @media (max-width: 480px) {
+  .about-container {
+    padding: 0.75rem;
+  }
+
   .about-header h1,
   .project-section h2 {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
+    line-height: 1.2;
+  }
+
+  .about-subtitle {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  /* Even smaller avatars for very small screens */
+  .avatar-image,
+  .avatar-fallback {
+    width: 100px;
+    height: 100px;
+  }
+
+  .avatar-fallback {
+    font-size: 1.5rem;
+  }
+
+  .member-avatar-link {
+    padding: 0.5rem;
+  }
+
+  .member-name {
+    font-size: 1.1rem;
+  }
+
+  .member-role {
+    font-size: 0.9rem;
+    padding: 0.25rem 0.75rem;
   }
 
   .project-description,
   .project-features {
-    padding: 1.5rem;
+    padding: 1rem;
+  }
+
+  .project-features h3 {
+    font-size: 1.2rem;
+  }
+
+  .project-features p {
+    font-size: 0.95rem;
+    line-height: 1.5;
   }
 
   .contact-section {
-    padding: 2rem 1rem;
+    padding: 1.5rem 1rem;
+  }
+
+  .contact-section h2 {
+    font-size: 1.5rem;
+  }
+
+  .contact-section p {
+    font-size: 1rem;
+  }
+}
+
+/* Touch-friendly improvements for mobile */
+@media (max-width: 768px) {
+
+  .member-avatar-link,
+  .member-name-link {
+    min-height: 44px;
+    /* iOS recommended touch target size */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .contact-button {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Improve hover states for touch devices */
+  .member-avatar-link:hover,
+  .member-name-link:hover {
+    transform: none;
+  }
+
+  .avatar-image:hover {
+    transform: none;
+  }
+
+  /* Add subtle tap states instead */
+  .member-avatar-link:active {
+    transform: scale(0.98);
+  }
+
+  .member-name-link:active {
+    transform: translateY(1px);
+  }
+
+  .contact-button:active {
+    transform: scale(0.98);
   }
 }
