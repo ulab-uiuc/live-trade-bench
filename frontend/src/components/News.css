@@ -112,7 +112,6 @@
 
 .news-controls {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
@@ -125,4 +124,38 @@
   background: #374151;
   border-radius: 0.5rem;
   padding: 0.25rem;
+}
+
+.news-stats {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin-left: 1rem;
+  flex-grow: 1;
+}
+
+.news-sort-control {
+  background: #0f1419;
+  border: 1px solid #374151;
+  color: #9ca3af;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  min-width: 140px;
+}
+
+.news-sort-control:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.news-sort-control:focus {
+  outline: none;
+  border-color: #6366f1;
+  color: #ffffff;
+}
+
+.news-sort-control option {
+  background: #0f1419;
+  color: #9ca3af;
 }

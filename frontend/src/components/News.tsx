@@ -105,10 +105,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
             ))}
           </div>
 
-          <div style={{
-            fontSize: '0.875rem',
-            color: '#9ca3af'
-          }}>
+          <div className="news-stats">
             {sortedNews.length} articles • Last updated: {lastRefresh.toLocaleTimeString()}
           </div>
 
@@ -116,15 +113,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'ticker' | 'time')}
-              style={{
-                padding: '0.5rem',
-                borderRadius: '0.375rem',
-                border: '1px solid #374151',
-                background: '#0f1419',
-                color: '#e5e7eb',
-                fontSize: '0.875rem',
-                cursor: 'pointer'
-              }}
+              className="news-sort-control"
             >
               <option value="time">Sort by Time</option>
               <option value="ticker">Sort by Ticker A-Z</option>
@@ -196,10 +185,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
                 {/* Stock Symbol Tag */}
                 {news.tag && (
                   <span style={{
-                    background: getTagColor(news.tag),
-                    color: '#ffffff',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '0.25rem',
+                    color: getTagColor(news.tag),
                     fontSize: '0.75rem',
                     fontWeight: 'bold'
                   }}>
