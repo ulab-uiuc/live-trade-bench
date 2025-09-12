@@ -50,6 +50,21 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     }
   }, [showModal]);
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showModal) {
+      // Store original overflow value
+      const originalOverflow = document.body.style.overflow;
+      // Disable body scroll
+      document.body.style.overflow = 'hidden';
+
+      // Cleanup function to restore original overflow
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showModal]);
+
 
   const showCategoryTabs = useMemo(() => {
     return stockModels.length > 0 && polymarketModels.length > 0;
@@ -465,25 +480,25 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       {/*  */}
       {showCategoryTabs && (
         <div className="category-tabs">
-        <button
-          onClick={() => setSelectedCategory('all')}
+          <button
+            onClick={() => setSelectedCategory('all')}
             className={selectedCategory === 'all' ? 'active' : ''}
-        >
+          >
             All ({modelsData.length})
-        </button>
-        <button
+          </button>
+          <button
             onClick={() => setSelectedCategory('stock')}
             className={selectedCategory === 'stock' ? 'active' : ''}
-        >
+          >
             Stock ({stockModels.length})
-        </button>
-        <button
+          </button>
+          <button
             onClick={() => setSelectedCategory('polymarket')}
             className={selectedCategory === 'polymarket' ? 'active' : ''}
-        >
+          >
             Polymarket ({polymarketModels.length})
-        </button>
-      </div>
+          </button>
+        </div>
       )}
 
       <div className="models-grid-square">
@@ -543,7 +558,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 <span className={`return-value-large ${model.performance >= 0 ? 'positive' : 'negative'}`}>
                   {model.performance.toFixed(1)}%
                 </span>
-            </div>
+              </div>
 
               <div className="card-allocation">
                 <div className="allocation-label">Asset Allocation</div>
@@ -577,8 +592,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           }}
         >
           {tooltip.content}
-                </div>
-              )}
+        </div>
+      )}
 
       {showModal && selectedModel && (
         console.log('🔥 Modal rendering for:', selectedModel.name),
@@ -586,7 +601,12 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{selectedModel.name}</h2>
-              <button className="modal-close" onClick={closeModal}>×</button>
+              <button className="modal-close" onClick={closeModal} aria-label="Close modal">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
 
             <div className="modal-body">
@@ -622,7 +642,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 margin: '2rem 0',
                 position: 'relative'
               }}>
-            </div>
+              </div>
 
               <AssetRatioChart
                 allocationHistory={selectedModel.allocationHistory}
@@ -688,30 +708,30 @@ const AssetRatioChart: React.FC<{
   }, [allocationHistory]);
 
   const allAssets = useMemo(() => {
-      const assetSet = new Set<string>();
-      chartData.forEach(allocations => {
-          Object.keys(allocations).forEach(asset => assetSet.add(asset));
-      });
-      // Ensure CASH is last for stacking order if it exists
-      const sortedAssets = Array.from(assetSet).sort((a, b) => {
-        if (a === 'CASH') return 1;
-        if (b === 'CASH') return -1;
-        return a.localeCompare(b);
-      });
-      return sortedAssets;
+    const assetSet = new Set<string>();
+    chartData.forEach(allocations => {
+      Object.keys(allocations).forEach(asset => assetSet.add(asset));
+    });
+    // Ensure CASH is last for stacking order if it exists
+    const sortedAssets = Array.from(assetSet).sort((a, b) => {
+      if (a === 'CASH') return 1;
+      if (b === 'CASH') return -1;
+      return a.localeCompare(b);
+    });
+    return sortedAssets;
   }, [chartData]);
 
   const stackedData = useMemo(() => {
     return chartData.map(allocations => {
-        let cumulative = 0;
-        const stacked: { [key: string]: number } = {};
-        allAssets.forEach(asset => {
-            const value = allocations[asset] || 0; // Default to 0 if asset not in this snapshot
-            stacked[asset + '_start'] = cumulative;
-            cumulative += value;
-            stacked[asset + '_end'] = cumulative;
-        });
-        return stacked;
+      let cumulative = 0;
+      const stacked: { [key: string]: number } = {};
+      allAssets.forEach(asset => {
+        const value = allocations[asset] || 0; // Default to 0 if asset not in this snapshot
+        stacked[asset + '_start'] = cumulative;
+        cumulative += value;
+        stacked[asset + '_end'] = cumulative;
+      });
+      return stacked;
     });
   }, [chartData, allAssets]);
 
@@ -810,56 +830,56 @@ const AssetRatioChart: React.FC<{
 
           {/* Stacked Areas */}
           {allAssets.map((asset, assetIndex) => {
-              const color = getAssetColorForChart(asset);
+            const color = getAssetColorForChart(asset);
 
-              let pathData;
-              if (stackedData.length === 1) {
-                const y_end = margin.top + chartHeight - (stackedData[0][asset + '_end'] * chartHeight);
-                const y_start = margin.top + chartHeight - (stackedData[0][asset + '_start'] * chartHeight);
-                const x_start = margin.left;
-                const x_end = chartWidth - margin.right;
-                pathData = `M ${x_start},${y_end} L ${x_end},${y_end} L ${x_end},${y_start} L ${x_start},${y_start} Z`;
-              } else {
-                  const topPoints = stackedData.map((entry, index) => {
-                    const x = margin.left + (index / (stackedData.length - 1)) * (chartWidth - margin.left - margin.right);
-                    const y = margin.top + chartHeight - (entry[asset + '_end'] * chartHeight);
-                    return `${x},${y}`;
-                  }).join(' ');
+            let pathData;
+            if (stackedData.length === 1) {
+              const y_end = margin.top + chartHeight - (stackedData[0][asset + '_end'] * chartHeight);
+              const y_start = margin.top + chartHeight - (stackedData[0][asset + '_start'] * chartHeight);
+              const x_start = margin.left;
+              const x_end = chartWidth - margin.right;
+              pathData = `M ${x_start},${y_end} L ${x_end},${y_end} L ${x_end},${y_start} L ${x_start},${y_start} Z`;
+            } else {
+              const topPoints = stackedData.map((entry, index) => {
+                const x = margin.left + (index / (stackedData.length - 1)) * (chartWidth - margin.left - margin.right);
+                const y = margin.top + chartHeight - (entry[asset + '_end'] * chartHeight);
+                return `${x},${y}`;
+              }).join(' ');
 
-                  const bottomPoints = stackedData.map((entry, index) => {
-                    const x = margin.left + (index / (stackedData.length - 1)) * (chartWidth - margin.left - margin.right);
-                    const y = margin.top + chartHeight - (entry[asset + '_start'] * chartHeight);
-                    return `${x},${y}`;
-                  }).reverse().join(' ');
+              const bottomPoints = stackedData.map((entry, index) => {
+                const x = margin.left + (index / (stackedData.length - 1)) * (chartWidth - margin.left - margin.right);
+                const y = margin.top + chartHeight - (entry[asset + '_start'] * chartHeight);
+                return `${x},${y}`;
+              }).reverse().join(' ');
 
-                  pathData = `M ${topPoints} L ${bottomPoints} Z`;
-              }
+              pathData = `M ${topPoints} L ${bottomPoints} Z`;
+            }
 
-              return (
-                <g
-                  key={asset}
-                  onMouseMove={(e) => onMouseMove(e, `${asset}`)}
-                  onMouseLeave={onMouseLeave}
-                >
-                  <path d={pathData} fill={color} strokeWidth="0" />
-                </g>
-              );
-            })}
+            return (
+              <g
+                key={asset}
+                onMouseMove={(e) => onMouseMove(e, `${asset}`)}
+                onMouseLeave={onMouseLeave}
+              >
+                <path d={pathData} fill={color} strokeWidth="0" />
+              </g>
+            );
+          })}
 
           {/* X-axis labels (using index) */}
           {chartData.map((_, index) => {
-              // Show fewer labels if there are many data points
-              if (chartData.length > 10 && index % Math.floor(chartData.length / 5) !== 0) {
-                  return null;
-              }
-              const xRatio = chartData.length > 1 ? index / (chartData.length - 1) : 0.5;
-              const x = margin.left + xRatio * (chartWidth - margin.left - margin.right);
-              return (
-                <text key={index} x={x} y={chartHeight + margin.top + 20} fill="#9ca3af" fontSize="10" textAnchor="middle">
-                  {index + 1}
-                </text>
-              );
-            })}
+            // Show fewer labels if there are many data points
+            if (chartData.length > 10 && index % Math.floor(chartData.length / 5) !== 0) {
+              return null;
+            }
+            const xRatio = chartData.length > 1 ? index / (chartData.length - 1) : 0.5;
+            const x = margin.left + xRatio * (chartWidth - margin.left - margin.right);
+            return (
+              <text key={index} x={x} y={chartHeight + margin.top + 20} fill="#9ca3af" fontSize="10" textAnchor="middle">
+                {index + 1}
+              </text>
+            );
+          })}
         </svg>
       </div>
 
