@@ -92,14 +92,33 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         ...
 
     def _prepare_account_analysis(self, account_data: Dict[str, Any]) -> str:
-        return (
-            f"ACCOUNT INFO:\n"
-            f"  Cash: ${account_data.get('cash_balance', 0.0):.2f}\n"
-            f"  Portfolio Value: ${account_data.get('total_value', 0.0):.2f}\n"
-            f"  P&L: ${account_data.get('pnl', 0.0):+.2f}\n"
-            f"  Total Positions: {account_data.get('total_positions', 0)}\n"
-            f"  Current Allocations: {account_data.get('target_allocations', {})}"
-        )
+        allocation_history = account_data.get("allocation_history", [])
+        current_performance = account_data.get("performance", 0.0)
+
+        if allocation_history:
+            recent_allocations = allocation_history[-5:]  # Get last 5 records
+            all_allocations = []
+            for i, snapshot in enumerate(recent_allocations):
+                timestamp = snapshot.get("timestamp", f"Record {i+1}")
+                allocations = snapshot.get("allocations", {})
+                performance = snapshot.get("performance", 0.0)
+                all_allocations.append(
+                    f"    {timestamp}: {allocations} (Performance: {performance:.1f}%)"
+                )
+
+            allocations_text = "\n".join(all_allocations)
+
+            return (
+                f"ACCOUNT INFO:\n"
+                f"  Current Performance: {current_performance:.1f}%\n"
+                f"  Recenet Five Historical Allocations:\n{allocations_text}"
+            )
+        else:
+            return (
+                f"ACCOUNT INFO:\n"
+                f"  Current Performance: {current_performance:.1f}%\n"
+                f"  Recenet Five Historical Allocations: No history available"
+            )
 
     def _prepare_news_analysis(
         self,
