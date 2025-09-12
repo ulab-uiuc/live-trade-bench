@@ -751,13 +751,19 @@ const AssetRatioChart: React.FC<{
     // Then, get URLs from allocation history (if format supports it)
     if (Array.isArray(allocationHistory)) {
       allocationHistory.forEach(snapshot => {
-        if (snapshot && Array.isArray(snapshot.allocations)) {
-          snapshot.allocations.forEach((a: any) => {
+        // Try new allocations_array format first
+        if (snapshot && Array.isArray(snapshot.allocations_array)) {
+          snapshot.allocations_array.forEach((a: any) => {
             // Add to map if it has a URL, overwriting older entries is fine
             if (a && a.name && a.url) {
               map[a.name] = { url: a.url, question: a.question };
             }
           });
+        }
+        // Fallback to old allocations format (object)
+        else if (snapshot && snapshot.allocations && typeof snapshot.allocations === 'object') {
+          // For old format, we can't get URLs from allocation history
+          // URLs will only come from current portfolio positions
         }
       });
     }
