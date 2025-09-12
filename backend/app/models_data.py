@@ -1,11 +1,10 @@
 import json
 import os
 from dataclasses import asdict
-from typing import Any, Dict
 
 from live_trade_bench.accounts.base_account import Position
 
-from .config import MODELS_DATA_FILE
+from .config import MODELS_DATA_FILE, MODELS_DATA_INIT_FILE
 
 
 def _create_model_data(agent, account, market_type):
@@ -16,8 +15,6 @@ def _create_model_data(agent, account, market_type):
     portfolio = account_data.get("portfolio")
     allocation_history = account_data.get("allocation_history", [])
     asset_allocation = portfolio.get("current_allocations")
-
-    # No processing needed - data should already be in correct format from the system
 
     model = {
         "id": model_id,
@@ -52,59 +49,70 @@ def _serialize_positions(model_data):
     return model_data
 
 
-def merge_model_data(
-    existing_model: Dict[str, Any], new_model: Dict[str, Any]
-) -> Dict[str, Any]:
-    """Merge existing model data with new data, appending historical records."""
-    merged = existing_model.copy()
+def load_historical_data_to_accounts(stock_system, polymarket_system):
+    if not os.path.exists(MODELS_DATA_INIT_FILE):
+        print("📄 No historical data file found, starting fresh")
+        return
 
-    merged["trades"] = existing_model.get("trades", 0) + new_model.get("trades", 0)
+    if os.path.exists(MODELS_DATA_FILE):
+        print("📋 Models data file already exists, skipping historical data loading")
+        return
 
-    merged["performance"] = existing_model.get("performance", 0) + new_model.get(
-        "performance", 0
-    )
-    merged["profit"] = existing_model.get("profit", 0) + new_model.get("profit", 0)
+    print("🆕 First startup detected - loading historical data to account memory...")
 
-    merged["portfolio"] = new_model.get("portfolio", existing_model.get("portfolio"))
-    merged["asset_allocation"] = new_model.get(
-        "asset_allocation", existing_model.get("asset_allocation")
-    )
+    try:
+        with open(MODELS_DATA_INIT_FILE, "r") as f:
+            historical_data = json.load(f)
 
-    existing_allocation_history = existing_model.get("allocationHistory", [])
-    new_allocation_history = new_model.get("allocationHistory", [])
-    merged["allocationHistory"] = existing_allocation_history + new_allocation_history
+        print(f"📊 Loading historical data for {len(historical_data)} models...")
 
-    existing_profit_history = existing_model.get("profitHistory", [])
-    new_profit_history = new_model.get("profitHistory", [])
+        for model_data in historical_data:
+            model_name = model_data.get("name", "")
+            category = model_data.get("category", "")
 
-    # ✅ Fix profit_history cumulative calculation
-    if existing_profit_history and new_profit_history:
-        # Get the last profit value from existing history as base
-        base_profit = existing_profit_history[-1]["profit"]
-        base_total_value = existing_profit_history[-1]["totalValue"]
+            system = stock_system if category == "stock" else polymarket_system
 
-        # Adjust new profit history to be cumulative
-        adjusted_new_history = []
-        for entry in new_profit_history:
-            adjusted_entry = entry.copy()
-            # Add the base profit to make it cumulative
-            adjusted_entry["profit"] = entry["profit"] + base_profit
-            # Also adjust totalValue to maintain consistency
-            adjusted_entry["totalValue"] = entry["totalValue"] + (
-                base_total_value - entry.get("profit", 0) + base_profit
-            )
-            adjusted_new_history.append(adjusted_entry)
+            account = None
+            for agent_name, acc in system.accounts.items():
+                if agent_name == model_name:
+                    account = acc
+                    break
 
-        merged["profitHistory"] = existing_profit_history + adjusted_new_history
-    else:
-        # If no existing history or no new history, just concatenate
-        merged["profitHistory"] = existing_profit_history + new_profit_history
+            if account:
+                restore_account_from_historical_data(account, model_data)
+                allocation_count = len(model_data.get("allocationHistory", []))
+                print(f"  ✅ {model_name}: {allocation_count} trades loaded")
+            else:
+                print(f"  ⚠️ {model_name}: Account not found")
 
-    return merged
+    except Exception as e:
+        print(f"❌ Failed to load historical data: {e}")
+
+
+def restore_account_from_historical_data(account, historical_model_data):
+    portfolio = historical_model_data.get("portfolio", {})
+    account.cash_balance = portfolio.get("cash", account.initial_cash)
+
+    historical_positions = portfolio.get("positions", {})
+    for symbol, pos_data in historical_positions.items():
+        position = Position(
+            symbol=pos_data["symbol"],
+            quantity=pos_data["quantity"],
+            average_price=pos_data["average_price"],
+            current_price=pos_data["current_price"],
+            url=pos_data.get("url"),
+        )
+        account.positions[symbol] = position
+
+    account.target_allocations = portfolio.get("target_allocations", {})
+
+    account.allocation_history = historical_model_data.get("allocationHistory", [])
+
+    account.total_fees = historical_model_data.get("total_fees", 0.0)
 
 
 def generate_models_data(stock_system, polymarket_system) -> None:
-    """Generate and save model data for all systems."""
+    """Generate and save model data for all systems"""
     try:
         print("🚀 Starting data generation for both markets...")
         all_market_data = []
@@ -120,91 +128,21 @@ def generate_models_data(stock_system, polymarket_system) -> None:
                 if not agent:
                     continue
 
-                # Check if LLM allocation was successful by looking at allocation history
-                account_data = account.get_account_data()
-                allocation_history = account_data.get("allocation_history")
-
-                # If no allocation history, or last allocation has no valid allocations, skip
-                if not allocation_history:
-                    print(f"⚠️ Skipping {agent_name}: No allocation history")
-                    continue
-
-                last_allocation = allocation_history[-1].get("allocations")
-                if not last_allocation or all(
-                    v == 0
-                    for v in last_allocation.values()
-                    if isinstance(v, (int, float))
-                ):
-                    print(
-                        f"⚠️ Skipping {agent_name}: LLM failed in last cycle (empty allocation)"
-                    )
-                    continue
-
                 model_data = _create_model_data(agent, account, market_type)
-                all_market_data.append(model_data)
+                model_data_serialized = _serialize_positions(model_data)
+                all_market_data.append(model_data_serialized)
 
-        # Try to load existing data for merging
-        existing_data = []
-        if os.path.exists(MODELS_DATA_FILE):
-            try:
-                with open(MODELS_DATA_FILE, "r") as f:
-                    existing_data = json.load(f)
-                print(f"📖 Loaded existing data with {len(existing_data)} models")
-            except Exception as e:
-                print(f"⚠️ Could not load existing data: {e}, starting fresh")
-                existing_data = []
+                trades_count = len(account.allocation_history)
+                print(f"✅ Generated data for {agent_name}: {trades_count} total trades")
 
-        # Merge new data with existing data
-        merged_data = []
-        processed_ids = set()
-
-        # First, process all new successful models
-        for new_model in all_market_data:
-            new_model_serialized = _serialize_positions(new_model)
-            model_id = new_model_serialized.get("id")
-            processed_ids.add(model_id)
-
-            # Find matching existing model by ID
-            existing_model = None
-            for existing in existing_data:
-                if existing.get("id") == model_id:
-                    existing_model = existing
-                    break
-
-            if existing_model:
-                merged_model = merge_model_data(existing_model, new_model_serialized)
-                merged_data.append(merged_model)
-                print(
-                    f"🔄 Merged data for {new_model_serialized.get('name', 'Unknown')}"
-                )
-            else:
-                merged_data.append(new_model_serialized)
-                print(
-                    f"➕ Added new model {new_model_serialized.get('name', 'Unknown')}"
-                )
-
-        # Then, preserve existing models that weren't updated (LLM failed cases)
-        for existing_model in existing_data:
-            existing_id = existing_model.get("id")
-            if existing_id not in processed_ids:
-                merged_data.append(existing_model)
-                print(
-                    f"📋 Preserved existing data for {existing_model.get('name', 'Unknown')} (no update)"
-                )
-
-        # Save merged data (including preserved existing data)
         with open(MODELS_DATA_FILE, "w") as f:
-            json.dump(merged_data, f, indent=4)
-        print(
-            f"✅ Successfully wrote merged data for {len(merged_data)} models to {MODELS_DATA_FILE}"
-        )
+            json.dump(all_market_data, f, indent=4)
+
+        print(f"🎉 Successfully generated data for {len(all_market_data)} models")
 
     except Exception as e:
-        print(f"❌ CRITICAL: generate_models_data failed completely: {e}")
-        import traceback
-
-        traceback.print_exc()
-        print("🔄 Scheduler will continue with next cycle...")
+        print(f"❌ Failed to generate models data: {e}")
+        raise
 
 
 if __name__ == "__main__":
