@@ -48,7 +48,6 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             print(messages[0]["content"])
             print("--- END LLM PROMPT ---\n")
 
-            breakpoint()
             llm_response = self._call_llm(messages)
             if not llm_response.get("success"):
                 self._log_error(
