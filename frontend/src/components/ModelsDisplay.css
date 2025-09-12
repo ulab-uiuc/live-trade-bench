@@ -1,12 +1,14 @@
 /* 简化的模型显示样式 */
 :root {
   /* Stock Theme */
-  --stock-color-primary: #f59e0b; /* Amber 500 */
+  --stock-color-primary: #f59e0b;
+  /* Amber 500 */
   --stock-color-hover-border: #f59e0b;
   --stock-color-positive: #f59e0b;
 
   /* Polymarket Theme */
-  --polymarket-color-primary: #06b6d4; /* Cyan 500 */
+  --polymarket-color-primary: #06b6d4;
+  /* Cyan 500 */
   --polymarket-color-hover-border: #06b6d4;
   --polymarket-color-positive: #06b6d4;
 }
@@ -53,11 +55,13 @@
 
 /* Theme-specific title colors */
 .theme-stock .models-header h2 {
-  color: #f59e0b; /* Amber 500 */
+  color: #f59e0b;
+  /* Amber 500 */
 }
 
 .theme-polymarket .models-header h2 {
-  color: #06b6d4; /* Cyan 500 */
+  color: #06b6d4;
+  /* Cyan 500 */
 }
 
 .refresh-btn {
@@ -365,7 +369,8 @@
   border: 1px solid #374151;
   font-size: 0.875rem;
   z-index: 9999;
-  pointer-events: none; /* Important: prevents the tooltip from blocking mouse events */
+  pointer-events: none;
+  /* Important: prevents the tooltip from blocking mouse events */
   white-space: nowrap;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   transform: translate(-50%, -140%);
@@ -449,16 +454,30 @@
 /* 模态框样式 */
 .modal-overlay {
   position: fixed;
-  top: 64px; /* push below navigation bar */
+  top: 64px;
+  /* push below navigation bar */
   left: 0;
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.7);
   display: flex;
-  align-items: flex-start; /* stick content to the top area */
+  align-items: flex-start;
+  /* stick content to the top area */
   justify-content: center;
   z-index: 1000;
-  padding: 2rem 1rem 1rem; /* add extra top padding */
+  padding: 2rem 1rem 1rem;
+  /* add extra top padding */
+  overflow: hidden;
+  /* Prevent any outer scrolling */
+}
+
+/* Prevent all scrolling when modal is open */
+body:has(.modal-overlay) {
+  overflow: hidden !important;
+}
+
+html:has(.modal-overlay) {
+  overflow: hidden !important;
 }
 
 .modal-content {
@@ -467,7 +486,8 @@
   border-radius: 0.75rem;
   max-width: 600px;
   width: 100%;
-  max-height: calc(100vh - 96px); /* account for top offset and padding */
+  max-height: calc(100vh - 96px);
+  /* account for top offset and padding */
   overflow-y: auto;
 }
 
@@ -489,14 +509,24 @@
   background: none;
   border: none;
   color: #9ca3af;
-  font-size: 1.5rem;
+  padding: 0.5rem;
   cursor: pointer;
-  padding: 0.25rem;
-  line-height: 1;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .modal-close:hover {
   color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.modal-close:active {
+  transform: scale(0.95);
 }
 
 .modal-body {
@@ -693,8 +723,8 @@
   font-size: 0.875rem;
 }
 
-/* Mobile First Responsive Design */
-@media (max-width: 480px) {
+/* Mobile First Responsive Design - Unified for all mobile devices */
+@media (max-width: 767px) {
   .models-container {
     padding: 0.75rem;
   }
@@ -781,19 +811,35 @@
     font-size: 1.3rem;
   }
 
+  /* UNIFIED MODAL STYLES FOR ALL MOBILE DEVICES UNDER 768PX */
   .modal-overlay {
-    top: 60px;
-    padding: 1rem 0.5rem;
+    top: 60px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
   }
 
   .modal-content {
-    margin: 0;
-    max-height: calc(100vh - 80px);
-    border-radius: 0.5rem;
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: 100vw !important;
+    height: calc(100vh - 60px) !important;
+    max-height: calc(100vh - 60px) !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    overflow-y: auto !important;
   }
 
   .modal-header {
-    padding: 1rem;
+    padding: 2rem 1rem 1rem 1rem;
+    /* 增加顶部距离 */
   }
 
   .modal-header h2 {
@@ -885,10 +931,6 @@
     font-size: 1.4rem;
   }
 
-  .modal-content {
-    margin: 0.375rem;
-    max-height: 94vh;
-  }
 }
 
 /* Tablet Portrait (641px to 768px) - Full width cards */
@@ -978,6 +1020,7 @@
 
 /* Mobile responsive styles and touch improvements */
 @media (max-width: 768px) {
+
   /* Header responsive styles */
   .models-header {
     flex-wrap: nowrap;
@@ -1029,14 +1072,14 @@
     padding: 0.6rem 1rem;
   }
 
-  /* Optimize modal for mobile */
-  .modal-overlay {
-    padding-top: 1rem;
-  }
 
   .modal-close {
-    padding: 0.5rem;
-    font-size: 1.25rem;
+    padding: 0.5rem !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   /* Better legend readability */
@@ -1065,7 +1108,8 @@
 }
 
 .polymarket-link {
-  color: #ADD8E6; /* Very light blue */
+  color: #ADD8E6;
+  /* Very light blue */
   text-decoration: none;
   font-weight: 500;
   font-size: 0.875rem;
@@ -1076,12 +1120,14 @@
 }
 
 .polymarket-link:hover {
-  color: #E0FFFF; /* Lighter cyan on hover */
+  color: #E0FFFF;
+  /* Lighter cyan on hover */
   text-decoration: underline;
 }
 
 .stock-link {
-  color: #F0E68C; /* Light yellow (khaki) */
+  color: #F0E68C;
+  /* Light yellow (khaki) */
   text-decoration: none;
   font-weight: 500;
   font-size: 0.875rem;
@@ -1089,7 +1135,8 @@
 }
 
 .stock-link:hover {
-  color: #FFFFE0; /* Lighter yellow on hover */
+  color: #FFFFE0;
+  /* Lighter yellow on hover */
   text-decoration: underline;
 }
 
@@ -1148,5 +1195,38 @@
   .sort-control {
     min-width: 100px !important;
     font-size: 0.75rem !important;
+  }
+
+  /* FORCE MODAL FULLSCREEN FOR VERY SMALL DEVICES */
+  .modal-overlay {
+    top: 60px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+  }
+
+  .modal-content {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: 100vw !important;
+    height: calc(100vh - 60px) !important;
+    max-height: calc(100vh - 60px) !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .modal-header {
+    padding: 2rem 1rem 1rem 1rem !important;
+    /* 增加顶部距离 */
   }
 }
