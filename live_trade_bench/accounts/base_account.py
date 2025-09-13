@@ -52,7 +52,9 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
     last_rebalance: Optional[str] = None
 
     def record_allocation(
-        self, metadata_map: Optional[Dict[str, Dict[str, Any]]] = None
+        self,
+        metadata_map: Optional[Dict[str, Dict[str, Any]]] = None,
+        backtest_date: Optional[str] = None,
     ):
         total_value = self.get_total_value()
         profit = total_value - self.initial_cash
@@ -74,8 +76,20 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
 
             allocations_array.append(asset_info)
 
+        # Use backtest date if provided, otherwise use current time
+        if backtest_date:
+            # Parse the date and use it as the timestamp (keeping only date part, not time)
+            try:
+                backtest_datetime = datetime.strptime(backtest_date, "%Y-%m-%d")
+                timestamp = backtest_datetime.isoformat()
+            except ValueError:
+                # Fallback to current time if date parsing fails
+                timestamp = datetime.now().isoformat()
+        else:
+            timestamp = datetime.now().isoformat()
+
         snapshot = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": timestamp,
             "total_value": total_value,
             "profit": profit,
             "performance": performance,
