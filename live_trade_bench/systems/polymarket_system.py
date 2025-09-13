@@ -77,7 +77,7 @@ class PolymarketPortfolioSystem:
         allocations = self._generate_allocations(market_data, news_data, for_date)
 
         # 4. Update Accounts
-        self._update_accounts(allocations, market_data)
+        self._update_accounts(allocations, market_data, for_date)
 
         self.cycle_count += 1
         print("--- ✅ Cycle Finished ---")
@@ -279,7 +279,10 @@ class PolymarketPortfolioSystem:
         return all_allocations
 
     def _update_accounts(
-        self, allocations: Dict[str, Dict[str, float]], market_data: Dict
+        self,
+        allocations: Dict[str, Dict[str, float]],
+        market_data: Dict,
+        for_date: str | None = None,
     ) -> None:
         print("  - Updating all accounts...")
 
@@ -297,7 +300,9 @@ class PolymarketPortfolioSystem:
                 account.apply_allocation(
                     allocation, price_map=price_map, metadata_map=market_data
                 )
-                account.record_allocation(metadata_map=market_data)
+                account.record_allocation(
+                    metadata_map=market_data, backtest_date=for_date
+                )
                 print(
                     f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"
                 )
