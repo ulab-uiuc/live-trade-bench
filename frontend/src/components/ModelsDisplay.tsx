@@ -813,8 +813,8 @@ const AssetRatioChart: React.FC<{
       </h3>
 
       <div style={{ display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
-        <svg 
-          width={chartWidth} 
+        <svg
+          width={chartWidth}
           height={chartHeight + margin.top + margin.bottom}
           style={{
             shapeRendering: 'crispEdges',
@@ -874,9 +874,9 @@ const AssetRatioChart: React.FC<{
                 onMouseMove={(e) => onMouseMove(e, `${asset}`)}
                 onMouseLeave={onMouseLeave}
               >
-                <path 
-                  d={pathData} 
-                  fill={color} 
+                <path
+                  d={pathData}
+                  fill={color}
                   stroke={color}
                   strokeWidth="0.5"
                   shapeRendering="crispEdges"

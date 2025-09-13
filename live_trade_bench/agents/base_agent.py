@@ -102,21 +102,27 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                 timestamp = snapshot.get("timestamp", f"Record {i+1}")
                 allocations = snapshot.get("allocations", {})
                 performance = snapshot.get("performance", 0.0)
+
+                # Format allocations with 2 decimal places
+                formatted_allocations = {}
+                for key, value in allocations.items():
+                    formatted_allocations[key] = f"{value:.2f}"
+
                 all_allocations.append(
-                    f"    {timestamp}: {allocations} (Performance: {performance:.1f}%)"
+                    f"    {timestamp}: {formatted_allocations} (Return rate: {performance:.1f}%)"
                 )
 
             allocations_text = "\n".join(all_allocations)
 
             return (
                 f"ACCOUNT INFO:\n"
-                f"  Current Performance: {current_performance:.1f}%\n"
+                f"  Current return rate: {current_performance:.1f}%\n"
                 f"  Recenet Five Historical Allocations:\n{allocations_text}"
             )
         else:
             return (
                 f"ACCOUNT INFO:\n"
-                f"  Current Performance: {current_performance:.1f}%\n"
+                f"  Current return rate: {current_performance:.1f}%\n"
                 f"  Recenet Five Historical Allocations: No history available"
             )
 

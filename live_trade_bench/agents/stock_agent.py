@@ -37,9 +37,19 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
         self, analysis: str, market_data: Dict[str, Dict[str, Any]]
     ) -> str:
         stock_list = list(market_data.keys())
+        sample = [stock_list[i] if i < len(stock_list) else f"ASSET_{i+1}" for i in range(3)]
+
         return (
             "You are a professional portfolio manager. Analyze the market data and generate a complete portfolio allocation.\n\n"
             f"{analysis}\n\n"
+            "PORTFOLIO MANAGEMENT OBJECTIVE:\n"
+            "- Primary goal: improve total returns by selecting allocations with higher expected return per unit of risk (risk-adjusted return), net of trading costs.\n"
+            "- Aim to outperform a reasonable baseline (e.g., equal-weight of AVAILABLE ASSETS) over the next 1–3 months while keeping drawdowns and volatility contained.\n"
+            "- Treat CASH as a tactical asset for capital protection when market conditions are unfavorable.\n\n"
+            "EVALUATION CRITERIA FOR THIS OBJECTIVE:\n"
+            "- Prefer allocations that increase expected excess return and improve risk-adjusted return (Sharpe-like reasoning) given the analysis.\n"
+            "- Keep portfolio concentration reasonable; maintain sector and factor diversification.\n"
+            "- Be mindful of turnover and liquidity (avoid excessive trading for marginal benefit).\n\n"
             "PORTFOLIO MANAGEMENT PRINCIPLES:\n"
             "- Diversify across sectors and market caps\n"
             "- Consider market momentum and fundamentals\n"
@@ -52,11 +62,11 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
             "REQUIRED JSON FORMAT:\n"
             "{\n"
             ' "allocations": {\n'
-            f'   "{stock_list[0]}": 0.25,\n'
-            f'   "{stock_list[1]}": 0.20,\n'
-            f'   "{stock_list[2]}": 0.15,\n'
+            f'   "{sample[0]}": 0.25,\n'
+            f'   "{sample[1]}": 0.20,\n'
+            f'   "{sample[2]}": 0.15,\n'
             '   "CASH": 0.40\n'
-            " },\n"
+            " },\n"uto
             ' "reasoning": "brief explanation about why you made this allocation"\n'
             "}\n\n"
             "IMPORTANT RULES:\n"
@@ -65,7 +75,8 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
             "3. CASH allocation should reflect market conditions and risk tolerance\n"
             "4. Use double quotes for strings\n"
             "5. No trailing commas\n"
-            "6. No additional text before or after the JSON"
+            "6. No additional text before or after the JSON\n"
+            "Your objective is to maximize expected, risk-adjusted returns (net of costs) over the near-term horizon by allocating across AVAILABLE ASSETS and CASH, balancing upside potential with drawdown and volatility control."
         )
 
 
