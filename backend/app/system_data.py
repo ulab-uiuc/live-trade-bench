@@ -20,12 +20,15 @@ def update_system_status() -> None:
 
         model_configs = get_base_model_configs()
         for display_name, model_id in model_configs:
-            stock_system.add_agent(
-                display_name, TRADING_CONFIG["initial_cash_stock"], model_id
-            )
-            polymarket_system.add_agent(
-                display_name, TRADING_CONFIG["initial_cash_polymarket"], model_id
-            )
+            # Only add if missing to avoid resetting existing accounts
+            if display_name not in stock_system.agents:
+                stock_system.add_agent(
+                    display_name, TRADING_CONFIG["initial_cash_stock"], model_id
+                )
+            if display_name not in polymarket_system.agents:
+                polymarket_system.add_agent(
+                    display_name, TRADING_CONFIG["initial_cash_polymarket"], model_id
+                )
 
         stock_count = len(stock_system.agents)
         poly_count = len(polymarket_system.agents)

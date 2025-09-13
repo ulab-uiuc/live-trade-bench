@@ -32,6 +32,8 @@ class StockPortfolioSystem:
     def add_agent(
         self, name: str, initial_cash: float = 10000.0, model_name: str = "gpt-4o-mini"
     ) -> None:
+        if name in self.agents:  # avoid overwriting existing account/agent
+            return
         agent = LLMStockAgent(name, model_name)
         account = create_stock_account(initial_cash)
         self.agents[name] = agent
