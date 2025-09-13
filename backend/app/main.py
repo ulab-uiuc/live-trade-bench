@@ -136,16 +136,14 @@ async def api_root():
     }
 
 
-def load_backtest_as_initial_data() -> bool:
+def load_backtest_as_initial_data():
     """Load backtest data as initial trading data if no live data exists."""
     if not os.path.exists(MODELS_DATA_FILE) and os.path.exists(MODELS_DATA_INIT_FILE):
         try:
             shutil.copy(MODELS_DATA_INIT_FILE, MODELS_DATA_FILE)
             logger.info("📊 Loaded backtest data as initial trading data")
-            return True
         except Exception as e:
             logger.error(f"❌ Failed to load backtest data: {e}")
-    return False
 
 
 def schedule_background_tasks(scheduler: BackgroundScheduler):
@@ -195,8 +193,8 @@ def startup_event():
 
     logger.info("✅ Background scheduler started.")
 
-    # 不再需要load_backtest_as_initial_data，因为数据已经在内存中
-    # backtest_loaded = load_backtest_as_initial_data()
+    # 📊 确保启动时有初始JSON文件供前端使用
+    load_backtest_as_initial_data()
 
     # Run all initial data generation in background threads - don't block startup
     threading.Thread(
