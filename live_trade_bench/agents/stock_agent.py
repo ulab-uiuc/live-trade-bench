@@ -66,7 +66,7 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
             f'   "{sample[1]}": 0.20,\n'
             f'   "{sample[2]}": 0.15,\n'
             '   "CASH": 0.40\n'
-            " },\n"uto
+            " },\n"
             ' "reasoning": "brief explanation about why you made this allocation"\n'
             "}\n\n"
             "IMPORTANT RULES:\n"
