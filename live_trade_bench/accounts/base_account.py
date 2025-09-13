@@ -123,17 +123,22 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         portfolio_details = {
             "cash": self.cash_balance,
             "total_value": total_value,
-            "positions": self.get_positions(),
+            "positions": self.serialize_positions(),
             "target_allocations": breakdown.get("target_allocations", {}),
             "current_allocations": breakdown.get("current_allocations", {}),
         }
 
-        return {
+        base_data = {
             "profit": profit,
             "performance": performance,
             "portfolio": portfolio_details,
             "allocation_history": self.allocation_history,
+            "market_type": self.get_market_type(),
         }
+
+        # Allow subclasses to add additional fields
+        base_data.update(self.get_additional_account_data())
+        return base_data
 
     @abstractmethod
     def apply_allocation(
@@ -150,3 +155,17 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
     @abstractmethod
     def get_positions(self) -> Dict[str, Any]:
         ...
+
+    @abstractmethod
+    def get_market_type(self) -> str:
+        """Return the market type identifier (e.g., 'stock', 'polymarket')"""
+        ...
+
+    @abstractmethod
+    def serialize_positions(self) -> Dict[str, Any]:
+        """Serialize positions for API response in market-specific format"""
+        ...
+
+    def get_additional_account_data(self) -> Dict[str, Any]:
+        """Override in subclasses to add market-specific account data"""
+        return {}
