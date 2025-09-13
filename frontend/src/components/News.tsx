@@ -189,7 +189,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
                     fontSize: '0.75rem',
                     fontWeight: 'bold'
                   }}>
-                    {news.tag}
+                    {news.tag.replace(/_(YES|NO)$/, '')}
                   </span>
                 )}
               </div>
