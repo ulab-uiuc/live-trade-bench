@@ -318,7 +318,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               key={asset.name}
               className="allocation-segment"
               style={{
-                width: `${asset.allocation * 100}%`,
+                flex: `${asset.allocation} 1 0`,
                 backgroundColor: asset.color,
                 minWidth: '10px' // Ensure minimum clickable area
               }}
@@ -568,7 +568,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                       key={asset.name}
                       className="allocation-segment-mini"
                       style={{
-                        width: `${asset.allocation * 100}%`,
+                        flex: `${asset.allocation} 1 0`,
                         backgroundColor: asset.color
                       }}
                       onMouseMove={(e) => handleMouseMove(e, `${formatAssetName(asset.name, model.category)}: ${(asset.allocation * 100).toFixed(1)}%`)}
@@ -813,7 +813,14 @@ const AssetRatioChart: React.FC<{
       </h3>
 
       <div style={{ display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
-        <svg width={chartWidth} height={chartHeight + margin.top + margin.bottom}>
+        <svg 
+          width={chartWidth} 
+          height={chartHeight + margin.top + margin.bottom}
+          style={{
+            shapeRendering: 'crispEdges',
+            vectorEffect: 'non-scaling-stroke'
+          }}
+        >
           {/* Background and Y-Axis Grid */}
           <defs>
             <linearGradient id={`chartBackground-${chartId}`} x1="0%" y1="0%" x2="0%" y2="100%">
@@ -867,7 +874,14 @@ const AssetRatioChart: React.FC<{
                 onMouseMove={(e) => onMouseMove(e, `${asset}`)}
                 onMouseLeave={onMouseLeave}
               >
-                <path d={pathData} fill={color} strokeWidth="0" />
+                <path 
+                  d={pathData} 
+                  fill={color} 
+                  stroke={color}
+                  strokeWidth="0.5"
+                  shapeRendering="crispEdges"
+                  vectorEffect="non-scaling-stroke"
+                />
               </g>
             );
           })}
