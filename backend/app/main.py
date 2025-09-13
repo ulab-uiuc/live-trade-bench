@@ -141,6 +141,7 @@ def load_backtest_as_initial_data():
     if not os.path.exists(MODELS_DATA_FILE) and os.path.exists(MODELS_DATA_INIT_FILE):
         try:
             shutil.copy(MODELS_DATA_INIT_FILE, MODELS_DATA_FILE)
+            os.chmod(MODELS_DATA_FILE, 0o644)
             logger.info("📊 Loaded backtest data as initial trading data")
         except Exception as e:
             logger.error(f"❌ Failed to load backtest data: {e}")

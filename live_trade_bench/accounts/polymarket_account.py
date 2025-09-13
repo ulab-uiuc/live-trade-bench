@@ -80,6 +80,33 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
         self.last_rebalance = datetime.now().isoformat()
         print(self.positions)
 
+    def get_market_type(self) -> str:
+        return "polymarket"
+
+    def serialize_positions(self) -> Dict[str, Any]:
+        # For polymarket, convert Position objects to dicts with polymarket-specific fields
+        serialized_positions = {}
+        for symbol, position in self.positions.items():
+            if hasattr(position, "__dict__"):
+                # Convert Position object to dict
+                pos_dict = {
+                    "symbol": position.symbol,
+                    "quantity": position.quantity,
+                    "average_price": position.average_price,
+                    "current_price": position.current_price,
+                }
+                # Include URL if available (polymarket-specific)
+                if hasattr(position, "url") and position.url:
+                    pos_dict["url"] = position.url
+                serialized_positions[symbol] = pos_dict
+            else:
+                # Already a dict
+                serialized_positions[symbol] = position
+        return serialized_positions
+
+    def _update_market_data(self) -> None:
+        pass
+
 
 def create_polymarket_account(initial_cash: float = 500.0) -> PolymarketAccount:
     return PolymarketAccount(initial_cash=initial_cash, cash_balance=initial_cash)
