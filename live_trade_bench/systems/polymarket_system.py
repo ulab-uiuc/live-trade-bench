@@ -54,6 +54,8 @@ class PolymarketPortfolioSystem:
     def add_agent(
         self, name: str, initial_cash: float = 500.0, model_name: str = "gpt-4o-mini"
     ) -> None:
+        if name in self.agents:  # avoid overwriting existing account/agent
+            return
         agent = LLMPolyMarketAgent(name, model_name)
         account = create_polymarket_account(initial_cash)
         self.agents[name] = agent
