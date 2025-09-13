@@ -109,7 +109,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                     formatted_allocations[key] = f"{value:.2f}"
 
                 all_allocations.append(
-                    f"    {timestamp}: {formatted_allocations} (Return rate: {performance:.1f}%)"
+                    f"    Allocation at last {len(recent_allocations)-i}th time: {formatted_allocations} (Return rate: {performance:.1f}%)"
                 )
 
             allocations_text = "\n".join(all_allocations)

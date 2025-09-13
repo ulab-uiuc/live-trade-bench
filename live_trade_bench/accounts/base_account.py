@@ -52,7 +52,9 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
     last_rebalance: Optional[str] = None
 
     def record_allocation(
-        self, metadata_map: Optional[Dict[str, Dict[str, Any]]] = None
+        self,
+        metadata_map: Optional[Dict[str, Dict[str, Any]]] = None,
+        backtest_date: Optional[str] = None,
     ):
         total_value = self.get_total_value()
         profit = total_value - self.initial_cash
@@ -74,8 +76,20 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
 
             allocations_array.append(asset_info)
 
+        # Use backtest date if provided, otherwise use current time
+        if backtest_date:
+            # Parse the date and use it as the timestamp (keeping only date part, not time)
+            try:
+                backtest_datetime = datetime.strptime(backtest_date, "%Y-%m-%d")
+                timestamp = backtest_datetime.isoformat()
+            except ValueError:
+                # Fallback to current time if date parsing fails
+                timestamp = datetime.now().isoformat()
+        else:
+            timestamp = datetime.now().isoformat()
+
         snapshot = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": timestamp,
             "total_value": total_value,
             "profit": profit,
             "performance": performance,
@@ -123,17 +137,22 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         portfolio_details = {
             "cash": self.cash_balance,
             "total_value": total_value,
-            "positions": self.get_positions(),
+            "positions": self.serialize_positions(),
             "target_allocations": breakdown.get("target_allocations", {}),
             "current_allocations": breakdown.get("current_allocations", {}),
         }
 
-        return {
+        base_data = {
             "profit": profit,
             "performance": performance,
             "portfolio": portfolio_details,
             "allocation_history": self.allocation_history,
+            "market_type": self.get_market_type(),
         }
+
+        # Allow subclasses to add additional fields
+        base_data.update(self.get_additional_account_data())
+        return base_data
 
     @abstractmethod
     def apply_allocation(
@@ -150,3 +169,17 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
     @abstractmethod
     def get_positions(self) -> Dict[str, Any]:
         ...
+
+    @abstractmethod
+    def get_market_type(self) -> str:
+        """Return the market type identifier (e.g., 'stock', 'polymarket')"""
+        ...
+
+    @abstractmethod
+    def serialize_positions(self) -> Dict[str, Any]:
+        """Serialize positions for API response in market-specific format"""
+        ...
+
+    def get_additional_account_data(self) -> Dict[str, Any]:
+        """Override in subclasses to add market-specific account data"""
+        return {}

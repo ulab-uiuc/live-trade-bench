@@ -87,16 +87,34 @@ class StockAccount(BaseAccount[Position, Transaction]):
 
         self.last_rebalance = datetime.now().isoformat()
 
-    def get_account_data(self) -> Dict[str, Any]:
-        base_data = super().get_account_data()
-        base_data.update(
-            {
-                "market_type": "stock",
-                "positions": list(self.positions.values()),
-                "total_fees": self.total_fees,
-            }
-        )
-        return base_data
+    def get_market_type(self) -> str:
+        return "stock"
+
+    def serialize_positions(self) -> Dict[str, Any]:
+        # For stock accounts, convert Position objects to dicts, similar to polymarket format
+        serialized_positions = {}
+        for symbol, position in self.positions.items():
+            if hasattr(position, "__dict__"):
+                # Convert Position object to dict
+                pos_dict = {
+                    "symbol": position.symbol,
+                    "quantity": position.quantity,
+                    "average_price": position.average_price,
+                    "current_price": position.current_price,
+                }
+                # Include URL if available (stock-specific)
+                if hasattr(position, "url") and position.url:
+                    pos_dict["url"] = position.url
+                serialized_positions[symbol] = pos_dict
+            else:
+                # Already a dict
+                serialized_positions[symbol] = position
+        return serialized_positions
+
+    def get_additional_account_data(self) -> Dict[str, Any]:
+        return {
+            "total_fees": self.total_fees,
+        }
 
     def _update_market_data(self) -> None:
         pass
