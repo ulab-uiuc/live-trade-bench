@@ -386,7 +386,6 @@
 
 /* Chart container styles extracted from inline */
 .chart-svg {
-  border: 1px solid #374151;
   border-radius: 0.5rem;
   background: #0f1419;
 }
@@ -411,14 +410,35 @@
   border-radius: 6px;
   overflow: hidden;
   margin-bottom: 0;
-  border: 1px solid #374151;
   cursor: pointer;
+  /* Prevent sub-pixel rendering issues */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .allocation-segment-mini {
   height: 100%;
   transition: all 0.2s ease;
   position: relative;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  /* Prevent sub-pixel rendering gaps */
+  transform: translateZ(0);
+  will-change: auto;
+}
+
+.allocation-segment-mini:not(:first-child) {
+  margin-left: -1px;
+}
+
+.allocation-segment-mini:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.allocation-segment-mini:last-child {
+  border-radius: 0 6px 6px 0;
 }
 
 .allocation-segment-mini:hover {
@@ -629,7 +649,6 @@ html:has(.modal-overlay) {
 .asset-allocation {
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 1px solid #374151;
 }
 
 .asset-allocation h3 {
@@ -647,9 +666,11 @@ html:has(.modal-overlay) {
   border-radius: 0.5rem;
   overflow: hidden;
   margin-bottom: 1rem;
-  border: 1px solid #374151;
   /* Ensure pixel-perfect alignment */
   box-sizing: border-box;
+  /* Prevent sub-pixel rendering issues */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .allocation-segment {
@@ -660,15 +681,31 @@ html:has(.modal-overlay) {
   /* Ensure precise alignment */
   box-sizing: border-box;
   flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  /* Prevent sub-pixel rendering gaps */
+  transform: translateZ(0);
+  will-change: auto;
+}
+
+.allocation-segment:not(:first-child) {
+  margin-left: -1px;
+}
+
+.allocation-segment:first-child {
+  border-radius: 0.5rem 0 0 0.5rem;
+}
+
+.allocation-segment:last-child {
+  border-radius: 0 0.5rem 0.5rem 0;
 }
 
 .allocation-segment:hover {
   opacity: 0.8;
 }
 
-.allocation-segment:not(:last-child) {
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-}
 
 /* 图例 */
 .allocation-legend {
