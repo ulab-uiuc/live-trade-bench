@@ -186,7 +186,7 @@ def run_single_day_single_model_with_shared_data(
 
         # Skip data fetching, directly generate allocations and update accounts
         allocations = system._generate_allocations(market_data, news_data, date_str)
-        system._update_accounts(allocations, market_data)
+        system._update_accounts(allocations, market_data, date_str)
         system.cycle_count += 1
 
         return {
