@@ -55,6 +55,8 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         self,
         metadata_map: Optional[Dict[str, Dict[str, Any]]] = None,
         backtest_date: Optional[str] = None,
+        llm_input: Optional[Dict[str, Any]] = None,
+        llm_output: Optional[Dict[str, Any]] = None,
     ):
         total_value = self.get_total_value()
         profit = total_value - self.initial_cash
@@ -95,6 +97,8 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
             "performance": performance,
             "allocations": self.target_allocations,  # Keep original format for compatibility
             "allocations_array": allocations_array,  # New format for frontend
+            "llm_input": llm_input,
+            "llm_output": llm_output,
         }
         self.allocation_history.append(snapshot)
 

@@ -296,17 +296,17 @@ class PolymarketFetcher(BaseFetcher):
     def get_market_price_with_history(
         self, token_ids: List[str], date: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Get current price and 5-day price history for Polymarket tokens"""
+        """Get current price and 10-day price history for Polymarket tokens"""
         try:
             from datetime import timedelta
 
             if date:
-                # For backtest, get 5 days before the given date
+                # For backtest, get 10 days before the given date
                 ref_date = datetime.strptime(date, "%Y-%m-%d")
-                start_date = (ref_date - timedelta(days=5)).strftime("%Y-%m-%d")
+                start_date = (ref_date - timedelta(days=10)).strftime("%Y-%m-%d")
             else:
-                # For live trading, get 5 days before today
-                start_date = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
+                # For live trading, get 10 days before today
+                start_date = (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%d")
 
             # Get current prices
             current_prices = {}
@@ -321,7 +321,7 @@ class PolymarketFetcher(BaseFetcher):
             price_history = {}
             for token_id in token_ids:
                 token_history = []
-                for i in range(5):  # 5 days
+                for i in range(10):  # 10 days
                     current_date = (
                         datetime.strptime(start_date, "%Y-%m-%d") + timedelta(days=i)
                     ).strftime("%Y-%m-%d")

@@ -164,7 +164,8 @@ class StockPortfolioSystem:
                     start_date,
                     end_date,
                     max_pages=3,
-                    ticker=ticker,  # Fetch more pages
+                    ticker=ticker,
+                    target_date=for_date,  # 传递目标日期用于相关性排序
                 )
         except Exception as e:
             print(f"    - News data fetch failed: {e}")
@@ -223,8 +224,18 @@ class StockPortfolioSystem:
                 account.apply_allocation(
                     allocation, price_map=price_map, metadata_map=market_data
                 )
+                # Capture and persist agent LLM info if available
+                llm_input = None
+                llm_output = None
+                agent = self.agents.get(agent_name)
+                if agent is not None:
+                    llm_input = getattr(agent, "last_llm_input", None)
+                    llm_output = getattr(agent, "last_llm_output", None)
                 account.record_allocation(
-                    metadata_map=market_data, backtest_date=for_date
+                    metadata_map=market_data, 
+                    backtest_date=for_date, 
+                    llm_input=llm_input,
+                    llm_output=llm_output
                 )
                 print(
                     f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"

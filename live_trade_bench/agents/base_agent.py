@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from datetime import datetime
 from typing import Any, Dict, Generic, List, Optional, TypeVar
 
 from ..accounts import BaseAccount
@@ -19,6 +20,8 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         self._history: Dict[str, List[float]] = {}
         self._last_price: Dict[str, float] = {}
         self.price_history: Dict[str, List[float]] = defaultdict(list)
+        self.last_llm_input = None
+        self.last_llm_output = None
 
     def generate_allocation(
         self,
@@ -44,11 +47,28 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                     "content": self._get_portfolio_prompt(full_analysis, market_data),
                 }
             ]
+            
+            # Save LLM input for recording
+            self.last_llm_input = {
+                "prompt": messages[0]["content"],
+                "model": self.model_name,
+                "timestamp": datetime.now().isoformat()
+            }
+            
             print("\n--- LLM PROMPT ---")
             print(messages[0]["content"])
             print("--- END LLM PROMPT ---\n")
 
             llm_response = self._call_llm(messages)
+            
+            # Save LLM output for recording
+            self.last_llm_output = {
+                "success": llm_response.get("success", False),
+                "content": llm_response.get("content", ""),
+                "error": llm_response.get("error", None),
+                "timestamp": datetime.now().isoformat()
+            }
+            
             if not llm_response.get("success"):
                 self._log_error(
                     "LLM call failed", llm_response.get("error", "Unknown error")
@@ -59,6 +79,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             if not parsed:
                 self._log_error("Failed to parse LLM response")
                 return None
+
 
             return normalize_allocations(parsed)
         except Exception as e:
@@ -96,7 +117,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         current_performance = account_data.get("performance", 0.0)
 
         if allocation_history:
-            recent_allocations = allocation_history[-5:]  # Get last 5 records
+            recent_allocations = allocation_history[-10:]  # Get last 10 records
             all_allocations = []
             for i, snapshot in enumerate(recent_allocations):
                 timestamp = snapshot.get("timestamp", f"Record {i+1}")
@@ -117,13 +138,13 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             return (
                 f"ACCOUNT INFO:\n"
                 f"  Current return rate: {current_performance:.1f}%\n"
-                f"  Recenet Five Historical Allocations:\n{allocations_text}"
+                f"  Recent Ten Historical Allocations:\n{allocations_text}"
             )
         else:
             return (
                 f"ACCOUNT INFO:\n"
                 f"  Current return rate: {current_performance:.1f}%\n"
-                f"  Recenet Five Historical Allocations: No history available"
+                f"  Recent Ten Historical Allocations: No history available"
             )
 
     def _prepare_news_analysis(
@@ -145,11 +166,22 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             for i, article in enumerate(articles[:3]):
                 title = article.get("title", "")
                 snippet = article.get("snippet", "")
+                date_timestamp = article.get("date")
+                
+                # Format the date for display
+                date_str = ""
+                if date_timestamp:
+                    try:
+                        from datetime import datetime
+                        news_date = datetime.fromtimestamp(date_timestamp)
+                        date_str = f" ({news_date.strftime('%m/%d')})"
+                    except:
+                        pass
 
                 if i == 0:
-                    news_summaries.append(f"• {display_name}:\n  - {title}")
+                    news_summaries.append(f"• {display_name}:\n  - {title}{date_str}")
                 else:
-                    news_summaries.append(f"  - {title}")
+                    news_summaries.append(f"  - {title}{date_str}")
 
                 if snippet:
                     news_summaries.append(f"    {snippet}...")
@@ -167,12 +199,17 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             "3 days ago",
             "4 days ago",
             "5 days ago",
+            "6 days ago",
+            "7 days ago",
+            "8 days ago",
+            "9 days ago",
+            "10 days ago",
         ]
 
         if price_history:
             # price_history is already in chronological order (oldest to newest)
-            # We want to display from newest to oldest (1 day ago to 5 days ago)
-            recent_history = price_history[-5:]  # Get last 5 days
+            # We want to display from newest to oldest (1 day ago to 10 days ago)
+            recent_history = price_history[-10:]  # Get last 10 days
             for i, h in enumerate(
                 reversed(recent_history)
             ):  # Reverse to show newest first
@@ -189,7 +226,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         else:
             # Fallback to internal history for stocks
             if is_stock:
-                hist_prices = self.history_tail(ticker, 5)
+                hist_prices = self.history_tail(ticker, 10)
                 for i, hist_price in enumerate(hist_prices):
                     day_desc = (
                         day_descriptions[i]

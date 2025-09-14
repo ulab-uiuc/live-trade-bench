@@ -221,7 +221,7 @@ class PolymarketPortfolioSystem:
                 )
                 query = " ".join(question.split()[:5]) if question else str(market_id)
                 news_data_map[market_id] = fetch_news_data(
-                    query, start_date, end_date, max_pages=3, ticker=query
+                    query, start_date, end_date, max_pages=3, ticker=query, target_date=for_date
                 )
         except Exception as e:
             print(f"    - News data fetch failed: {e}")
@@ -302,8 +302,18 @@ class PolymarketPortfolioSystem:
                 account.apply_allocation(
                     allocation, price_map=price_map, metadata_map=market_data
                 )
+                # Capture and persist agent LLM info if available
+                llm_input = None
+                llm_output = None
+                agent = self.agents.get(agent_name)
+                if agent is not None:
+                    llm_input = getattr(agent, "last_llm_input", None)
+                    llm_output = getattr(agent, "last_llm_output", None)
                 account.record_allocation(
-                    metadata_map=market_data, backtest_date=for_date
+                    metadata_map=market_data, 
+                    backtest_date=for_date, 
+                    llm_input=llm_input,
+                    llm_output=llm_output
                 )
                 print(
                     f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"

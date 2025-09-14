@@ -135,7 +135,8 @@ def fetch_news_data(
     start_date: str,
     end_date: str,
     max_pages: int = 10,
-    ticker: Optional[str] = None,  # Corrected type hint
+    ticker: Optional[str] = None,
+    target_date: Optional[str] = None,  # 新增目标日期参数用于回测
 ) -> List[Dict[str, Any]]:
     fetcher = NewsFetcher()
 
@@ -154,4 +155,22 @@ def fetch_news_data(
         for item in news_items:
             item["tag"] = ticker
 
-    return news_items
+    # Sort news items based on relevance to target date
+    # Filter out items without valid dates
+    valid_news = [item for item in news_items if item.get("date") is not None]
+    
+    if target_date and valid_news:
+        # For backtest: sort by proximity to target date (closest to target date first)
+        try:
+            from datetime import datetime
+            target_timestamp = datetime.strptime(target_date, "%Y-%m-%d").timestamp()
+            # Sort by proximity to target date (smallest time difference first)
+            sorted_news = sorted(valid_news, key=lambda x: abs(x["date"] - target_timestamp))
+        except Exception:
+            # Fallback to chronological sort if target date parsing fails
+            sorted_news = sorted(valid_news, key=lambda x: x["date"], reverse=True)
+    else:
+        # For live trading: sort by most recent first
+        sorted_news = sorted(valid_news, key=lambda x: x["date"], reverse=True)
+
+    return sorted_news

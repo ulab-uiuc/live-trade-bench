@@ -20,7 +20,7 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
             current_info = f"{ticker}: Current price is ${price:.2f}"
             analysis_parts.append(current_info)
 
-            # Format 5-day history with relative days
+            # Format 10-day history with relative days
             history_lines = self._format_price_history(
                 price_history, ticker, is_stock=True
             )
@@ -76,7 +76,7 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
             "4. Use double quotes for strings\n"
             "5. No trailing commas\n"
             "6. No additional text before or after the JSON\n"
-            "Your objective is to maximize expected, risk-adjusted returns (net of costs) over the near-term horizon by allocating across AVAILABLE ASSETS and CASH, balancing upside potential with drawdown and volatility control."
+            "Your objective is to maximize the return rate of your portfolio. You need to think based on your previous allocation history and return rate history to make this allocation."
         )
 
 

@@ -14,17 +14,32 @@ from backend.app.models_data import _create_model_data, _serialize_positions
 # from live_trade_bench.backtest import run_backtest  # Not needed in new architecture
 
 
-def get_trading_days(start_date: str, end_date: str) -> List[datetime]:
-    """Generate list of trading days (weekdays only)."""
+def get_trading_days(start_date: str, end_date: str, interval_days: int = 1) -> List[datetime]:
+    """Generate list of trading days with specified interval.
+    
+    Args:
+        start_date: Start date in YYYY-MM-DD format
+        end_date: End date in YYYY-MM-DD format 
+        interval_days: Days between each trading cycle (default: 1 = daily)
+    """
     start = datetime.strptime(start_date, "%Y-%m-%d")
     end = datetime.strptime(end_date, "%Y-%m-%d")
 
     days = []
     current = start
+    
     while current <= end:
-        if current.weekday() < 5:  # Monday = 0, Friday = 4
+        if current.weekday() < 5:  # Monday = 0, Friday = 4 (weekdays only)
             days.append(current)
         current += timedelta(days=1)
+    
+    # If interval > 1, select dates at specified intervals
+    if interval_days > 1:
+        selected_days = []
+        for i in range(0, len(days), interval_days):
+            selected_days.append(days[i])
+        return selected_days
+    
     return days
 
 
@@ -191,16 +206,29 @@ def run_single_day_single_model_with_shared_data(
         }
 
 
+def get_backtest_config():
+    """回测配置 - 可以在这里调整参数"""
+    return {
+        "start_date": "2025-07-01",   # 开始日期
+        "end_date": "2025-09-12",     # 结束日期 (3个月)
+        "interval_days": 5,           # 每隔5个交易日运行一次 (~每周)
+        "max_workers": 4              # 并发数量
+    }
+
 async def main():
-    print("🔮 True Model-Level Parallel Portfolio Backtest Demo")
+    print("🔮 Extended Model-Level Parallel Portfolio Backtest Demo")
     print("Testing 20 AI models × 2 markets = 40 concurrent backtests")
     print("=" * 60)
     print()
 
-    start_date = "2025-08-25"
-    end_date = "2025-09-09"
+    # 获取回测配置
+    config = get_backtest_config()
+    start_date = config["start_date"]
+    end_date = config["end_date"] 
+    interval_days = config["interval_days"]
 
-    print(f"🚀 Running parallel backtest: {start_date} → {end_date}")
+    print(f"🚀 Running extended parallel backtest: {start_date} → {end_date}")
+    print(f"📅 Trading cycle interval: Every {interval_days} trading days")
     print(f"⏰ Started at: {datetime.now().strftime('%H:%M:%S')}")
 
     try:
@@ -211,8 +239,8 @@ async def main():
         for name, model_id in models:
             print(f"   • {name}: {model_id}")
 
-        # Get trading days and initialize all systems
-        trading_days = get_trading_days(start_date, end_date)
+        # Get trading days with specified interval
+        trading_days = get_trading_days(start_date, end_date, interval_days)
         print(f"📅 Trading period: {len(trading_days)} days ({start_date} → {end_date})")
 
         # Initialize all systems once

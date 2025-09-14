@@ -38,7 +38,7 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             analysis_parts.append(f"  - Betting YES current price: {yes_price:.3f}")
             analysis_parts.append(f"  - Betting NO current price: {no_price:.3f}")
 
-            # Format 5-day history with relative days for YES
+            # Format 10-day history with relative days for YES
             analysis_parts.append("  - Betting YES History:")
             yes_history_lines = self._format_price_history(
                 yes_history, "", is_stock=False
@@ -48,7 +48,7 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             else:
                 analysis_parts.append("    N/A")
 
-            # Format 5-day history with relative days for NO
+            # Format 10-day history with relative days for NO
             analysis_parts.append("  - Betting NO History:")
             no_history_lines = self._format_price_history(
                 no_history, "", is_stock=False
@@ -82,18 +82,13 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             "You are a professional prediction-market portfolio manager. Analyze the market data and generate a complete portfolio allocation.\n\n"
             f"{analysis}\n\n"
             "PORTFOLIO MANAGEMENT OBJECTIVE:\n"
-            "- Primary goal: maximize expected, risk-adjusted returns (net of fees/spread) by taking positions where your calibrated belief diverges from market-implied odds.\n"
-            "- Aim to outperform a simple baseline (e.g., equal-weight of AVAILABLE ASSETS or staying in CASH) over the next 1–3 months while containing drawdowns and volatility.\n"
-            "- Treat CASH as a tactical asset for capital protection when edge is weak or uncertainty is high.\n\n"
+            "- For each market, YES and NO are two assets. You can only allocate to one of them at a time. You can allocate to CASH as well.\n"
+            "- The price of YES and NO represents the probability of the YES and NO outcomes, respectively judged by the public.\n"
             "DECISION LOGIC FOR YES/NO MARKETS:\n"
-            "- Infer market-implied probability p_mkt from price.\n"
+            "- Infer market-implied probability p_mkt from price. If the price of YES is 0.4, then 40% of the public believes the YES outcome will happen.\n"
+            "- You need to consider based on the news and the price history to form your belief. If the news is positive, you should allocate more to YES. If the news is negative, you should allocate more to NO.\n"
             "- Go LONG {question}_YES when your belief p > p_mkt + costs; go LONG {question}_NO when p < p_mkt - costs.\n"
             "- Never allocate to both YES and NO for the same question at the same time.\n"
-            "- Consider time-to-resolution, liquidity, fees, and max loss; size positions conservatively (Kelly-aware, but capped) to control drawdown.\n\n"
-            "EVALUATION CRITERIA:\n"
-            "- Prefer allocations that increase expected excess return and improve risk-adjusted return given the analysis/news/price action.\n"
-            "- Keep concentration reasonable across questions/themes; avoid oversized single-question bets.\n"
-            "- Be mindful of turnover and slippage; avoid excessive trading for marginal benefit.\n\n"
             "PORTFOLIO MANAGEMENT PRINCIPLES:\n"
             "- Diversify across different market outcomes.\n"
             "- For each question, allocating to both YES and NO simultaneously is irrational and must be avoided.\n"
@@ -107,14 +102,14 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             ' "allocations": {\n'
             f"{example_allocations}\n"
             " },\n"
-            ' "reasoning": "A brief explanation of the investment strategy and the edges you exploited."\n'
+            ' "reasoning": "A brief explanation about why you made this allocation"\n'
             "}\n\n"
             "RULES:\n"
             "1. Return ONLY the JSON object.\n"
             "2. All allocations must sum to exactly 1.0.\n"
             "3. For any given question, at most one side (YES or NO) may have a non-zero allocation.\n"
             "4. Use double quotes for strings; no trailing commas.\n"
-            "Your objective is to maximize expected, risk-adjusted returns (net of costs) over the near-term horizon by allocating across AVAILABLE ASSETS and CASH, balancing upside potential with drawdown and volatility control."
+            "Your objective is to maximize the return rate of your portfolio. You need to think based on your previous allocation history and return rate history to make this allocation."
         )
 
 
