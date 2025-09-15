@@ -131,8 +131,11 @@ const ProviderIcon: React.FC<{ name?: string; provider?: string }> = ({ name, pr
     if (p.includes("meta") || p.includes("llama") || n.includes("llama")) {
       return "./meta.png";
     }
-    if (p.includes("qwen") || n.includes("qwen") || p.includes("kimi") || n.includes("kimi")) {
+    if (p.includes("kimi") || n.includes("kimi")) {
       return "./kimi.png";
+    }
+    if (p.includes("qwen") || n.includes("qwen")) {
+      return "./qwen.png";
     }
     if (p.includes("deepseek") || n.includes("deepseek")) {
       return "./deepseek.png";
