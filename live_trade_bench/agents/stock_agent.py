@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from ..accounts import StockAccount
 from .base_agent import BaseAgent
@@ -34,13 +34,16 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
         return f"{ticker} stock earnings news"
 
     def _get_portfolio_prompt(
-        self, analysis: str, market_data: Dict[str, Dict[str, Any]]
+        self, analysis: str, market_data: Dict[str, Dict[str, Any]], date: Optional[str] = None
     ) -> str:
+        
+        current_time_str = f"Current time is {date}." if date else ""
+
         stock_list = list(market_data.keys())
         sample = [stock_list[i] if i < len(stock_list) else f"ASSET_{i+1}" for i in range(3)]
 
         return (
-            "You are a professional portfolio manager. Analyze the market data and generate a complete portfolio allocation.\n\n"
+            f"{current_time_str}\n\nYou are a professional portfolio manager. Analyze the market data and generate a complete portfolio allocation.\n\n"
             f"{analysis}\n\n"
             "PORTFOLIO MANAGEMENT OBJECTIVE:\n"
             "- Primary goal: improve total returns by selecting allocations with higher expected return per unit of risk (risk-adjusted return), net of trading costs.\n"

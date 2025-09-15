@@ -44,7 +44,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             messages = [
                 {
                     "role": "user",
-                    "content": self._get_portfolio_prompt(full_analysis, market_data),
+                    "content": self._get_portfolio_prompt(full_analysis, market_data, date),
                 }
             ]
             
@@ -174,7 +174,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                     try:
                         from datetime import datetime
                         news_date = datetime.fromtimestamp(date_timestamp)
-                        date_str = f" ({news_date.strftime('%m/%d')})"
+                        date_str = f" ({news_date.strftime('%Y-%m-%d')})"
                     except:
                         pass
 
@@ -193,47 +193,42 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
     ) -> List[str]:
         """Format price history with relative day descriptions"""
         lines = []
-        day_descriptions = [
-            "1 day ago",
-            "2 days ago",
-            "3 days ago",
-            "4 days ago",
-            "5 days ago",
-            "6 days ago",
-            "7 days ago",
-            "8 days ago",
-            "9 days ago",
-            "10 days ago",
-        ]
 
         if price_history:
             # price_history is already in chronological order (oldest to newest)
-            # We want to display from newest to oldest (1 day ago to 10 days ago)
+            # We want to display from newest to oldest
             recent_history = price_history[-10:]  # Get last 10 days
             for i, h in enumerate(
                 reversed(recent_history)
             ):  # Reverse to show newest first
                 hist_price = h.get("price", 0.0)
-                day_desc = (
-                    day_descriptions[i]
-                    if i < len(day_descriptions)
-                    else f"{i+1} days ago"
-                )
+                hist_date = h.get("date", "Unknown Date")
+
                 if is_stock:
-                    lines.append(f"  - {day_desc} closing price: ${hist_price:.2f}")
+                    price_str = f"${hist_price:,.2f}"
                 else:
-                    lines.append(f"    {day_desc}: {hist_price:.3f}")
+                    price_str = f"{hist_price:.0%}"
+
+                # Calculate change from previous day if possible
+                change_str = "N/A"
+                # The previous day is the next element in the reversed list,
+                # or the one before the current in the original recent_history
+                original_index = len(recent_history) - 1 - i
+                if original_index > 0:
+                    prev_day_price = recent_history[original_index - 1].get("price", 0.0)
+                    if prev_day_price > 0:
+                        change = hist_price - prev_day_price
+                        change_pct = (change / prev_day_price) * 100
+                        change_str = f"{change:+.2f} ({change_pct:+.2f}%)"
+
+                lines.append(f"  - {hist_date}: {price_str} (Change: {change_str})")
         else:
-            # Fallback to internal history for stocks
-            if is_stock:
-                hist_prices = self.history_tail(ticker, 10)
-                for i, hist_price in enumerate(hist_prices):
-                    day_desc = (
-                        day_descriptions[i]
-                        if i < len(day_descriptions)
-                        else f"{i+1} days ago"
-                    )
-                    lines.append(f"  - {day_desc}: ${hist_price:.2f}")
+            # Also update the history for the current price if available
+            current_price = self.history_tail(ticker, 1)
+            if current_price:
+                price = current_price[0]
+                price_str = f"${price:,.2f}" if is_stock else f"{price:.0%}"
+                lines.append(f"  - Current Price: {price_str}")
 
         return lines
 
@@ -247,7 +242,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
 
     @abstractmethod
     def _get_portfolio_prompt(
-        self, analysis: str, market_data: Dict[str, DataType]
+        self, analysis: str, market_data: Dict[str, DataType], date: Optional[str] = None
     ) -> str:
         ...
 

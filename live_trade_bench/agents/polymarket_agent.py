@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from ..accounts import PolymarketAccount
 from .base_agent import BaseAgent
@@ -62,8 +62,11 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
         return "MARKET ANALYSIS:\n" + "\n".join(analysis_parts)
 
     def _get_portfolio_prompt(
-        self, analysis: str, market_data: Dict[str, Dict[str, Any]]
+        self, analysis: str, market_data: Dict[str, Dict[str, Any]], date: Optional[str] = None
     ) -> str:
+        
+        current_time_str = f"Current time is {date}." if date else ""
+        
         asset_list = list(market_data.keys())
 
         example_allocations = ""
@@ -79,7 +82,7 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             example_allocations = '   "CASH": 1.0'
 
         return (
-            "You are a professional prediction-market portfolio manager. Analyze the market data and generate a complete portfolio allocation.\n\n"
+            f"{current_time_str}\n\nYou are a professional prediction-market portfolio manager. Analyze the market data and generate a complete portfolio allocation.\n\n"
             f"{analysis}\n\n"
             "PORTFOLIO MANAGEMENT OBJECTIVE:\n"
             "- For each market, YES and NO are two assets. You can only allocate to one of them at a time. You can allocate to CASH as well.\n"
