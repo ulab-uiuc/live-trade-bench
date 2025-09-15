@@ -43,8 +43,6 @@ class Transaction:
 
 @dataclass
 class BaseAccount(ABC, Generic[PositionType, TransactionType]):
-    """Abstract base class for all trading accounts."""
-
     initial_cash: float = 0.0
     cash_balance: float = 0.0
     target_allocations: Dict[str, float] = field(default_factory=dict)

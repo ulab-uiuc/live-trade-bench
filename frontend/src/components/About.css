@@ -503,6 +503,39 @@
   }
 }
 
+/* Warning text styling for backtest risks */
+.warning-text {
+  color: #c4b5fd !important;
+  font-weight: 700 !important;
+  background: linear-gradient(135deg, #c4b5fd, #9c9ef8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 10px rgba(196, 181, 253, 0.4);
+  position: relative;
+}
+
+.warning-text::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #c4b5fd, #9c9ef8);
+  border-radius: 1px;
+  opacity: 0.6;
+}
+
+/* Enhanced warning paragraph styling */
+.warning-paragraph {
+  background: rgba(196, 181, 253, 0.08);
+  border-left: 4px solid #c4b5fd;
+  padding: 1rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 8px 8px 0;
+}
+
 /* Touch-friendly improvements for mobile */
 @media (max-width: 768px) {
 

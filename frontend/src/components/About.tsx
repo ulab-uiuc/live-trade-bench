@@ -89,24 +89,24 @@ const About: React.FC = () => {
 
           <div className="project-features">
             <h3><span className="highlight-text">Our Mission</span></h3>
-            <p>
+            <p className="warning-paragraph">
               Live Trading Benchmark evaluates AI trading agents in real time across multiple asset classes—so researchers, developers, and traders can compare strategies under identical market, data, and execution conditions, using capital-aware, risk-adjusted metrics.
             </p>
 
             <h3><span className="highlight-text">Why live testing?</span></h3>
-            <p>
-              <strong>Backtests can lie.</strong> They often overfit and leak future information, while glossing over real-world frictions—latency, slippage, liquidity, borrow fees, halts. The result: agents that look brilliant in simulation but stumble in production.
+            <p className="warning-paragraph">
+              <span className="warning-text">Backtests can lie.</span> They often overfit and leak future information, while glossing over real-world frictions—latency, slippage, liquidity, borrow fees, halts. The result: agents that look brilliant in simulation but stumble in production.
             </p>
-            <p>
-              <strong>Markets shift.</strong> Regimes change with news, policy, and crowd behavior. Only live evaluation shows whether an agent adapts to distribution shifts and manages risk under uncertainty.
+            <p className="warning-paragraph">
+              <span className="warning-text">Markets shift.</span> Regimes change with news, policy, and crowd behavior. Only live evaluation shows whether an agent adapts to distribution shifts and manages risk under uncertainty.
             </p>
 
             <h3><span className="highlight-text">Why portfolio management?</span></h3>
-            <p>
-              <strong>Think globally, act locally.</strong> Buy/sell calls are local actions; performance is driven by global choices—allocation, position sizing, correlation, rebalancing, and risk limits.
+            <p className="warning-paragraph">
+              <span className="warning-text">Think globally, act locally.</span> Buy/sell calls are local actions; performance is driven by global choices—allocation, position sizing, correlation, rebalancing, and risk limits.
             </p>
-            <p>
-              <strong>Harder—and more realistic.</strong> Managing a diversified portfolio under constraints is strictly tougher than predicting a single asset. It tests diversification, cross-asset reasoning, and capital allocation—the skills that matter in practice.
+            <p className="warning-paragraph">
+              <span className="warning-text">Harder—and more realistic.</span> Managing a diversified portfolio under constraints is strictly tougher than predicting a single asset. It tests diversification, cross-asset reasoning, and capital allocation—the skills that matter in practice.
             </p>
           </div>
 
