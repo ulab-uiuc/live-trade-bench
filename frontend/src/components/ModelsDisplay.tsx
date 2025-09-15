@@ -40,7 +40,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null);
-  const [sortOrder, setSortOrder] = useState<'default' | 'performance-asc' | 'performance-desc'>('default');
+  const [sortOrder, setSortOrder] = useState<'default' | 'performance-asc' | 'performance-desc'>('performance-desc');
 
   // Pre-warm the tooltip system to avoid first-hover delay
   useEffect(() => {
