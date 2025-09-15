@@ -669,6 +669,32 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
               />
+
+              {/* LLM Input/Output Section in Modal */}
+              {(() => {
+                const lastAllocation = selectedModel.allocationHistory && selectedModel.allocationHistory.length > 0
+                  ? selectedModel.allocationHistory[selectedModel.allocationHistory.length - 1]
+                  : null;
+
+                if (lastAllocation && (lastAllocation.llm_input || lastAllocation.llm_output)) {
+                  return (
+                    <>
+                      <div style={{
+                        height: '1px',
+                        background: 'linear-gradient(90deg, transparent 0%, #374151 50%, transparent 100%)',
+                        margin: '2rem 0',
+                        position: 'relative'
+                      }}>
+                      </div>
+                      <LLMInputOutputSection
+                        llmInput={lastAllocation.llm_input}
+                        llmOutput={lastAllocation.llm_output}
+                      />
+                    </>
+                  );
+                }
+                return null;
+              })()}
             </div>
           </div>
         </div>
@@ -931,6 +957,126 @@ const AssetRatioChart: React.FC<{
           );
         })}
       </div>
+    </div>
+  );
+};
+
+// LLM Input/Output Section Component
+const LLMInputOutputSection: React.FC<{
+  llmInput?: any;
+  llmOutput?: any;
+}> = ({ llmInput, llmOutput }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [inputExpanded, setInputExpanded] = useState(false);
+  const [outputExpanded, setOutputExpanded] = useState(false);
+
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+  };
+
+  const toggleInputExpanded = () => {
+    setInputExpanded(!inputExpanded);
+  };
+
+  const toggleOutputExpanded = () => {
+    setOutputExpanded(!outputExpanded);
+  };
+
+  return (
+    <div className="llm-section">
+      <div className="llm-header" onClick={toggleExpanded}>
+        <h3 className="llm-label">LLM Input & Output</h3>
+        <div className={`llm-arrow ${isExpanded ? 'expanded' : ''}`}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="6,9 12,15 18,9"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div className="llm-content">
+          {llmInput && (
+            <div className="llm-input-section">
+              <h4>Input</h4>
+              <div className="llm-text-content">
+                <div className="llm-meta">
+                  <span>Model: {llmInput.model || 'N/A'}</span>
+                  <span>Time: {llmInput.timestamp ? new Date(llmInput.timestamp).toLocaleString() : 'N/A'}</span>
+                </div>
+                <div className="llm-prompt">
+                  {llmInput.prompt ? (
+                    <>
+                      {inputExpanded ? llmInput.prompt : llmInput.prompt.substring(0, 200) + (llmInput.prompt.length > 200 ? '...' : '')}
+                      {llmInput.prompt.length > 200 && (
+                        <button
+                          className="llm-expand-btn"
+                          onClick={toggleInputExpanded}
+                          title={inputExpanded ? 'Show Less' : 'Show More'}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className={`llm-expand-arrow ${inputExpanded ? 'expanded' : ''}`}
+                          >
+                            <polyline points="6,9 12,15 18,9"></polyline>
+                          </svg>
+                        </button>
+                      )}
+                    </>
+                  ) : 'No prompt available'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {llmOutput && (
+            <div className="llm-output-section">
+              <h4>Output</h4>
+              <div className="llm-text-content">
+                <div className="llm-meta">
+                  <span>Success: {llmOutput.success ? 'Yes' : 'No'}</span>
+                  <span>Time: {llmOutput.timestamp ? new Date(llmOutput.timestamp).toLocaleString() : 'N/A'}</span>
+                </div>
+                <div className="llm-response">
+                  {llmOutput.content ? (
+                    <>
+                      {outputExpanded ? llmOutput.content : llmOutput.content.substring(0, 300) + (llmOutput.content.length > 300 ? '...' : '')}
+                      {llmOutput.content.length > 300 && (
+                        <button
+                          className="llm-expand-btn"
+                          onClick={toggleOutputExpanded}
+                          title={outputExpanded ? 'Show Less' : 'Show More'}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className={`llm-expand-arrow ${outputExpanded ? 'expanded' : ''}`}
+                          >
+                            <polyline points="6,9 12,15 18,9"></polyline>
+                          </svg>
+                        </button>
+                      )}
+                    </>
+                  ) : 'No response available'}
+                </div>
+                {llmOutput.error && (
+                  <div className="llm-error">
+                    Error: {llmOutput.error}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
