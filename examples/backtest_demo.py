@@ -211,7 +211,7 @@ def get_backtest_config():
     return {
         "start_date": "2025-07-01",   # 开始日期
         "end_date": "2025-09-08",     # 结束日期 (3个月)
-        "interval_days": 50,           # 每隔5个交易日运行一次 (~每周)
+        "interval_days": 5,           # 每隔5个交易日运行一次 (~每周)
         "max_workers": 4              # 并发数量
     }
 
