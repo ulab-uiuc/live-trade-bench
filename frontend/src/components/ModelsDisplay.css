@@ -330,6 +330,160 @@
   border-radius: 50%;
 }
 
+/* LLM Input/Output Section Styles for Modal */
+.llm-section {
+  margin: 1rem 0;
+  background: #0f1419;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.llm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 1rem;
+  background: #1f2937;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #374151;
+}
+
+.llm-header:hover {
+  background-color: #374151;
+}
+
+.llm-label {
+  font-size: 1rem;
+  color: #ffffff;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.llm-arrow {
+  transition: transform 0.2s ease;
+  color: #9ca3af;
+}
+
+.llm-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+.llm-content {
+  padding: 1.5rem;
+  background: #0f1419;
+}
+
+.llm-input-section,
+.llm-output-section {
+  margin-bottom: 1.5rem;
+}
+
+.llm-input-section:last-child,
+.llm-output-section:last-child {
+  margin-bottom: 0;
+}
+
+.llm-input-section h4,
+.llm-output-section h4 {
+  font-size: 1.125rem;
+  color: #ffffff;
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+  border-bottom: 1px solid #374151;
+  padding-bottom: 0.5rem;
+}
+
+.llm-text-content {
+  font-size: 0.875rem;
+}
+
+.llm-meta {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1rem;
+  color: #9ca3af;
+  flex-wrap: wrap;
+}
+
+.llm-meta span {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  background: #1f2937;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid #374151;
+}
+
+.llm-prompt,
+.llm-response {
+  color: #d1d5db;
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.8125rem;
+  background-color: #111827;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid #374151;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.llm-error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background-color: #1f2937;
+  border-radius: 0.375rem;
+  border-left: 4px solid #ef4444;
+  border: 1px solid #374151;
+}
+
+/* LLM Expand Button Styles */
+.llm-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.5rem;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 0.25rem;
+  color: #d1d5db;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 1.5rem;
+  min-height: 1.5rem;
+  font-size: 0.75rem;
+}
+
+.llm-expand-btn:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+  color: #ffffff;
+  transform: scale(1.02);
+}
+
+.llm-expand-btn:active {
+  transform: scale(0.98);
+}
+
+.llm-expand-arrow {
+  transition: transform 0.2s ease;
+  color: #9ca3af;
+}
+
+.llm-expand-arrow.expanded {
+  transform: rotate(180deg);
+}
+
 /* 只显示回报率 - 紧凑版 */
 .card-return-only {
   margin-bottom: 0.375rem;
