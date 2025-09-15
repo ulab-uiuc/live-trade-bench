@@ -40,29 +40,35 @@ class StockPortfolioSystem:
         self.accounts[name] = account
 
     def run_cycle(self, for_date: str | None = None) -> None:
-        print(
-            f"\n--- 🔄 Cycle {self.cycle_count} | Processing {len(self.agents)} agents ---"
-        )
-
-        # 1. Fetch Market Data
-        market_data = self._fetch_market_data(for_date)
-        if not market_data:
-            print("  - Market data fetch failed, skipping cycle")
-            return
-
-        # 2. Fetch News Data
-        news_data = self._fetch_news_data(market_data, for_date)
-
-        # 3. Generate Allocations for all agents
-        allocations = self._generate_allocations(market_data, news_data, for_date)
-
-        # 4. Update Accounts with new allocations
-        self._update_accounts(allocations, market_data, for_date)
+        print(f"\n--- 🔄 Cycle {self.cycle_count + 1} for Stock System ---")
+        if for_date:
+            print(f"--- 📅 Backtest Date: {for_date} ---")
+            current_time_str = for_date
+        else:
+            print(f"--- 🚀 Live Trading Mode ---")
+            current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         self.cycle_count += 1
-        print("--- ✅ Cycle Finished ---")
+        print("Fetching data for stock portfolio...")
 
-    def _fetch_market_data(self, for_date: str | None) -> Dict[str, Dict[str, Any]]:
+        # 1. Fetch market data
+        market_data = self._fetch_market_data(current_time_str if for_date else None)
+        if not market_data:
+            print("No market data for stocks, skipping cycle.")
+            return
+
+        # 2. Fetch news and social media data
+        news_data = self._fetch_news_data(market_data, current_time_str if for_date else None)
+
+        # 3. Generate allocations from agents
+        allocations = self._generate_allocations(
+            market_data, news_data, current_time_str if for_date else None
+        )
+
+        # 4. Update accounts based on allocations
+        self._update_accounts(allocations, market_data, current_time_str if for_date else None)
+
+    def _fetch_market_data(self, for_date: str | None = None) -> Dict[str, Dict[str, Any]]:
         print("  - Fetching market data...")
         market_data = {}
         for ticker in self.universe:
@@ -164,7 +170,8 @@ class StockPortfolioSystem:
                     start_date,
                     end_date,
                     max_pages=3,
-                    ticker=ticker,  # Fetch more pages
+                    ticker=ticker,
+                    target_date=for_date,  # 传递目标日期用于相关性排序
                 )
         except Exception as e:
             print(f"    - News data fetch failed: {e}")
@@ -223,8 +230,18 @@ class StockPortfolioSystem:
                 account.apply_allocation(
                     allocation, price_map=price_map, metadata_map=market_data
                 )
+                # Capture and persist agent LLM info if available
+                llm_input = None
+                llm_output = None
+                agent = self.agents.get(agent_name)
+                if agent is not None:
+                    llm_input = getattr(agent, "last_llm_input", None)
+                    llm_output = getattr(agent, "last_llm_output", None)
                 account.record_allocation(
-                    metadata_map=market_data, backtest_date=for_date
+                    metadata_map=market_data, 
+                    backtest_date=for_date, 
+                    llm_input=llm_input,
+                    llm_output=llm_output
                 )
                 print(
                     f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"

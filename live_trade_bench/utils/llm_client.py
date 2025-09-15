@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
@@ -24,7 +26,9 @@ def _resolve_provider_and_model(model: str) -> Tuple[Optional[str], str, Optiona
 
 
 def call_llm(
-    messages: List[Dict[str, str]], model: str = "gpt-4o-mini", agent_name: str = "AI"
+    messages: List[Dict[str, str]],
+    model: str = "gpt-4o-mini",
+    agent_name: str = "default_agent",
 ) -> Dict[str, Any]:
     try:
         import litellm
@@ -35,7 +39,7 @@ def call_llm(
             "model": normalized_model,
             "messages": messages,
             "temperature": 0.3,
-            "max_tokens": 1024,
+            "max_tokens": 16000,
         }
 
         if (
@@ -51,12 +55,16 @@ def call_llm(
 
         response = litellm.completion(**completion_params)
         content = response.choices[0].message.content
-        return {"success": True, "content": content, "error": None}
-    except ImportError:
-        return {"success": False, "content": "", "error": "litellm not installed"}
+        print(f"✅ LLM ({agent_name}) call successful")
+        return {"success": True, "content": content}
+
     except Exception as e:
-        print(f"⚠️ {agent_name}: LLM error: {e}")
-        return {"success": False, "content": "", "error": str(e)}
+        print(f"❌ LLM ({agent_name}) call failed: {e}")
+        # Log the exception for debugging purposes
+        import traceback
+
+        traceback.print_exc()
+        return {"success": False, "content": None, "error": str(e)}
 
 
 def parse_trading_response(content: str) -> Dict[str, Any]:

@@ -13,26 +13,38 @@ class NewsFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 2.0, max_delay: float = 6.0):
         super().__init__(min_delay, max_delay)
 
-    def _parse_relative_time(self, date_str: str) -> Optional[float]:
+    def _parse_relative_time_fixed(self, date_str: str, ref_date: datetime) -> Optional[float]:
         """Parses relative time strings (e.g., '2 hours ago') to Unix timestamp."""
-        now = datetime.now()
         if "hour" in date_str:
-            hours_ago = int(date_str.split(" ")[0])
-            return (now - timedelta(hours=hours_ago)).timestamp()
+            try:
+                hours_ago = int(date_str.split(" ")[0])
+                return (ref_date - timedelta(hours=hours_ago)).timestamp()
+            except (ValueError, IndexError):
+                return None
         elif "day" in date_str:
-            days_ago = int(date_str.split(" ")[0])
-            return (now - timedelta(days=days_ago)).timestamp()
+            try:
+                days_ago = int(date_str.split(" ")[0])
+                return (ref_date - timedelta(days=days_ago)).timestamp()
+            except (ValueError, IndexError):
+                return None
         elif "minute" in date_str:
-            minutes_ago = int(date_str.split(" ")[0])
-            return (now - timedelta(minutes=minutes_ago)).timestamp()
+            try:
+                minutes_ago = int(date_str.split(" ")[0])
+                return (ref_date - timedelta(minutes=minutes_ago)).timestamp()
+            except (ValueError, IndexError):
+                return None
         elif "second" in date_str:
-            seconds_ago = int(date_str.split(" ")[0])
-            return (now - timedelta(seconds=seconds_ago)).timestamp()
+            try:
+                seconds_ago = int(date_str.split(" ")[0])
+                return (ref_date - timedelta(seconds=seconds_ago)).timestamp()
+            except (ValueError, IndexError):
+                return None
         return None
 
     def fetch(
         self, query: str, start_date: str, end_date: str, max_pages: int = 10
     ) -> List[Dict[str, Any]]:
+        end_date_obj = datetime.now()
         if "-" in start_date:
             start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
             start_date = start_date_obj.strftime("%m/%d/%Y")
@@ -91,7 +103,7 @@ class NewsFetcher(BaseFetcher):
                         source = source_el.get_text()
 
                         # Convert relative time to Unix timestamp
-                        parsed_date = self._parse_relative_time(date)
+                        parsed_date = self._parse_relative_time_fixed(date, end_date_obj)
                         if parsed_date is None:
                             # Fallback if relative time parsing fails (e.g., specific date string)
                             try:
@@ -101,8 +113,8 @@ class NewsFetcher(BaseFetcher):
                                 ).timestamp()  # e.g., 'Sep 09, 2025'
                             except ValueError:
                                 parsed_date = (
-                                    datetime.now().timestamp()
-                                )  # Default to now if all parsing fails
+                                    end_date_obj.timestamp()
+                                )  # Default to end_date if all parsing fails
 
                         news_results.append(
                             {
@@ -135,7 +147,8 @@ def fetch_news_data(
     start_date: str,
     end_date: str,
     max_pages: int = 10,
-    ticker: Optional[str] = None,  # Corrected type hint
+    ticker: Optional[str] = None,
+    target_date: Optional[str] = None,  # 回测日期参数
 ) -> List[Dict[str, Any]]:
     fetcher = NewsFetcher()
 
@@ -154,4 +167,21 @@ def fetch_news_data(
         for item in news_items:
             item["tag"] = ticker
 
-    return news_items
+    # Sort news items based on relevance to target date
+    # Filter out items without valid dates
+    valid_news = [item for item in news_items if item.get("date") is not None]
+    
+    if target_date and valid_news:
+        # For backtest: sort by proximity to target date (closest to target date first)
+        try:
+            target_timestamp = datetime.strptime(target_date, "%Y-%m-%d").timestamp()
+            # Sort by proximity to target date (smallest time difference first)
+            sorted_news = sorted(valid_news, key=lambda x: abs(x["date"] - target_timestamp))
+        except Exception:
+            # Fallback to chronological sort if target date parsing fails
+            sorted_news = sorted(valid_news, key=lambda x: x["date"], reverse=True)
+    else:
+        # For live trading: sort by most recent first
+        sorted_news = sorted(valid_news, key=lambda x: x["date"], reverse=True)
+
+    return sorted_news

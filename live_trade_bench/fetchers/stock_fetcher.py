@@ -50,19 +50,19 @@ class StockFetcher(BaseFetcher):
     def get_price_with_history(
         self, ticker: str, date: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Get current price and 5-day price history for a stock"""
+        """Get current price and 10-day price history for a stock"""
         try:
             from datetime import datetime, timedelta
 
             if date:
-                # For backtest, get 5 days before the given date
+                # For backtest, get 10 days before the given date
                 ref_date = datetime.strptime(date, "%Y-%m-%d")
                 end_date = ref_date.strftime("%Y-%m-%d")
-                start_date = (ref_date - timedelta(days=5)).strftime("%Y-%m-%d")
+                start_date = (ref_date - timedelta(days=10)).strftime("%Y-%m-%d")
             else:
-                # For live trading, get 5 days before today
+                # For live trading, get 10 days before today
                 end_date = datetime.now().strftime("%Y-%m-%d")
-                start_date = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
+                start_date = (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%d")
 
             # Get current price
             current_price = self.get_price(ticker, date)
@@ -209,6 +209,6 @@ def fetch_stock_price(ticker: str, date: Optional[str] = None) -> Optional[float
 def fetch_stock_price_with_history(
     ticker: str, date: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Fetch current price and 5-day price history for a stock"""
+    """Fetch current price and 10-day price history for a stock"""
     fetcher = StockFetcher()
     return fetcher.get_price_with_history(ticker, date=date)

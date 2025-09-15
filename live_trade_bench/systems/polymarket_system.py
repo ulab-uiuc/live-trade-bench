@@ -62,27 +62,35 @@ class PolymarketPortfolioSystem:
         self.accounts[name] = account
 
     def run_cycle(self, for_date: str | None = None) -> None:
-        print(
-            f"\n--- 🔄 Cycle {self.cycle_count} | Processing {len(self.agents)} agents ---"
-        )
+        
+        print(f"\n--- 🔄 Cycle {self.cycle_count + 1} for Polymarket System ---")
+        if for_date:
+            print(f"--- 📅 Backtest Date: {for_date} ---")
+            current_time_str = for_date
+        else:
+            print(f"--- 🚀 Live Trading Mode ---")
+            current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        self.cycle_count += 1
+        print("Fetching data for polymarket portfolio...")
 
-        # 1. Fetch Market Data
-        market_data = self._fetch_market_data(for_date)
+        # 1. Fetch market data
+        market_data = self._fetch_market_data(current_time_str if for_date else None)
         if not market_data:
-            print("  - Market data fetch failed, skipping cycle")
+            print("No market data for polymarkets, skipping cycle.")
             return
 
-        # 2. Fetch News Data
-        news_data = self._fetch_news_data(market_data, for_date)
+        # 2. Fetch news and social media data
+        news_data = self._fetch_news_data(market_data, current_time_str if for_date else None)
 
-        # 3. Generate Allocations
-        allocations = self._generate_allocations(market_data, news_data, for_date)
+        # 3. Generate allocations from agents
+        allocations = self._generate_allocations(
+            market_data, news_data, current_time_str if for_date else None
+        )
 
-        # 4. Update Accounts
-        self._update_accounts(allocations, market_data, for_date)
+        # 4. Update accounts based on allocations
+        self._update_accounts(allocations, market_data, current_time_str if for_date else None)
 
-        self.cycle_count += 1
-        print("--- ✅ Cycle Finished ---")
 
     def _fetch_market_data(
         self, for_date: str | None = None
@@ -221,7 +229,7 @@ class PolymarketPortfolioSystem:
                 )
                 query = " ".join(question.split()[:5]) if question else str(market_id)
                 news_data_map[market_id] = fetch_news_data(
-                    query, start_date, end_date, max_pages=3, ticker=query
+                    query, start_date, end_date, max_pages=3, ticker=query, target_date=for_date
                 )
         except Exception as e:
             print(f"    - News data fetch failed: {e}")
@@ -302,8 +310,18 @@ class PolymarketPortfolioSystem:
                 account.apply_allocation(
                     allocation, price_map=price_map, metadata_map=market_data
                 )
+                # Capture and persist agent LLM info if available
+                llm_input = None
+                llm_output = None
+                agent = self.agents.get(agent_name)
+                if agent is not None:
+                    llm_input = getattr(agent, "last_llm_input", None)
+                    llm_output = getattr(agent, "last_llm_output", None)
                 account.record_allocation(
-                    metadata_map=market_data, backtest_date=for_date
+                    metadata_map=market_data, 
+                    backtest_date=for_date, 
+                    llm_input=llm_input,
+                    llm_output=llm_output
                 )
                 print(
                     f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"
