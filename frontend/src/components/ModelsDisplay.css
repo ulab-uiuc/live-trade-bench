@@ -830,7 +830,6 @@ html:has(.modal-overlay) {
   backface-visibility: hidden;
 }
 
-/* SVG横条图容器 */
 .allocation-bar-container {
   width: 100%;
   height: 40px;
