@@ -205,9 +205,9 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                 hist_date = h.get("date", "Unknown Date")
 
                 if is_stock:
-                    price_str = f"${hist_price:,.2f}"
+                    price_str = f"close price ${hist_price:,.2f}"
                 else:
-                    price_str = f"{hist_price:.0%}"
+                    price_str = f"{hist_price:.4f}"
 
                 # Calculate change from previous day if possible
                 change_str = "N/A"
@@ -227,7 +227,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             current_price = self.history_tail(ticker, 1)
             if current_price:
                 price = current_price[0]
-                price_str = f"${price:,.2f}" if is_stock else f"{price:.0%}"
+                price_str = f"${price:,.2f}" if is_stock else f"{price:.3f}"
                 lines.append(f"  - Current Price: {price_str}")
 
         return lines

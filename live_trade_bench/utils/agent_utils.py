@@ -39,6 +39,7 @@ def parse_llm_response_to_json(content: str) -> Optional[Dict[str, Any]]:
         if "```json" in content:
             json_str = content.split("```json")[1].split("```")[0].strip()
         else:
+            content = content.strip()
             start = content.find("{")
             end = content.rfind("}") + 1
             if start == -1 or end == 0:
