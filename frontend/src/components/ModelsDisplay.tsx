@@ -992,22 +992,14 @@ const LLMInputOutputSection: React.FC<{
         <div className="llm-content">
           {llmInput && (
             <div className="llm-input-section">
-              <h4>Input</h4>
+              <h4>Input Prompt</h4>
               <div className="llm-text-content">
-                <div className="llm-meta">
-                  <span>Model: {llmInput.model || 'N/A'}</span>
-                  <span>Time: {llmInput.timestamp ? new Date(llmInput.timestamp).toLocaleString() : 'N/A'}</span>
-                </div>
-                <div className="llm-prompt">
+                <div className="llm-prompt" onClick={llmInput.prompt && llmInput.prompt.trim().length > 200 ? toggleInputExpanded : undefined}>
                   {llmInput.prompt ? (
                     <>
-                      {inputExpanded ? llmInput.prompt : llmInput.prompt.substring(0, 200) + (llmInput.prompt.length > 200 ? '...' : '')}
-                      {llmInput.prompt.length > 200 && (
-                        <button
-                          className="llm-expand-btn"
-                          onClick={toggleInputExpanded}
-                          title={inputExpanded ? 'Show Less' : 'Show More'}
-                        >
+                      {inputExpanded ? llmInput.prompt.trim() : llmInput.prompt.trim().substring(0, 200) + (llmInput.prompt.trim().length > 200 ? '...' : '')}
+                      {llmInput.prompt.trim().length > 200 && (
+                        <div className="llm-expand-indicator">
                           <svg
                             width="12"
                             height="12"
@@ -1019,7 +1011,7 @@ const LLMInputOutputSection: React.FC<{
                           >
                             <polyline points="6,9 12,15 18,9"></polyline>
                           </svg>
-                        </button>
+                        </div>
                       )}
                     </>
                   ) : 'No prompt available'}
@@ -1030,22 +1022,14 @@ const LLMInputOutputSection: React.FC<{
 
           {llmOutput && (
             <div className="llm-output-section">
-              <h4>Output</h4>
+              <h4>Output Response</h4>
               <div className="llm-text-content">
-                <div className="llm-meta">
-                  <span>Success: {llmOutput.success ? 'Yes' : 'No'}</span>
-                  <span>Time: {llmOutput.timestamp ? new Date(llmOutput.timestamp).toLocaleString() : 'N/A'}</span>
-                </div>
-                <div className="llm-response">
+                <div className="llm-response" onClick={llmOutput.content && llmOutput.content.trim().length > 300 ? toggleOutputExpanded : undefined}>
                   {llmOutput.content ? (
                     <>
-                      {outputExpanded ? llmOutput.content : llmOutput.content.substring(0, 300) + (llmOutput.content.length > 300 ? '...' : '')}
-                      {llmOutput.content.length > 300 && (
-                        <button
-                          className="llm-expand-btn"
-                          onClick={toggleOutputExpanded}
-                          title={outputExpanded ? 'Show Less' : 'Show More'}
-                        >
+                      {outputExpanded ? llmOutput.content.trim() : llmOutput.content.trim().substring(0, 300) + (llmOutput.content.trim().length > 300 ? '...' : '')}
+                      {llmOutput.content.trim().length > 300 && (
+                        <div className="llm-expand-indicator">
                           <svg
                             width="12"
                             height="12"
@@ -1057,16 +1041,11 @@ const LLMInputOutputSection: React.FC<{
                           >
                             <polyline points="6,9 12,15 18,9"></polyline>
                           </svg>
-                        </button>
+                        </div>
                       )}
                     </>
                   ) : 'No response available'}
                 </div>
-                {llmOutput.error && (
-                  <div className="llm-error">
-                    Error: {llmOutput.error}
-                  </div>
-                )}
               </div>
             </div>
           )}
