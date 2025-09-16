@@ -435,6 +435,29 @@
   border: 1px solid #374151;
   max-height: 300px;
   overflow-y: auto;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.llm-prompt:hover,
+.llm-response:hover {
+  background-color: #1f2937;
+  border-color: #4b5563;
+}
+
+.llm-expand-indicator {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  color: #9ca3af;
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.llm-prompt:hover .llm-expand-indicator,
+.llm-response:hover .llm-expand-indicator {
+  color: #d1d5db;
 }
 
 .llm-error {
@@ -448,39 +471,10 @@
   border: 1px solid #374151;
 }
 
-/* LLM Expand Button Styles */
-.llm-expand-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 0.5rem;
-  margin-left: 0.5rem;
-  padding: 0.25rem 0.75rem;
-  background: #374151;
-  border: 1px solid #4b5563;
-  border-radius: 0.25rem;
-  color: #d1d5db;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  height: 1.5rem;
-  min-height: 1.5rem;
-  font-size: 0.75rem;
-}
-
-.llm-expand-btn:hover {
-  background: #4b5563;
-  border-color: #6b7280;
-  color: #ffffff;
-  transform: scale(1.02);
-}
-
-.llm-expand-btn:active {
-  transform: scale(0.98);
-}
-
+/* LLM Expand Arrow for the indicator */
 .llm-expand-arrow {
   transition: transform 0.2s ease;
-  color: #9ca3af;
+  color: inherit;
 }
 
 .llm-expand-arrow.expanded {
