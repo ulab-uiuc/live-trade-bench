@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from ..accounts import PolymarketAccount, create_polymarket_account
 from ..agents.polymarket_agent import LLMPolyMarketAgent
@@ -9,7 +9,6 @@ from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.polymarket_fetcher import (
     fetch_market_price_with_history,
     fetch_trending_markets,
-    fetch_verified_historical_markets,
 )
 
 
@@ -26,8 +25,10 @@ class PolymarketPortfolioSystem:
 
     def initialize_for_backtest(self, trading_days: List[datetime]):
         print("--- Initializing Polymarket universe for backtest period... ---")
-        verified_markets = fetch_verified_historical_markets(
-            trading_days, self.universe_size
+        # Use the earliest trading day to get historical markets
+        earliest_date = min(trading_days).strftime("%Y-%m-%d")
+        verified_markets = fetch_trending_markets(
+            limit=self.universe_size, for_date=earliest_date
         )
         self.set_universe(verified_markets)
         print(
@@ -35,7 +36,7 @@ class PolymarketPortfolioSystem:
         )
 
     def initialize_for_live(self):
-        markets = fetch_trending_markets(limit=self.universe_size)
+        markets = fetch_trending_markets(limit=self.universe_size, for_date=None)
         self.set_universe(markets)
 
     def set_universe(self, markets: List[Dict[str, Any]]):
@@ -307,22 +308,14 @@ class PolymarketPortfolioSystem:
 
             # Rebalance account to target allocation
             try:
-                account.apply_allocation(
-                    allocation, price_map=price_map, metadata_map=market_data
-                )
-                # Capture and persist agent LLM info if available
-                llm_input = None
-                llm_output = None
+                account.apply_allocation(allocation, price_map=price_map)
                 agent = self.agents.get(agent_name)
-                if agent is not None:
-                    llm_input = getattr(agent, "last_llm_input", None)
-                    llm_output = getattr(agent, "last_llm_output", None)
-                account.record_allocation(
-                    metadata_map=market_data, 
-                    backtest_date=for_date, 
-                    llm_input=llm_input,
-                    llm_output=llm_output
-                )
+                
+                # Record allocation with LLM data for debugging/auditing
+                account.record_allocation(backtest_date=for_date)
+                if agent and hasattr(agent, 'last_llm_input') and hasattr(agent, 'last_llm_output'):
+                    self._record_llm_data(agent_name, agent.last_llm_input, agent.last_llm_output, for_date)
+                
                 print(
                     f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"
                 )
@@ -330,6 +323,88 @@ class PolymarketPortfolioSystem:
                 print(f"    - ❌ Failed to update account for {agent_name}: {e}")
 
         print("  - ✅ All accounts updated")
+
+    def _record_llm_data(self, agent_name: str, llm_input: Any, llm_output: Any, date: Optional[str] = None):
+        """Record LLM input/output for debugging and auditing"""
+        if not hasattr(self, '_llm_logs'):
+            self._llm_logs = []
+        
+        timestamp = date if date else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self._llm_logs.append({
+            "timestamp": timestamp,
+            "agent_name": agent_name,
+            "llm_input": llm_input,
+            "llm_output": llm_output
+        })
+
+    def get_frontend_data(self) -> Dict[str, Any]:
+        """Format account data for frontend consumption"""
+        frontend_data = {}
+        
+        for agent_name, account in self.accounts.items():
+            account_data = account.get_account_data()
+            
+            # Create allocation array format with metadata for frontend
+            allocations_array = []
+            for asset, allocation in account.target_allocations.items():
+                asset_info = {"name": asset, "allocation": allocation}
+                
+                # Add market metadata if available
+                if hasattr(self, 'market_info') and asset in self.market_info:
+                    market_data = self.market_info[asset]
+                    if market_data.get("question"):
+                        asset_info["question"] = market_data["question"]
+                    if market_data.get("url"):
+                        asset_info["url"] = market_data["url"]
+                
+                allocations_array.append(asset_info)
+            
+            # Enhanced allocation history for frontend
+            enhanced_history = []
+            for snapshot in account.allocation_history:
+                enhanced_snapshot = snapshot.copy()
+                enhanced_snapshot["allocations_array"] = []
+                
+                for asset, allocation in snapshot.get("allocations", {}).items():
+                    asset_info = {"name": asset, "allocation": allocation}
+                    if hasattr(self, 'market_info') and asset in self.market_info:
+                        market_data = self.market_info[asset]
+                        if market_data.get("question"):
+                            asset_info["question"] = market_data["question"]
+                        if market_data.get("url"):
+                            asset_info["url"] = market_data["url"]
+                    enhanced_snapshot["allocations_array"].append(asset_info)
+                
+                enhanced_history.append(enhanced_snapshot)
+            
+            frontend_data[agent_name] = {
+                **account_data,
+                "allocations_array": allocations_array,
+                "allocation_history": enhanced_history,
+                "portfolio": {
+                    "cash": account.cash_balance,
+                    "total_value": account.get_total_value(),
+                    "positions": self._serialize_positions(account),
+                    "target_allocations": account.target_allocations,
+                    "current_allocations": account.get_allocations(),
+                }
+            }
+        
+        return frontend_data
+
+    def _serialize_positions(self, account) -> Dict[str, Any]:
+        """Serialize positions for frontend"""
+        positions_data = {}
+        for ticker, position in account.get_positions().items():
+            positions_data[ticker] = {
+                "symbol": position.symbol,
+                "quantity": position.quantity,
+                "average_price": position.average_price,
+                "current_price": position.current_price,
+                "market_value": position.market_value,
+                "unrealized_pnl": position.unrealized_pnl,
+            }
+        return positions_data
 
     @classmethod
     def get_instance(cls):
