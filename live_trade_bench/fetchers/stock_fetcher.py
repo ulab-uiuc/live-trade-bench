@@ -186,24 +186,22 @@ class StockFetcher(BaseFetcher):
         return self._download_price_data(ticker, start_date, end_date, interval)
 
 
-def fetch_trending_stocks(limit: int = 15) -> List[str]:
+def fetch_trending_stocks(limit: int = 15, for_date: Optional[str] = None) -> List[str]:
+    """
+    Fetch trending stocks for a specific date or today.
+    
+    Args:
+        limit: Number of stocks to return
+        for_date: Date in YYYY-MM-DD format. If None, returns current trending stocks
+        
+    Returns:
+        List of stock tickers
+    """
     fetcher = StockFetcher()
+    # For stocks, trending list doesn't change much historically, so return same list
     return fetcher.get_trending_stocks(limit=limit)
 
 
-def fetch_current_stock_price(ticker: str) -> Optional[float]:
-    fetcher = StockFetcher()
-    return fetcher.get_price(ticker)
-
-
-def fetch_stock_price_on_date(ticker: str, date: str) -> Optional[float]:
-    fetcher = StockFetcher()
-    return fetcher.get_price(ticker, date=date)
-
-
-def fetch_stock_price(ticker: str, date: Optional[str] = None) -> Optional[float]:
-    fetcher = StockFetcher()
-    return fetcher.get_price(ticker, date=date)
 
 
 def fetch_stock_price_with_history(
@@ -212,3 +210,5 @@ def fetch_stock_price_with_history(
     """Fetch current price and 10-day price history for a stock"""
     fetcher = StockFetcher()
     return fetcher.get_price_with_history(ticker, date=date)
+
+

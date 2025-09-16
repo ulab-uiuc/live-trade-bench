@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from ..accounts import StockAccount, create_stock_account
 from ..agents.stock_agent import LLMStockAgent
@@ -22,7 +22,7 @@ class StockPortfolioSystem:
         self.universe_size = universe_size
 
     def initialize_for_live(self):
-        tickers = fetch_trending_stocks(limit=self.universe_size)
+        tickers = fetch_trending_stocks(limit=self.universe_size, for_date=None)
         self.universe = tickers
         self.stock_info = {
             ticker: {"name": ticker, "sector": "Unknown", "market_cap": 0}
@@ -108,7 +108,7 @@ class StockPortfolioSystem:
         today = datetime.now().strftime("%Y-%m-%d")
 
         # Update universe with latest trending stocks for social media fetching
-        latest_trending_stocks = fetch_trending_stocks(limit=self.universe_size)
+        latest_trending_stocks = fetch_trending_stocks(limit=self.universe_size, for_date=None)
         if latest_trending_stocks:
             self.universe = latest_trending_stocks
             print(
@@ -227,28 +227,94 @@ class StockPortfolioSystem:
             account = self.accounts[agent_name]
             account.target_allocations = allocation
             try:
-                account.apply_allocation(
-                    allocation, price_map=price_map, metadata_map=market_data
-                )
-                # Capture and persist agent LLM info if available
-                llm_input = None
-                llm_output = None
+                account.apply_allocation(allocation, price_map=price_map)
                 agent = self.agents.get(agent_name)
-                if agent is not None:
-                    llm_input = getattr(agent, "last_llm_input", None)
-                    llm_output = getattr(agent, "last_llm_output", None)
-                account.record_allocation(
-                    metadata_map=market_data, 
-                    backtest_date=for_date, 
-                    llm_input=llm_input,
-                    llm_output=llm_output
-                )
+                
+                # Record allocation with LLM data for debugging/auditing
+                account.record_allocation(backtest_date=for_date)
+                if agent and hasattr(agent, 'last_llm_input') and hasattr(agent, 'last_llm_output'):
+                    self._record_llm_data(agent_name, agent.last_llm_input, agent.last_llm_output, for_date)
+                
                 print(
                     f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"
                 )
             except Exception as e:
                 print(f"    - ❌ Failed to update account for {agent_name}: {e}")
         print("  - ✅ All accounts updated")
+
+    def _record_llm_data(self, agent_name: str, llm_input: Any, llm_output: Any, date: Optional[str] = None):
+        """Record LLM input/output for debugging and auditing"""
+        if not hasattr(self, '_llm_logs'):
+            self._llm_logs = []
+        
+        timestamp = date if date else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self._llm_logs.append({
+            "timestamp": timestamp,
+            "agent_name": agent_name,
+            "llm_input": llm_input,
+            "llm_output": llm_output
+        })
+
+    def get_frontend_data(self) -> Dict[str, Any]:
+        """Format account data for frontend consumption"""
+        frontend_data = {}
+        
+        for agent_name, account in self.accounts.items():
+            account_data = account.get_account_data()
+            
+            # Create allocation array format with metadata for frontend
+            allocations_array = []
+            for asset, allocation in account.target_allocations.items():
+                asset_info = {"name": asset, "allocation": allocation}
+                
+                # Add stock metadata if available
+                if hasattr(self, 'stock_info') and asset in self.stock_info:
+                    stock_data = self.stock_info[asset]
+                    if stock_data.get("sector"):
+                        asset_info["sector"] = stock_data["sector"]
+                
+                allocations_array.append(asset_info)
+            
+            # Enhanced allocation history for frontend
+            enhanced_history = []
+            for snapshot in account.allocation_history:
+                enhanced_snapshot = snapshot.copy()
+                enhanced_snapshot["allocations_array"] = []
+                
+                for asset, allocation in snapshot.get("allocations", {}).items():
+                    asset_info = {"name": asset, "allocation": allocation}
+                    enhanced_snapshot["allocations_array"].append(asset_info)
+                
+                enhanced_history.append(enhanced_snapshot)
+            
+            frontend_data[agent_name] = {
+                **account_data,
+                "allocations_array": allocations_array,
+                "allocation_history": enhanced_history,
+                "portfolio": {
+                    "cash": account.cash_balance,
+                    "total_value": account.get_total_value(),
+                    "positions": self._serialize_positions(account),
+                    "target_allocations": account.target_allocations,
+                    "current_allocations": account.get_allocations(),
+                }
+            }
+        
+        return frontend_data
+
+    def _serialize_positions(self, account) -> Dict[str, Any]:
+        """Serialize positions for frontend"""
+        positions_data = {}
+        for ticker, position in account.get_positions().items():
+            positions_data[ticker] = {
+                "symbol": position.symbol,
+                "quantity": position.quantity,
+                "average_price": position.average_price,
+                "current_price": position.current_price,
+                "market_value": position.market_value,
+                "unrealized_pnl": position.unrealized_pnl,
+            }
+        return positions_data
 
     @classmethod
     def get_instance(cls):

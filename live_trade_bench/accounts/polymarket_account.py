@@ -32,7 +32,6 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
         self,
         target_allocations: Dict[str, float],
         price_map: Optional[Dict[str, float]] = None,
-        metadata_map: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> None:
         if not price_map:
             price_map = {
