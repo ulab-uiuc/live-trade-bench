@@ -183,9 +183,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     }
 
     return (
-      <div className="profit-chart">
+      <div className="profit-chart" onMouseLeave={handleMouseLeave}>
         <h3>Profit History</h3>
-        <svg width={width} height={height} className="chart-svg">
+        <svg width={width} height={height} className="chart-svg" onMouseLeave={handleMouseLeave}>
           {/*  */}
           <defs>
             <pattern id="grid" width="40" height="20" patternUnits="userSpaceOnUse">
@@ -227,19 +227,15 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 cy={y}
                 r="4"
                 fill={performance >= 0 ? '#10b981' : '#ef4444'}
-                style={{ cursor: 'pointer', transition: 'r 0.2s' }}
+                style={{ cursor: 'pointer' }}
                 onMouseMove={(e) => {
                   const date = new Date(point.timestamp).toLocaleString('zh-CN', {
                     year: 'numeric', month: '2-digit', day: '2-digit',
                     hour: '2-digit', minute: '2-digit', hour12: false
                   }).replace(/\//g, '-').replace(',', '');
-                  onMouseMove(e, `Date: ${date} | Performance: ${performance.toFixed(2)}%`);
+                  handleMouseMove(e, `Date: ${date} | Performance: ${performance.toFixed(2)}%`);
                 }}
-                onMouseEnter={(e) => e.currentTarget.setAttribute('r', '6')}
-                onMouseLeave={(e) => {
-                  e.currentTarget.setAttribute('r', '4');
-                  onMouseLeave();
-                }}
+                onMouseLeave={handleMouseLeave}
               />
             );
           })}
@@ -308,11 +304,11 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
 
     return (
-      <div className="asset-allocation">
+      <div className="asset-allocation" onMouseLeave={handleMouseLeave}>
         <h3>Asset Allocation</h3>
 
         {/*  */}
-        <div className="allocation-bar">
+        <div className="allocation-bar" onMouseLeave={handleMouseLeave}>
           {allocations.map((asset, index) => (
             <div
               key={asset.name}
@@ -322,9 +318,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                 backgroundColor: asset.color,
                 minWidth: '10px' // Ensure minimum clickable area
               }}
-              title={`${formatAssetName(asset.name, category)}: ${(asset.allocation * 100).toFixed(1)}%`}
-              onMouseMove={(e) => onMouseMove(e, `${formatAssetName(asset.name, category)}: ${(asset.allocation * 100).toFixed(1)}%`)}
-              onMouseLeave={onMouseLeave}
+              onMouseMove={(e) => handleMouseMove(e, `${formatAssetName(asset.name, category)}: ${(asset.allocation * 100).toFixed(1)}%`)}
+              onMouseLeave={handleMouseLeave}
             />
           ))}
         </div>
@@ -597,8 +592,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
       {showModal && selectedModel && (
         console.log('🔥 Modal rendering for:', selectedModel.name),
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={closeModal} onMouseLeave={handleMouseLeave}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} onMouseLeave={handleMouseLeave}>
             <div className="modal-header">
               <h2>{selectedModel.name}</h2>
               <button className="modal-close" onClick={closeModal} aria-label="Close modal">
