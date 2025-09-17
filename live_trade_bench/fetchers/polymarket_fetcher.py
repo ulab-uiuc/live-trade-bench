@@ -184,13 +184,24 @@ class PolymarketFetcher(BaseFetcher):
                     token_id, cache_start, backtest_end, fidelity=900
                 )
 
-            # Get price and history from cache
+            # Get price and history from cache (use previous day's price for backtest)
             cached_data = self._cache[cache_key]
+
+            # For backtest: use previous day's price to avoid data leakage
+            previous_day = (
+                datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)
+            ).strftime("%Y-%m-%d")
             current_price = next(
-                (float(item["price"]) for item in cached_data if item["date"] == date),
+                (
+                    float(item["price"])
+                    for item in cached_data
+                    if item["date"] == previous_day
+                ),
                 None,
             )
-            history = [item for item in cached_data if item["date"] <= date][-10:]
+
+            # History should only include data up to previous day (not including current day)
+            history = [item for item in cached_data if item["date"] < date][-10:]
         else:
             # Regular mode: fetch data on demand
             history = self._fetch_daily_history(
@@ -308,6 +319,10 @@ def fetch_verified_markets(
     return PolymarketFetcher().get_verified_markets(trading_days, limit=limit)
 
 
+# Global fetcher instance for sharing cache across calls
+_global_fetcher: Optional[PolymarketFetcher] = None
+
+
 def fetch_market_price_with_history(
     token_id: str,
     date: Optional[str] = None,
@@ -315,10 +330,22 @@ def fetch_market_price_with_history(
     backtest_start: Optional[str] = None,
     backtest_end: Optional[str] = None,
 ) -> Dict[str, Any]:
-    return PolymarketFetcher().get_price_with_history(
+    global _global_fetcher
+    if _global_fetcher is None:
+        _global_fetcher = PolymarketFetcher()
+
+    return _global_fetcher.get_price_with_history(
         token_id,
         date=date,
         side=side,
         backtest_start=backtest_start,
         backtest_end=backtest_end,
     )
+
+
+def clear_global_cache():
+    """Clear the global fetcher cache. Useful for testing or memory management."""
+    global _global_fetcher
+    if _global_fetcher is not None:
+        _global_fetcher._cache.clear()
+        print("🧹 Global fetcher cache cleared")
