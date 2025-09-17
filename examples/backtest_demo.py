@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def get_backtest_config() -> Dict[str, Any]:
     return {
-        "start_date": "2025-09-16",
+        "start_date": "2025-09-15",
         "end_date": "2025-09-16",
         "interval_days": 1,
         "initial_cash": {"polymarket": 500.0, "stock": 1000.0},
@@ -59,7 +59,11 @@ def build_systems(
     for model_name, model_id in models:
         # 每个模型仍然有独立的system实例（保持并行能力）
         pm = PolymarketPortfolioSystem()
-        pm.set_universe(verified_markets)  # 直接设置，不再调用initialize_for_backtest
+        pm.set_universe(verified_markets)  # Use pre-fetched markets
+        # Set backtest period for caching
+        if trading_days:
+            pm.backtest_start = trading_days[0].strftime("%Y-%m-%d")
+            pm.backtest_end = trading_days[-1].strftime("%Y-%m-%d")
         pm.add_agent(
             name=model_name, initial_cash=cash_cfg["polymarket"], model_name=model_id
         )

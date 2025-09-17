@@ -22,6 +22,9 @@ class PolymarketPortfolioSystem:
         self.cycle_count = 0
         self.universe_size = universe_size
         self.market_data: Dict[str, Dict[str, Any]] = {}
+        # Backtest period for caching
+        self.backtest_start: str = None
+        self.backtest_end: str = None
         self.initialize_for_live()
 
     def initialize_for_live(self):
@@ -31,6 +34,10 @@ class PolymarketPortfolioSystem:
     def initialize_for_backtest(self, trading_days: List[datetime]):
         verified_markets = fetch_verified_markets(trading_days, self.universe_size)
         self.set_universe(verified_markets)
+        # Set backtest period for caching
+        if trading_days:
+            self.backtest_start = trading_days[0].strftime("%Y-%m-%d")
+            self.backtest_end = trading_days[-1].strftime("%Y-%m-%d")
 
     def set_universe(self, markets: List[Dict[str, Any]]):
         self.universe = []
@@ -100,7 +107,12 @@ class PolymarketPortfolioSystem:
                 for outcome, token_id in zip(outcomes, token_ids):
                     if not token_id:
                         continue
-                    price_data = fetch_market_price_with_history(token_id, for_date)
+                    price_data = fetch_market_price_with_history(
+                        token_id,
+                        for_date,
+                        backtest_start=self.backtest_start,
+                        backtest_end=self.backtest_end,
+                    )
                     current_price = price_data.get("current_price")
                     if current_price is not None:
                         key = f"{question}_{outcome}"
