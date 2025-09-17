@@ -1,7 +1,3 @@
-"""
-Base account management system - Abstract base for all account types
-"""
-
 from __future__ import annotations
 
 import uuid
@@ -60,30 +56,21 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         profit = total_value - self.initial_cash
         performance = (profit / self.initial_cash) * 100 if self.initial_cash > 0 else 0
 
-        # Create allocation array format with URL information for frontend compatibility
         allocations_array = []
         for asset, allocation in self.target_allocations.items():
             asset_info = {"name": asset, "allocation": allocation}
-
-            # Add URL if available in metadata
             if metadata_map and asset in metadata_map:
-                url = metadata_map[asset].get("url")
-                if url:
+                if url := metadata_map[asset].get("url"):
                     asset_info["url"] = url
-                question = metadata_map[asset].get("question")
-                if question:
+                if question := metadata_map[asset].get("question"):
                     asset_info["question"] = question
-
             allocations_array.append(asset_info)
 
-        # Use backtest date if provided, otherwise use current time
         if backtest_date:
-            # Parse the date and use it as the timestamp (keeping only date part, not time)
             try:
                 backtest_datetime = datetime.strptime(backtest_date, "%Y-%m-%d")
                 timestamp = backtest_datetime.isoformat()
             except ValueError:
-                # Fallback to current time if date parsing fails
                 timestamp = datetime.now().isoformat()
         else:
             timestamp = datetime.now().isoformat()
@@ -93,8 +80,8 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
             "total_value": total_value,
             "profit": profit,
             "performance": performance,
-            "allocations": self.target_allocations,  # Keep original format for compatibility
-            "allocations_array": allocations_array,  # New format for frontend
+            "allocations": self.target_allocations,
+            "allocations_array": allocations_array,
             "llm_input": llm_input,
             "llm_output": llm_output,
         }
@@ -110,7 +97,6 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         total_value = self.get_total_value()
         if total_value == 0:
             return {}
-
         allocations = {
             ticker: self._get_position_value(ticker) / total_value
             for ticker in self.get_positions()
@@ -119,12 +105,10 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         return allocations
 
     def get_breakdown(self) -> Dict[str, Any]:
-        total_value = self.get_total_value()
-        positions_value = self.get_positions_value()
         return {
-            "total_value": total_value,
+            "total_value": self.get_total_value(),
             "cash_value": self.cash_balance,
-            "positions_value": positions_value,
+            "positions_value": self.get_positions_value(),
             "current_allocations": self.get_allocations(),
             "target_allocations": self.target_allocations.copy(),
         }
@@ -135,7 +119,6 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
         profit = total_value - self.initial_cash
         performance = (profit / self.initial_cash) * 100 if self.initial_cash > 0 else 0
 
-        # Create a serializable portfolio object
         portfolio_details = {
             "cash": self.cash_balance,
             "total_value": total_value,
@@ -151,8 +134,6 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
             "allocation_history": self.allocation_history,
             "market_type": self.get_market_type(),
         }
-
-        # Allow subclasses to add additional fields
         base_data.update(self.get_additional_account_data())
         return base_data
 
@@ -174,14 +155,11 @@ class BaseAccount(ABC, Generic[PositionType, TransactionType]):
 
     @abstractmethod
     def get_market_type(self) -> str:
-        """Return the market type identifier (e.g., 'stock', 'polymarket')"""
         ...
 
     @abstractmethod
     def serialize_positions(self) -> Dict[str, Any]:
-        """Serialize positions for API response in market-specific format"""
         ...
 
     def get_additional_account_data(self) -> Dict[str, Any]:
-        """Override in subclasses to add market-specific account data"""
         return {}

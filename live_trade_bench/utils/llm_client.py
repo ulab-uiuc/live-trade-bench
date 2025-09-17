@@ -26,8 +26,6 @@ def _resolve_provider_and_model(model: str) -> Tuple[Optional[str], str, Optiona
 
     return "together_ai", raw, "TOGETHER_API_KEY"
 
-    # return None, raw, None
-
 
 def call_llm(
     messages: List[Dict[str, str]],

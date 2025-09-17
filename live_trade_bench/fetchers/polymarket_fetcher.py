@@ -87,7 +87,8 @@ class PolymarketFetcher(BaseFetcher):
         }
         markets = self._fetch_markets(params)
         verified: List[Dict[str, Any]] = []
-        for m in markets:
+        markets = markets[20:]
+        for m in markets[::6]:
             if not isinstance(m, dict) or not m.get("id"):
                 continue
             raw_token_ids = m.get("clobTokenIds", [])
@@ -100,8 +101,10 @@ class PolymarketFetcher(BaseFetcher):
                     outcomes = json.loads(raw_outcomes)
                 except Exception:
                     token_ids = []
+                    outcomes = []
             else:
                 token_ids = raw_token_ids
+                outcomes = raw_outcomes
             if not token_ids:
                 continue
             has_price_data = False
@@ -110,7 +113,7 @@ class PolymarketFetcher(BaseFetcher):
                     history = self._fetch_daily_history(
                         token_id, start_date, end_date, fidelity=900
                     )
-                    if history and len(history) > 0:
+                    if history:
                         has_price_data = True
                         break
             if has_price_data:
@@ -125,9 +128,6 @@ class PolymarketFetcher(BaseFetcher):
                         "url": m.get("url"),
                     }
                 )
-                print(f"Added market {m.get('question')} to verified list")
-            else:
-                print(f"No price data found for market {m.get('question')}")
             if len(verified) >= limit:
                 break
         return verified
@@ -204,12 +204,8 @@ class PolymarketFetcher(BaseFetcher):
         end = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         day_closes: Dict[str, Tuple[int, float]] = {}
         while cur <= end:
-            day_start = int(
-                cur.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
-            )
-            day_end = int(
-                cur.replace(hour=23, minute=59, second=59, microsecond=0).timestamp()
-            )
+            day_start = int(cur.replace(hour=0, minute=0, second=0).timestamp())
+            day_end = int(cur.replace(hour=23, minute=59, second=59).timestamp())
             try:
                 resp = self.make_request(
                     url,

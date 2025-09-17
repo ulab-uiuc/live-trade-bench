@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def get_backtest_config() -> Dict[str, Any]:
     return {
-        "start_date": "2025-08-16",
+        "start_date": "2025-09-16",
         "end_date": "2025-09-16",
         "interval_days": 1,
         "initial_cash": {"polymarket": 500.0, "stock": 1000.0},

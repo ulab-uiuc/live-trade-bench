@@ -35,7 +35,6 @@ from .fetchers.base_fetcher import BaseFetcher
 # Constants
 from .fetchers.constants import CATEGORY_SUBREDDITS, TICKER_TO_COMPANY
 from .fetchers.news_fetcher import NewsFetcher, fetch_news_data
-from .fetchers.option_fetcher import OptionFetcher
 from .fetchers.polymarket_fetcher import PolymarketFetcher, fetch_trending_markets
 from .fetchers.stock_fetcher import StockFetcher
 
