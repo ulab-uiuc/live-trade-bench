@@ -94,7 +94,6 @@ class PolymarketFetcher(BaseFetcher):
         }
         markets = self._fetch_markets(params)
         verified: List[Dict[str, Any]] = []
-        markets = markets[20:]
         for m in markets[::6]:
             if not isinstance(m, dict) or not m.get("id"):
                 continue
