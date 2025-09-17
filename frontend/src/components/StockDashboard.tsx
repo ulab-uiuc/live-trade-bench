@@ -51,6 +51,21 @@ const StockDashboard: React.FC<StockDashboardProps> = ({ modelsData, modelsLastR
         }}>
           AI-powered stock portfolio management
         </p>
+        
+        <div style={{
+          maxWidth: '1000px',
+          margin: '1.5rem auto 0',
+          padding: '1rem 1.5rem',
+          background: 'rgba(245, 158, 11, 0.1)',
+          border: '1px solid rgba(245, 158, 11, 0.3)',
+          borderRadius: '12px',
+          color: 'rgba(255, 255, 255, 0.8)',
+          fontSize: '0.95rem',
+          lineHeight: '1.6',
+          textAlign: 'left'
+        }}>
+          We display real-time performance metrics for each AI trading agent, including accumulated return rates and asset allocations. Click any model card to explore detailed portfolio analysis, allocation history, profit trends, and the complete LLM decision-making process. We select 10 representative stocks from different domains for each model as asset options.
+        </div>
       </div>
 
       {/*  -  */}

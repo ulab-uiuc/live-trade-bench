@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './About.css';
 
 type Member = {
@@ -34,6 +35,8 @@ const MEMBERS: Member[] = [
 ];
 
 const About: React.FC = () => {
+  const navigate = useNavigate();
+  
   return (
     <div className="about-container">
       <div className="about-header">
@@ -108,13 +111,35 @@ const About: React.FC = () => {
             <p className="warning-paragraph">
               <span className="warning-text">Harder—and more realistic.</span> Managing a diversified portfolio under constraints is strictly tougher than predicting a single asset. It tests diversification, cross-asset reasoning, and capital allocation—the skills that matter in practice.
             </p>
+
+            <h3><span className="highlight-text">Why stocks and polymarket?</span></h3>
+            <p className="warning-paragraph">
+              The{" "}
+              <button 
+                className="about-link warning-text" 
+                onClick={() => navigate('/stocks')}
+              >
+                stock market
+              </button>{" "}
+              is mature, complex, and widely studied, making it a natural benchmark for trading systems.
+            </p>
+
+            <p className="warning-paragraph">
+              The <button 
+                className="about-link warning-text" 
+                onClick={() => navigate('/polymarket')}
+              >
+                Polymarket
+              </button>{" "}
+              is a fast-growing prediction market that reflects collective beliefs on real-world events, aligning well with the strengths of LLMs.
+            </p>
           </div>
 
         </div>
       </div>
 
       <div className="contact-section">
-        <h2>Get Involved</h2>
+        <h2>Join Us</h2>
         <p>
           Interested in contributing or have questions? We'd love to hear from you!
         </p>

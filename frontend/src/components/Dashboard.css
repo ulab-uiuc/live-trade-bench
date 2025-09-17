@@ -23,8 +23,30 @@
 .dashboard-subtitle {
   color: rgba(255, 255, 255, 0.7);
   font-size: 1.2rem;
-  max-width: 600px;
+  max-width: 1000px;
   margin: 0 auto;
+}
+
+.dashboard-learn-more {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.about-link {
+  background: none;
+  border: none;
+  color: #9c9ef8;
+  text-decoration: underline;
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.about-link:hover {
+  color: #818cf8;
+  text-decoration: none;
 }
 
 .leaderboard-grid {
@@ -403,6 +425,10 @@
 
   .dashboard-title {
     font-size: 3rem;
+  }
+  
+  .dashboard-learn-more {
+    font-size: 0.9rem;
   }
 }
 
