@@ -146,14 +146,12 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
 
             return (
                 f"ACCOUNT INFO:\n"
-                f"  Current return rate: {current_performance:.1f}%\n"
-                f"  Recent Ten Historical Allocations:\n{allocations_text}"
+                f"  Recent Historical Allocations under this account:\n{allocations_text}"
             )
         else:
             return (
                 f"ACCOUNT INFO:\n"
-                f"  Current return rate: {current_performance:.1f}%\n"
-                f"  Recent Ten Historical Allocations: No history available"
+                f"  Recent Ten Historical Allocations under this account: No history available"
             )
 
     def _prepare_news_analysis(
