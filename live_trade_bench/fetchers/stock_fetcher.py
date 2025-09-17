@@ -120,7 +120,7 @@ class StockFetcher(BaseFetcher):
                 for col in ("Close", "Adj Close", "close"):
                     if col in df.columns:
                         try:
-                            return float(df[col].iloc[-1])
+                            return float(df[col].iloc[0])
                         except Exception:
                             continue
         except Exception:
