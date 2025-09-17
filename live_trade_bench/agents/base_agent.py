@@ -119,8 +119,17 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         if allocation_history:
             recent_allocations = allocation_history[-10:]  # Get last 10 records
             all_allocations = []
-            for i, snapshot in enumerate(recent_allocations):
-                timestamp = snapshot.get("timestamp", f"Record {i+1}")
+            for snapshot in recent_allocations:
+                timestamp_str = snapshot.get("timestamp")
+                date_part = "Unknown Date"
+                if timestamp_str:
+                    try:
+                        # Timestamps are in ISO format, parse them and get the date part
+                        date_part = datetime.fromisoformat(timestamp_str).strftime('%Y-%m-%d')
+                    except (ValueError, TypeError):
+                        # Fallback for invalid format or if it's not a full ISO string
+                        date_part = timestamp_str.split('T')[0]
+
                 allocations = snapshot.get("allocations", {})
                 performance = snapshot.get("performance", 0.0)
 
@@ -130,7 +139,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                     formatted_allocations[key] = f"{value:.2f}"
 
                 all_allocations.append(
-                    f"    Allocation at last {len(recent_allocations)-i}th time: {formatted_allocations} (Return rate: {performance:.1f}%)"
+                    f"    - Asset Allocation at {date_part}: {formatted_allocations} (Accumulated return rate: {performance:.1f}%)"
                 )
 
             allocations_text = "\n".join(all_allocations)

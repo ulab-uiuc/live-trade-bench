@@ -34,8 +34,12 @@ def normalize_allocations(parsed: Dict[str, Any]) -> Optional[Dict[str, float]]:
 
 def parse_llm_response_to_json(content: str) -> Optional[Dict[str, Any]]:
     import json
+    import re
 
     try:
+        # Remove <think>...</think> blocks
+        content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)
+
         if "```json" in content:
             json_str = content.split("```json")[1].split("```")[0].strip()
         else:
