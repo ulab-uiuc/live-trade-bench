@@ -139,7 +139,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                     formatted_allocations[key] = f"{value:.2f}"
 
                 all_allocations.append(
-                    f"    - Allocation at{date_part}: {formatted_allocations} (Accumulated return rate: {performance:.1f}%)"
+                    f"    - Asset Allocation at {date_part}: {formatted_allocations} (Accumulated return rate: {performance:.1f}%)"
                 )
 
             allocations_text = "\n".join(all_allocations)
