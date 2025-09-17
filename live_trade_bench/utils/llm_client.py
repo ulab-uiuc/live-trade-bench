@@ -19,6 +19,10 @@ def _resolve_provider_and_model(model: str) -> Tuple[Optional[str], str, Optiona
             return "openai", rest.strip(), "OPENAI_API_KEY"
         if pfx == "anthropic":
             return "anthropic", rest.strip(), "ANTHROPIC_API_KEY"
+        if pfx == "gemini":
+            return "gemini", rest.strip(), "GEMINI_API_KEY"
+        if pfx == "x-ai" or pfx == "grok" or pfx == "xai":
+            return "xai", rest.strip(), "X_AI_API_KEY"
 
     return "together_ai", raw, "TOGETHER_API_KEY"
 
