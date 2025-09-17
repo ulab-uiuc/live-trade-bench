@@ -70,6 +70,7 @@ def build_systems(
             )
             systems["polymarket"][model_name] = pm
 
+
         if run_stock:
             st = StockPortfolioSystem()
             st.set_universe(verified_stocks)

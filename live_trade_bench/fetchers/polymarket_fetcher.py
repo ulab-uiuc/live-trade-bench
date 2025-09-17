@@ -9,6 +9,8 @@ from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 class PolymarketFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 0.3, max_delay: float = 1.0):
         super().__init__(min_delay, max_delay)
+        # Simple cache for backtest data
+        self._cache: Dict[str, List[Dict[str, Any]]] = {}
 
     def fetch(
         self, mode: str, **kwargs: Any
@@ -149,32 +151,76 @@ class PolymarketFetcher(BaseFetcher):
         return self._get_current_price(token_id, side=side)
 
     def get_price_with_history(
-        self, token_id: str, date: Optional[str] = None, side: str = "buy"
+        self,
+        token_id: str,
+        date: Optional[str] = None,
+        side: str = "buy",
+        backtest_start: Optional[str] = None,
+        backtest_end: Optional[str] = None,
     ) -> Dict[str, Any]:
-        ref_dt = (
-            datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-            if date
-            else datetime.now(timezone.utc)
-        )
-        end_date = ref_dt.strftime("%Y-%m-%d")
-        start_date = (ref_dt - timedelta(days=10)).strftime("%Y-%m-%d")
-        history = self._fetch_daily_history(
-            token_id, start_date, end_date, fidelity=900
-        )
-        current_price: Optional[float] = None
+        # Determine date range
         if date:
-            for h in reversed(history):
-                if h["date"] == date:
-                    current_price = float(h["price"])
-                    break
-            if current_price is None:
-                current_price = self._get_price_on_date(token_id, date)
+            end_date = date
+            start_date = (
+                datetime.strptime(date, "%Y-%m-%d") - timedelta(days=10)
+            ).strftime("%Y-%m-%d")
         else:
-            current_price = self._get_current_price(token_id, side=side)
-        compact_history = [{"date": h["date"], "price": h["price"]} for h in history]
+            today = datetime.now(timezone.utc)
+            end_date = today.strftime("%Y-%m-%d")
+            start_date = (today - timedelta(days=10)).strftime("%Y-%m-%d")
+
+        # Backtest mode with caching
+        if backtest_start and backtest_end and date:
+            cache_key = f"{token_id}_{backtest_start}_{backtest_end}"
+
+            # Cache entire period on first call
+            if cache_key not in self._cache:
+                print(f"🚀 Caching {token_id} from {backtest_start} to {backtest_end}")
+                cache_start = (
+                    datetime.strptime(backtest_start, "%Y-%m-%d") - timedelta(days=15)
+                ).strftime("%Y-%m-%d")
+                self._cache[cache_key] = self._fetch_daily_history(
+                    token_id, cache_start, backtest_end, fidelity=900
+                )
+
+            # Get price and history from cache (use previous day's price for backtest)
+            cached_data = self._cache[cache_key]
+
+            # For backtest: use previous day's price to avoid data leakage
+            previous_day = (
+                datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)
+            ).strftime("%Y-%m-%d")
+            current_price = next(
+                (
+                    float(item["price"])
+                    for item in cached_data
+                    if item["date"] == previous_day
+                ),
+                None,
+            )
+
+            # History should only include data up to previous day (not including current day)
+            history = [item for item in cached_data if item["date"] < date][-10:]
+        else:
+            # Regular mode: fetch data on demand
+            history = self._fetch_daily_history(
+                token_id, start_date, end_date, fidelity=900
+            )
+
+            # Get current price
+            if date:
+                current_price = next(
+                    (float(item["price"]) for item in history if item["date"] == date),
+                    self._get_price_on_date(token_id, date),
+                )
+            else:
+                current_price = self._get_current_price(token_id, side=side)
+
         return {
             "current_price": current_price,
-            "price_history": compact_history,
+            "price_history": [
+                {"date": h["date"], "price": h["price"]} for h in history
+            ],
             "token_id": token_id,
         }
 
@@ -272,7 +318,33 @@ def fetch_verified_markets(
     return PolymarketFetcher().get_verified_markets(trading_days, limit=limit)
 
 
+# Global fetcher instance for sharing cache across calls
+_global_fetcher: Optional[PolymarketFetcher] = None
+
+
 def fetch_market_price_with_history(
-    token_id: str, date: Optional[str] = None, side: str = "buy"
+    token_id: str,
+    date: Optional[str] = None,
+    side: str = "buy",
+    backtest_start: Optional[str] = None,
+    backtest_end: Optional[str] = None,
 ) -> Dict[str, Any]:
-    return PolymarketFetcher().get_price_with_history(token_id, date=date, side=side)
+    global _global_fetcher
+    if _global_fetcher is None:
+        _global_fetcher = PolymarketFetcher()
+
+    return _global_fetcher.get_price_with_history(
+        token_id,
+        date=date,
+        side=side,
+        backtest_start=backtest_start,
+        backtest_end=backtest_end,
+    )
+
+
+def clear_global_cache():
+    """Clear the global fetcher cache. Useful for testing or memory management."""
+    global _global_fetcher
+    if _global_fetcher is not None:
+        _global_fetcher._cache.clear()
+        print("🧹 Global fetcher cache cleared")
