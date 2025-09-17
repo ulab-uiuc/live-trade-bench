@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def get_backtest_config() -> Dict[str, Any]:
     return {
-        "start_date": "2025-09-16",
+        "start_date": "2025-08-22",
         "end_date": "2025-09-16",
         "interval_days": 1,
         "initial_cash": {"polymarket": 500.0, "stock": 1000.0},
@@ -46,31 +46,37 @@ def build_systems(
     models: List[Tuple[str, str]],
     trading_days: List[datetime],
     cash_cfg: Dict[str, float],
+    run_polymarket: bool = False,
+    run_stock: bool = True,
 ):
     systems: Dict[str, Dict[str, Any]] = {"polymarket": {}, "stock": {}}
 
-    print("Pre-fetching verified markets...")
-    from live_trade_bench.fetchers.polymarket_fetcher import fetch_verified_markets
-    from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
+    if run_polymarket:
+        print("Pre-fetching verified markets...")
+        from live_trade_bench.fetchers.polymarket_fetcher import fetch_verified_markets
+        verified_markets = fetch_verified_markets(trading_days, 10)
 
-    verified_markets = fetch_verified_markets(trading_days, 5)
-    verified_stocks = fetch_trending_stocks(10)
+    if run_stock:
+        print("Pre-fetching stock data...")
+        from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
+        verified_stocks = fetch_trending_stocks(15)
 
     for model_name, model_id in models:
-        # 每个模型仍然有独立的system实例（保持并行能力）
-        pm = PolymarketPortfolioSystem()
-        pm.set_universe(verified_markets)  # 直接设置，不再调用initialize_for_backtest
-        pm.add_agent(
-            name=model_name, initial_cash=cash_cfg["polymarket"], model_name=model_id
-        )
-        systems["polymarket"][model_name] = pm
+        if run_polymarket:
+            pm = PolymarketPortfolioSystem()
+            pm.set_universe(verified_markets)
+            pm.add_agent(
+                name=model_name, initial_cash=cash_cfg["polymarket"], model_name=model_id
+            )
+            systems["polymarket"][model_name] = pm
 
-        st = StockPortfolioSystem()
-        st.set_universe(verified_stocks)
-        st.add_agent(
-            name=model_name, initial_cash=cash_cfg["stock"], model_name=model_id
-        )
-        systems["stock"][model_name] = st
+        if run_stock:
+            st = StockPortfolioSystem()
+            st.set_universe(verified_stocks)
+            st.add_agent(
+                name=model_name, initial_cash=cash_cfg["stock"], model_name=model_id
+            )
+            systems["stock"][model_name] = st
 
     return systems
 
@@ -163,9 +169,16 @@ def collect_results(
     return out
 
 
-def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, str]]):
+def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, str]], run_polymarket: bool = True, run_stock: bool = True):
     name_to_id = {n: mid for n, mid in models}
-    for market_type in ["stock", "polymarket"]:
+    
+    market_types = []
+    if run_stock:
+        market_types.append("stock")
+    if run_polymarket:
+        market_types.append("polymarket")
+    
+    for market_type in market_types:
         bucket = results.get(market_type, {})
         if not bucket:
             continue
@@ -184,7 +197,7 @@ def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, s
             )
 
     all_rows = []
-    for mkt in ["stock", "polymarket"]:
+    for mkt in market_types:
         for agent, perf in results.get(mkt, {}).items():
             all_rows.append((mkt, agent, perf))
     if all_rows:
@@ -200,8 +213,10 @@ def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, s
     print("\n📊 PERFORMANCE STATS")
     print("-" * 40)
     print(f"   Total Agents: {total}")
-    print(f"   Stock Agents: {len(results.get('stock', {}))}")
-    print(f"   Polymarket Agents: {len(results.get('polymarket', {}))}")
+    if run_stock:
+        print(f"   Stock Agents: {len(results.get('stock', {}))}")
+    if run_polymarket:
+        print(f"   Polymarket Agents: {len(results.get('polymarket', {}))}")
 
 
 def save_models_data(
@@ -230,12 +245,21 @@ def main():
     cfg = get_backtest_config()
     models = get_base_model_configs()
 
-    print(f"🤖 {len(models)} models × 2 markets")
+    run_polymarket = False
+    run_stock = True
+    market_count = sum([run_polymarket, run_stock])
+    market_names = []
+    if run_stock:
+        market_names.append("stock")
+    if run_polymarket:
+        market_names.append("polymarket")
+    
+    print(f"🤖 {len(models)} models × {market_count} markets ({', '.join(market_names)})")
     days = get_trading_days(cfg["start_date"], cfg["end_date"], cfg["interval_days"])
     print(f"📅 Trading days: {len(days)}  ({cfg['start_date']} → {cfg['end_date']})")
     print(f"⚙️  Parallelism: {cfg['parallelism']} (env LTB_PARALLELISM)")
 
-    systems = build_systems(models, days, cfg["initial_cash"])
+    systems = build_systems(models, days, cfg["initial_cash"], run_polymarket=run_polymarket, run_stock=run_stock)
 
     for i, d in enumerate(days, 1):
         date_str = d.strftime("%Y-%m-%d")
@@ -243,7 +267,7 @@ def main():
         run_day(date_str, systems, cfg["parallelism"])
 
     results = collect_results(systems, cfg["start_date"], cfg["end_date"])
-    print_rankings(results, models)
+    print_rankings(results, models, run_polymarket=run_polymarket, run_stock=run_stock)
     save_models_data(systems)
     print("\n✅ Backtest complete.")
 
