@@ -50,49 +50,38 @@ class StockFetcher(BaseFetcher):
     def get_price_with_history(
         self, ticker: str, date: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Get current price and 10-day price history for a stock"""
-        try:
-            from datetime import datetime, timedelta
+        """Fetch current price and 20-day price history for a stock"""
+        if date:
+            end_date = datetime.strptime(date, "%Y-%m-%d")
+        else:
+            end_date = datetime.now()
 
-            if date:
-                # For backtest, get 10 days before the given date
-                ref_date = datetime.strptime(date, "%Y-%m-%d")
-                end_date = ref_date.strftime("%Y-%m-%d")
-                start_date = (ref_date - timedelta(days=10)).strftime("%Y-%m-%d")
-            else:
-                # For live trading, get 10 days before today
-                end_date = datetime.now().strftime("%Y-%m-%d")
-                start_date = (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%d")
+        # Fetch 30 calendar days to ensure we get ~20 trading days
+        start_date = end_date - timedelta(days=20)
 
-            # Get current price
-            current_price = self.get_price(ticker, date)
+        price_data = self._download_price_data(
+            ticker,
+            start_date.strftime("%Y-%m-%d"),
+            end_date.strftime("%Y-%m-%d"),
+            interval="1d",
+        )
 
-            # Get historical data
-            df = self._download_price_data(ticker, start_date, end_date, interval="1d")
+        price_history = []
+        if price_data is not None and not price_data.empty:
+            for i, (idx, row) in enumerate(price_data.iterrows()):
+                price_history.append(
+                    {
+                        "date": idx.strftime("%Y-%m-%d"),
+                        "price": float(row["Close"].iloc[0]) if "Close" in row else 0.0,
+                        "volume": int(row["Volume"].iloc[0]) if "Volume" in row else 0,
+                    }
+                )
 
-            price_history = []
-            if df is not None and not df.empty:
-                for i, (idx, row) in enumerate(df.iterrows()):
-                    price_history.append(
-                        {
-                            "date": idx.strftime("%Y-%m-%d"),
-                            "price": float(row["Close"].iloc[0])
-                            if "Close" in row
-                            else 0.0,
-                            "volume": int(row["Volume"].iloc[0])
-                            if "Volume" in row
-                            else 0,
-                        }
-                    )
-
-            return {
-                "current_price": current_price,
-                "price_history": price_history,
-                "ticker": ticker,
-            }
-        except Exception as e:
-            print(f"Error fetching price with history for {ticker}: {e}")
-            return {"current_price": None, "price_history": [], "ticker": ticker}
+        return {
+            "current_price": self.get_price(ticker, date),
+            "price_history": price_history,
+            "ticker": ticker,
+        }
 
     def _download_price_data(
         self, ticker: str, start_date: str, end_date: str, interval: str
@@ -115,43 +104,15 @@ class StockFetcher(BaseFetcher):
         return df
 
     def get_current_price(self, ticker: str) -> Optional[float]:
+        stock = yf.Ticker(ticker)
         try:
-            stock = yf.Ticker(ticker)
-            try:
-                fast_info = stock.fast_info
-                if hasattr(fast_info, "last_price") and fast_info.last_price:
-                    price = float(fast_info.last_price)
-                    if price > 0:
-                        return price
-            except Exception:
-                pass
-            try:
-                info = stock.info
-                for field in ("currentPrice", "regularMarketPrice", "previousClose"):
-                    if field in info and info[field]:
-                        price = float(info[field])
-                        if price > 0:
-                            return price
-            except Exception:
-                pass
-            try:
-                history = stock.history(period="1d", interval="1m")
-                if not history.empty:
-                    latest_price = history["Close"].iloc[-1]
-                    if latest_price and latest_price > 0:
-                        return float(latest_price)
-            except Exception:
-                pass
-            try:
-                data = yf.download(ticker, period="1d", interval="1m", progress=False)
-                if not data.empty:
-                    latest_price = data["Close"].iloc[-1]
-                    return float(latest_price)
-            except Exception:
-                pass
-            return None
+            fast_info = stock.fast_info
+            if hasattr(fast_info, "last_price") and fast_info.last_price:
+                price = float(fast_info.last_price)
+                if price > 0:
+                    return price
         except Exception:
-            return None
+            pass
 
     def _get_price_on_date(self, ticker: str, date: str) -> Optional[float]:
         try:
@@ -175,40 +136,14 @@ class StockFetcher(BaseFetcher):
             return None
         return None
 
-    def fetch_stock_data(
-        self,
-        ticker: str,
-        start_date: str,
-        end_date: str,
-        interval: str = "1d",
-    ) -> Any:
-        self._rate_limit_delay()
-        return self._download_price_data(ticker, start_date, end_date, interval)
-
 
 def fetch_trending_stocks(limit: int = 15) -> List[str]:
     fetcher = StockFetcher()
     return fetcher.get_trending_stocks(limit=limit)
 
 
-def fetch_current_stock_price(ticker: str) -> Optional[float]:
-    fetcher = StockFetcher()
-    return fetcher.get_price(ticker)
-
-
-def fetch_stock_price_on_date(ticker: str, date: str) -> Optional[float]:
-    fetcher = StockFetcher()
-    return fetcher.get_price(ticker, date=date)
-
-
-def fetch_stock_price(ticker: str, date: Optional[str] = None) -> Optional[float]:
-    fetcher = StockFetcher()
-    return fetcher.get_price(ticker, date=date)
-
-
 def fetch_stock_price_with_history(
     ticker: str, date: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Fetch current price and 10-day price history for a stock"""
     fetcher = StockFetcher()
     return fetcher.get_price_with_history(ticker, date=date)

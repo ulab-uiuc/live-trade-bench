@@ -44,31 +44,33 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             messages = [
                 {
                     "role": "user",
-                    "content": self._get_portfolio_prompt(full_analysis, market_data, date),
+                    "content": self._get_portfolio_prompt(
+                        full_analysis, market_data, date
+                    ),
                 }
             ]
-            
+
             # Save LLM input for recording
             self.last_llm_input = {
                 "prompt": messages[0]["content"],
                 "model": self.model_name,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
-            
+
             print("\n--- LLM PROMPT ---")
             print(messages[0]["content"])
             print("--- END LLM PROMPT ---\n")
 
             llm_response = self._call_llm(messages)
-            
+
             # Save LLM output for recording
             self.last_llm_output = {
                 "success": llm_response.get("success", False),
                 "content": llm_response.get("content", ""),
                 "error": llm_response.get("error", None),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
-            
+
             if not llm_response.get("success"):
                 self._log_error(
                     "LLM call failed", llm_response.get("error", "Unknown error")
@@ -79,7 +81,6 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             if not parsed:
                 self._log_error("Failed to parse LLM response")
                 return None
-
 
             return normalize_allocations(parsed)
         except Exception as e:
@@ -114,7 +115,6 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
 
     def _prepare_account_analysis(self, account_data: Dict[str, Any]) -> str:
         allocation_history = account_data.get("allocation_history", [])
-        current_performance = account_data.get("performance", 0.0)
 
         if allocation_history:
             recent_allocations = allocation_history[-10:]  # Get last 10 records
@@ -125,10 +125,12 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                 if timestamp_str:
                     try:
                         # Timestamps are in ISO format, parse them and get the date part
-                        date_part = datetime.fromisoformat(timestamp_str).strftime('%Y-%m-%d')
+                        date_part = datetime.fromisoformat(timestamp_str).strftime(
+                            "%Y-%m-%d"
+                        )
                     except (ValueError, TypeError):
                         # Fallback for invalid format or if it's not a full ISO string
-                        date_part = timestamp_str.split('T')[0]
+                        date_part = timestamp_str.split("T")[0]
 
                 allocations = snapshot.get("allocations", {})
                 performance = snapshot.get("performance", 0.0)
@@ -150,8 +152,8 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             )
         else:
             return (
-                f"ACCOUNT INFO:\n"
-                f"  Recent Ten Historical Allocations under this account: No history available"
+                "ACCOUNT INFO:\n"
+                "  Recent Ten Historical Allocations under this account: No history available"
             )
 
     def _prepare_news_analysis(
@@ -174,12 +176,13 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                 title = article.get("title", "")
                 snippet = article.get("snippet", "")
                 date_timestamp = article.get("date")
-                
+
                 # Format the date for display
                 date_str = ""
                 if date_timestamp:
                     try:
                         from datetime import datetime
+
                         news_date = datetime.fromtimestamp(date_timestamp)
                         date_str = f" ({news_date.strftime('%Y-%m-%d')})"
                     except:
@@ -204,7 +207,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         if price_history:
             # price_history is already in chronological order (oldest to newest)
             # We want to display from newest to oldest
-            recent_history = price_history[-10:]  # Get last 10 days
+            recent_history = price_history[-20:]  # Get last 20 days
             for i, h in enumerate(
                 reversed(recent_history)
             ):  # Reverse to show newest first
@@ -222,7 +225,9 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                 # or the one before the current in the original recent_history
                 original_index = len(recent_history) - 1 - i
                 if original_index > 0:
-                    prev_day_price = recent_history[original_index - 1].get("price", 0.0)
+                    prev_day_price = recent_history[original_index - 1].get(
+                        "price", 0.0
+                    )
                     if prev_day_price > 0:
                         change = hist_price - prev_day_price
                         change_pct = (change / prev_day_price) * 100
@@ -249,7 +254,10 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
 
     @abstractmethod
     def _get_portfolio_prompt(
-        self, analysis: str, market_data: Dict[str, DataType], date: Optional[str] = None
+        self,
+        analysis: str,
+        market_data: Dict[str, DataType],
+        date: Optional[str] = None,
     ) -> str:
         ...
 

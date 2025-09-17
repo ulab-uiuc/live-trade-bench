@@ -31,16 +31,21 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
         return "MARKET ANALYSIS:\n" + "\n".join(analysis_parts)
 
     def _create_news_query(self, ticker: str, data: Dict[str, Any]) -> str:
-        return f"{ticker} stock earnings news"
+        return f"{ticker} stock news"
 
     def _get_portfolio_prompt(
-        self, analysis: str, market_data: Dict[str, Dict[str, Any]], date: Optional[str] = None
+        self,
+        analysis: str,
+        market_data: Dict[str, Dict[str, Any]],
+        date: Optional[str] = None,
     ) -> str:
-        
         current_date_str = f"Today is {date}." if date else ""
 
         stock_list = list(market_data.keys())
-        sample = [stock_list[i] if i < len(stock_list) else f"ASSET_{i+1}" for i in range(3)]
+        stock_list_str = ", ".join(stock_list)
+        sample = [
+            stock_list[i] if i < len(stock_list) else f"ASSET_{i+1}" for i in range(3)
+        ]
 
         return (
             f"{current_date_str}\n\nYou are a professional portfolio manager. Analyze the market data and generate a complete portfolio allocation.\n\n"
@@ -60,17 +65,17 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
             "- Maintain appropriate position sizes\n"
             "- Total allocation must equal 100% (1.0)\n"
             "- CASH is a valid asset that should be allocated based on market conditions\n\n"
-            f"AVAILABLE ASSETS: {stock_list} + CASH\n\n"
+            f"AVAILABLE ASSETS: {stock_list_str}, CASH\n\n"
             "CRITICAL: You must return ONLY valid JSON format. No additional text, explanations, or formatting.\n\n"
             "REQUIRED JSON FORMAT:\n"
             "{\n"
+            ' "reasoning": "brief explanation about why you think this allocation is better than the previous allocation to make higher return rate",\n'
             ' "allocations": {\n'
             f'   "{sample[0]}": 0.25,\n'
             f'   "{sample[1]}": 0.20,\n'
             f'   "{sample[2]}": 0.15,\n'
             '   "CASH": 0.40\n'
-            " },\n"
-            ' "reasoning": "brief explanation about why you made this allocation"\n'
+            " }\n"
             "}\n\n"
             "IMPORTANT RULES:\n"
             "1. Return ONLY the JSON object\n"

@@ -1,187 +1,177 @@
+from __future__ import annotations
+
+import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
+from urllib.parse import parse_qs, urlparse
 
 from bs4 import BeautifulSoup
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
-from live_trade_bench.fetchers.reddit_fetcher import (
-    TICKER_TO_COMPANY,  # Import TICKER_TO_COMPANY
-)
 
 
 class NewsFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 2.0, max_delay: float = 6.0):
         super().__init__(min_delay, max_delay)
 
-    def _parse_relative_time_fixed(self, date_str: str, ref_date: datetime) -> Optional[float]:
-        """Parses relative time strings (e.g., '2 hours ago') to Unix timestamp."""
-        if "hour" in date_str:
+    # ---- helpers ----
+    def _normalize_date(
+        self, s: str, fallback_now: Optional[datetime] = None
+    ) -> tuple[str, datetime]:
+        """
+        Accepts 'YYYY-MM-DD' or 'MM/DD/YYYY', returns ('MM/DD/YYYY', datetime_obj)
+        """
+        if fallback_now is None:
+            fallback_now = datetime.now()
+        s = s.strip()
+        if "-" in s:
+            dt = datetime.strptime(s, "%Y-%m-%d")
+            return dt.strftime("%m/%d/%Y"), dt
+        if "/" in s:
+            # assume already mm/dd/yyyy
             try:
-                hours_ago = int(date_str.split(" ")[0])
-                return (ref_date - timedelta(hours=hours_ago)).timestamp()
-            except (ValueError, IndexError):
-                return None
-        elif "day" in date_str:
-            try:
-                days_ago = int(date_str.split(" ")[0])
-                return (ref_date - timedelta(days=days_ago)).timestamp()
-            except (ValueError, IndexError):
-                return None
-        elif "minute" in date_str:
-            try:
-                minutes_ago = int(date_str.split(" ")[0])
-                return (ref_date - timedelta(minutes=minutes_ago)).timestamp()
-            except (ValueError, IndexError):
-                return None
-        elif "second" in date_str:
-            try:
-                seconds_ago = int(date_str.split(" ")[0])
-                return (ref_date - timedelta(seconds=seconds_ago)).timestamp()
-            except (ValueError, IndexError):
-                return None
-        return None
+                dt = datetime.strptime(s, "%m/%d/%Y")
+                return s, dt
+            except ValueError:
+                pass
+        return fallback_now.strftime("%m/%d/%Y"), fallback_now
 
+    def _parse_relative_or_absolute(self, text: str, ref: datetime) -> float:
+        """
+        Parse Google News time text like '2 hours ago', 'Sep 09, 2025', etc.
+        Returns unix timestamp (float). Falls back to ref.
+        """
+        t = text.strip().lower()
+
+        # relative: e.g., "2 hours ago", "15 minutes ago", "1 day ago", "30 seconds ago"
+        m = re.match(r"^\s*(\d+)\s+(second|minute|hour|day)s?\s+ago\s*$", t)
+        if m:
+            num = int(m.group(1))
+            unit = m.group(2)
+            delta = {
+                "second": timedelta(seconds=num),
+                "minute": timedelta(minutes=num),
+                "hour": timedelta(hours=num),
+                "day": timedelta(days=num),
+            }[unit]
+            return (ref - delta).timestamp()
+
+        # absolute date formats seen on Google News
+        for fmt in (
+            "%b %d, %Y",
+            "%B %d, %Y",
+        ):  # e.g., 'Sep 09, 2025' / 'September 09, 2025'
+            try:
+                return datetime.strptime(text.strip(), fmt).timestamp()
+            except ValueError:
+                continue
+
+        return ref.timestamp()
+
+    def _clean_google_href(self, href: str) -> str:
+        """
+        Clean links like '/url?q=https://example.com&...' -> 'https://example.com'
+        """
+        if href.startswith("/url?"):
+            qs = parse_qs(urlparse(href).query)
+            if "q" in qs and len(qs["q"]) > 0:
+                return qs["q"][0]
+        return href
+
+    # ---- main ----
     def fetch(
         self, query: str, start_date: str, end_date: str, max_pages: int = 10
     ) -> List[Dict[str, Any]]:
-        end_date_obj = datetime.now()
-        if "-" in start_date:
-            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
-            start_date = start_date_obj.strftime("%m/%d/%Y")
-        if "-" in end_date:
-            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
-            end_date = end_date_obj.strftime("%m/%d/%Y")
+        # Normalize dates and choose a reference date for parsing relative times
+        start_fmt, _ = self._normalize_date(start_date)
+        end_fmt, ref_date = self._normalize_date(end_date)
 
-        news_results = []
-        page = 0
-
-        while page < max_pages:
-            offset = page * 10
+        results: List[Dict[str, Any]] = []
+        for page in range(max_pages):
             url = (
                 f"https://www.google.com/search?q={query}"
-                f"&tbs=cdr:1,cd_min:{start_date},cd_max:{end_date}"
-                f"&tbm=nws&start={offset}"
+                f"&tbs=cdr:1,cd_min:{start_fmt},cd_max:{end_fmt}"
+                f"&tbm=nws&start={page * 10}"
             )
 
             try:
-                response = self.make_request(url)
-                soup = BeautifulSoup(response.content, "html.parser")
-                results_on_page = soup.select("div.SoaBEf")
-
-                if not results_on_page:
-                    break
-
-                for el in results_on_page:
-                    try:
-                        link_el = el.find("a")
-                        if (
-                            not link_el
-                            or not hasattr(link_el, "attrs")
-                            or "href" not in link_el.attrs
-                        ):
-                            continue
-                        link = link_el.attrs["href"]
-
-                        title_el = el.select_one("div.MBeuO")
-                        if not title_el:
-                            continue
-                        title = title_el.get_text()
-
-                        snippet_el = el.select_one(".GI74Re")
-                        if not snippet_el:
-                            continue
-                        snippet = snippet_el.get_text()
-
-                        date_el = el.select_one(".LfVVr")
-                        if not date_el:
-                            continue
-                        date = date_el.get_text()
-
-                        source_el = el.select_one(".NUnG9d span")
-                        if not source_el:
-                            continue
-                        source = source_el.get_text()
-
-                        # Convert relative time to Unix timestamp
-                        parsed_date = self._parse_relative_time_fixed(date, end_date_obj)
-                        if parsed_date is None:
-                            # Fallback if relative time parsing fails (e.g., specific date string)
-                            try:
-                                # Attempt to parse as a standard date string if it's not relative
-                                parsed_date = datetime.strptime(
-                                    date, "%b %d, %Y"
-                                ).timestamp()  # e.g., 'Sep 09, 2025'
-                            except ValueError:
-                                parsed_date = (
-                                    end_date_obj.timestamp()
-                                )  # Default to end_date if all parsing fails
-
-                        news_results.append(
-                            {
-                                "link": link,
-                                "title": title,
-                                "snippet": snippet,
-                                "date": parsed_date,  # Store as Unix timestamp
-                                "source": source,
-                            }
-                        )
-                    except Exception as e:
-                        print(f"Error processing result: {e}")
-                        continue
-
-                next_link = soup.find("a", id="pnnext")
-                if not next_link:
-                    break
-
-                page += 1
-
+                resp = self.make_request(url, timeout=15)
+                soup = BeautifulSoup(resp.content, "html.parser")
             except Exception as e:
-                print(f"Failed after multiple retries: {e}")
+                print(f"Request/parse failed: {e}")
                 break
 
-        return news_results
+            cards = soup.select("div.SoaBEf")
+            if not cards:
+                break
+
+            for el in cards:
+                try:
+                    a = el.find("a")
+                    if not a or "href" not in a.attrs:
+                        continue
+                    link = self._clean_google_href(a["href"])
+
+                    title_el = el.select_one("div.MBeuO")
+                    snippet_el = el.select_one(".GI74Re")
+                    date_el = el.select_one(".LfVVr")
+                    source_el = el.select_one(".NUnG9d span")
+                    if not (title_el and snippet_el and date_el and source_el):
+                        continue
+
+                    title = title_el.get_text(strip=True)
+                    snippet = snippet_el.get_text(strip=True)
+                    date_txt = date_el.get_text(strip=True)
+                    source = source_el.get_text(strip=True)
+
+                    ts = self._parse_relative_or_absolute(date_txt, ref_date)
+
+                    results.append(
+                        {
+                            "link": link,
+                            "title": title,
+                            "snippet": snippet,
+                            "date": ts,
+                            "source": source,
+                        }
+                    )
+                except Exception as e:
+                    print(f"Error processing result: {e}")
+                    continue
+
+            # pagination check
+            if not soup.find("a", id="pnnext"):
+                break
+
+        return results
 
 
 def fetch_news_data(
     query: str,
     start_date: str,
     end_date: str,
-    max_pages: int = 10,
+    max_pages: int = 1,
     ticker: Optional[str] = None,
-    target_date: Optional[str] = None,  # 回测日期参数
+    target_date: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     fetcher = NewsFetcher()
 
-    augmented_query = query
-    if ticker and ticker.upper() in TICKER_TO_COMPANY:
-        company_name = TICKER_TO_COMPANY[ticker.upper()]
-        augmented_query = f"{query} OR {company_name}"
-        print(
-            f"  - News fetcher: Query augmented for ticker '{ticker}': '{augmented_query}'"
-        )
+    print(f"  - News fetcher: Query for news '{query}'")
+    news_items = fetcher.fetch(query, start_date, end_date, max_pages)
 
-    news_items = fetcher.fetch(augmented_query, start_date, end_date, max_pages)
-
-    # Add ticker tag to each news item if provided
     if ticker:
-        for item in news_items:
-            item["tag"] = ticker
+        for it in news_items:
+            it["tag"] = ticker
 
-    # Sort news items based on relevance to target date
-    # Filter out items without valid dates
-    valid_news = [item for item in news_items if item.get("date") is not None]
-    
+    valid_news = [it for it in news_items if it.get("date") is not None]
+
     if target_date and valid_news:
-        # For backtest: sort by proximity to target date (closest to target date first)
         try:
-            target_timestamp = datetime.strptime(target_date, "%Y-%m-%d").timestamp()
-            # Sort by proximity to target date (smallest time difference first)
-            sorted_news = sorted(valid_news, key=lambda x: abs(x["date"] - target_timestamp))
+            target_ts = datetime.strptime(target_date, "%Y-%m-%d").timestamp()
+            sorted_news = sorted(valid_news, key=lambda x: abs(x["date"] - target_ts))
         except Exception:
-            # Fallback to chronological sort if target date parsing fails
             sorted_news = sorted(valid_news, key=lambda x: x["date"], reverse=True)
     else:
-        # For live trading: sort by most recent first
         sorted_news = sorted(valid_news, key=lambda x: x["date"], reverse=True)
 
     return sorted_news

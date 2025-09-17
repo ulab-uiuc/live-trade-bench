@@ -243,6 +243,13 @@
   background: linear-gradient(135deg, #6b7280, #374151);
 }
 
+.model-avatar.deepseek {
+  background-color: #000000;
+}
+.model-avatar.xai {
+  background-color: #000000; /* Example: white background for xAI logo */
+}
+
 .model-info {
   min-width: 0;
   flex: 1;

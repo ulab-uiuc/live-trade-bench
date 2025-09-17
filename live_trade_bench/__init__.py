@@ -31,15 +31,13 @@ from .backtest.backtest_runner import BacktestRunner
 
 # Fetchers
 from .fetchers.base_fetcher import BaseFetcher
+
+# Constants
+from .fetchers.constants import CATEGORY_SUBREDDITS, TICKER_TO_COMPANY
 from .fetchers.news_fetcher import NewsFetcher, fetch_news_data
 from .fetchers.option_fetcher import OptionFetcher
-from .fetchers.polymarket_fetcher import (
-    PolymarketFetcher,
-    fetch_current_market_price,
-    fetch_token_price,
-    fetch_trending_markets,
-)
-from .fetchers.stock_fetcher import StockFetcher, fetch_stock_price
+from .fetchers.polymarket_fetcher import PolymarketFetcher, fetch_trending_markets
+from .fetchers.stock_fetcher import StockFetcher
 
 # Core Systems
 from .systems.polymarket_system import (
@@ -73,7 +71,6 @@ __all__ = [
     # Fetchers
     "BaseFetcher",
     "StockFetcher",
-    "fetch_stock_price",
     "NewsFetcher",
     "fetch_news_data",
     "OptionFetcher",
@@ -82,6 +79,9 @@ __all__ = [
     "fetch_current_market_price",
     "fetch_token_price",
     "RedditFetcher",
+    # Constants
+    "TICKER_TO_COMPANY",
+    "CATEGORY_SUBREDDITS",
     # backtest
     "BacktestRunner",
     # Utilities

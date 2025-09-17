@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
 
 class PolymarketFetcher(BaseFetcher):
-    _token_market_map: Dict[str, Dict[str, Any]] = {}
-
-    def __init__(self, min_delay: float = 0.5, max_delay: float = 1.5):
+    def __init__(self, min_delay: float = 0.3, max_delay: float = 1.0):
         super().__init__(min_delay, max_delay)
 
     def fetch(
@@ -17,434 +15,259 @@ class PolymarketFetcher(BaseFetcher):
     ) -> Union[List[Dict[str, Any]], Dict[str, Any], Optional[float]]:
         if mode == "trending_markets":
             return self.get_trending_markets(
-                limit=kwargs.get("limit", 10), for_date=kwargs.get("for_date")
+                limit=int(kwargs.get("limit", 10)), for_date=kwargs.get("for_date")
             )
-        if mode == "market_price":
-            token_ids = kwargs.get("token_ids")
-            if not token_ids:
-                raise ValueError("token_ids is required for market_price")
-            return self.get_market_prices(token_ids)
-        if mode == "token_price":
+        elif mode == "token_price":
             token_id = kwargs.get("token_id")
-            if not token_id:
+            if token_id is None:
                 raise ValueError("token_id is required for token_price")
-            return {
-                "token_id": token_id,
-                "side": kwargs.get("side", "buy"),
-                "price": self.get_token_price(token_id, kwargs.get("side", "buy")),
-            }
-        raise ValueError(f"Unknown fetch mode: {mode}")
+            return self.get_price(
+                token_id=str(token_id),
+                date=kwargs.get("date"),
+                side=kwargs.get("side", "buy"),
+            )
+        elif mode == "price_with_history":
+            token_id = kwargs.get("token_id")
+            if token_id is None:
+                raise ValueError("token_id is required for price_with_history")
+            return self.get_price_with_history(
+                token_id=str(token_id),
+                date=kwargs.get("date"),
+                side=kwargs.get("side", "buy"),
+            )
+        elif mode == "verified_markets":
+            trading_days = kwargs.get("trading_days")
+            limit = int(kwargs.get("limit", 20))
+            if not trading_days:
+                return []
+            return self.get_verified_markets(trading_days, limit=limit)
+        else:
+            raise ValueError(f"Unknown fetch mode: {mode}")
 
     def get_trending_markets(
         self, limit: int = 10, for_date: Optional[str] = None
     ) -> List[Dict[str, Any]]:
+        params: Dict[str, Any] = {"limit": limit}
         if for_date:
-            return self._get_historical_markets(limit, for_date)
-        return self._get_live_trending_markets(limit)
+            params.update(
+                {
+                    "start_date_max": f"{for_date}T23:59:59Z",
+                    "end_date_min": f"{for_date}T00:00:00Z",
+                }
+            )
+        else:
+            params.update({"active": "true", "closed": "false"})
+        markets = self._fetch_markets(params)
+        out: List[Dict[str, Any]] = []
+        for m in markets[:limit]:
+            if isinstance(m, dict) and m.get("id"):
+                out.append(
+                    {
+                        "id": m.get("id"),
+                        "question": m.get("question"),
+                        "category": m.get("category"),
+                        "token_ids": m.get("clobTokenIds", []),
+                        "slug": m.get("slug"),
+                        "url": m.get("url"),
+                    }
+                )
+        return out
 
-    def _get_live_trending_markets(self, limit: int) -> List[Dict[str, Any]]:
-        url = "https://gamma-api.polymarket.com/markets?active=true&closed=false"
-        resp = self.make_request(url, timeout=10)
-        if resp.status_code != 200:
-            raise ValueError(f"Polymarket markets API error: {resp.status_code}")
-        data = self.safe_json_parse(resp, "Polymarket markets API")
-        markets = data.get("data", data) if isinstance(data, dict) else data
-        return self._process_markets(markets, limit)
-
-    def _get_historical_markets(
-        self, limit: int, date_str: str
-    ) -> List[Dict[str, Any]]:
-        url = "https://gamma-api.polymarket.com/markets"
-
-        # Format date for the API query
-        start_of_day_utc = f"{date_str}T00:00:00Z"
-        end_of_day_utc = f"{date_str}T23:59:59Z"
-
-        params = {
-            "start_date_max": end_of_day_utc,
-            "end_date_min": start_of_day_utc,
-            "limit": 100,  # Fetch more to find active ones
-        }
-
-        resp = self.make_request(url, params=params, timeout=15)
-        if resp.status_code != 200:
-            raise ValueError(f"Polymarket markets API error: {resp.status_code}")
-
-        data = self.safe_json_parse(resp, "Polymarket markets API")
-        all_markets = data.get("data", data) if isinstance(data, dict) else data
-        return self._process_markets(all_markets, limit)
-
-    def get_historical_markets_for_period(
-        self, start_date_str: str, end_date_str: str, limit: int = 100
-    ) -> List[Dict[str, Any]]:
-        url = "https://gamma-api.polymarket.com/markets"
-
-        start_utc = f"{start_date_str}T00:00:00Z"
-        end_utc = f"{end_date_str}T23:59:59Z"
-
-        params = {
-            "start_date_max": end_utc,
-            "end_date_min": start_utc,
-            "limit": limit,
-        }
-
-        resp = self.make_request(url, params=params, timeout=15)
-        if resp.status_code != 200:
-            raise ValueError(f"Polymarket markets API error: {resp.status_code}")
-
-        data = self.safe_json_parse(resp, "Polymarket markets API")
-        all_markets = data.get("data", data) if isinstance(data, dict) else data
-        return self._process_markets(all_markets, limit)
-
-    def get_verified_historical_markets(
+    def get_verified_markets(
         self, trading_days: List[datetime], limit: int
     ) -> List[Dict[str, Any]]:
         if not trading_days:
             return []
-
-        start_date_str = trading_days[0].strftime("%Y-%m-%d")
-        end_date_str = trading_days[-1].strftime("%Y-%m-%d")
-
-        candidate_markets = self.get_historical_markets_for_period(
-            start_date_str, end_date_str, limit=limit * 10
-        )
-        print(
-            f"--- Found {len(candidate_markets)} candidate markets. Verifying price history for each day... ---"
-        )
-
-        verified_markets = []
-        for market in candidate_markets:
-            token_ids = market.get("token_ids")
-            if not token_ids:
-                continue
-
-            has_all_days = True
-            for day in trading_days:
-                date_str = day.strftime("%Y-%m-%d")
-                price = self.get_market_price_on_date(token_ids[0], date_str)
-                if price is None:
-                    has_all_days = False
-                    question = market.get("question", market["id"])
-                    print(
-                        f"    - ❌ Market '{question[:30]}...' is missing data on {date_str}. Discarding."
-                    )
-                    break
-
-            if has_all_days:
-                question = market.get("question", market["id"])
-                print(
-                    f"    - ✅ Market '{question[:30]}...' has complete history. Adding to universe."
-                )
-                verified_markets.append(market)
-                if len(verified_markets) >= limit:
-                    break
-
-        return verified_markets
-
-    def _process_markets(
-        self, markets: List[Dict[str, Any]], limit: int
-    ) -> List[Dict[str, Any]]:
-        if not isinstance(markets, list):
-            return []
-
-        out: List[Dict[str, Any]] = []
+        start_date = trading_days[0].strftime("%Y-%m-%d")
+        end_date = trading_days[-1].strftime("%Y-%m-%d")
+        params = {
+            "start_date_max": f"{end_date}T23:59:59Z",
+            "end_date_min": f"{start_date}T00:00:00Z",
+            "limit": max(limit * 10, 100),
+        }
+        markets = self._fetch_markets(params)
+        verified: List[Dict[str, Any]] = []
         for m in markets:
-            if not isinstance(m, dict):
+            if not isinstance(m, dict) or not m.get("id"):
                 continue
+            raw_token_ids = m.get("clobTokenIds", [])
+            raw_outcomes = m.get("outcomes", [])
+            if isinstance(raw_token_ids, str):
+                try:
+                    import json
 
-            token_ids = self._parse_token_ids(m)
+                    token_ids = json.loads(raw_token_ids)
+                    outcomes = json.loads(raw_outcomes)
+                except Exception:
+                    token_ids = []
+            else:
+                token_ids = raw_token_ids
             if not token_ids:
                 continue
-
-            market_info = self._format_market_info(m, token_ids)
-            out.append(market_info)
-            self._map_tokens_to_market(m, token_ids)
-
-            if len(out) >= limit:
+            has_price_data = False
+            for token_id in token_ids[:1]:
+                if token_id:
+                    history = self._fetch_daily_history(
+                        token_id, start_date, end_date, fidelity=900
+                    )
+                    if history and len(history) > 0:
+                        has_price_data = True
+                        break
+            if has_price_data:
+                verified.append(
+                    {
+                        "id": m.get("id"),
+                        "question": m.get("question"),
+                        "category": m.get("category"),
+                        "token_ids": token_ids,
+                        "outcomes": outcomes,
+                        "slug": m.get("slug"),
+                        "url": m.get("url"),
+                    }
+                )
+                print(f"Added market {m.get('question')} to verified list")
+            else:
+                print(f"No price data found for market {m.get('question')}")
+            if len(verified) >= limit:
                 break
-        return out
+        return verified
 
-    def _parse_token_ids(self, market_data: Dict[str, Any]) -> Optional[List[str]]:
-        token_ids = market_data.get("clobTokenIds")
-        if isinstance(token_ids, str):
-            try:
-                import json
+    def get_price(
+        self, token_id: str, date: Optional[str] = None, side: str = "buy"
+    ) -> Optional[float]:
+        if date:
+            return self._get_price_on_date(token_id, date)
+        return self._get_current_price(token_id, side=side)
 
-                return json.loads(token_ids)
-            except (json.JSONDecodeError, TypeError):
-                return None
-        return token_ids if isinstance(token_ids, list) else None
-
-    def _format_market_info(
-        self, market_data: Dict[str, Any], token_ids: Optional[List[str]]
+    def get_price_with_history(
+        self, token_id: str, date: Optional[str] = None, side: str = "buy"
     ) -> Dict[str, Any]:
-        market_id = market_data.get("id")
-        slug = market_data.get("slug")
-        question = market_data.get("question")
-
-        def slugify(text: Optional[str]) -> Optional[str]:
-            if not text or not isinstance(text, str):
-                return None
-            import re
-
-            s = text.strip().lower()
-            s = re.sub(r"[^a-z0-9]+", "-", s)
-            s = re.sub(r"-+", "-", s).strip("-")
-            return s or None
-
-        if not slug:
-            slug = slugify(question)
-
-        # Prioritize URL from API, but construct from slug if missing.
-        url = market_data.get("url")
-        if not url and slug:
-            url = "https://polymarket.com/event/" + slug
-
+        ref_dt = (
+            datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            if date
+            else datetime.now(timezone.utc)
+        )
+        end_date = ref_dt.strftime("%Y-%m-%d")
+        start_date = (ref_dt - timedelta(days=10)).strftime("%Y-%m-%d")
+        history = self._fetch_daily_history(
+            token_id, start_date, end_date, fidelity=900
+        )
+        current_price: Optional[float] = None
+        if date:
+            for h in reversed(history):
+                if h["date"] == date:
+                    current_price = float(h["price"])
+                    break
+            if current_price is None:
+                current_price = self._get_price_on_date(token_id, date)
+        else:
+            current_price = self._get_current_price(token_id, side=side)
+        compact_history = [{"date": h["date"], "price": h["price"]} for h in history]
         return {
-            "id": market_id,
-            "question": question,
-            "category": market_data.get("category"),
-            "token_ids": token_ids,
-            "slug": slug,
-            "url": url,
+            "current_price": current_price,
+            "price_history": compact_history,
+            "token_id": token_id,
         }
 
-    def _map_tokens_to_market(self, market_data: Dict[str, Any], token_ids: List[str]):
-        for token_id in token_ids:
-            if token_id:
-                PolymarketFetcher._token_market_map[token_id] = {
-                    "market_id": market_data.get("id"),
-                    "question": market_data.get("question"),
-                    "category": market_data.get("category"),
-                }
-
-    def get_token_price(self, token_id: str, side: str = "buy") -> Optional[float]:
-        url = f"https://clob.polymarket.com/price?token_id={token_id}&side={side}"
-        resp = self.make_request(url, timeout=8)
-        if resp.status_code != 200:
-            return None
-        payload = self.safe_json_parse(resp, f"Token {token_id} {side} price")
-        price = payload.get("price") if isinstance(payload, dict) else None
+    def _fetch_markets(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+        url = "https://gamma-api.polymarket.com/markets"
         try:
-            return float(price) if price is not None else None
-        except (TypeError, ValueError):
-            return None
-
-    @classmethod
-    def get_market_info_by_token(cls, token_id: str) -> Optional[Dict[str, Any]]:
-        return cls._token_market_map.get(token_id)
-
-    def get_market_prices(self, token_ids: List[str]) -> Dict[str, Any]:
-        prices: Dict[str, Any] = {}
-        for idx, tid in enumerate(token_ids):
-            if not tid:
-                continue
-            price = self.get_token_price(tid, "buy")
-            if price is None:
-                price = self.get_token_price(tid, "sell")
-            prices[tid] = price
-            prices[f"token_{idx}"] = price
-        if len(token_ids) == 2:
-            prices["yes"] = prices.get("token_0")
-            prices["no"] = prices.get("token_1")
-        if token_ids:
-            first_token = token_ids[0]
-            market_info = self.get_market_info_by_token(first_token)
-            if market_info:
-                prices["question"] = market_info.get("question")
-                prices["category"] = market_info.get("category")
-                prices["market_id"] = market_info.get("market_id")
-        return prices
-
-    def get_market_price_on_date(self, token_id: str, date: str) -> Optional[float]:
-        try:
-            dt = datetime.strptime(date, "%Y-%m-%d")
-            start_ts = int(dt.timestamp())
-            end_ts = int((dt.replace(hour=23, minute=59, second=59)).timestamp())
-
-            url = "https://clob.polymarket.com/prices-history"
-            params = {
-                "market": token_id,
-                "startTs": start_ts,
-                "endTs": end_ts,
-                "fidelity": 60,
-            }
-
-            resp = self.make_request(url, params=params, timeout=10)
-            if resp.status_code != 200:
-                return None
-
-            data = self.safe_json_parse(resp, f"Market {token_id} history")
-            history = data.get("history")
-
-            if not history:
-                return None
-
-            closest_point = min(history, key=lambda p: abs(end_ts - p["t"]))
-
-            price = float(closest_point["p"])
-            if price > 1.0:
-                price /= 100.0
-
-            return price
-
+            resp = self.make_request(url, params=params, timeout=15)
+            if resp.status_code == 200:
+                data = self.safe_json_parse(resp, "Markets API")
+                return data.get("data", []) if isinstance(data, dict) else (data or [])
         except Exception:
-            # Silencing the error for verification purposes, as many will fail
-            # print(f"Error fetching historical data for token {token_id} on {date}: {e}")
-            return None
+            pass
+        return []
 
-    def get_market_price_with_history(
-        self, token_ids: List[str], date: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """Get current price and 10-day price history for Polymarket tokens"""
+    def _get_current_price(self, token_id: str, side: str = "buy") -> Optional[float]:
+        url = "https://clob.polymarket.com/price"
         try:
-            from datetime import timedelta
+            resp = self.make_request(
+                url, params={"token_id": token_id, "side": side}, timeout=8
+            )
+            if resp.status_code == 200:
+                data = self.safe_json_parse(resp, f"Token {token_id} price")
+                price = data.get("price") if isinstance(data, dict) else None
+                if price is not None:
+                    price = float(price)
+                    return price / 100.0 if price > 1.0 else price
+        except Exception:
+            pass
+        return None
 
-            if date:
-                # For backtest, get 10 days before the given date
-                ref_date = datetime.strptime(date, "%Y-%m-%d")
-                start_date = (ref_date - timedelta(days=10)).strftime("%Y-%m-%d")
-            else:
-                # For live trading, get 10 days before today
-                start_date = (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%d")
+    def _fetch_daily_history(
+        self, token_id: str, start_date: str, end_date: str, fidelity: int = 900
+    ) -> List[Dict[str, Any]]:
+        url = "https://clob.polymarket.com/prices-history"
+        cur = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        end = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        day_closes: Dict[str, Tuple[int, float]] = {}
+        while cur <= end:
+            day_start = int(
+                cur.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+            )
+            day_end = int(
+                cur.replace(hour=23, minute=59, second=59, microsecond=0).timestamp()
+            )
+            try:
+                resp = self.make_request(
+                    url,
+                    params={
+                        "market": token_id,
+                        "startTs": day_start,
+                        "endTs": day_end,
+                        "fidelity": fidelity,
+                    },
+                    timeout=15,
+                )
+                if resp.status_code == 200:
+                    data = self.safe_json_parse(resp, f"History for {token_id}")
+                    points = data.get("history", []) if isinstance(data, dict) else []
+                    for p in points:
+                        if not (isinstance(p, dict) and "t" in p and "p" in p):
+                            continue
+                        ts = int(p["t"])
+                        dstr = datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d")
+                        price = float(p["p"])
+                        if price > 1.0:
+                            price /= 100.0
+                        prev = day_closes.get(dstr)
+                        if prev is None or ts > prev[0]:
+                            day_closes[dstr] = (ts, price)
+            except Exception:
+                pass
+            cur += timedelta(days=1)
+        out = [
+            {"date": d, "price": pr, "token_id": token_id}
+            for d, (_ts, pr) in day_closes.items()
+        ]
+        out.sort(key=lambda x: x["date"])
+        return out
 
-            # Get current prices
-            current_prices = {}
-            for token_id in token_ids:
-                if date:
-                    price = self.get_market_price_on_date(token_id, date)
-                else:
-                    price = self.get_token_price(token_id)
-                current_prices[token_id] = price
-
-            # Get historical data for each token
-            price_history = {}
-            for token_id in token_ids:
-                token_history = []
-                for i in range(10):  # 10 days
-                    current_date = (
-                        datetime.strptime(start_date, "%Y-%m-%d") + timedelta(days=i)
-                    ).strftime("%Y-%m-%d")
-                    try:
-                        daily_price = self.get_market_price_on_date(
-                            token_id, current_date
-                        )
-                        if daily_price is not None:
-                            token_history.append(
-                                {
-                                    "date": current_date,
-                                    "price": daily_price,
-                                    "token_id": token_id,
-                                }
-                            )
-                    except Exception:
-                        continue
-                price_history[token_id] = token_history
-
-            return {
-                "current_prices": current_prices,
-                "price_history": price_history,
-                "token_ids": token_ids,
-            }
-        except Exception as e:
-            print(f"Error fetching market price with history: {e}")
-            return {"current_prices": {}, "price_history": {}, "token_ids": token_ids}
+    def _get_price_on_date(self, token_id: str, date: str) -> Optional[float]:
+        try:
+            hist = self._fetch_daily_history(token_id, date, date, fidelity=900)
+            if hist:
+                return float(hist[-1]["price"])
+        except Exception:
+            pass
+        return None
 
 
 def fetch_trending_markets(
     limit: int = 10, for_date: Optional[str] = None
 ) -> List[Dict[str, Any]]:
-    fetcher = PolymarketFetcher()
-    markets = fetcher.get_trending_markets(limit=limit, for_date=for_date)
-    valid_markets = [m for m in markets if m.get("token_ids")]
-    print(
-        f"📊 Fetched {len(valid_markets)} valid markets for date {for_date or 'today'}"
-    )
-    return valid_markets
+    return PolymarketFetcher().get_trending_markets(limit=limit, for_date=for_date)
 
 
-def fetch_verified_historical_markets(
+def fetch_verified_markets(
     trading_days: List[datetime], limit: int
 ) -> List[Dict[str, Any]]:
-    fetcher = PolymarketFetcher()
-    return fetcher.get_verified_historical_markets(trading_days, limit)
-
-
-def fetch_current_market_price(token_ids: List[str]) -> Dict[str, Any]:
-    prices = PolymarketFetcher().get_market_prices(token_ids)
-    if prices and prices.get("yes") is not None:
-        question = prices.get("question")
-        yes_price = prices["yes"]
-        no_price = prices.get("no")
-
-        if no_price is None:
-            no_price = 1.0 - yes_price
-
-        if question:
-            question_short = question[:40] + "..." if len(question) > 40 else question
-            print(f"💰 {question_short}")
-            print(f"   YES: {yes_price:.3f} | NO: {no_price:.3f}")
-        else:
-            print(f"💰 YES: {yes_price:.3f} | NO: {no_price:.3f}")
-
-        return {
-            f"{question}_YES": {"price": yes_price, "outcome": "YES"},
-            f"{question}_NO": {"price": no_price, "outcome": "NO"},
-        }
-    return {}
-
-
-def fetch_market_price_on_date(token_ids: List[str], date: str) -> Dict[str, Any]:
-    """
-    Fetches the historical price for a market on a specific date and returns it
-    in the new question-based format, consistent with fetch_current_market_price.
-    """
-    if not token_ids:
-        return {}
-
-    fetcher = PolymarketFetcher()
-    yes_token_id = token_ids[0]
-
-    # We need the question for the new format
-    market_info = PolymarketFetcher.get_market_info_by_token(yes_token_id)
-    if not market_info or not market_info.get("question"):
-        return {}
-    question = market_info["question"]
-
-    price = fetcher.get_market_price_on_date(yes_token_id, date)
-
-    if price is not None:
-        return {
-            f"{question}_YES": {"price": price, "outcome": "YES"},
-            f"{question}_NO": {"price": 1.0 - price, "outcome": "NO"},
-        }
-    return {}
-
-
-def fetch_token_price(token_id: str, side: str = "buy") -> Optional[float]:
-    price = PolymarketFetcher().get_token_price(token_id, side)
-    market_info = PolymarketFetcher.get_market_info_by_token(token_id)
-    if price:
-        if market_info and market_info.get("question"):
-            question_short = (
-                market_info["question"][:30] + "..."
-                if len(market_info["question"]) > 30
-                else market_info["question"]
-            )
-            print(f"🪙 {question_short}: {price:.4f}")
-        else:
-            print(f"🪙 Token price: {price:.4f}")
-    return price
-
-
-def get_question_by_token_id(token_id: str) -> Optional[str]:
-    market_info = PolymarketFetcher.get_market_info_by_token(token_id)
-    return market_info.get("question") if market_info else None
+    return PolymarketFetcher().get_verified_markets(trading_days, limit=limit)
 
 
 def fetch_market_price_with_history(
-    token_ids: List[str], date: Optional[str] = None
+    token_id: str, date: Optional[str] = None, side: str = "buy"
 ) -> Dict[str, Any]:
-    """Fetch current price and 5-day price history for Polymarket tokens"""
-    fetcher = PolymarketFetcher()
-    return fetcher.get_market_price_with_history(token_ids, date)
+    return PolymarketFetcher().get_price_with_history(token_id, date=date, side=side)
