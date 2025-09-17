@@ -23,11 +23,15 @@ class StockPortfolioSystem:
 
     def initialize_for_live(self):
         tickers = fetch_trending_stocks(limit=self.universe_size)
+        self.set_universe(tickers)
+
+    def initialize_for_backtest(self, trading_days: List[datetime]):
+        tickers = fetch_trending_stocks(limit=self.universe_size)
+        self.set_universe(tickers)
+
+    def set_universe(self, tickers: List[str]):
         self.universe = tickers
-        self.stock_info = {
-            ticker: {"name": ticker, "sector": "Unknown", "market_cap": 0}
-            for ticker in tickers
-        }
+        self.stock_info = {ticker: {"name": ticker} for ticker in tickers}
 
     def add_agent(
         self, name: str, initial_cash: float = 10000.0, model_name: str = "gpt-4o-mini"
@@ -83,10 +87,8 @@ class StockPortfolioSystem:
                     market_data[ticker] = {
                         "ticker": ticker,
                         "name": self.stock_info[ticker]["name"],
-                        "sector": self.stock_info[ticker]["sector"],
                         "current_price": current_price,
                         "price_history": price_history,
-                        "market_cap": self.stock_info[ticker]["market_cap"],
                         "url": url,
                     }
                     for account in self.accounts.values():
@@ -164,7 +166,7 @@ class StockPortfolioSystem:
             for ticker in list(
                 market_data.keys()
             ):  # Fetch news for all available tickers
-                query = f"{ticker} stock earnings news"
+                query = f"{ticker} stock news"
                 news_data_map[ticker] = fetch_news_data(
                     query,
                     start_date,

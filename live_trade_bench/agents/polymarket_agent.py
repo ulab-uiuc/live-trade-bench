@@ -12,8 +12,6 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
 
     def _prepare_market_analysis(self, market_data: Dict[str, Dict[str, Any]]) -> str:
         analysis_parts = []
-        # In this new structure, market_data keys are like "{question}_YES"
-        # We need to group them by question for analysis.
         grouped_by_question = {}
         for key, data in market_data.items():
             question = data["question"]
@@ -25,8 +23,8 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             }
 
         for question, outcomes in grouped_by_question.items():
-            yes_data = outcomes.get("YES", {"price": 0.0, "price_history": []})
-            no_data = outcomes.get("NO", {"price": 0.0, "price_history": []})
+            yes_data = outcomes.get("Yes", {"price": 0.0, "price_history": []})
+            no_data = outcomes.get("No", {"price": 0.0, "price_history": []})
 
             yes_price = yes_data["price"]
             no_price = no_data["price"]
@@ -68,6 +66,7 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
         current_date_str = f"Today is {date}." if date else ""
         
         asset_list = list(market_data.keys())
+        asset_list_str = ", ".join(asset_list)
 
         example_allocations = ""
         if len(asset_list) >= 2:
@@ -98,14 +97,14 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
             "- Incorporate news flow and market price history when forming beliefs.\n"
             "- Total allocation must equal 100% (1.0).\n"
             "- CASH is a valid asset.\n\n"
-            f"AVAILABLE ASSETS: {asset_list} + CASH\n\n"
+            f"AVAILABLE ASSETS: {asset_list_str}, CASH\n\n"
             "CRITICAL: Return ONLY valid JSON format. No additional text, explanations, or formatting.\n\n"
             "REQUIRED JSON FORMAT:\n"
             "{\n"
+            ' "reasoning": "A brief explanation about why you made this allocation",\n'
             ' "allocations": {\n'
             f"{example_allocations}\n"
-            " },\n"
-            ' "reasoning": "A brief explanation about why you made this allocation"\n'
+            " }\n"
             "}\n\n"
             "RULES:\n"
             "1. Return ONLY the JSON object.\n"

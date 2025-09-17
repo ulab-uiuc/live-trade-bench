@@ -74,8 +74,9 @@ function extractProvider(name?: string): string {
   const n = name.toLowerCase();
   if (n.includes("gpt") || n.includes("openai")) return "OpenAI";
   if (n.includes("claude") || n.includes("anthropic")) return "Anthropic";
-  if (n.includes("gemini") || n.includes("google")) return "Google";
-  if (n.includes("llama") || n.includes("meta")) return "Meta";
+  if (n.includes("llama")) return "Meta";
+  if (n.includes("gemini")) return "Google";
+  if (n.includes("kimi")) return "Moonshot";
   if (n.includes("qwen")) return "Qwen";
   if (n.includes("deepseek")) return "DeepSeek";
   if (n.includes("grok")) return "xAI";
@@ -149,7 +150,7 @@ const ProviderIcon: React.FC<{ name?: string; provider?: string }> = ({ name, pr
       return "./deepseek.png";
     }
     if (p.includes("xai") || p.includes("grok") || n.includes("grok")) {
-      return "❌"; // Keep emoji for xAI as no PNG available
+      return "./xai.png";
     }
     return "⚡"; // Default emoji
   };
@@ -163,6 +164,7 @@ const ProviderIcon: React.FC<{ name?: string; provider?: string }> = ({ name, pr
     if (p.includes("meta") || p.includes("llama") || n.includes("llama")) return "meta";
     if (p.includes("qwen") || n.includes("qwen") || p.includes("kimi") || n.includes("kimi")) return "kimi";
     if (p.includes("deepseek") || n.includes("deepseek")) return "deepseek";
+    if (p.includes("xai") || p.includes("grok") || n.includes("grok")) return "xai";
     return "other";
   };
 

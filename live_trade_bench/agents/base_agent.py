@@ -114,7 +114,6 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
 
     def _prepare_account_analysis(self, account_data: Dict[str, Any]) -> str:
         allocation_history = account_data.get("allocation_history", [])
-        current_performance = account_data.get("performance", 0.0)
 
         if allocation_history:
             recent_allocations = allocation_history[-10:]  # Get last 10 records
@@ -204,7 +203,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
         if price_history:
             # price_history is already in chronological order (oldest to newest)
             # We want to display from newest to oldest
-            recent_history = price_history[-10:]  # Get last 10 days
+            recent_history = price_history[-20:]  # Get last 20 days
             for i, h in enumerate(
                 reversed(recent_history)
             ):  # Reverse to show newest first

@@ -2,6 +2,7 @@ import urllib.parse
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from live_trade_bench.fetchers.constants import TICKER_TO_COMPANY, CATEGORY_SUBREDDITS
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
 try:
@@ -13,30 +14,6 @@ try:
 except ImportError:
     praw = None
     HAS_PRAW = False
-
-TICKER_TO_COMPANY = {
-    "AAPL": "Apple",
-    "MSFT": "Microsoft",
-    "NVDA": "Nvidia",
-    "JPM": "JPMorgan Chase",
-    "V": "Visa",
-    "JNJ": "Johnson & Johnson",
-    "UNH": "UnitedHealth Group",
-    "PG": "Procter & Gamble",
-    "KO": "Coca-Cola",
-    "XOM": "ExxonMobil",
-    "CAT": "Caterpillar",
-    "WMT": "Walmart",
-    "META": "Meta Platforms",
-    "TSLA": "Tesla",
-    "AMZN": "Amazon",
-}
-
-CATEGORY_SUBREDDITS = {
-    "company_news": ["stocks", "investing", "StockMarket", "wallstreetbets"],
-    "market": ["StockMarket", "investing", "stocks"],
-    "tech": ["technology", "stocks"],
-}
 
 
 class RedditFetcher(BaseFetcher):
@@ -258,10 +235,6 @@ class RedditFetcher(BaseFetcher):
         print(f"      - JSON: Returning {len(posts)} total posts.")
         return posts
 
-    def fetch_top_from_category(
-        self, category: str, date: str, max_limit: int, query: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
-        return self.fetch(category=category, query=query, max_limit=max_limit)
 
     def fetch_posts_by_ticker(
         self, ticker: str, date: str, max_limit: int = 50
@@ -275,63 +248,6 @@ class RedditFetcher(BaseFetcher):
             category="company_news", query=query, max_limit=max_limit, time_filter="day"
         )
 
-    def fetch_sentiment_data(
-        self, category: str, date: str, max_limit: int = 100
-    ) -> List[Dict[str, Any]]:
-        posts = self.fetch(category=category, max_limit=max_limit)
-        for post in posts:
-            post[
-                "text_for_sentiment"
-            ] = f"{post.get('title', '')} {post.get('content', '')}".strip()
-            post["engagement_score"] = (
-                post.get("upvotes", 0) + post.get("num_comments", 0) * 2
-            )
-        return posts
-
-    def get_available_categories(self) -> List[str]:
-        return list(CATEGORY_SUBREDDITS.keys())
-
-    def get_available_dates(self, category: str) -> List[str]:
-        return [datetime.now().strftime("%Y-%m-%d")]
-
-    def get_statistics(self, category: str, date: str) -> Dict[str, Any]:
-        posts = self.fetch(category=category, max_limit=100)
-        if not posts:
-            return {
-                "total_posts": 0,
-                "total_upvotes": 0,
-                "total_comments": 0,
-                "avg_upvotes": 0,
-                "avg_comments": 0,
-                "top_post": None,
-                "subreddits": [],
-            }
-
-        total_upvotes = sum(p.get("upvotes", 0) for p in posts)
-        total_comments = sum(p.get("num_comments", 0) for p in posts)
-        subreddits = list({p.get("subreddit", "") for p in posts if p.get("subreddit")})
-        top_post = max(posts, key=lambda x: x.get("upvotes", 0))
-
-        return {
-            "total_posts": len(posts),
-            "total_upvotes": total_upvotes,
-            "total_comments": total_comments,
-            "avg_upvotes": total_upvotes / len(posts) if posts else 0,
-            "avg_comments": total_comments / len(posts) if posts else 0,
-            "top_post": {
-                "title": top_post.get("title", ""),
-                "upvotes": top_post.get("upvotes", 0),
-                "subreddit": top_post.get("subreddit", ""),
-            },
-            "subreddits": subreddits,
-        }
-
-
-def fetch_top_from_category(
-    category: str, date: str, max_limit: int, query: Optional[str] = None
-) -> List[Dict[str, Any]]:
-    fetcher = RedditFetcher()
-    return fetcher.fetch_top_from_category(category, date, max_limit, query)
 
 
 def fetch_reddit_posts_by_ticker(
@@ -339,25 +255,3 @@ def fetch_reddit_posts_by_ticker(
 ) -> List[Dict[str, Any]]:
     fetcher = RedditFetcher()
     return fetcher.fetch_posts_by_ticker(ticker, date, max_limit)
-
-
-def fetch_reddit_sentiment_data(
-    category: str, date: str, max_limit: int = 100
-) -> List[Dict[str, Any]]:
-    fetcher = RedditFetcher()
-    return fetcher.fetch_sentiment_data(category, date, max_limit)
-
-
-def get_available_categories() -> List[str]:
-    fetcher = RedditFetcher()
-    return fetcher.get_available_categories()
-
-
-def get_available_dates(category: str) -> List[str]:
-    fetcher = RedditFetcher()
-    return fetcher.get_available_dates(category)
-
-
-def get_reddit_statistics(category: str, date: str) -> Dict[str, Any]:
-    fetcher = RedditFetcher()
-    return fetcher.get_statistics(category, date)

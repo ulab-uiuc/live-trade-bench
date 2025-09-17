@@ -66,7 +66,7 @@ class MockStockAgent(MockBaseAgent):
 
     def _create_news_query(self, ticker: str, data: Dict[str, Any]) -> str:
         """Generate mock news query"""
-        return f"{ticker} stock earnings news"
+        return f"{ticker} stock news"
 
     def _generate_mock_llm_response(self, messages: List[Dict[str, str]]) -> str:
         """Generate mock stock portfolio allocation"""

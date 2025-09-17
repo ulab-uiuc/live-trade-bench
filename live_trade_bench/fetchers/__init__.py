@@ -8,7 +8,6 @@ from .base_fetcher import BaseFetcher
 from .news_fetcher import NewsFetcher
 from .polymarket_fetcher import (
     PolymarketFetcher,
-    fetch_current_market_price,
     fetch_trending_markets,
 )
 
@@ -51,7 +50,6 @@ __all__ = [
     "NewsFetcher",
     "PolymarketFetcher",
     "fetch_trending_markets",
-    "fetch_current_market_price",
 ]
 
 if OptionFetcher is not None:

@@ -9,7 +9,7 @@ from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.polymarket_fetcher import (
     fetch_market_price_with_history,
     fetch_trending_markets,
-    fetch_verified_historical_markets,
+    fetch_verified_markets,
 )
 
 
@@ -24,19 +24,15 @@ class PolymarketPortfolioSystem:
         self.market_data: Dict[str, Dict[str, Any]] = {}
         self.initialize_for_live()
 
-    def initialize_for_backtest(self, trading_days: List[datetime]):
-        print("--- Initializing Polymarket universe for backtest period... ---")
-        verified_markets = fetch_verified_historical_markets(
-            trading_days, self.universe_size
-        )
-        self.set_universe(verified_markets)
-        print(
-            f"--- Polymarket universe finalized with {len(self.universe)} markets. ---"
-        )
-
     def initialize_for_live(self):
         markets = fetch_trending_markets(limit=self.universe_size)
         self.set_universe(markets)
+
+    def initialize_for_backtest(self, trading_days: List[datetime]):
+        verified_markets = fetch_verified_markets(
+            trading_days, self.universe_size
+        )
+        self.set_universe(verified_markets)
 
     def set_universe(self, markets: List[Dict[str, Any]]):
         self.universe = []
@@ -48,6 +44,7 @@ class PolymarketPortfolioSystem:
                 "question": m.get("question", str(market_id)),
                 "category": m.get("category", "Unknown"),
                 "token_ids": m.get("token_ids", []),
+                "outcomes": m.get("outcomes", []),
                 "url": m.get("url"),
             }
 
@@ -92,76 +89,45 @@ class PolymarketPortfolioSystem:
         self._update_accounts(allocations, market_data, current_time_str if for_date else None)
 
 
-    def _fetch_market_data(
-        self, for_date: str | None = None
-    ) -> Dict[str, Dict[str, Any]]:
+    def _fetch_market_data(self, for_date: str | None = None) -> Dict[str, Dict[str, Any]]:
         print("  - Fetching market data...")
         market_data_expanded = {}
+        
         for market_id in self.universe:
             try:
-                price_data = None
-                token_ids = self.market_info[market_id].get("token_ids")
-                if not token_ids:
+                market_info = self.market_info[market_id]
+                token_ids = market_info.get("token_ids")
+                outcomes = market_info.get("outcomes")
+                if not token_ids or len(token_ids) < 2:
                     continue
 
-                # Use the new function that gets both current prices and history
-                price_data_with_history = fetch_market_price_with_history(
-                    token_ids, for_date
-                )
-                current_prices = price_data_with_history.get("current_prices", {})
-                price_history = price_data_with_history.get("price_history", {})
-
-                if current_prices:
-                    question = self.market_info[market_id]["question"]
-                    url = self.market_info[market_id].get("url")
-
-                    # Get YES and NO token IDs
-                    yes_token_id = token_ids[0] if len(token_ids) > 0 else None
-                    no_token_id = token_ids[1] if len(token_ids) > 1 else None
-
-                    yes_key = f"{question}_YES"
-                    no_key = f"{question}_NO"
-
-                    # Create price data with history
-                    price_data = {}
-
-                    if yes_token_id and yes_token_id in current_prices:
-                        yes_price = current_prices[yes_token_id]
-                        if yes_price is not None:
-                            price_data[yes_key] = {
-                                "price": yes_price,
-                                "outcome": "YES",
-                                "id": f"{market_id}_YES",
-                                "question": question,
-                                "url": url,
-                                "price_history": price_history.get(yes_token_id, []),
-                            }
-
-                    if no_token_id and no_token_id in current_prices:
-                        no_price = current_prices[no_token_id]
-                        if no_price is not None:
-                            price_data[no_key] = {
-                                "price": no_price,
-                                "outcome": "NO",
-                                "id": f"{market_id}_NO",
-                                "question": question,
-                                "url": url,
-                                "price_history": price_history.get(no_token_id, []),
-                            }
-
-                    market_data_expanded.update(price_data)
-                else:
-                    question = self.market_info[market_id].get("question", market_id)
-                    print(
-                        f"    - ⚠️ No price data found for '{question[:40]}...'. Skipping."
-                    )
+                question = market_info["question"]
+                url = market_info.get("url")
+                
+                for outcome, token_id in zip(outcomes, token_ids):
+                    if not token_id:
+                        continue
+                        
+                    price_data = fetch_market_price_with_history(token_id, for_date)
+                    current_price = price_data.get("current_price")
+                    
+                    if current_price is not None:
+                        key = f"{question}_{outcome}"
+                        market_data_expanded[key] = {
+                            "price": current_price,
+                            "outcome": outcome,
+                            "id": f"{market_id}_{outcome}",
+                            "question": question,
+                            "url": url,
+                            "price_history": price_data.get("price_history", []),
+                        }
+                
             except Exception as e:
-                print(f"    - Failed to fetch data for {market_id}: {e}")
+                question = self.market_info[market_id].get("question", market_id)
+                print(f"    - Failed to fetch data for '{question[:40]}...': {e}")
 
-        print(
-            f"  - ✅ Market data fetched and expanded for {len(market_data_expanded) // 2} markets"
-        )
-        self.market_data = market_data_expanded  # Store the expanded data
+        print(f"  - ✅ Market data fetched for {len(market_data_expanded)} markets")
+        self.market_data = market_data_expanded
         return self.market_data
 
     def _fetch_social_data(self) -> Dict[str, List[Dict[str, Any]]]:
@@ -261,13 +227,8 @@ class PolymarketPortfolioSystem:
             )
 
             if raw_allocation:
-                # --- DATA CLEANING & NORMALIZATION ---
                 cleaned_allocation = {}
                 for symbol, value in raw_allocation.items():
-                    # Default to YES outcome if not specified
-                    if "_" not in symbol and symbol != "CASH":
-                        symbol = f"{symbol}_YES"
-
                     if isinstance(value, str) and "%" in value:
                         try:
                             cleaned_allocation[symbol] = (

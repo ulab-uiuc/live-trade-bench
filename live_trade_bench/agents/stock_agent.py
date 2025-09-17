@@ -31,7 +31,7 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
         return "MARKET ANALYSIS:\n" + "\n".join(analysis_parts)
 
     def _create_news_query(self, ticker: str, data: Dict[str, Any]) -> str:
-        return f"{ticker} stock earnings news"
+        return f"{ticker} stock news"
 
     def _get_portfolio_prompt(
         self, analysis: str, market_data: Dict[str, Dict[str, Any]], date: Optional[str] = None
@@ -64,13 +64,13 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
             "CRITICAL: You must return ONLY valid JSON format. No additional text, explanations, or formatting.\n\n"
             "REQUIRED JSON FORMAT:\n"
             "{\n"
+            ' "reasoning": "brief explanation about why you think this allocation is better than the previous allocation to make higher return rate",\n'
             ' "allocations": {\n'
             f'   "{sample[0]}": 0.25,\n'
             f'   "{sample[1]}": 0.20,\n'
             f'   "{sample[2]}": 0.15,\n'
             '   "CASH": 0.40\n'
-            " },\n"
-            ' "reasoning": "brief explanation about why you made this allocation"\n'
+            " }\n"
             "}\n\n"
             "IMPORTANT RULES:\n"
             "1. Return ONLY the JSON object\n"
