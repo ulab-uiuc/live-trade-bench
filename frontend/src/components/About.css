@@ -40,6 +40,20 @@
   text-decoration: underline;
 }
 
+.about-link {
+  background: none;
+  border: none;
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.about-link:hover {
+  opacity: 0.8;
+}
+
 .team-section {
   margin-bottom: 4rem;
 }
@@ -515,17 +529,6 @@
   position: relative;
 }
 
-.warning-text::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #c4b5fd, #9c9ef8);
-  border-radius: 1px;
-  opacity: 0.6;
-}
 
 /* Enhanced warning paragraph styling */
 .warning-paragraph {

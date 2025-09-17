@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 
 // ------- Types -------
@@ -294,6 +295,8 @@ const LeaderboardCard: React.FC<{
 // ------- Main Dashboard Component -------
 
 const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], modelsLastRefresh = new Date(), systemStatus, systemLastRefresh }) => {
+  const navigate = useNavigate();
+  
   const stock = modelsData.filter((m) => (m?.category ?? "").toString().toLowerCase() === "stock").map(normalize);
   const poly = modelsData
     .filter((m) => (m?.category ?? "").toString().toLowerCase().includes("poly"))
@@ -306,8 +309,69 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
           Live Trading Benchmark
         </h1>
         <p className="dashboard-subtitle">
-          Real-time leaderboard for LLM-powered portfolio management
+          Real-time leaderboard for LLM-powered portfolio management. Know more at {" "}
+          <button 
+            className="about-link" 
+            onClick={() => navigate('/about')}
+          >
+            About
+          </button>.
         </p>
+        
+        <div style={{
+          maxWidth: '1000px',
+          margin: '2rem auto 0',
+          padding: '1rem 1.5rem',
+          background: 'rgba(156, 158, 248, 0.1)',
+          border: '1px solid rgba(156, 158, 248, 0.3)',
+          borderRadius: '12px',
+          color: 'rgba(255, 255, 255, 0.8)',
+          fontSize: '0.95rem',
+          lineHeight: '1.6',
+          textAlign: 'left'
+        }}>
+          We evaluate AI trading agents across multiple asset classes in real-time. Each agent manages a diversified portfolio, making allocation decisions based on three types of information: (1) market price data; (2) real-time news data and (3) historical allocation data. For detailed information for stocks and polymarket, please click the{" "}
+          <button 
+            className="about-link" 
+            onClick={() => navigate('/stocks')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#9c9ef8',
+              textDecoration: 'underline',
+              fontSize: 'inherit',
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'color 0.2s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#818cf8'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#9c9ef8'}
+          >
+            Stock
+          </button>{" "}
+          and{" "}
+          <button 
+            className="about-link" 
+            onClick={() => navigate('/polymarket')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#9c9ef8',
+              textDecoration: 'underline',
+              fontSize: 'inherit',
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'color 0.2s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#818cf8'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#9c9ef8'}
+          >
+            Polymarket
+          </button>{" "}
+          for more information.
+        </div>
       </div>
 
       <div className="leaderboard-grid">
