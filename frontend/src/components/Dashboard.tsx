@@ -89,25 +89,33 @@ function getHomepageUrl(modelName?: string): string {
   const homepageMap: { [key: string]: string } = {
     // OpenAI models
     "GPT-5": "https://platform.openai.com/docs/models/gpt-5",
-    "GPT-5 Nano": "https://platform.openai.com/docs/models/gpt-5-nano",
-    "GPT-5 Mini": "https://openai.com/gpt-5",
     "GPT-4.1": "https://openai.com/index/gpt-4-1/",
-    "GPT-4.1 Mini": "https://openai.com/index/gpt-4-1/",
-    "GPT-4.1 Nano": "https://openai.com/index/gpt-4-1/",
-    "GPT-4o Mini": "https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/",
+    "GPT-4o": "https://openai.com/index/gpt-4o/",
     "GPT-o3": "https://openai.com/index/introducing-o3-and-o4-mini/",
-    "GPT OSS 120B": "https://openai.com/index/introducing-gpt-oss/",
-    "Claude Opus 4.1": "https://www.anthropic.com/news/claude-opus-4-1",
-    "Claude Sonnet 4": "https://www.anthropic.com/news/claude-4",
-    "Claude Sonnet 3.7": "https://www.anthropic.com/news/claude-3-7-sonnet",
-    "Claude Haiku 3.5": "https://www.anthropic.com/news/3-5-models-and-computer-use",
-    "Llama 4 Maverick": "https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
-    "Llama 4 Scout": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
-    "Llama 3.3 70B": "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct",
-    "Qwen3 235B": "https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507",
-    "DeepSeek V3": "https://huggingface.co/deepseek-ai/DeepSeek-V3",
-    "Deepseek V3.1": "https://huggingface.co/deepseek-ai/DeepSeek-V3.1",
-    "Kimi K2": "https://huggingface.co/moonshotai/Kimi-K2-Instruct-0905",
+    // Anthropic models
+    "Claude-Opus-4.1": "https://www.anthropic.com/news/claude-opus-4-1",
+    "Claude-Opus-4": "https://www.anthropic.com/news/claude-4",
+    "Claude-Sonnet-4": "https://www.anthropic.com/news/claude-4",
+    "Claude-Sonnet-3.7": "https://www.anthropic.com/news/claude-3-7-sonnet",
+    // Google models
+    "Gemini-2.5-Flash": "http://aistudio.google.com/app/prompts/new_chat?model=gemini-2.5-flash",
+    "Gemini-2.5-Pro": "http://aistudio.google.com/app/prompts/new_chat?model=gemini-2.5-pro",
+    // xAI models
+    "Grok-4": "https://docs.x.ai/docs/models/grok-4-0709",
+    "Grok-3": "https://docs.x.ai/docs/models/grok-3",
+    // Meta models
+    "Llama4-Maverick": "https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+    "Llama4-Scout": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+    "Llama3.3-70B-Instruct-Turbo": "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct",
+    // Qwen models
+    "Qwen3-235B-A22B-Instruct": "https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507",
+    "Qwen3-235B-A22B-Thinking": "https://huggingface.co/Qwen/Qwen3-235B-A22B-Thinking-2507",
+    "Qwen2.5-72B-Instruct": "https://qwenlm.github.io/blog/qwen2.5/",
+    // DeepSeek models
+    "DeepSeek-R1": "https://api-docs.deepseek.com/news/news250120",
+    "DeepSeek-V3.1": "https://huggingface.co/deepseek-ai/DeepSeek-V3.1",
+    // Moonshot models
+    "Kimi-K2-Instruct": "https://huggingface.co/moonshotai/Kimi-K2-Instruct-0905",
   };
 
   return homepageMap[modelName] || "";
