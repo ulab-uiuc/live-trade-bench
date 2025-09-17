@@ -4,6 +4,7 @@ import shutil
 import threading
 from datetime import datetime
 
+import pytz
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException
@@ -30,6 +31,7 @@ from .config import (
     UPDATE_FREQUENCY,
     MockMode,
     get_base_model_configs,
+    should_run_trading_cycle,
 )
 from .models_data import generate_models_data, load_historical_data_to_accounts
 from .news_data import update_news_data
@@ -147,11 +149,22 @@ def load_backtest_as_initial_data():
             logger.error(f"❌ Failed to load backtest data: {e}")
 
 
+def safe_generate_models_data():
+    if should_run_trading_cycle():
+        logger.info("🕐 Running trading cycle at market close time...")
+        generate_models_data(stock_system, polymarket_system)
+    else:
+        logger.info("⏰ Skipping trading cycle - not in market time window")
+
+
 def schedule_background_tasks(scheduler: BackgroundScheduler):
     scheduler.add_job(
-        lambda: generate_models_data(stock_system, polymarket_system),
-        "interval",
-        seconds=UPDATE_FREQUENCY["trading_cycle"],
+        safe_generate_models_data,
+        "cron",
+        day_of_week="mon-fri",
+        hour=15,
+        minute=0,
+        timezone=pytz.timezone("US/Eastern"),
         id="generate_models_data",
         replace_existing=True,
     )
