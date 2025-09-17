@@ -61,6 +61,11 @@ class PolymarketFetcher(BaseFetcher):
         out: List[Dict[str, Any]] = []
         for m in markets[:limit]:
             if isinstance(m, dict) and m.get("id"):
+                # Generate real URL from slug if available
+                url = m.get("url")
+                if not url and m.get("slug"):
+                    url = f"https://polymarket.com/event/{m.get('slug')}"
+
                 out.append(
                     {
                         "id": m.get("id"),
@@ -68,7 +73,7 @@ class PolymarketFetcher(BaseFetcher):
                         "category": m.get("category"),
                         "token_ids": m.get("clobTokenIds", []),
                         "slug": m.get("slug"),
-                        "url": m.get("url"),
+                        "url": url,
                     }
                 )
         return out
@@ -117,6 +122,11 @@ class PolymarketFetcher(BaseFetcher):
                         has_price_data = True
                         break
             if has_price_data:
+                # Generate real URL from slug if available
+                url = m.get("url")
+                if not url and m.get("slug"):
+                    url = f"https://polymarket.com/event/{m.get('slug')}"
+
                 verified.append(
                     {
                         "id": m.get("id"),
@@ -125,7 +135,7 @@ class PolymarketFetcher(BaseFetcher):
                         "token_ids": token_ids,
                         "outcomes": outcomes,
                         "slug": m.get("slug"),
-                        "url": m.get("url"),
+                        "url": url,
                     }
                 )
             if len(verified) >= limit:
