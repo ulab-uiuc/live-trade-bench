@@ -14,13 +14,9 @@ class NewsFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 2.0, max_delay: float = 6.0):
         super().__init__(min_delay, max_delay)
 
-    # ---- helpers ----
     def _normalize_date(
         self, s: str, fallback_now: Optional[datetime] = None
     ) -> tuple[str, datetime]:
-        """
-        Accepts 'YYYY-MM-DD' or 'MM/DD/YYYY', returns ('MM/DD/YYYY', datetime_obj)
-        """
         if fallback_now is None:
             fallback_now = datetime.now()
         s = s.strip()
@@ -28,7 +24,6 @@ class NewsFetcher(BaseFetcher):
             dt = datetime.strptime(s, "%Y-%m-%d")
             return dt.strftime("%m/%d/%Y"), dt
         if "/" in s:
-            # assume already mm/dd/yyyy
             try:
                 dt = datetime.strptime(s, "%m/%d/%Y")
                 return s, dt
@@ -37,13 +32,7 @@ class NewsFetcher(BaseFetcher):
         return fallback_now.strftime("%m/%d/%Y"), fallback_now
 
     def _parse_relative_or_absolute(self, text: str, ref: datetime) -> float:
-        """
-        Parse Google News time text like '2 hours ago', 'Sep 09, 2025', etc.
-        Returns unix timestamp (float). Falls back to ref.
-        """
         t = text.strip().lower()
-
-        # relative: e.g., "2 hours ago", "15 minutes ago", "1 day ago", "30 seconds ago"
         m = re.match(r"^\s*(\d+)\s+(second|minute|hour|day)s?\s+ago\s*$", t)
         if m:
             num = int(m.group(1))
@@ -55,34 +44,23 @@ class NewsFetcher(BaseFetcher):
                 "day": timedelta(days=num),
             }[unit]
             return (ref - delta).timestamp()
-
-        # absolute date formats seen on Google News
-        for fmt in (
-            "%b %d, %Y",
-            "%B %d, %Y",
-        ):  # e.g., 'Sep 09, 2025' / 'September 09, 2025'
+        for fmt in ("%b %d, %Y", "%B %d, %Y"):
             try:
                 return datetime.strptime(text.strip(), fmt).timestamp()
             except ValueError:
                 continue
-
         return ref.timestamp()
 
     def _clean_google_href(self, href: str) -> str:
-        """
-        Clean links like '/url?q=https://example.com&...' -> 'https://example.com'
-        """
         if href.startswith("/url?"):
             qs = parse_qs(urlparse(href).query)
-            if "q" in qs and len(qs["q"]) > 0:
+            if "q" in qs and qs["q"]:
                 return qs["q"][0]
         return href
 
-    # ---- main ----
     def fetch(
         self, query: str, start_date: str, end_date: str, max_pages: int = 10
     ) -> List[Dict[str, Any]]:
-        # Normalize dates and choose a reference date for parsing relative times
         start_fmt, _ = self._normalize_date(start_date)
         end_fmt, ref_date = self._normalize_date(end_date)
 
@@ -93,7 +71,6 @@ class NewsFetcher(BaseFetcher):
                 f"&tbs=cdr:1,cd_min:{start_fmt},cd_max:{end_fmt}"
                 f"&tbm=nws&start={page * 10}"
             )
-
             try:
                 resp = self.make_request(url, timeout=15)
                 soup = BeautifulSoup(resp.content, "html.parser")
@@ -119,27 +96,23 @@ class NewsFetcher(BaseFetcher):
                     if not (title_el and snippet_el and date_el and source_el):
                         continue
 
-                    title = title_el.get_text(strip=True)
-                    snippet = snippet_el.get_text(strip=True)
-                    date_txt = date_el.get_text(strip=True)
-                    source = source_el.get_text(strip=True)
-
-                    ts = self._parse_relative_or_absolute(date_txt, ref_date)
+                    ts = self._parse_relative_or_absolute(
+                        date_el.get_text(strip=True), ref_date
+                    )
 
                     results.append(
                         {
                             "link": link,
-                            "title": title,
-                            "snippet": snippet,
+                            "title": title_el.get_text(strip=True),
+                            "snippet": snippet_el.get_text(strip=True),
                             "date": ts,
-                            "source": source,
+                            "source": source_el.get_text(strip=True),
                         }
                     )
                 except Exception as e:
                     print(f"Error processing result: {e}")
                     continue
 
-            # pagination check
             if not soup.find("a", id="pnnext"):
                 break
 
@@ -155,7 +128,6 @@ def fetch_news_data(
     target_date: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     fetcher = NewsFetcher()
-
     print(f"  - News fetcher: Query for news '{query}'")
     news_items = fetcher.fetch(query, start_date, end_date, max_pages)
 

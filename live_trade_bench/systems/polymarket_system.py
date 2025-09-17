@@ -49,7 +49,7 @@ class PolymarketPortfolioSystem:
     def add_agent(
         self, name: str, initial_cash: float = 500.0, model_name: str = "gpt-4o-mini"
     ) -> None:
-        if name in self.agents:  # avoid overwriting existing account/agent
+        if name in self.agents:
             return
         agent = LLMPolyMarketAgent(name, model_name)
         account = create_polymarket_account(initial_cash)
@@ -68,23 +68,17 @@ class PolymarketPortfolioSystem:
         self.cycle_count += 1
         print("Fetching data for polymarket portfolio...")
 
-        # 1. Fetch market data
         market_data = self._fetch_market_data(current_time_str if for_date else None)
         if not market_data:
             print("No market data for polymarkets, skipping cycle.")
             return
 
-        # 2. Fetch news and social media data
         news_data = self._fetch_news_data(
             market_data, current_time_str if for_date else None
         )
-
-        # 3. Generate allocations from agents
         allocations = self._generate_allocations(
             market_data, news_data, current_time_str if for_date else None
         )
-
-        # 4. Update accounts based on allocations
         self._update_accounts(
             allocations, market_data, current_time_str if for_date else None
         )
@@ -94,7 +88,6 @@ class PolymarketPortfolioSystem:
     ) -> Dict[str, Dict[str, Any]]:
         print("  - Fetching market data...")
         market_data_expanded = {}
-
         for market_id in self.universe:
             try:
                 market_info = self.market_info[market_id]
@@ -102,17 +95,13 @@ class PolymarketPortfolioSystem:
                 outcomes = market_info.get("outcomes")
                 if not token_ids or len(token_ids) < 2:
                     continue
-
                 question = market_info["question"]
                 url = market_info.get("url")
-
                 for outcome, token_id in zip(outcomes, token_ids):
                     if not token_id:
                         continue
-
                     price_data = fetch_market_price_with_history(token_id, for_date)
                     current_price = price_data.get("current_price")
-
                     if current_price is not None:
                         key = f"{question}_{outcome}"
                         market_data_expanded[key] = {
@@ -123,60 +112,47 @@ class PolymarketPortfolioSystem:
                             "url": url,
                             "price_history": price_data.get("price_history", []),
                         }
-
             except Exception as e:
                 question = self.market_info[market_id].get("question", market_id)
                 print(f"    - Failed to fetch data for '{question[:40]}...': {e}")
-
         print(f"  - ✅ Market data fetched for {len(market_data_expanded)} markets")
         self.market_data = market_data_expanded
         return self.market_data
 
     def _fetch_social_data(self) -> Dict[str, List[Dict[str, Any]]]:
-        """Fetch social media data (Reddit) for the market universe."""
         print("  - Fetching social media data...")
         from ..fetchers.reddit_fetcher import RedditFetcher
 
         social_data_map = {}
         fetcher = RedditFetcher()
-
-        for market_id in self.universe:  # Fetch social data for all available markets
+        for market_id in self.universe:
             try:
                 print(f"    - Fetching social data for polymarket: {market_id}...")
                 question = self.market_info.get(market_id, {}).get(
                     "question", market_id
                 )
-                query = " ".join(question.split()[:5])  # Use first few words as query
-                posts = fetcher.fetch(
-                    category="market", query=query, max_limit=10
-                )  # Increased max_limit
+                query = " ".join(question.split()[:5])
+                posts = fetcher.fetch(category="market", query=query, max_limit=10)
                 print(f"    - Fetched {len(posts)} social posts for {market_id}.")
-
                 formatted_posts = []
                 for post in posts:
-                    content = post.get("content", "")  # No longer format content here
                     formatted_posts.append(
                         {
                             "title": post.get("title", ""),
-                            "content": content,
+                            "content": post.get("content", ""),
                             "author": post.get("author", "Unknown"),
                             "platform": "Reddit",
                             "url": post.get("url", ""),
-                            "created_at": post.get(
-                                "created_utc", ""
-                            ),  # Use created_utc
-                            "subreddit": post.get("subreddit", ""),  # Add subreddit
-                            "upvotes": post.get("upvotes", 0),  # Add upvotes
-                            "num_comments": post.get(
-                                "num_comments", 0
-                            ),  # Add num_comments
-                            "tag": query,  # Add query as tag
+                            "created_at": post.get("created_utc", ""),
+                            "subreddit": post.get("subreddit", ""),
+                            "upvotes": post.get("upvotes", 0),
+                            "num_comments": post.get("num_comments", 0),
+                            "tag": query,
                         }
                     )
                 social_data_map[market_id] = formatted_posts
             except Exception as e:
                 print(f"    - Failed to fetch social data for {market_id}: {e}")
-
         print(f"  - ✅ Social media data fetched for {len(social_data_map)} markets")
         return social_data_map
 
@@ -218,11 +194,9 @@ class PolymarketPortfolioSystem:
             print(f"    - Processing agent: {agent_name}...")
             account = self.accounts[agent_name]
             account_data = account.get_account_data()
-
             raw_allocation = agent.generate_allocation(
                 market_data, account_data, for_date, news_data=news_data
             )
-
             if raw_allocation:
                 cleaned_allocation = {}
                 for symbol, value in raw_allocation.items():
@@ -235,7 +209,6 @@ class PolymarketPortfolioSystem:
                             cleaned_allocation[symbol] = 0.0
                     elif isinstance(value, (int, float)):
                         cleaned_allocation[symbol] = value
-
                 all_allocations[agent_name] = cleaned_allocation
                 print(
                     f"    - ✅ Allocation for {agent_name}: { {k: f'{v:.1%}' for k, v in cleaned_allocation.items()} }"
@@ -253,22 +226,14 @@ class PolymarketPortfolioSystem:
         for_date: str | None = None,
     ) -> None:
         print("  - Updating all accounts...")
-
-        # The price_map keys should be the same as allocation keys (question_outcome)
         price_map = {key: asset["price"] for key, asset in market_data.items()}
-
         for agent_name, allocation in allocations.items():
             account = self.accounts[agent_name]
-
-            # No more translation. Use question-based allocation directly.
             account.target_allocations = allocation
-
-            # Rebalance account to target allocation
             try:
                 account.apply_allocation(
                     allocation, price_map=price_map, metadata_map=market_data
                 )
-                # Capture and persist agent LLM info if available
                 llm_input = None
                 llm_output = None
                 agent = self.agents.get(agent_name)
@@ -286,7 +251,6 @@ class PolymarketPortfolioSystem:
                 )
             except Exception as e:
                 print(f"    - ❌ Failed to update account for {agent_name}: {e}")
-
         print("  - ✅ All accounts updated")
 
     @classmethod
@@ -294,9 +258,6 @@ class PolymarketPortfolioSystem:
         if not hasattr(cls, "_instance"):
             cls._instance = create_polymarket_portfolio_system()
         return cls._instance
-
-
-PolymarketTradingSystem = PolymarketPortfolioSystem
 
 
 def create_polymarket_portfolio_system() -> PolymarketPortfolioSystem:

@@ -45,15 +45,9 @@ class BaseFetcher(ABC):
         self, url: str, headers: Optional[Dict[str, str]] = None, **kwargs: Any
     ) -> requests.Response:
         self._rate_limit_delay()
-
-        if headers is None:
-            headers = self.default_headers
-
-        # Ensure we always have a reasonable timeout to avoid hangs
-        if "timeout" not in kwargs:
-            kwargs["timeout"] = 8
-        response = requests.get(url, headers=headers, **kwargs)
-        return response
+        headers = headers or self.default_headers
+        kwargs.setdefault("timeout", 8)
+        return requests.get(url, headers=headers, **kwargs)
 
     @retry(
         retry=retry_if_exception_type((RuntimeError, Exception)),

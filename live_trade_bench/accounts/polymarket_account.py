@@ -39,19 +39,16 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
                 ticker: pos.current_price for ticker, pos in self.positions.items()
             }
 
-        # CRITICAL: Update prices of existing positions to reflect market changes
+        # Update existing positions with latest prices
         for ticker, pos in self.positions.items():
             if ticker in price_map:
                 pos.current_price = price_map[ticker]
 
-        # Now, calculate total value based on the NEW prices
         total_value = self.get_total_value()
-
-        # Clear existing non-cash positions
         self.cash_balance = total_value
         self.positions.clear()
 
-        # Create new positions based on target allocations
+        # Build new positions from allocations
         for ticker, target_ratio in target_allocations.items():
             if ticker == "CASH" or target_ratio <= 0:
                 continue
@@ -62,11 +59,7 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
 
             target_value = total_value * target_ratio
             quantity = target_value / price
-
-            # Get URL and other metadata if available
-            url = None
-            if metadata_map and ticker in metadata_map:
-                url = metadata_map[ticker].get("url")
+            url = metadata_map.get(ticker, {}).get("url") if metadata_map else None
 
             self.positions[ticker] = Position(
                 symbol=ticker,
@@ -84,24 +77,17 @@ class PolymarketAccount(BaseAccount[Position, Transaction]):
         return "polymarket"
 
     def serialize_positions(self) -> Dict[str, Any]:
-        # For polymarket, convert Position objects to dicts with polymarket-specific fields
         serialized_positions = {}
         for symbol, position in self.positions.items():
-            if hasattr(position, "__dict__"):
-                # Convert Position object to dict
-                pos_dict = {
-                    "symbol": position.symbol,
-                    "quantity": position.quantity,
-                    "average_price": position.average_price,
-                    "current_price": position.current_price,
-                }
-                # Include URL if available (polymarket-specific)
-                if hasattr(position, "url") and position.url:
-                    pos_dict["url"] = position.url
-                serialized_positions[symbol] = pos_dict
-            else:
-                # Already a dict
-                serialized_positions[symbol] = position
+            pos_dict = {
+                "symbol": position.symbol,
+                "quantity": position.quantity,
+                "average_price": position.average_price,
+                "current_price": position.current_price,
+            }
+            if position.url:
+                pos_dict["url"] = position.url
+            serialized_positions[symbol] = pos_dict
         return serialized_positions
 
     def _update_market_data(self) -> None:
