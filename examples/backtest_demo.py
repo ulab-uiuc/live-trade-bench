@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def get_backtest_config() -> Dict[str, Any]:
     return {
-        "start_date": "2025-08-22",
+        "start_date": "2025-08-16",
         "end_date": "2025-09-16",
         "interval_days": 1,
         "initial_cash": {"polymarket": 500.0, "stock": 1000.0},
@@ -220,7 +220,7 @@ def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, s
 
 
 def save_models_data(
-    systems: Dict[str, Dict[str, Any]], out_path: str = "backend/models_data_init.json"
+    systems: Dict[str, Dict[str, Any]], out_path: str = "backend/models_data_init_full_month.json"
 ):
     all_models_data = []
     for market_type, sysmap in systems.items():
