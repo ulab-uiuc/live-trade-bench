@@ -60,11 +60,13 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
         return "MARKET ANALYSIS:\n" + "\n".join(analysis_parts)
 
     def _get_portfolio_prompt(
-        self, analysis: str, market_data: Dict[str, Dict[str, Any]], date: Optional[str] = None
+        self,
+        analysis: str,
+        market_data: Dict[str, Dict[str, Any]],
+        date: Optional[str] = None,
     ) -> str:
-        
         current_date_str = f"Today is {date}." if date else ""
-        
+
         asset_list = list(market_data.keys())
         asset_list_str = ", ".join(asset_list)
 

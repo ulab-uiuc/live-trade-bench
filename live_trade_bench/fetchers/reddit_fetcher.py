@@ -2,8 +2,8 @@ import urllib.parse
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from live_trade_bench.fetchers.constants import TICKER_TO_COMPANY, CATEGORY_SUBREDDITS
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
+from live_trade_bench.fetchers.constants import CATEGORY_SUBREDDITS, TICKER_TO_COMPANY
 
 try:
     import os
@@ -235,7 +235,6 @@ class RedditFetcher(BaseFetcher):
         print(f"      - JSON: Returning {len(posts)} total posts.")
         return posts
 
-
     def fetch_posts_by_ticker(
         self, ticker: str, date: str, max_limit: int = 50
     ) -> List[Dict[str, Any]]:
@@ -247,7 +246,6 @@ class RedditFetcher(BaseFetcher):
         return self.fetch(
             category="company_news", query=query, max_limit=max_limit, time_filter="day"
         )
-
 
 
 def fetch_reddit_posts_by_ticker(

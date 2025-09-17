@@ -72,12 +72,8 @@ class StockFetcher(BaseFetcher):
                 price_history.append(
                     {
                         "date": idx.strftime("%Y-%m-%d"),
-                        "price": float(row["Close"].iloc[0])
-                        if "Close" in row
-                        else 0.0,
-                        "volume": int(row["Volume"].iloc[0])
-                        if "Volume" in row
-                        else 0,
+                        "price": float(row["Close"].iloc[0]) if "Close" in row else 0.0,
+                        "volume": int(row["Volume"].iloc[0]) if "Volume" in row else 0,
                     }
                 )
 
@@ -139,7 +135,6 @@ class StockFetcher(BaseFetcher):
         except Exception:
             return None
         return None
-
 
 
 def fetch_trending_stocks(limit: int = 15) -> List[str]:

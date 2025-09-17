@@ -5,7 +5,7 @@ Constants used across the live-trade-bench system.
 # Stock ticker to company name mapping
 TICKER_TO_COMPANY = {
     "AAPL": "Apple",
-    "MSFT": "Microsoft", 
+    "MSFT": "Microsoft",
     "NVDA": "Nvidia",
     "JPM": "JPMorgan Chase",
     "V": "Visa",

@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
+from live_trade_bench.fetchers.constants import TICKER_TO_COMPANY
+
 from ..accounts import StockAccount, create_stock_account
 from ..agents.stock_agent import LLMStockAgent
 from ..fetchers.news_fetcher import fetch_news_data
@@ -49,7 +51,7 @@ class StockPortfolioSystem:
             print(f"--- 📅 Backtest Date: {for_date} ---")
             current_time_str = for_date
         else:
-            print(f"--- 🚀 Live Trading Mode ---")
+            print("--- 🚀 Live Trading Mode ---")
             current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         self.cycle_count += 1
@@ -62,7 +64,9 @@ class StockPortfolioSystem:
             return
 
         # 2. Fetch news and social media data
-        news_data = self._fetch_news_data(market_data, current_time_str if for_date else None)
+        news_data = self._fetch_news_data(
+            market_data, current_time_str if for_date else None
+        )
 
         # 3. Generate allocations from agents
         allocations = self._generate_allocations(
@@ -70,9 +74,13 @@ class StockPortfolioSystem:
         )
 
         # 4. Update accounts based on allocations
-        self._update_accounts(allocations, market_data, current_time_str if for_date else None)
+        self._update_accounts(
+            allocations, market_data, current_time_str if for_date else None
+        )
 
-    def _fetch_market_data(self, for_date: str | None = None) -> Dict[str, Dict[str, Any]]:
+    def _fetch_market_data(
+        self, for_date: str | None = None
+    ) -> Dict[str, Dict[str, Any]]:
         print("  - Fetching market data...")
         market_data = {}
         for ticker in self.universe:
@@ -166,25 +174,17 @@ class StockPortfolioSystem:
             for ticker in list(
                 market_data.keys()
             ):  # Fetch news for all available tickers
-                query = f"{ticker} stock news"
+                query = f"{ticker} stock news OR {TICKER_TO_COMPANY[ticker]}"
                 news_data_map[ticker] = fetch_news_data(
                     query,
                     start_date,
                     end_date,
-                    max_pages=3,
+                    max_pages=1,
                     ticker=ticker,
-                    target_date=for_date,  # 传递目标日期用于相关性排序
+                    target_date=for_date,
                 )
         except Exception as e:
             print(f"    - News data fetch failed: {e}")
-        print("  - ✅ News data fetched")
-        for ticker, news in news_data_map.items():
-            if news:
-                print(f"    - News for {ticker}: {len(news)} articles")
-                for i, article in enumerate(news[:3]):
-                    print(f"      {i+1}. {article.get('title', 'N/A')[:60]}...")
-            else:
-                print(f"    - News for {ticker}: No articles found")
         return news_data_map
 
     def _generate_allocations(
@@ -240,10 +240,10 @@ class StockPortfolioSystem:
                     llm_input = getattr(agent, "last_llm_input", None)
                     llm_output = getattr(agent, "last_llm_output", None)
                 account.record_allocation(
-                    metadata_map=market_data, 
-                    backtest_date=for_date, 
+                    metadata_map=market_data,
+                    backtest_date=for_date,
                     llm_input=llm_input,
-                    llm_output=llm_output
+                    llm_output=llm_output,
                 )
                 print(
                     f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"

@@ -10,9 +10,6 @@ This package provides tools for:
 
 from __future__ import annotations
 
-# Constants
-from .fetchers.constants import TICKER_TO_COMPANY, CATEGORY_SUBREDDITS
-
 # Accounts
 from .accounts import (
     BaseAccount,
@@ -34,12 +31,12 @@ from .backtest.backtest_runner import BacktestRunner
 
 # Fetchers
 from .fetchers.base_fetcher import BaseFetcher
+
+# Constants
+from .fetchers.constants import CATEGORY_SUBREDDITS, TICKER_TO_COMPANY
 from .fetchers.news_fetcher import NewsFetcher, fetch_news_data
 from .fetchers.option_fetcher import OptionFetcher
-from .fetchers.polymarket_fetcher import (
-    PolymarketFetcher,
-    fetch_trending_markets,
-)
+from .fetchers.polymarket_fetcher import PolymarketFetcher, fetch_trending_markets
 from .fetchers.stock_fetcher import StockFetcher
 
 # Core Systems

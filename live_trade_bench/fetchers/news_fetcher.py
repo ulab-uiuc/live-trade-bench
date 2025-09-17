@@ -1,13 +1,13 @@
 from __future__ import annotations
+
+import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
-import re
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
 from bs4 import BeautifulSoup
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
-from live_trade_bench.fetchers.constants import TICKER_TO_COMPANY
 
 
 class NewsFetcher(BaseFetcher):
@@ -15,7 +15,9 @@ class NewsFetcher(BaseFetcher):
         super().__init__(min_delay, max_delay)
 
     # ---- helpers ----
-    def _normalize_date(self, s: str, fallback_now: Optional[datetime] = None) -> tuple[str, datetime]:
+    def _normalize_date(
+        self, s: str, fallback_now: Optional[datetime] = None
+    ) -> tuple[str, datetime]:
         """
         Accepts 'YYYY-MM-DD' or 'MM/DD/YYYY', returns ('MM/DD/YYYY', datetime_obj)
         """
@@ -55,7 +57,10 @@ class NewsFetcher(BaseFetcher):
             return (ref - delta).timestamp()
 
         # absolute date formats seen on Google News
-        for fmt in ("%b %d, %Y", "%B %d, %Y"):  # e.g., 'Sep 09, 2025' / 'September 09, 2025'
+        for fmt in (
+            "%b %d, %Y",
+            "%B %d, %Y",
+        ):  # e.g., 'Sep 09, 2025' / 'September 09, 2025'
             try:
                 return datetime.strptime(text.strip(), fmt).timestamp()
             except ValueError:
@@ -74,7 +79,9 @@ class NewsFetcher(BaseFetcher):
         return href
 
     # ---- main ----
-    def fetch(self, query: str, start_date: str, end_date: str, max_pages: int = 10) -> List[Dict[str, Any]]:
+    def fetch(
+        self, query: str, start_date: str, end_date: str, max_pages: int = 10
+    ) -> List[Dict[str, Any]]:
         # Normalize dates and choose a reference date for parsing relative times
         start_fmt, _ = self._normalize_date(start_date)
         end_fmt, ref_date = self._normalize_date(end_date)
@@ -120,7 +127,13 @@ class NewsFetcher(BaseFetcher):
                     ts = self._parse_relative_or_absolute(date_txt, ref_date)
 
                     results.append(
-                        {"link": link, "title": title, "snippet": snippet, "date": ts, "source": source}
+                        {
+                            "link": link,
+                            "title": title,
+                            "snippet": snippet,
+                            "date": ts,
+                            "source": source,
+                        }
                     )
                 except Exception as e:
                     print(f"Error processing result: {e}")
@@ -143,15 +156,8 @@ def fetch_news_data(
 ) -> List[Dict[str, Any]]:
     fetcher = NewsFetcher()
 
-    augmented_query = query
-    if ticker:
-        t = ticker.upper()
-        company = TICKER_TO_COMPANY.get(t)
-        if company:
-            augmented_query = f"{query} OR {company}"
-            print(f"  - News fetcher: Query augmented for ticker '{ticker}': '{augmented_query}'")
-
-    news_items = fetcher.fetch(augmented_query, start_date, end_date, max_pages)
+    print(f"  - News fetcher: Query for news '{query}'")
+    news_items = fetcher.fetch(query, start_date, end_date, max_pages)
 
     if ticker:
         for it in news_items:

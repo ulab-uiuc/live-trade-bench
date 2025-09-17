@@ -12,6 +12,7 @@ from live_trade_bench.systems.stock_system import StockPortfolioSystem
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from backend.app.config import get_base_model_configs
 from backend.app.models_data import _create_model_data, _serialize_positions
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
@@ -25,7 +26,9 @@ def get_backtest_config() -> Dict[str, Any]:
     }
 
 
-def get_trading_days(start_date: str, end_date: str, interval_days: int = 1) -> List[datetime]:
+def get_trading_days(
+    start_date: str, end_date: str, interval_days: int = 1
+) -> List[datetime]:
     start = datetime.strptime(start_date, "%Y-%m-%d")
     end = datetime.strptime(end_date, "%Y-%m-%d")
     days: List[datetime] = []
@@ -39,12 +42,17 @@ def get_trading_days(start_date: str, end_date: str, interval_days: int = 1) -> 
     return days
 
 
-def build_systems(models: List[Tuple[str, str]], trading_days: List[datetime], cash_cfg: Dict[str, float]):
+def build_systems(
+    models: List[Tuple[str, str]],
+    trading_days: List[datetime],
+    cash_cfg: Dict[str, float],
+):
     systems: Dict[str, Dict[str, Any]] = {"polymarket": {}, "stock": {}}
 
     print("Pre-fetching verified markets...")
     from live_trade_bench.fetchers.polymarket_fetcher import fetch_verified_markets
     from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
+
     verified_markets = fetch_verified_markets(trading_days, 5)
     verified_stocks = fetch_trending_stocks(10)
 
@@ -52,18 +60,24 @@ def build_systems(models: List[Tuple[str, str]], trading_days: List[datetime], c
         # 每个模型仍然有独立的system实例（保持并行能力）
         pm = PolymarketPortfolioSystem()
         pm.set_universe(verified_markets)  # 直接设置，不再调用initialize_for_backtest
-        pm.add_agent(name=model_name, initial_cash=cash_cfg["polymarket"], model_name=model_id)
+        pm.add_agent(
+            name=model_name, initial_cash=cash_cfg["polymarket"], model_name=model_id
+        )
         systems["polymarket"][model_name] = pm
 
         st = StockPortfolioSystem()
         st.set_universe(verified_stocks)
-        st.add_agent(name=model_name, initial_cash=cash_cfg["stock"], model_name=model_id)
+        st.add_agent(
+            name=model_name, initial_cash=cash_cfg["stock"], model_name=model_id
+        )
         systems["stock"][model_name] = st
 
     return systems
 
 
-def fetch_shared_data(date_str: str, systems: Dict[str, Dict[str, Any]]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def fetch_shared_data(
+    date_str: str, systems: Dict[str, Dict[str, Any]]
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     market_data: Dict[str, Any] = {"polymarket": {}, "stock": {}}
     news_data: Dict[str, Any] = {"polymarket": {}, "stock": {}}
 
@@ -87,7 +101,9 @@ def fetch_shared_data(date_str: str, systems: Dict[str, Dict[str, Any]]) -> Tupl
     return market_data, news_data
 
 
-def run_day(date_str: str, systems: Dict[str, Dict[str, Any]], parallelism: int) -> Dict[str, str]:
+def run_day(
+    date_str: str, systems: Dict[str, Dict[str, Any]], parallelism: int
+) -> Dict[str, str]:
     print(f"\n===== 📆 {date_str} =====")
     market_data, news_data = fetch_shared_data(date_str, systems)
 
@@ -124,14 +140,20 @@ def run_day(date_str: str, systems: Dict[str, Dict[str, Any]], parallelism: int)
     return statuses
 
 
-def collect_results(systems: Dict[str, Dict[str, Any]], start_date: str, end_date: str) -> Dict[str, Dict[str, Any]]:
+def collect_results(
+    systems: Dict[str, Dict[str, Any]], start_date: str, end_date: str
+) -> Dict[str, Dict[str, Any]]:
     out: Dict[str, Dict[str, Any]] = {"polymarket": {}, "stock": {}}
     for market_type, sysmap in systems.items():
         for agent_name, system in sysmap.items():
             for acc_agent_name, account in system.accounts.items():
                 init_cash = account.initial_cash
                 final_val = account.get_total_value()
-                ret_pct = ((final_val - init_cash) / init_cash * 100) if init_cash > 0 else 0.0
+                ret_pct = (
+                    ((final_val - init_cash) / init_cash * 100)
+                    if init_cash > 0
+                    else 0.0
+                )
                 out[market_type][acc_agent_name] = {
                     "initial_value": init_cash,
                     "final_value": final_val,
@@ -149,7 +171,11 @@ def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, s
             continue
         print(f"\n🎯 {market_type.upper()} RESULTS")
         print("-" * 40)
-        ranked = sorted(bucket.items(), key=lambda x: x[1].get("return_percentage", 0.0), reverse=True)
+        ranked = sorted(
+            bucket.items(),
+            key=lambda x: x[1].get("return_percentage", 0.0),
+            reverse=True,
+        )
         for i, (agent, perf) in enumerate(ranked, 1):
             print(
                 f"   #{i} {agent} ({name_to_id.get(agent, '?')}): "
@@ -178,7 +204,9 @@ def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, s
     print(f"   Polymarket Agents: {len(results.get('polymarket', {}))}")
 
 
-def save_models_data(systems: Dict[str, Dict[str, Any]], out_path: str = "backend/models_data_init.json"):
+def save_models_data(
+    systems: Dict[str, Dict[str, Any]], out_path: str = "backend/models_data_init.json"
+):
     all_models_data = []
     for market_type, sysmap in systems.items():
         for agent_name, system in sysmap.items():
@@ -192,7 +220,9 @@ def save_models_data(systems: Dict[str, Dict[str, Any]], out_path: str = "backen
                 all_models_data.append(_serialize_positions(model_data))
     with open(out_path, "w") as f:
         json.dump(all_models_data, f, indent=4)
-    print(f"\n💾 Saved backtest data → {out_path}  ({len(all_models_data)} model entries)")
+    print(
+        f"\n💾 Saved backtest data → {out_path}  ({len(all_models_data)} model entries)"
+    )
 
 
 def main():

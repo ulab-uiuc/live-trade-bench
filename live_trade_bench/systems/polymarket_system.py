@@ -29,9 +29,7 @@ class PolymarketPortfolioSystem:
         self.set_universe(markets)
 
     def initialize_for_backtest(self, trading_days: List[datetime]):
-        verified_markets = fetch_verified_markets(
-            trading_days, self.universe_size
-        )
+        verified_markets = fetch_verified_markets(trading_days, self.universe_size)
         self.set_universe(verified_markets)
 
     def set_universe(self, markets: List[Dict[str, Any]]):
@@ -59,15 +57,14 @@ class PolymarketPortfolioSystem:
         self.accounts[name] = account
 
     def run_cycle(self, for_date: str | None = None) -> None:
-        
         print(f"\n--- 🔄 Cycle {self.cycle_count + 1} for Polymarket System ---")
         if for_date:
             print(f"--- 📅 Backtest Date: {for_date} ---")
             current_time_str = for_date
         else:
-            print(f"--- 🚀 Live Trading Mode ---")
+            print("--- 🚀 Live Trading Mode ---")
             current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
+
         self.cycle_count += 1
         print("Fetching data for polymarket portfolio...")
 
@@ -78,7 +75,9 @@ class PolymarketPortfolioSystem:
             return
 
         # 2. Fetch news and social media data
-        news_data = self._fetch_news_data(market_data, current_time_str if for_date else None)
+        news_data = self._fetch_news_data(
+            market_data, current_time_str if for_date else None
+        )
 
         # 3. Generate allocations from agents
         allocations = self._generate_allocations(
@@ -86,13 +85,16 @@ class PolymarketPortfolioSystem:
         )
 
         # 4. Update accounts based on allocations
-        self._update_accounts(allocations, market_data, current_time_str if for_date else None)
+        self._update_accounts(
+            allocations, market_data, current_time_str if for_date else None
+        )
 
-
-    def _fetch_market_data(self, for_date: str | None = None) -> Dict[str, Dict[str, Any]]:
+    def _fetch_market_data(
+        self, for_date: str | None = None
+    ) -> Dict[str, Dict[str, Any]]:
         print("  - Fetching market data...")
         market_data_expanded = {}
-        
+
         for market_id in self.universe:
             try:
                 market_info = self.market_info[market_id]
@@ -103,14 +105,14 @@ class PolymarketPortfolioSystem:
 
                 question = market_info["question"]
                 url = market_info.get("url")
-                
+
                 for outcome, token_id in zip(outcomes, token_ids):
                     if not token_id:
                         continue
-                        
+
                     price_data = fetch_market_price_with_history(token_id, for_date)
                     current_price = price_data.get("current_price")
-                    
+
                     if current_price is not None:
                         key = f"{question}_{outcome}"
                         market_data_expanded[key] = {
@@ -121,7 +123,7 @@ class PolymarketPortfolioSystem:
                             "url": url,
                             "price_history": price_data.get("price_history", []),
                         }
-                
+
             except Exception as e:
                 question = self.market_info[market_id].get("question", market_id)
                 print(f"    - Failed to fetch data for '{question[:40]}...': {e}")
@@ -190,23 +192,18 @@ class PolymarketPortfolioSystem:
             start_date = (ref - timedelta(days=3)).strftime("%Y-%m-%d")
             end_date = ref.strftime("%Y-%m-%d")
             for market_id in list(market_data.keys()):
-                question = self.market_info.get(market_id, {}).get(
-                    "question", str(market_id)
-                )
-                query = " ".join(question.split()[:5]) if question else str(market_id)
+                question = market_data[market_id]["question"]
                 news_data_map[market_id] = fetch_news_data(
-                    query, start_date, end_date, max_pages=3, ticker=query, target_date=for_date
+                    question,
+                    start_date,
+                    end_date,
+                    max_pages=1,
+                    ticker=question,
+                    target_date=for_date,
                 )
         except Exception as e:
             print(f"    - News data fetch failed: {e}")
         print("  - ✅ News data fetched")
-        for market_id, news in news_data_map.items():
-            if news:
-                print(f"    - News for {market_id}: {len(news)} articles")
-                for i, article in enumerate(news[:3]):
-                    print(f"      {i+1}. {article.get('title', 'N/A')[:60]}...")
-            else:
-                print(f"    - News for {market_id}: No articles found")
         return news_data_map
 
     def _generate_allocations(
@@ -279,10 +276,10 @@ class PolymarketPortfolioSystem:
                     llm_input = getattr(agent, "last_llm_input", None)
                     llm_output = getattr(agent, "last_llm_output", None)
                 account.record_allocation(
-                    metadata_map=market_data, 
-                    backtest_date=for_date, 
+                    metadata_map=market_data,
+                    backtest_date=for_date,
                     llm_input=llm_input,
-                    llm_output=llm_output
+                    llm_output=llm_output,
                 )
                 print(
                     f"    - ✅ Account for {agent_name} updated. New Value: ${account.get_total_value():,.2f}, Cash: ${account.cash_balance:,.2f}"
