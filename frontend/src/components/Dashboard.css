@@ -344,8 +344,25 @@
   border-color: rgba(255, 255, 255, 0.15);
 }
 
+/* Trades header responsive text */
+.trades-header-short {
+  display: none;
+}
+
+.trades-header-full {
+  display: inline;
+}
+
 /* Mobile Card Layout */
 @media (max-width: 640px) {
+  .trades-header-full {
+    display: none;
+  }
+
+  .trades-header-short {
+    display: inline;
+  }
+
   .dashboard-container {
     padding: 1rem 0.75rem;
   }
@@ -367,8 +384,8 @@
   .table-header,
   .table-row {
     display: grid !important;
-    grid-template-columns: 40px minmax(0, 1fr) 80px 60px;
-    gap: 0.5rem;
+    grid-template-columns: 40px minmax(0, 1fr) 80px 5px;
+    gap: 0.25rem;
     font-size: 0.85rem;
   }
 
@@ -426,7 +443,7 @@
   .dashboard-title {
     font-size: 3rem;
   }
-  
+
   .dashboard-learn-more {
     font-size: 0.9rem;
   }
@@ -440,8 +457,8 @@
 
   .table-header,
   .table-row {
-    grid-template-columns: 50px 1fr 85px 65px;
-    gap: 0.5rem;
+    grid-template-columns: 50px 1fr 85px 50px;
+    gap: 0.375rem;
   }
 
   .model-name {
