@@ -70,13 +70,13 @@ if POLYMARKET_MOCK_MODE == MockMode.NONE:
     for display_name, model_id in get_base_model_configs():
         polymarket_system.add_agent(display_name, 500.0, model_id)
 
-stock_system.initialize_for_live()
-polymarket_system.initialize_for_live()
-
 # 🆕 加载历史数据到Account内存中
 print("🔄 Loading historical data to account memory...")
 load_historical_data_to_accounts(stock_system, polymarket_system)
 print("✅ Historical data loading completed")
+
+stock_system.initialize_for_live()
+polymarket_system.initialize_for_live()
 
 
 def get_stock_system():
