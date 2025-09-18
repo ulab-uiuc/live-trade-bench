@@ -94,7 +94,7 @@ class PolymarketFetcher(BaseFetcher):
         markets = self._fetch_markets(params)
         verified: List[Dict[str, Any]] = []
         event_slugs = set()
-        for m in markets[15:]:
+        for m in markets:
             if not isinstance(m, dict) or not m.get("id"):
                 continue
             raw_token_ids = m.get("clobTokenIds", [])
@@ -248,7 +248,6 @@ class PolymarketFetcher(BaseFetcher):
             points = data.get("history", []) if isinstance(data, dict) else []
             filtered_points = []
             for p in points:
-                # 过滤在时间范围内的数据点
                 if p['t'] < int(cur.timestamp()) or p['t'] > int(end.timestamp()):
                     continue
                 filtered_points.append(p)
