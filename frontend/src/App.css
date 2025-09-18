@@ -2,6 +2,8 @@
   background-color: #0f1419;
   min-height: 100vh;
   position: relative;
+  padding-top: 80px;
+  /* 为固定导航栏留出空间 */
 }
 
 /* Navigation Bar - Mobile-First Design */
@@ -9,8 +11,11 @@
   background-color: #0f1419;
   border-bottom: 1px solid #374151;
   padding: 1rem;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   z-index: 9999 !important;
 }
 
@@ -186,7 +191,7 @@
   border-left: 1px solid #374151;
   padding: 0;
   transition: right 0.3s ease;
-  z-index: 9998;
+  z-index: 10000;
 }
 
 .mobile-nav.open {
@@ -280,11 +285,16 @@
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 9997;
+  z-index: 9999;
 }
 
 /* Mobile First - 移动端隐藏桌面导航，显示汉堡菜单 */
 @media (max-width: 767px) {
+  .App {
+    padding-top: 70px;
+    /* 移动端导航栏高度较小 */
+  }
+
   .desktop-nav {
     display: none !important;
   }
@@ -296,6 +306,11 @@
 
 /* Responsive Design - 桌面端 */
 @media (min-width: 768px) {
+  .App {
+    padding-top: 90px;
+    /* 桌面端导航栏高度较大 */
+  }
+
   .navigation {
     padding: 1.25rem 2rem;
   }
