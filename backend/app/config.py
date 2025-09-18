@@ -110,10 +110,6 @@ def get_data_file_path(file_type: str) -> str:
     return mapping[file_type]
 
 
-def get_current_est_time() -> datetime:
-    return datetime.now(pytz.timezone("US/Eastern"))
-
-
 def is_trading_day() -> bool:
     utc_now = datetime.now(pytz.UTC)
     est_now = utc_now.astimezone(pytz.timezone("US/Eastern"))
@@ -127,8 +123,18 @@ def should_run_trading_cycle() -> bool:
     utc_now = datetime.now(pytz.UTC)
     current_utc_time = utc_now.time()
 
-    run_window_start = time(19, 55)  # UTC 19:55
-    run_window_end = time(21, 5)  # UTC 21:05
+    est_now = utc_now.astimezone(pytz.timezone("US/Eastern"))
+
+    from datetime import timedelta
+
+    is_dst = est_now.dst() != timedelta(0)
+
+    if is_dst:
+        run_window_start = time(18, 55)  # UTC 18:55 (美东 2:55 PM EDT)
+        run_window_end = time(20, 5)  # UTC 20:05 (美东 4:05 PM EDT)
+    else:
+        run_window_start = time(19, 55)  # UTC 19:55 (美东 2:55 PM EST)
+        run_window_end = time(21, 5)  # UTC 21:05 (美东 4:05 PM EST)
 
     return run_window_start <= current_utc_time <= run_window_end
 
