@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
@@ -60,19 +60,40 @@ class PolymarketFetcher(BaseFetcher):
         markets = self._fetch_markets(params)
         out: List[Dict[str, Any]] = []
         for m in markets[:limit]:
-            event_slug = m['events'][0]['slug']
+            event_slug = m["events"][0]["slug"]
             if isinstance(m, dict) and m.get("id"):
                 # Generate real URL from slug if available
                 url = m.get("url")
                 if not url and m.get("slug"):
                     url = f"https://polymarket.com/event/{event_slug}"
 
+                # Parse JSON strings for token_ids and outcomes
+                token_ids = m.get("clobTokenIds", [])
+                outcomes = m.get("outcomes", [])
+
+                if isinstance(token_ids, str):
+                    try:
+                        import json
+
+                        token_ids = json.loads(token_ids)
+                    except Exception:
+                        token_ids = []
+
+                if isinstance(outcomes, str):
+                    try:
+                        import json
+
+                        outcomes = json.loads(outcomes)
+                    except Exception:
+                        outcomes = []
+
                 out.append(
                     {
                         "id": m.get("id"),
                         "question": m.get("question"),
                         "category": m.get("category"),
-                        "token_ids": m.get("clobTokenIds", []),
+                        "token_ids": token_ids,
+                        "outcomes": outcomes,
                         "event_slug": event_slug,
                         "url": url,
                     }
@@ -99,8 +120,8 @@ class PolymarketFetcher(BaseFetcher):
                 continue
             raw_token_ids = m.get("clobTokenIds", [])
             raw_outcomes = m.get("outcomes", [])
-            event_slug = m['events'][0]['slug']
-            if event_slug in event_slugs: # if the same big market, skip
+            event_slug = m["events"][0]["slug"]
+            if event_slug in event_slugs:  # if the same big market, skip
                 print("same big market: {}".format(m.get("question")))
                 continue
             if isinstance(raw_token_ids, str):
@@ -109,8 +130,13 @@ class PolymarketFetcher(BaseFetcher):
 
                     token_ids = json.loads(raw_token_ids)
                     outcomes = json.loads(raw_outcomes)
-                    if outcomes != ['Yes', 'No']: # if the outcomes are not Yes and No, skip
-                        print("outcomes are not Yes and No: {}".format(m.get("question")))
+                    if outcomes != [
+                        "Yes",
+                        "No",
+                    ]:  # if the outcomes are not Yes and No, skip
+                        print(
+                            "outcomes are not Yes and No: {}".format(m.get("question"))
+                        )
                         continue
                 except Exception:
                     token_ids = []
@@ -135,7 +161,7 @@ class PolymarketFetcher(BaseFetcher):
                 if not url and m.get("slug"):
                     url = f"https://polymarket.com/event/{event_slug}"
 
-                prices = [p['price'] for p in history]
+                prices = [p["price"] for p in history]
                 max_price = max(prices)
                 min_price = min(prices)
                 if abs(max_price - min_price) < threshold:
@@ -181,7 +207,7 @@ class PolymarketFetcher(BaseFetcher):
             token_id,
             start_date.strftime("%Y-%m-%d"),
             end_date.strftime("%Y-%m-%d"),
-            fidelity=1440
+            fidelity=1440,
         )
         current_price: Optional[float] = None
         if date:
@@ -231,8 +257,12 @@ class PolymarketFetcher(BaseFetcher):
         self, token_id: str, start_date: str, end_date: str, fidelity: int = 1440
     ) -> List[Dict[str, Any]]:
         url = "https://clob.polymarket.com/prices-history"
-        cur = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, tzinfo=timezone.utc)
-        end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
+        cur = datetime.strptime(start_date, "%Y-%m-%d").replace(
+            hour=0, minute=0, second=0, tzinfo=timezone.utc
+        )
+        end = datetime.strptime(end_date, "%Y-%m-%d").replace(
+            hour=23, minute=59, second=59, tzinfo=timezone.utc
+        )
         resp = self.make_request(
             url,
             params={
@@ -248,12 +278,15 @@ class PolymarketFetcher(BaseFetcher):
             points = data.get("history", []) if isinstance(data, dict) else []
             filtered_points = []
             for p in points:
-                if p['t'] < int(cur.timestamp()) or p['t'] > int(end.timestamp()):
+                if p["t"] < int(cur.timestamp()) or p["t"] > int(end.timestamp()):
                     continue
                 filtered_points.append(p)
 
         out = [
-            {"date": datetime.utcfromtimestamp(p['t']).strftime("%Y-%m-%d"), "price": p['p']}
+            {
+                "date": datetime.utcfromtimestamp(p["t"]).strftime("%Y-%m-%d"),
+                "price": p["p"],
+            }
             for p in filtered_points
         ]
         out.sort(key=lambda x: x["date"])
@@ -278,7 +311,9 @@ def fetch_trending_markets(
 def fetch_verified_markets(
     trading_days: List[datetime], limit: int, threshold: float = 0.2
 ) -> List[Dict[str, Any]]:
-    return PolymarketFetcher().get_verified_markets(trading_days, limit=limit, threshold=threshold)
+    return PolymarketFetcher().get_verified_markets(
+        trading_days, limit=limit, threshold=threshold
+    )
 
 
 def fetch_market_price_with_history(
