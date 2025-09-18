@@ -55,7 +55,7 @@ class StockFetcher(BaseFetcher):
         if date:
             end_date = datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)
         else:
-            end_date = datetime.now(timezone.utc) - timedelta(days=1)
+            end_date = datetime.now(timezone.utc)
 
         start_date = end_date - timedelta(days=10)
 
