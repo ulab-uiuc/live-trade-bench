@@ -18,13 +18,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def get_backtest_config() -> Dict[str, Any]:
     return {
-        "start_date": "2025-08-16",
-        "end_date": "2025-08-18",
+        "start_date": "2025-08-17",
+        "end_date": "2025-09-17",
         "interval_days": 1,
         "initial_cash": {"polymarket": 500.0, "stock": 1000.0},
         "parallelism": int(os.environ.get("LTB_PARALLELISM", "8")),
-        "threshold": 0.0,
-        "market_num": 5,
+        "threshold": 0.2,
+        "market_num": 10,
         "stock_num": 15,
     }
 
