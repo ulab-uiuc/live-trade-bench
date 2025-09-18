@@ -5,6 +5,8 @@ import yfinance as yf
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 
+from datetime import datetime, timedelta, timezone
+
 
 class StockFetcher(BaseFetcher):
     def __init__(self, min_delay: float = 1.0, max_delay: float = 3.0):
@@ -51,10 +53,11 @@ class StockFetcher(BaseFetcher):
         self, ticker: str, date: Optional[str] = None
     ) -> Dict[str, Any]:
         if date:
-            end_date = datetime.strptime(date, "%Y-%m-%d")
+            end_date = datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)
         else:
-            end_date = datetime.now()
-        start_date = end_date - timedelta(days=20)
+            end_date = datetime.now(timezone.utc)
+
+        start_date = end_date - timedelta(days=10)
 
         price_data = self._download_price_data(
             ticker,
@@ -83,10 +86,12 @@ class StockFetcher(BaseFetcher):
     def _download_price_data(
         self, ticker: str, start_date: str, end_date: str, interval: str
     ) -> Any:
+        # NOTE: it actually does not include the end_date, so we need to add 1 day
+        # yfinance is [start_date, end_date)
         df = yf.download(
             tickers=ticker,
             start=start_date,
-            end=end_date,
+            end=(datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d"),
             interval=interval,
             progress=False,
             auto_adjust=True,

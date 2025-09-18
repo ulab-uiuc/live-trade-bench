@@ -80,7 +80,7 @@ class PolymarketFetcher(BaseFetcher):
         return out
 
     def get_verified_markets(
-        self, trading_days: List[datetime], limit: int
+        self, trading_days: List[datetime], limit: int, threshold: float = 0.2
     ) -> List[Dict[str, Any]]:
         if not trading_days:
             return []
@@ -138,7 +138,7 @@ class PolymarketFetcher(BaseFetcher):
                 prices = [p['price'] for p in history]
                 max_price = max(prices)
                 min_price = min(prices)
-                if abs(max_price - min_price) < 0.2:
+                if abs(max_price - min_price) < threshold:
                     print("price range is too small: {}".format(m.get("question")))
                     continue
 
@@ -169,15 +169,19 @@ class PolymarketFetcher(BaseFetcher):
     def get_price_with_history(
         self, token_id: str, date: Optional[str] = None, side: str = "buy"
     ) -> Dict[str, Any]:
-        ref_dt = (
-            datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-            if date
-            else datetime.now(timezone.utc)
-        )
-        end_date = ref_dt.strftime("%Y-%m-%d")
-        start_date = (ref_dt - timedelta(days=10)).strftime("%Y-%m-%d")
+        # we go back 1 day to avoid data leakage
+        if date:
+            end_date = datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)
+        else:
+            end_date = datetime.now(timezone.utc)
+
+        start_date = end_date - timedelta(days=10)
+
         history = self._fetch_daily_history(
-            token_id, start_date, end_date, fidelity=1440
+            token_id,
+            start_date.strftime("%Y-%m-%d"),
+            end_date.strftime("%Y-%m-%d"),
+            fidelity=1440
         )
         current_price: Optional[float] = None
         if date:
@@ -227,8 +231,8 @@ class PolymarketFetcher(BaseFetcher):
         self, token_id: str, start_date: str, end_date: str, fidelity: int = 1440
     ) -> List[Dict[str, Any]]:
         url = "https://clob.polymarket.com/prices-history"
-        cur = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-        end = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        cur = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, tzinfo=timezone.utc)
+        end = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
         resp = self.make_request(
             url,
             params={
@@ -272,9 +276,9 @@ def fetch_trending_markets(
 
 
 def fetch_verified_markets(
-    trading_days: List[datetime], limit: int
+    trading_days: List[datetime], limit: int, threshold: float = 0.2
 ) -> List[Dict[str, Any]]:
-    return PolymarketFetcher().get_verified_markets(trading_days, limit=limit)
+    return PolymarketFetcher().get_verified_markets(trading_days, limit=limit, threshold=threshold)
 
 
 def fetch_market_price_with_history(

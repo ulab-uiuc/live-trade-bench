@@ -18,11 +18,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def get_backtest_config() -> Dict[str, Any]:
     return {
-        "start_date": "2025-08-16",
-        "end_date": "2025-09-16",
+        "start_date": "2025-08-17",
+        "end_date": "2025-09-17",
         "interval_days": 1,
         "initial_cash": {"polymarket": 500.0, "stock": 1000.0},
         "parallelism": int(os.environ.get("LTB_PARALLELISM", "8")),
+        "threshold": 0.2,
+        "market_num": 10,
+        "stock_num": 15,
     }
 
 
@@ -48,18 +51,21 @@ def build_systems(
     cash_cfg: Dict[str, float],
     run_polymarket: bool = False,
     run_stock: bool = True,
+    threshold: float = 0.2,
+    market_num: int = 5,
+    stock_num: int = 15,
 ):
     systems: Dict[str, Dict[str, Any]] = {"polymarket": {}, "stock": {}}
 
     if run_polymarket:
         print("Pre-fetching verified markets...")
         from live_trade_bench.fetchers.polymarket_fetcher import fetch_verified_markets
-        verified_markets = fetch_verified_markets(trading_days, 5)
+        verified_markets = fetch_verified_markets(trading_days, limit=market_num, threshold=threshold)
 
     if run_stock:
         print("Pre-fetching stock data...")
         from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
-        verified_stocks = fetch_trending_stocks(15)
+        verified_stocks = fetch_trending_stocks(stock_num)
 
     for model_name, model_id in models:
         if run_polymarket:
@@ -246,7 +252,7 @@ def main():
     models = get_base_model_configs()
 
     run_polymarket = True
-    run_stock = False
+    run_stock = True
     market_count = sum([run_polymarket, run_stock])
     market_names = []
     if run_stock:
@@ -259,7 +265,14 @@ def main():
     print(f"📅 Trading days: {len(days)}  ({cfg['start_date']} → {cfg['end_date']})")
     print(f"⚙️  Parallelism: {cfg['parallelism']} (env LTB_PARALLELISM)")
 
-    systems = build_systems(models, days, cfg["initial_cash"], run_polymarket=run_polymarket, run_stock=run_stock)
+    systems = build_systems(
+        models, days, cfg["initial_cash"], 
+        run_polymarket=run_polymarket, 
+        run_stock=run_stock, 
+        threshold=cfg["threshold"],
+        market_num=cfg["market_num"],
+        stock_num=cfg["stock_num"]
+    )
 
     for i, d in enumerate(days, 1):
         date_str = d.strftime("%Y-%m-%d")
