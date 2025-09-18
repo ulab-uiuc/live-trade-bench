@@ -145,7 +145,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     const padding = 40;
 
     const chartData = useMemo(() => Array.isArray(data) ? data.slice(-30) : [], [data]);
-    
+
     // Get color based on category
     const getChartColor = (category: string) => {
       switch (category) {
@@ -157,13 +157,15 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           return '#3b82f6'; // Blue as default
       }
     };
-    
+
     const chartColor = getChartColor(category);
+
+    const initialCash = category === 'stock' ? 1000 : 500;
 
     const { maxPerformance, minPerformance, range, pathData } = useMemo(() => {
       // Ensure data is an array before mapping
       const validData = chartData;
-      const performances = validData.map(d => (d.profit / d.totalValue) * 100 || 0);
+      const performances = validData.map(d => (d.profit / initialCash) * 100 || 0);
 
       const maxP = performances.length > 0 ? Math.max(...performances) : 0;
       const minP = performances.length > 0 ? Math.min(...performances) : 0;
@@ -172,12 +174,12 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       let path;
       if (validData.length === 1) {
         // If only one point, draw a horizontal line across the chart
-        const performance = (validData[0].profit / validData[0].totalValue) * 100 || 0;
+        const performance = (validData[0].profit / initialCash) * 100 || 0;
         const y = margin.top + ((maxP - performance) / r) * (chartHeight - 2 * margin.top);
         path = `M ${margin.left},${y} L ${chartWidth - margin.right},${y}`;
       } else {
         path = validData.map((point, index) => {
-          const performance = (point.profit / point.totalValue) * 100 || 0;
+          const performance = (point.profit / initialCash) * 100 || 0;
           const x = margin.left + (index / (validData.length - 1)) * (chartWidth - margin.left - margin.right);
           const y = margin.top + ((maxP - performance) / r) * (chartHeight - 2 * margin.top);
           return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
@@ -185,7 +187,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       }
 
       return { maxPerformance: maxP, minPerformance: minP, range: r, pathData: path };
-    }, [chartData, margin.left, margin.right, margin.top, chartWidth, chartHeight]);
+    }, [chartData, margin.left, margin.right, margin.top, chartWidth, chartHeight, category]);
 
     if (chartData.length === 0) {
       return (
@@ -203,161 +205,161 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
         <h3 style={{ color: '#ffffff', fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', textAlign: 'center' }}>
           Profit History
         </h3>
-        
+
         <div style={{ display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
-          <svg 
-            width={chartWidth} 
-            height={chartHeight + margin.top + margin.bottom} 
-            className="chart-svg" 
+          <svg
+            width={chartWidth}
+            height={chartHeight + margin.top + margin.bottom}
+            className="chart-svg"
             onMouseLeave={handleMouseLeave}
             style={{
               shapeRendering: 'crispEdges',
               vectorEffect: 'non-scaling-stroke'
             }}
           >
-          {/* Background and Y-Axis Grid */}
-          <defs>
-            <linearGradient id="profitChartBackground" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#334155" stopOpacity="0.1" />
-              <stop offset="100%" stopColor="#1e293b" stopOpacity="0.3" />
-            </linearGradient>
-          </defs>
-          <rect x={margin.left} y={margin.top} width={chartWidth - margin.left - margin.right} height={chartHeight} fill="url(#profitChartBackground)" rx="8" />
-          
-          {/* Background Grid */}
-          {(() => {
-            const gridElements = [];
-            
-            // Horizontal grid lines based on performance range
-            const hStep = range / 5; // 5 horizontal grid lines
-            for (let i = 0; i <= 5; i++) {
-              const value = minPerformance + (i * hStep);
-              const y = margin.top + ((maxPerformance - value) / range) * (chartHeight - 2 * margin.top);
-              gridElements.push(
-                <g key={`h-${i}`}>
-                  <line 
-                    x1={margin.left} 
-                    y1={y} 
-                    x2={chartWidth - margin.right} 
-                    y2={y} 
-                    stroke={i === 0 || i === 5 ? "#6b7280" : "#9ca3af"} 
-                    strokeWidth={i === 0 || i === 5 ? "1" : "0.5"} 
-                    strokeOpacity={i === 0 || i === 5 ? "0.8" : "0.6"} 
-                    strokeDasharray={i === 0 || i === 5 ? "none" : "2,2"} 
-                  />
-                  <text 
-                    x={margin.left - 15} 
-                    y={y + 4} 
-                    fill="#d1d5db" 
-                    fontSize="11" 
-                    fontWeight="500" 
-                    textAnchor="end"
-                  >
-                    {value.toFixed(1)}%
-                  </text>
-                </g>
-              );
-            }
-            
-            // Vertical grid lines based on data points
-            if (chartData.length > 1) {
-              const vStep = Math.max(1, Math.floor(chartData.length / 6)); // 6 vertical grid lines
-              for (let i = 0; i < chartData.length; i += vStep) {
-                const x = margin.left + (i / (chartData.length - 1)) * (chartWidth - margin.left - margin.right);
+            {/* Background and Y-Axis Grid */}
+            <defs>
+              <linearGradient id="profitChartBackground" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#334155" stopOpacity="0.1" />
+                <stop offset="100%" stopColor="#1e293b" stopOpacity="0.3" />
+              </linearGradient>
+            </defs>
+            <rect x={margin.left} y={margin.top} width={chartWidth - margin.left - margin.right} height={chartHeight} fill="url(#profitChartBackground)" rx="8" />
+
+            {/* Background Grid */}
+            {(() => {
+              const gridElements = [];
+
+              // Horizontal grid lines based on performance range
+              const hStep = range / 5; // 5 horizontal grid lines
+              for (let i = 0; i <= 5; i++) {
+                const value = minPerformance + (i * hStep);
+                const y = margin.top + ((maxPerformance - value) / range) * (chartHeight - 2 * margin.top);
                 gridElements.push(
-                  <line 
-                    key={`v-${i}`}
-                    x1={x} 
-                    y1={margin.top} 
-                    x2={x} 
-                    y2={margin.top + chartHeight} 
-                    stroke="#9ca3af" 
-                    strokeWidth="0.5" 
-                    strokeOpacity="0.6" 
-                    strokeDasharray="2,2" 
-                  />
+                  <g key={`h-${i}`}>
+                    <line
+                      x1={margin.left}
+                      y1={y}
+                      x2={chartWidth - margin.right}
+                      y2={y}
+                      stroke={i === 0 || i === 5 ? "#6b7280" : "#9ca3af"}
+                      strokeWidth={i === 0 || i === 5 ? "1" : "0.5"}
+                      strokeOpacity={i === 0 || i === 5 ? "0.8" : "0.6"}
+                      strokeDasharray={i === 0 || i === 5 ? "none" : "2,2"}
+                    />
+                    <text
+                      x={margin.left - 15}
+                      y={y + 4}
+                      fill="#d1d5db"
+                      fontSize="11"
+                      fontWeight="500"
+                      textAnchor="end"
+                    >
+                      {value.toFixed(1)}%
+                    </text>
+                  </g>
                 );
               }
-            }
-            
-            return gridElements;
-          })()}
 
-          {/* Zero line */}
-          {minPerformance < 0 && maxPerformance > 0 && (
-            <line
-              x1={margin.left}
-              y1={margin.top + (maxPerformance / range) * (chartHeight - 2 * margin.top)}
-              x2={chartWidth - margin.right}
-              y2={margin.top + (maxPerformance / range) * (chartHeight - 2 * margin.top)}
-              stroke="#6b7280"
-              strokeWidth="1"
-              strokeDasharray="5,5"
-            />
-          )}
+              // Vertical grid lines based on data points
+              if (chartData.length > 1) {
+                const vStep = Math.max(1, Math.floor(chartData.length / 6)); // 6 vertical grid lines
+                for (let i = 0; i < chartData.length; i += vStep) {
+                  const x = margin.left + (i / (chartData.length - 1)) * (chartWidth - margin.left - margin.right);
+                  gridElements.push(
+                    <line
+                      key={`v-${i}`}
+                      x1={x}
+                      y1={margin.top}
+                      x2={x}
+                      y2={margin.top + chartHeight}
+                      stroke="#9ca3af"
+                      strokeWidth="0.5"
+                      strokeOpacity="0.6"
+                      strokeDasharray="2,2"
+                    />
+                  );
+                }
+              }
 
-          {/* Profit line */}
-          <path
-            d={pathData}
-            fill="none"
-            stroke={chartColor}
-            strokeWidth="2"
-          />
+              return gridElements;
+            })()}
 
-          {/* Data points */}
-          {chartData.map((point, index) => {
-            const performance = (point.profit / point.totalValue) * 100 || 0;
-            const x = margin.left + (index / (chartData.length - 1)) * (chartWidth - margin.left - margin.right);
-            const y = margin.top + ((maxPerformance - performance) / range) * (chartHeight - 2 * margin.top);
-            return (
-              <circle
-                key={index}
-                cx={x}
-                cy={y}
-                r="3"
-                fill={chartColor}
-                stroke={chartColor}
+            {/* Zero line */}
+            {minPerformance < 0 && maxPerformance > 0 && (
+              <line
+                x1={margin.left}
+                y1={margin.top + (maxPerformance / range) * (chartHeight - 2 * margin.top)}
+                x2={chartWidth - margin.right}
+                y2={margin.top + (maxPerformance / range) * (chartHeight - 2 * margin.top)}
+                stroke="#6b7280"
                 strokeWidth="1"
-                style={{ cursor: 'pointer' }}
-                onMouseMove={(e) => {
-                  const date = new Date(point.timestamp).toLocaleString('zh-CN', {
-                    year: 'numeric', month: '2-digit', day: '2-digit',
-                    hour: '2-digit', minute: '2-digit', hour12: false
-                  }).replace(/\//g, '-').replace(',', '');
-                  handleMouseMove(e, `Date: ${date} | Performance: ${performance.toFixed(2)}%`);
-                }}
-                onMouseLeave={handleMouseLeave}
+                strokeDasharray="5,5"
               />
-            );
-          })}
+            )}
+
+            {/* Profit line */}
+            <path
+              d={pathData}
+              fill="none"
+              stroke={chartColor}
+              strokeWidth="2"
+            />
+
+            {/* Data points */}
+            {chartData.map((point, index) => {
+              const performance = (point.profit / initialCash) * 100 || 0;
+              const x = margin.left + (index / (chartData.length - 1)) * (chartWidth - margin.left - margin.right);
+              const y = margin.top + ((maxPerformance - performance) / range) * (chartHeight - 2 * margin.top);
+              return (
+                <circle
+                  key={index}
+                  cx={x}
+                  cy={y}
+                  r="3"
+                  fill={chartColor}
+                  stroke={chartColor}
+                  strokeWidth="1"
+                  style={{ cursor: 'pointer' }}
+                  onMouseMove={(e) => {
+                    const date = new Date(point.timestamp).toLocaleString('zh-CN', {
+                      year: 'numeric', month: '2-digit', day: '2-digit',
+                      hour: '2-digit', minute: '2-digit', hour12: false
+                    }).replace(/\//g, '-').replace(',', '');
+                    handleMouseMove(e, `Date: ${date} | Performance: ${performance.toFixed(2)}%`);
+                  }}
+                  onMouseLeave={handleMouseLeave}
+                />
+              );
+            })}
 
 
-          {/* X-axis labels (using timestamp) */}
-          {chartData.map((point, index) => {
-            // Show fewer labels if there are many data points
-            if (chartData.length > 10 && index % Math.floor(chartData.length / 5) !== 0) {
-              return null;
-            }
-            const x = margin.left + (index / (chartData.length - 1)) * (chartWidth - margin.left - margin.right);
-            
-            // Format timestamp for display
-            let dateLabel = '';
-            if (point.timestamp) {
-              const date = new Date(point.timestamp);
-              dateLabel = date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric'
-              });
-            } else {
-              dateLabel = `${index + 1}`;
-            }
-            
-            return (
-              <text key={index} x={x} y={chartHeight + margin.top + 20} fill="#9ca3af" fontSize="10" textAnchor="middle">
-                {dateLabel}
-              </text>
-            );
-          })}
+            {/* X-axis labels (using timestamp) */}
+            {chartData.map((point, index) => {
+              // Show fewer labels if there are many data points
+              if (chartData.length > 10 && index % Math.floor(chartData.length / 5) !== 0) {
+                return null;
+              }
+              const x = margin.left + (index / (chartData.length - 1)) * (chartWidth - margin.left - margin.right);
+
+              // Format timestamp for display
+              let dateLabel = '';
+              if (point.timestamp) {
+                const date = new Date(point.timestamp);
+                dateLabel = date.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric'
+                });
+              } else {
+                dateLabel = `${index + 1}`;
+              }
+
+              return (
+                <text key={index} x={x} y={chartHeight + margin.top + 20} fill="#9ca3af" fontSize="10" textAnchor="middle">
+                  {dateLabel}
+                </text>
+              );
+            })}
           </svg>
         </div>
 
@@ -975,28 +977,28 @@ const AssetRatioChart: React.FC<{
           {/* Background Grid */}
           {(() => {
             const gridElements = [];
-            
+
             // Horizontal grid lines
             [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach((value, index) => {
               const y = margin.top + chartHeight - (value * chartHeight);
               gridElements.push(
                 <g key={`h-${index}`}>
-                  <line 
-                    x1={margin.left} 
-                    y1={y} 
-                    x2={chartWidth - margin.right} 
-                    y2={y} 
-                    stroke={value === 0 ? "#475569" : "#374151"} 
-                    strokeWidth={value === 0 ? "1.5" : "0.5"} 
-                    strokeOpacity={value === 0 ? "0.8" : "0.3"} 
-                    strokeDasharray={value === 0 ? "none" : "3,3"} 
+                  <line
+                    x1={margin.left}
+                    y1={y}
+                    x2={chartWidth - margin.right}
+                    y2={y}
+                    stroke={value === 0 ? "#475569" : "#374151"}
+                    strokeWidth={value === 0 ? "1.5" : "0.5"}
+                    strokeOpacity={value === 0 ? "0.8" : "0.3"}
+                    strokeDasharray={value === 0 ? "none" : "3,3"}
                   />
-                  <text 
-                    x={margin.left - 15} 
-                    y={y + 4} 
-                    fill="#d1d5db" 
-                    fontSize="11" 
-                    fontWeight="500" 
+                  <text
+                    x={margin.left - 15}
+                    y={y + 4}
+                    fill="#d1d5db"
+                    fontSize="11"
+                    fontWeight="500"
                     textAnchor="end"
                   >
                     {(value * 100).toFixed(0)}%
@@ -1004,26 +1006,26 @@ const AssetRatioChart: React.FC<{
                 </g>
               );
             });
-            
+
             // Vertical grid lines based on data points
             const vStep = Math.max(1, Math.floor(chartData.length / 6)); // 6 vertical grid lines
             for (let i = 0; i < chartData.length; i += vStep) {
               const x = margin.left + (i / (chartData.length - 1)) * (chartWidth - margin.left - margin.right);
               gridElements.push(
-                <line 
+                <line
                   key={`v-${i}`}
-                  x1={x} 
-                  y1={margin.top} 
-                  x2={x} 
-                  y2={margin.top + chartHeight} 
-                  stroke="#374151" 
-                  strokeWidth="0.5" 
-                  strokeOpacity="0.2" 
-                  strokeDasharray="2,2" 
+                  x1={x}
+                  y1={margin.top}
+                  x2={x}
+                  y2={margin.top + chartHeight}
+                  stroke="#374151"
+                  strokeWidth="0.5"
+                  strokeOpacity="0.2"
+                  strokeDasharray="2,2"
                 />
               );
             }
-            
+
             return gridElements;
           })()}
 
@@ -1080,7 +1082,7 @@ const AssetRatioChart: React.FC<{
             }
             const xRatio = chartData.length > 1 ? index / (chartData.length - 1) : 0.5;
             const x = margin.left + xRatio * (chartWidth - margin.left - margin.right);
-            
+
             // Format timestamp for display
             let dateLabel = '';
             if (dataPoint.timestamp) {
@@ -1092,7 +1094,7 @@ const AssetRatioChart: React.FC<{
             } else {
               dateLabel = `${index + 1}`;
             }
-            
+
             return (
               <text key={index} x={x} y={chartHeight + margin.top + 20} fill="#9ca3af" fontSize="10" textAnchor="middle">
                 {dateLabel}
