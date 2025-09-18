@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def get_backtest_config() -> Dict[str, Any]:
     return {
-        "start_date": "2025-08-16",
+        "start_date": "2025-09-16",
         "end_date": "2025-09-16",
         "interval_days": 1,
         "initial_cash": {"polymarket": 500.0, "stock": 1000.0},
@@ -54,7 +54,7 @@ def build_systems(
     if run_polymarket:
         print("Pre-fetching verified markets...")
         from live_trade_bench.fetchers.polymarket_fetcher import fetch_verified_markets
-        verified_markets = fetch_verified_markets(trading_days, 5)
+        verified_markets = fetch_verified_markets(trading_days, limit=5, threshold=0.0)
 
     if run_stock:
         print("Pre-fetching stock data...")

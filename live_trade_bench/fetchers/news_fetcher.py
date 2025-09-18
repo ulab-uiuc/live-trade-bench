@@ -128,7 +128,7 @@ def fetch_news_data(
     target_date: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     fetcher = NewsFetcher()
-    print(f"  - News fetcher: Query for news '{query}'")
+    print(f"  - News fetcher with query '{query}'")
     news_items = fetcher.fetch(query, start_date, end_date, max_pages)
 
     if ticker:
