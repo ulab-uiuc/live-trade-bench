@@ -87,31 +87,66 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
           Track real-time social media discussions about stocks and polymarkets.
         </p>
         <div className="social-media-controls">
-          <div className="social-media-category-tabs">
-            {(['stock', 'polymarket'] as const).map((market) => (
-              <button
-                key={market}
-                onClick={() => setActiveCategory(market)}
-                className={activeCategory === market ? 'active' : ''}
+          {/* Mobile Layout */}
+          <div className="social-media-controls-mobile">
+            <div className="social-media-controls-top-row">
+              <div className="social-media-category-tabs">
+                {(['stock', 'polymarket'] as const).map((market) => (
+                  <button
+                    key={market}
+                    onClick={() => setActiveCategory(market)}
+                    className={activeCategory === market ? 'active' : ''}
+                  >
+                    {market === 'stock' ? 'Stock' : 'Polymarket'}
+                  </button>
+                ))}
+              </div>
+
+              <div className="social-media-sort-controls">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'ticker' | 'time')}
+                  className="social-media-sort-control"
+                >
+                  <option value="time">Sort by Time</option>
+                  <option value="ticker">Sort by Ticker A-Z</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="social-media-stats">
+              {posts.length} posts • Last updated: {lastRefresh.toLocaleTimeString()}
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="social-media-controls-desktop">
+            <div className="social-media-category-tabs">
+              {(['stock', 'polymarket'] as const).map((market) => (
+                <button
+                  key={market}
+                  onClick={() => setActiveCategory(market)}
+                  className={activeCategory === market ? 'active' : ''}
+                >
+                  {market === 'stock' ? 'Stock' : 'Polymarket'}
+                </button>
+              ))}
+            </div>
+
+            <div className="social-media-stats">
+              {posts.length} posts • Last updated: {lastRefresh.toLocaleTimeString()}
+            </div>
+
+            <div className="social-media-sort-controls">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'ticker' | 'time')}
+                className="social-media-sort-control"
               >
-                {market === 'stock' ? 'Stock' : 'Polymarket'}
-              </button>
-            ))}
-          </div>
-
-          <div className="social-media-stats">
-            {posts.length} posts • Last updated: {lastRefresh.toLocaleTimeString()}
-          </div>
-
-          <div className="social-media-sort-controls">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'ticker' | 'time')}
-              className="social-media-sort-control"
-            >
-              <option value="time">Sort by Time</option>
-              <option value="ticker">Sort by Ticker A-Z</option>
-            </select>
+                <option value="time">Sort by Time</option>
+                <option value="ticker">Sort by Ticker A-Z</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
