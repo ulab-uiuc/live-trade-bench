@@ -211,10 +211,10 @@ def startup_event():
     load_backtest_as_initial_data()
 
     # Run all initial data generation in background threads - don't block startup
-    threading.Thread(
-        target=lambda: generate_models_data(stock_system, polymarket_system),
-        daemon=True,
-    ).start()
+    # threading.Thread(
+    #     target=lambda: generate_models_data(stock_system, polymarket_system),
+    #     daemon=True,
+    # ).start()
 
     threading.Thread(target=update_news_data, daemon=True).start()
     threading.Thread(target=update_social_data, daemon=True).start()
