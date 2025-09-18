@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
 import './ModelsDisplay.css';
 import type { Model } from '../types';
 import { getAssetColor, getCashColor } from '../utils/colors';
@@ -139,9 +139,30 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     onMouseMove: (e: React.MouseEvent, content: string) => void;
     onMouseLeave: () => void;
   }) => {
-    const chartWidth = 600;
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [containerWidth, setContainerWidth] = useState(600);
+
+    useEffect(() => {
+      const updateWidth = () => {
+        if (containerRef.current) {
+          const width = containerRef.current.offsetWidth;
+          setContainerWidth(Math.max(300, width - 40)); // 最小300px，留出padding
+        }
+      };
+
+      updateWidth();
+
+      const resizeObserver = new ResizeObserver(updateWidth);
+      if (containerRef.current) {
+        resizeObserver.observe(containerRef.current);
+      }
+
+      return () => resizeObserver.disconnect();
+    }, []);
+
     const chartHeight = 300;
-    const margin = { top: 20, right: 80, bottom: 40, left: 50 };
+    const chartWidth = Math.min(600, containerWidth); // 基于容器宽度，最大600px
+    const margin = { top: 20, right: 12.5, bottom: 40, left: 42.5 };
     const padding = 40;
 
     const chartData = useMemo(() => Array.isArray(data) ? data.slice(-30) : [], [data]);
@@ -201,7 +222,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     }
 
     return (
-      <div style={{ margin: '1rem 0' }} onMouseLeave={handleMouseLeave}>
+      <div ref={containerRef} style={{ margin: '1rem 0' }} onMouseLeave={handleMouseLeave}>
         <h3 style={{ color: '#ffffff', fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', textAlign: 'center' }}>
           Profit History
         </h3>
@@ -827,6 +848,26 @@ const AssetRatioChart: React.FC<{
   onMouseMove: (e: React.MouseEvent, content: string) => void;
   onMouseLeave: () => void;
 }> = ({ allocationHistory, portfolio, category, formatAssetName, onMouseMove, onMouseLeave }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(600);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.offsetWidth;
+        setContainerWidth(Math.max(300, width - 40)); // 最小300px，留出padding
+      }
+    };
+
+    updateWidth();
+
+    const resizeObserver = new ResizeObserver(updateWidth);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => resizeObserver.disconnect();
+  }, []);
 
   // Create unique ID for this chart instance to avoid SVG gradient conflicts
   const chartId = useMemo(() => Math.random().toString(36).substr(2, 9), []);
@@ -948,11 +989,11 @@ const AssetRatioChart: React.FC<{
   }
 
   const chartHeight = 300;
-  const chartWidth = 600;
-  const margin = { top: 20, right: 80, bottom: 40, left: 50 };
+  const chartWidth = Math.min(600, containerWidth); // 基于容器宽度，最大600px
+  const margin = { top: 20, right: 10, bottom: 40, left: 40 };
 
   return (
-    <div style={{ margin: '1rem 0' }}>
+    <div ref={containerRef} style={{ margin: '1rem 0' }}>
       <h3 style={{ color: '#ffffff', fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', textAlign: 'center' }}>
         Asset Allocation History
       </h3>
@@ -994,7 +1035,7 @@ const AssetRatioChart: React.FC<{
                     strokeDasharray={value === 0 ? "none" : "3,3"}
                   />
                   <text
-                    x={margin.left - 15}
+                    x={margin.left - 10}
                     y={y + 4}
                     fill="#d1d5db"
                     fontSize="11"
