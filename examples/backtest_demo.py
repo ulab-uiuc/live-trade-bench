@@ -54,7 +54,7 @@ def build_systems(
     if run_polymarket:
         print("Pre-fetching verified markets...")
         from live_trade_bench.fetchers.polymarket_fetcher import fetch_verified_markets
-        verified_markets = fetch_verified_markets(trading_days, 10)
+        verified_markets = fetch_verified_markets(trading_days, 5)
 
     if run_stock:
         print("Pre-fetching stock data...")
@@ -245,8 +245,8 @@ def main():
     cfg = get_backtest_config()
     models = get_base_model_configs()
 
-    run_polymarket = False
-    run_stock = True
+    run_polymarket = True
+    run_stock = False
     market_count = sum([run_polymarket, run_stock])
     market_names = []
     if run_stock:

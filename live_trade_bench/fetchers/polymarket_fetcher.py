@@ -60,11 +60,12 @@ class PolymarketFetcher(BaseFetcher):
         markets = self._fetch_markets(params)
         out: List[Dict[str, Any]] = []
         for m in markets[:limit]:
+            event_slug = m['events'][0]['slug']
             if isinstance(m, dict) and m.get("id"):
                 # Generate real URL from slug if available
                 url = m.get("url")
                 if not url and m.get("slug"):
-                    url = f"https://polymarket.com/event/{m.get('slug')}"
+                    url = f"https://polymarket.com/event/{event_slug}"
 
                 out.append(
                     {
@@ -72,7 +73,7 @@ class PolymarketFetcher(BaseFetcher):
                         "question": m.get("question"),
                         "category": m.get("category"),
                         "token_ids": m.get("clobTokenIds", []),
-                        "slug": m.get("slug"),
+                        "event_slug": event_slug,
                         "url": url,
                     }
                 )
@@ -88,21 +89,29 @@ class PolymarketFetcher(BaseFetcher):
         params = {
             "start_date_max": f"{end_date}T23:59:59Z",
             "end_date_min": f"{start_date}T00:00:00Z",
-            "limit": max(limit * 10, 100),
+            "limit": max(limit * 30, 100),
         }
         markets = self._fetch_markets(params)
         verified: List[Dict[str, Any]] = []
-        for m in markets[::6]:
+        event_slugs = set()
+        for m in markets:
             if not isinstance(m, dict) or not m.get("id"):
                 continue
             raw_token_ids = m.get("clobTokenIds", [])
             raw_outcomes = m.get("outcomes", [])
+            event_slug = m['events'][0]['slug']
+            if event_slug in event_slugs: # if the same big market, skip
+                print("same big market: {}".format(m.get("question")))
+                continue
             if isinstance(raw_token_ids, str):
                 try:
                     import json
 
                     token_ids = json.loads(raw_token_ids)
                     outcomes = json.loads(raw_outcomes)
+                    if outcomes != ['Yes', 'No']: # if the outcomes are not Yes and No, skip
+                        print("outcomes are not Yes and No: {}".format(m.get("question")))
+                        continue
                 except Exception:
                     token_ids = []
                     outcomes = []
@@ -115,7 +124,7 @@ class PolymarketFetcher(BaseFetcher):
             for token_id in token_ids[:1]:
                 if token_id:
                     history = self._fetch_daily_history(
-                        token_id, start_date, end_date, fidelity=900
+                        token_id, start_date, end_date, fidelity=1440
                     )
                     if history:
                         has_price_data = True
@@ -124,8 +133,16 @@ class PolymarketFetcher(BaseFetcher):
                 # Generate real URL from slug if available
                 url = m.get("url")
                 if not url and m.get("slug"):
-                    url = f"https://polymarket.com/event/{m.get('slug')}"
+                    url = f"https://polymarket.com/event/{event_slug}"
 
+                prices = [p['price'] for p in history]
+                max_price = max(prices)
+                min_price = min(prices)
+                if abs(max_price - min_price) < 0.2:
+                    print("price range is too small: {}".format(m.get("question")))
+                    continue
+
+                event_slugs.add(event_slug)
                 verified.append(
                     {
                         "id": m.get("id"),
@@ -133,10 +150,11 @@ class PolymarketFetcher(BaseFetcher):
                         "category": m.get("category"),
                         "token_ids": token_ids,
                         "outcomes": outcomes,
-                        "slug": m.get("slug"),
+                        "event_slug": event_slug,
                         "url": url,
                     }
                 )
+                print("verified market: {}".format(m.get("question")))
             if len(verified) >= limit:
                 break
         return verified
@@ -159,7 +177,7 @@ class PolymarketFetcher(BaseFetcher):
         end_date = ref_dt.strftime("%Y-%m-%d")
         start_date = (ref_dt - timedelta(days=10)).strftime("%Y-%m-%d")
         history = self._fetch_daily_history(
-            token_id, start_date, end_date, fidelity=900
+            token_id, start_date, end_date, fidelity=1440
         )
         current_price: Optional[float] = None
         if date:
@@ -206,53 +224,40 @@ class PolymarketFetcher(BaseFetcher):
         return None
 
     def _fetch_daily_history(
-        self, token_id: str, start_date: str, end_date: str, fidelity: int = 900
+        self, token_id: str, start_date: str, end_date: str, fidelity: int = 1440
     ) -> List[Dict[str, Any]]:
         url = "https://clob.polymarket.com/prices-history"
         cur = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         end = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-        day_closes: Dict[str, Tuple[int, float]] = {}
-        while cur <= end:
-            day_start = int(cur.replace(hour=0, minute=0, second=0).timestamp())
-            day_end = int(cur.replace(hour=23, minute=59, second=59).timestamp())
-            try:
-                resp = self.make_request(
-                    url,
-                    params={
-                        "market": token_id,
-                        "startTs": day_start,
-                        "endTs": day_end,
-                        "fidelity": fidelity,
-                    },
-                    timeout=15,
-                )
-                if resp.status_code == 200:
-                    data = self.safe_json_parse(resp, f"History for {token_id}")
-                    points = data.get("history", []) if isinstance(data, dict) else []
-                    for p in points:
-                        if not (isinstance(p, dict) and "t" in p and "p" in p):
-                            continue
-                        ts = int(p["t"])
-                        dstr = datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d")
-                        price = float(p["p"])
-                        if price > 1.0:
-                            price /= 100.0
-                        prev = day_closes.get(dstr)
-                        if prev is None or ts > prev[0]:
-                            day_closes[dstr] = (ts, price)
-            except Exception:
-                pass
-            cur += timedelta(days=1)
+        resp = self.make_request(
+            url,
+            params={
+                "market": token_id,
+                "fidelity": fidelity,
+                "interval": "max",
+            },
+            timeout=15,
+        )
+
+        if resp.status_code == 200:
+            data = self.safe_json_parse(resp, f"History for {token_id}")
+            points = data.get("history", []) if isinstance(data, dict) else []
+            filtered_points = []
+            for p in points:
+                if p['t'] < int(cur.timestamp()) or p['t'] > int(end.timestamp()):
+                    continue
+                filtered_points.append(p)
+
         out = [
-            {"date": d, "price": pr, "token_id": token_id}
-            for d, (_ts, pr) in day_closes.items()
+            {"date": datetime.utcfromtimestamp(p['t']).strftime("%Y-%m-%d"), "price": p['p']}
+            for p in filtered_points
         ]
         out.sort(key=lambda x: x["date"])
         return out
 
     def _get_price_on_date(self, token_id: str, date: str) -> Optional[float]:
         try:
-            hist = self._fetch_daily_history(token_id, date, date, fidelity=900)
+            hist = self._fetch_daily_history(token_id, date, date, fidelity=1440)
             if hist:
                 return float(hist[-1]["price"])
         except Exception:
