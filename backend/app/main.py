@@ -4,7 +4,6 @@ import shutil
 import threading
 from datetime import datetime
 
-import pytz
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException
@@ -162,9 +161,9 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         safe_generate_models_data,
         "cron",
         day_of_week="mon-fri",
-        hour=15,
+        hour=20,  # UTC 20:00 = 3:00 PM EST / 4:00 PM EDT
         minute=0,
-        timezone=pytz.timezone("US/Eastern"),
+        timezone="UTC",
         id="generate_models_data",
         replace_existing=True,
     )
