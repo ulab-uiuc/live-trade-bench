@@ -63,6 +63,7 @@ class NewsFetcher(BaseFetcher):
     ) -> List[Dict[str, Any]]:
         start_fmt, _ = self._normalize_date(start_date)
         end_fmt, ref_date = self._normalize_date(end_date)
+        breakpoint()
 
         results: List[Dict[str, Any]] = []
         for page in range(max_pages):

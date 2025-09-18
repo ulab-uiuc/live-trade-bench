@@ -148,9 +148,11 @@ class StockPortfolioSystem:
         print("  - Fetching news data...")
         news_data_map: Dict[str, Any] = {}
         try:
-            ref = (
-                datetime.strptime(for_date, "%Y-%m-%d") if for_date else datetime.now()
-            )
+            if for_date:
+                ref = datetime.strptime(for_date, "%Y-%m-%d") - timedelta(days=1)
+            else:
+                ref = datetime.now()
+
             start_date = (ref - timedelta(days=3)).strftime("%Y-%m-%d")
             end_date = ref.strftime("%Y-%m-%d")
             for ticker in list(market_data.keys()):
