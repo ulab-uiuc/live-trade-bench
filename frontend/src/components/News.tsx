@@ -81,43 +81,90 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
           Stay updated with the latest news affecting stock and polymarket prices.
         </p>
         <div className="news-controls">
-          <div className="news-category-tabs">
-            {(['stock', 'polymarket'] as const).map((market) => (
-              <button
-                key={market}
-                onClick={() => setActiveCategory(market)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.375rem',
-                  border: 'none',
-                  background: activeCategory === market ? '#6366f1' : 'transparent',
-                  color: activeCategory === market ? '#ffffff' : '#d1d5db',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  fontSize: '0.875rem',
-                  fontWeight: activeCategory === market ? 'bold' : 'normal',
-                  minWidth: '100px',
-                  textAlign: 'center'
-                }}
+          {/* Mobile Layout */}
+          <div className="news-controls-mobile">
+            <div className="news-controls-top-row">
+              <div className="news-category-tabs">
+                {(['stock', 'polymarket'] as const).map((market) => (
+                  <button
+                    key={market}
+                    onClick={() => setActiveCategory(market)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '0.375rem',
+                      border: 'none',
+                      background: activeCategory === market ? '#6366f1' : 'transparent',
+                      color: activeCategory === market ? '#ffffff' : '#d1d5db',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      fontSize: '0.875rem',
+                      fontWeight: activeCategory === market ? 'bold' : 'normal',
+                      minWidth: '100px',
+                      textAlign: 'center'
+                    }}
+                  >
+                    {market === 'stock' ? 'Stock' : 'Polymarket'}
+                  </button>
+                ))}
+              </div>
+
+              <div className="news-sort-controls">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'ticker' | 'time')}
+                  className="news-sort-control"
+                >
+                  <option value="time">Sort by Time</option>
+                  <option value="ticker">Sort by Ticker A-Z</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="news-stats">
+              {sortedNews.length} articles • Last updated: {lastRefresh.toLocaleTimeString()}
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="news-controls-desktop">
+            <div className="news-category-tabs">
+              {(['stock', 'polymarket'] as const).map((market) => (
+                <button
+                  key={market}
+                  onClick={() => setActiveCategory(market)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.375rem',
+                    border: 'none',
+                    background: activeCategory === market ? '#6366f1' : 'transparent',
+                    color: activeCategory === market ? '#ffffff' : '#d1d5db',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    fontSize: '0.875rem',
+                    fontWeight: activeCategory === market ? 'bold' : 'normal',
+                    minWidth: '100px',
+                    textAlign: 'center'
+                  }}
+                >
+                  {market === 'stock' ? 'Stock' : 'Polymarket'}
+                </button>
+              ))}
+            </div>
+
+            <div className="news-stats">
+              {sortedNews.length} articles • Last updated: {lastRefresh.toLocaleTimeString()}
+            </div>
+
+            <div className="news-sort-controls">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'ticker' | 'time')}
+                className="news-sort-control"
               >
-                {market === 'stock' ? 'Stock' : 'Polymarket'}
-              </button>
-            ))}
-          </div>
-
-          <div className="news-stats">
-            {sortedNews.length} articles • Last updated: {lastRefresh.toLocaleTimeString()}
-          </div>
-
-          <div className="news-sort-controls">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'ticker' | 'time')}
-              className="news-sort-control"
-            >
-              <option value="time">Sort by Time</option>
-              <option value="ticker">Sort by Ticker A-Z</option>
-            </select>
+                <option value="time">Sort by Time</option>
+                <option value="ticker">Sort by Ticker A-Z</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
