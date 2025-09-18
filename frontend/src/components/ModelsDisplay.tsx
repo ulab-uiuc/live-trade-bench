@@ -248,7 +248,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                       strokeDasharray={i === 0 || i === 5 ? "none" : "2,2"}
                     />
                     <text
-                      x={margin.left - 15}
+                      x={margin.left - 10}
                       y={y + 4}
                       fill="#d1d5db"
                       fontSize="11"
