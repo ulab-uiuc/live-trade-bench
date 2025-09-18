@@ -209,13 +209,14 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
         <div style={{ display: 'flex', justifyContent: 'center', overflowX: 'auto', width: '100%' }}>
           <svg
             width="100%"
-            height={chartHeight + margin.top + margin.bottom}
+            height="auto"
             viewBox={`0 0 ${chartWidth} ${chartHeight + margin.top + margin.bottom}`}
             preserveAspectRatio="xMidYMid meet"
             className="chart-svg"
             onMouseLeave={handleMouseLeave}
             style={{
               maxWidth: `${chartWidth}px`,
+              minWidth: '300px',
               shapeRendering: 'crispEdges',
               vectorEffect: 'non-scaling-stroke'
             }}
@@ -959,11 +960,12 @@ const AssetRatioChart: React.FC<{
       <div style={{ display: 'flex', justifyContent: 'center', overflowX: 'auto', width: '100%' }}>
         <svg
           width="100%"
-          height={chartHeight + margin.top + margin.bottom}
+          height="auto"
           viewBox={`0 0 ${chartWidth} ${chartHeight + margin.top + margin.bottom}`}
           preserveAspectRatio="xMidYMid meet"
           style={{
             maxWidth: `${chartWidth}px`,
+            minWidth: '300px',
             shapeRendering: 'crispEdges',
             vectorEffect: 'non-scaling-stroke'
           }}
