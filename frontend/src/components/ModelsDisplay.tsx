@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
 import './ModelsDisplay.css';
 import type { Model } from '../types';
 import { getAssetColor, getCashColor } from '../utils/colors';
@@ -141,7 +141,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   }) => {
     const chartWidth = 600;
     const chartHeight = 300;
-    const margin = { top: 20, right: 80, bottom: 40, left: 50 };
+    const margin = { top: 20, right: 5, bottom: 40, left: 50 };
     const padding = 40;
 
     const chartData = useMemo(() => Array.isArray(data) ? data.slice(-30) : [], [data]);
@@ -206,13 +206,16 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           Profit History
         </h3>
 
-        <div style={{ display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', overflowX: 'auto', width: '100%' }}>
           <svg
-            width={chartWidth}
+            width="100%"
             height={chartHeight + margin.top + margin.bottom}
+            viewBox={`0 0 ${chartWidth} ${chartHeight + margin.top + margin.bottom}`}
+            preserveAspectRatio="xMidYMid meet"
             className="chart-svg"
             onMouseLeave={handleMouseLeave}
             style={{
+              maxWidth: `${chartWidth}px`,
               shapeRendering: 'crispEdges',
               vectorEffect: 'non-scaling-stroke'
             }}
@@ -928,10 +931,6 @@ const AssetRatioChart: React.FC<{
     [allAssets, category]
   );
 
-  // This ensures the chart uses the same sorted and colored allocations
-  const chartAllocations = useMemo(() => {
-    return allAssets.map(item => ({ name: item, value: 1 })); // Simple value for legend
-  }, [allAssets]);
 
   if (chartData.length === 0 || allAssets.length === 0) {
     return (
@@ -949,7 +948,7 @@ const AssetRatioChart: React.FC<{
 
   const chartHeight = 300;
   const chartWidth = 600;
-  const margin = { top: 20, right: 80, bottom: 40, left: 50 };
+  const margin = { top: 20, right: 5, bottom: 40, left: 50 };
 
   return (
     <div style={{ margin: '1rem 0' }}>
@@ -957,11 +956,14 @@ const AssetRatioChart: React.FC<{
         Asset Allocation History
       </h3>
 
-      <div style={{ display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', overflowX: 'auto', width: '100%' }}>
         <svg
-          width={chartWidth}
+          width="100%"
           height={chartHeight + margin.top + margin.bottom}
+          viewBox={`0 0 ${chartWidth} ${chartHeight + margin.top + margin.bottom}`}
+          preserveAspectRatio="xMidYMid meet"
           style={{
+            maxWidth: `${chartWidth}px`,
             shapeRendering: 'crispEdges',
             vectorEffect: 'non-scaling-stroke'
           }}
@@ -1030,7 +1032,7 @@ const AssetRatioChart: React.FC<{
           })()}
 
           {/* Stacked Areas */}
-          {allAssets.map((asset, assetIndex) => {
+          {allAssets.map((asset) => {
             const color = getAssetColorForChart(asset);
 
             let pathData;
@@ -1106,7 +1108,7 @@ const AssetRatioChart: React.FC<{
 
       {/* Legend */}
       <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem' }}>
-        {allAssets.map((asset, index) => {
+        {allAssets.map((asset) => {
           const meta = assetMetaMap[asset];
           const linkUrl = meta?.url;
 
