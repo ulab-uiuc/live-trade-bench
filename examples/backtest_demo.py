@@ -246,7 +246,7 @@ def main():
     models = get_base_model_configs()
 
     run_polymarket = True
-    run_stock = False
+    run_stock = True
     market_count = sum([run_polymarket, run_stock])
     market_names = []
     if run_stock:
