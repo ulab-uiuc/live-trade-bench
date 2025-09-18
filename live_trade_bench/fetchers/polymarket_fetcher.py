@@ -94,7 +94,7 @@ class PolymarketFetcher(BaseFetcher):
         markets = self._fetch_markets(params)
         verified: List[Dict[str, Any]] = []
         event_slugs = set()
-        for m in markets:
+        for m in markets[15:]:
             if not isinstance(m, dict) or not m.get("id"):
                 continue
             raw_token_ids = m.get("clobTokenIds", [])

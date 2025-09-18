@@ -86,10 +86,12 @@ class StockFetcher(BaseFetcher):
     def _download_price_data(
         self, ticker: str, start_date: str, end_date: str, interval: str
     ) -> Any:
+        # NOTE: it actually does not include the end_date, so we need to add 1 day
+        # yfinance is [start_date, end_date)
         df = yf.download(
             tickers=ticker,
             start=start_date,
-            end=end_date,
+            end=(datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d"),
             interval=interval,
             progress=False,
             auto_adjust=True,
