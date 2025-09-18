@@ -237,7 +237,10 @@ const LeaderboardCard: React.FC<{
           <div>Rank</div>
           <div>Model</div>
           <div>Return</div>
-          <div>#Trades</div>
+          <div>
+            <span className="trades-header-full">#Trades</span>
+            <span className="trades-header-short">#</span>
+          </div>
         </div>
 
         {/* Rows */}
@@ -296,7 +299,7 @@ const LeaderboardCard: React.FC<{
 
 const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], modelsLastRefresh = new Date(), systemStatus, systemLastRefresh }) => {
   const navigate = useNavigate();
-  
+
   const stock = modelsData.filter((m) => (m?.category ?? "").toString().toLowerCase() === "stock").map(normalize);
   const poly = modelsData
     .filter((m) => (m?.category ?? "").toString().toLowerCase().includes("poly"))
@@ -310,14 +313,14 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
         </h1>
         <p className="dashboard-subtitle">
           Real-time leaderboard for LLM-powered portfolio management. Know more at {" "}
-          <button 
-            className="about-link" 
+          <button
+            className="about-link"
             onClick={() => navigate('/about')}
           >
             About
           </button>.
         </p>
-        
+
         <div style={{
           maxWidth: '1000px',
           margin: '2rem auto 0',
@@ -331,8 +334,8 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
           textAlign: 'left'
         }}>
           We evaluate AI trading agents across multiple asset classes in real-time. Each agent manages a diversified portfolio, making allocation decisions based on three types of information: (1) market price data; (2) real-time news data and (3) historical allocation data. For detailed information for stocks and polymarket, please click the{" "}
-          <button 
-            className="about-link" 
+          <button
+            className="about-link"
             onClick={() => navigate('/stocks')}
             style={{
               background: 'none',
@@ -351,8 +354,8 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
             Stock
           </button>{" "}
           and{" "}
-          <button 
-            className="about-link" 
+          <button
+            className="about-link"
             onClick={() => navigate('/polymarket')}
             style={{
               background: 'none',
