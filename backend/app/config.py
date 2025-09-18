@@ -115,7 +115,8 @@ def get_current_est_time() -> datetime:
 
 
 def is_trading_day() -> bool:
-    est_now = get_current_est_time()
+    utc_now = datetime.now(pytz.UTC)
+    est_now = utc_now.astimezone(pytz.timezone("US/Eastern"))
     return est_now.weekday() in MARKET_HOURS["trading_days"]
 
 
