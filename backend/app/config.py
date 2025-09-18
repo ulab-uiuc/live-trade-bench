@@ -110,12 +110,9 @@ def get_data_file_path(file_type: str) -> str:
     return mapping[file_type]
 
 
-def get_current_est_time() -> datetime:
-    return datetime.now(pytz.timezone("US/Eastern"))
-
-
 def is_trading_day() -> bool:
-    est_now = get_current_est_time()
+    utc_now = datetime.now(pytz.UTC)
+    est_now = utc_now.astimezone(pytz.timezone("US/Eastern"))
     return est_now.weekday() in MARKET_HOURS["trading_days"]
 
 
@@ -123,38 +120,23 @@ def should_run_trading_cycle() -> bool:
     if not is_trading_day():
         return False
 
-    est_now = get_current_est_time()
-    current_time = est_now.time()
+    utc_now = datetime.now(pytz.UTC)
+    current_utc_time = utc_now.time()
 
-    close_time = time.fromisoformat(MARKET_HOURS["stock_close"])
+    est_now = utc_now.astimezone(pytz.timezone("US/Eastern"))
 
-    # Correctly handle minute subtraction that might go negative
-    run_minute = close_time.minute - MARKET_HOURS["run_before_close_minutes"]
-    run_hour = close_time.hour
-    if run_minute < 0:
-        run_hour -= 1
-        run_minute += 60
+    from datetime import timedelta
 
-    run_time = time(run_hour, run_minute)
+    is_dst = est_now.dst() != timedelta(0)
 
-    # Create a 5-minute tolerance window
-    start_minute = run_time.minute - 5
-    start_hour = run_time.hour
-    if start_minute < 0:
-        start_hour -= 1
-        start_minute += 60
+    if is_dst:
+        run_window_start = time(18, 55)  # UTC 18:55 (美东 2:55 PM EDT)
+        run_window_end = time(20, 5)  # UTC 20:05 (美东 4:05 PM EDT)
+    else:
+        run_window_start = time(19, 55)  # UTC 19:55 (美东 2:55 PM EST)
+        run_window_end = time(21, 5)  # UTC 21:05 (美东 4:05 PM EST)
 
-    run_window_start = time(start_hour, start_minute)
-
-    # Calculate end of window (5 minutes past close)
-    end_minute = close_time.minute + 5
-    end_hour = close_time.hour
-    if end_minute >= 60:
-        end_hour += 1
-        end_minute -= 60
-    run_window_end = time(end_hour, end_minute)
-
-    return run_window_start <= current_time <= run_window_end
+    return run_window_start <= current_utc_time <= run_window_end
 
 
 class MockMode(str, Enum):

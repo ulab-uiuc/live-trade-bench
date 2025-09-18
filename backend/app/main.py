@@ -4,7 +4,6 @@ import shutil
 import threading
 from datetime import datetime
 
-import pytz
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException
@@ -158,16 +157,32 @@ def safe_generate_models_data():
 
 
 def schedule_background_tasks(scheduler: BackgroundScheduler):
+    from datetime import timedelta
+
+    import pytz
+
+    utc_now = datetime.now(pytz.UTC)
+    est_now = utc_now.astimezone(pytz.timezone("US/Eastern"))
+    is_dst = est_now.dst() != timedelta(0)
+
+    if is_dst:
+        schedule_hour = 19
+        schedule_desc = "3:00 PM EDT"
+    else:
+        schedule_hour = 20
+        schedule_desc = "3:00 PM EST"
+
     scheduler.add_job(
         safe_generate_models_data,
         "cron",
         day_of_week="mon-fri",
-        hour=15,
+        hour=schedule_hour,
         minute=0,
-        timezone=pytz.timezone("US/Eastern"),
+        timezone="UTC",
         id="generate_models_data",
         replace_existing=True,
     )
+    logger.info(f"📅 Scheduled trading job for UTC {schedule_hour}:00 ({schedule_desc})")
     scheduler.add_job(
         update_news_data,
         "interval",
