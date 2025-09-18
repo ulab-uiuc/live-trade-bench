@@ -8,7 +8,6 @@ from ..agents.polymarket_agent import LLMPolyMarketAgent
 from ..fetchers.news_fetcher import fetch_news_data
 from ..fetchers.polymarket_fetcher import (
     fetch_market_price_with_history,
-    fetch_trending_markets,
     fetch_verified_markets,
 )
 
@@ -24,9 +23,149 @@ class PolymarketPortfolioSystem:
         self.market_data: Dict[str, Dict[str, Any]] = {}
         self.initialize_for_live()
 
+    def initialize_from_init_data(self):
+        """Initialize markets from init data file with real token IDs"""
+        import json
+        import os
+
+        # Path to init file
+        backend_root = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
+        init_file = os.path.join(backend_root, "backend", "models_data_init.json")
+
+        if not os.path.exists(init_file):
+            print(f"Init file not found: {init_file}")
+            return
+
+        try:
+            # Extract unique URLs from init data
+            urls = set()
+            with open(init_file, "r") as f:
+                historical_data = json.load(f)
+
+            for model_data in historical_data:
+                if model_data.get("category") == "polymarket":
+                    # Extract URLs from allocation history (more complete)
+                    allocation_history = model_data.get("allocationHistory", [])
+                    for snapshot in allocation_history:
+                        allocations_array = snapshot.get("allocations_array", [])
+                        for allocation in allocations_array:
+                            url = allocation.get("url")
+                            if url:
+                                urls.add(url)
+
+                    # Also check positions as backup
+                    positions = model_data.get("portfolio", {}).get("positions", {})
+                    for pos_data in positions.values():
+                        url = pos_data.get("url")
+                        if url:
+                            urls.add(url)
+
+            print(f"Found {len(urls)} unique URLs from init data")
+            for url in list(urls)[:3]:  # Show first 3 URLs for debugging
+                print(f"  - {url}")
+
+            # Get real market data from URLs
+            markets = []
+            for url in list(urls)[: self.universe_size]:
+                event_slug = url.split("/")[-1]
+                print(f"Trying to get market data for event_slug: {event_slug}")
+                market_data = self._get_market_by_event_slug(event_slug, url)
+                if market_data:
+                    markets.append(market_data)
+                    print(f"  ✅ Found market: {market_data.get('question', 'Unknown')}")
+                else:
+                    print(f"  ❌ No market data found for {event_slug}")
+
+            self.set_universe(markets)
+            print(
+                f"Initialized {len(markets)} markets from init data with real token IDs"
+            )
+
+        except Exception as e:
+            print(f"Failed to load markets from init data: {e}")
+
+    def _get_market_by_event_slug(self, event_slug, url):
+        """Get market data by event slug from Polymarket API"""
+        try:
+            from ..fetchers.polymarket_fetcher import PolymarketFetcher
+
+            fetcher = PolymarketFetcher()
+            # Search for active markets with much larger limit
+            params = {
+                "limit": 500,  # Much larger limit to find our markets
+                "active": "true",
+                "closed": "false",
+            }
+            markets = fetcher._fetch_markets(params)
+
+            print(f"    API returned {len(markets)} markets")
+            if len(markets) > 0:
+                print(
+                    f"    First market example: {markets[0].keys() if markets[0] else 'Empty'}"
+                )
+
+            found_event_slugs = []
+            for market in markets:
+                if not isinstance(market, dict) or not market.get("id"):
+                    continue
+
+                # Check if this market matches our event slug
+                if market.get("events") and len(market["events"]) > 0:
+                    market_event_slug = market["events"][0].get("slug")
+                    found_event_slugs.append(market_event_slug)
+
+                    if market_event_slug == event_slug:
+                        print(f"    🎯 Found matching event slug: {market_event_slug}")
+                        # Parse token_ids and outcomes
+                        raw_token_ids = market.get("clobTokenIds", [])
+                        raw_outcomes = market.get("outcomes", [])
+
+                        if isinstance(raw_token_ids, str):
+                            import json
+
+                            token_ids = json.loads(raw_token_ids)
+                            outcomes = json.loads(raw_outcomes)
+                        else:
+                            token_ids = raw_token_ids
+                            outcomes = raw_outcomes
+
+                        if token_ids:  # Only return if we have real token IDs
+                            return {
+                                "id": market.get("id"),
+                                "question": market.get("question"),
+                                "category": market.get("category"),
+                                "token_ids": token_ids,
+                                "outcomes": outcomes,
+                                "event_slug": event_slug,
+                                "url": url,
+                            }
+                        else:
+                            print("    ⚠️ Found market but no token_ids")
+
+            print(
+                f"    Available event slugs: {found_event_slugs[:5]}..."
+            )  # Show first 5
+            print(f"    Looking for: {event_slug}")
+
+        except Exception as e:
+            print(f"Failed to get market data for {event_slug}: {e}")
+
+        return None
+
     def initialize_for_live(self):
-        markets = fetch_trending_markets(limit=self.universe_size)
-        self.set_universe(markets)
+        # markets = fetch_trending_markets(limit=self.universe_size)
+        # self.set_universe(markets)
+        # from datetime import datetime, timedelta
+        self.initialize_from_init_data()
+        # end_date = datetime.now()
+        # trading_days = []
+        # for i in range(5):
+        #     day = end_date - timedelta(days=i)
+        #     trading_days.append(day)
+        # markets = fetch_verified_markets(trading_days, self.universe_size)
+        # self.set_universe(markets)
 
     def initialize_for_backtest(self, trading_days: List[datetime]):
         verified_markets = fetch_verified_markets(trading_days, self.universe_size)
