@@ -52,7 +52,11 @@ class StockPortfolioSystem:
             current_time_str = for_date
         else:
             print("--- 🚀 Live Trading Mode ---")
-            current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Use US Eastern time for stock market
+            import pytz
+
+            et_tz = pytz.timezone("US/Eastern")
+            current_time_str = datetime.now(et_tz).strftime("%Y-%m-%d")
 
         self.cycle_count += 1
         print("Fetching data for stock portfolio...")
@@ -66,11 +70,9 @@ class StockPortfolioSystem:
             market_data, current_time_str if for_date else None
         )
         allocations = self._generate_allocations(
-            market_data, news_data, current_time_str if for_date else None
+            market_data, news_data, current_time_str
         )
-        self._update_accounts(
-            allocations, market_data, current_time_str if for_date else None
-        )
+        self._update_accounts(allocations, market_data, current_time_str)
 
     def _fetch_market_data(
         self, for_date: str | None = None

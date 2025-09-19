@@ -37,7 +37,7 @@ class LLMStockAgent(BaseAgent[StockAccount, Dict[str, Any]]):
         market_data: Dict[str, Dict[str, Any]],
         date: Optional[str] = None,
     ) -> str:
-        current_date_str = f"Today is {date}." if date else ""
+        current_date_str = f"Today is {date} (US Eastern Time)." if date else ""
         stock_list = list(market_data.keys())
         stock_list_str = ", ".join(stock_list)
         sample = [

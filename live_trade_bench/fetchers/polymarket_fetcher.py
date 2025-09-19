@@ -282,12 +282,25 @@ class PolymarketFetcher(BaseFetcher):
                     continue
                 filtered_points.append(p)
 
+        # Group by date and keep the latest price for each day
+        daily_prices = {}
+        for p in filtered_points:
+            date_str = datetime.fromtimestamp(p["t"], tz=timezone.utc).strftime(
+                "%Y-%m-%d"
+            )
+            # Keep the latest timestamp for each date
+            if (
+                date_str not in daily_prices
+                or p["t"] > daily_prices[date_str]["timestamp"]
+            ):
+                daily_prices[date_str] = {"timestamp": p["t"], "price": p["p"]}
+
         out = [
             {
-                "date": datetime.utcfromtimestamp(p["t"]).strftime("%Y-%m-%d"),
-                "price": p["p"],
+                "date": date_str,
+                "price": data["price"],
             }
-            for p in filtered_points
+            for date_str, data in daily_prices.items()
         ]
         out.sort(key=lambda x: x["date"])
         return out

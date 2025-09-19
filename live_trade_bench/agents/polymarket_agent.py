@@ -56,7 +56,7 @@ class LLMPolyMarketAgent(BaseAgent[PolymarketAccount, Dict[str, Any]]):
         market_data: Dict[str, Dict[str, Any]],
         date: Optional[str] = None,
     ) -> str:
-        current_date_str = f"Today is {date}." if date else ""
+        current_date_str = f"Today is {date} (UTC)." if date else ""
         asset_list = list(market_data.keys())
         asset_list_str = ", ".join(asset_list)
 
