@@ -293,11 +293,11 @@ function App() {
     // Smart parallel interval management
     // Group updates that can happen together to maximize parallel efficiency
 
-    // High frequency: Models + System (every 1 minute for debugging)
+    // Update frequency: Models + System (every 1 hour)
     const highFreqInterval = setInterval(async () => {
-      console.log('🔄 High frequency parallel update (1 min)...');
+      console.log('🔄 High frequency parallel update (1 hour)...');
       await Promise.all([fetchModelsData(), fetchSystemStatus()]);
-    }, 1 * 60 * 1000);
+    }, 60 * 60 * 1000);
 
     // Medium frequency: News + Social (every 10 minutes, parallel)
     const lowFreqInterval = setInterval(async () => {
