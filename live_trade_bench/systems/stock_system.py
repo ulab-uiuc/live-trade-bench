@@ -15,7 +15,7 @@ from ..fetchers.stock_fetcher import (
 
 
 class StockPortfolioSystem:
-    def __init__(self, universe_size: int = 10) -> None:
+    def __init__(self, universe_size: int = 15) -> None:
         self.agents: Dict[str, LLMStockAgent] = {}
         self.accounts: Dict[str, StockAccount] = {}
         self.universe: List[str] = []
