@@ -10,6 +10,8 @@ export type ModelRow = {
   score: number; // higher is better
   votes?: number;
   logoUrl?: string; // optional small logo
+  is_index?: boolean; // flag to identify indices
+  rank?: number | null; // rank for regular models, null for indices
 };
 
 export type DashboardProps = {
@@ -67,6 +69,7 @@ function normalize(raw: any): ModelRow {
     score: Number(score.toFixed(2)),
     votes: trades,
     logoUrl: raw?.logoUrl,
+    is_index: raw?.is_index || false,
   } as ModelRow;
 }
 
@@ -203,12 +206,17 @@ const LeaderboardCard: React.FC<{
 }> = ({ title, updatedAt, items, category }) => {
   const [showAll, setShowAll] = useState(false);
 
-  // Sort by score desc, compute rank
-  const sortedItemsWithRank = [...items]
+  // Separate indices and regular models
+  const indices = items.filter(item => item.is_index);
+  const regularModels = items.filter(item => !item.is_index);
+
+  // Sort only regular models by score desc, compute rank
+  const sortedModelsWithRank = [...regularModels]
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
     .map((x, i) => ({ ...x, rank: i + 1 }));
 
-  const rows = showAll ? sortedItemsWithRank : sortedItemsWithRank.slice(0, 10);
+  // Keep indices separate for display above the table
+  const regularRows = showAll ? sortedModelsWithRank : sortedModelsWithRank.slice(0, 10);
 
   const getScoreClass = (score: number) => {
     if (score > 0) return "positive";
@@ -232,6 +240,42 @@ const LeaderboardCard: React.FC<{
 
       {/* Desktop Table */}
       <div className="leaderboard-table">
+        {/* Indices Section - Above the table */}
+        {indices.length > 0 && (
+          <div className="indices-section">
+            <div className="indices-header">Market Benchmarks</div>
+            <div className="indices-grid">
+              {indices.map((index) => {
+                const yfinanceUrl = `https://finance.yahoo.com/quote/${index.name}`;
+                const getIndexDescription = (name: string) => {
+                  switch (name) {
+                    case 'QQQ':
+                      return 'Invesco QQQ Trust';
+                    case 'VOO':
+                      return 'Vanguard S&P 500 ETF';
+                    default:
+                      return name;
+                  }
+                };
+                return (
+                  <div
+                    key={index.id}
+                    className="index-card"
+                    onClick={() => window.open(yfinanceUrl, '_blank')}
+                  >
+                    <div className="index-name">
+                      {index.name} <span className="index-description">({getIndexDescription(index.name)})</span>
+                    </div>
+                    <div className={`index-return ${getScoreClass(index.score)}`}>
+                      {index.score > 0 ? '+' : ''}{index.score.toFixed(1)}%
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="table-header">
           <div>Rank</div>
@@ -244,7 +288,7 @@ const LeaderboardCard: React.FC<{
         </div>
 
         {/* Rows */}
-        {rows.map((row) => {
+        {regularRows.map((row) => {
           const homepageUrl = getHomepageUrl(row.name);
 
           return (
@@ -255,8 +299,8 @@ const LeaderboardCard: React.FC<{
               style={{ cursor: homepageUrl ? 'pointer' : 'default' }}
             >
               {/* Rank */}
-              <div className={`rank-cell ${row.rank <= 3 ? `top-3 rank-${row.rank}` : ''}`}>
-                {getRankDisplay(row.rank)}
+              <div className={`rank-cell ${row.is_index ? 'index-cell' : (row.rank && row.rank <= 3 ? `top-3 rank-${row.rank}` : '')}`}>
+                {row.is_index ? '-' : (row.rank ? getRankDisplay(row.rank) : '-')}
               </div>
 
               {/* Model */}
@@ -272,7 +316,7 @@ const LeaderboardCard: React.FC<{
 
               {/* Votes/Trades */}
               <div className="votes-cell">
-                {row.votes}
+                {row.is_index ? '-' : row.votes}
               </div>
             </div>
           );
@@ -281,13 +325,13 @@ const LeaderboardCard: React.FC<{
 
 
       {/* Footer */}
-      {items.length > 10 && (
+      {regularModels.length > 10 && (
         <div className="card-footer">
           <button
             className="view-all-btn"
             onClick={() => setShowAll(!showAll)}
           >
-            {showAll ? 'Show Less' : `View All Models (${items.length})`}
+            {showAll ? 'Show Less' : `View All Models (${regularModels.length})`}
           </button>
         </div>
       )}
