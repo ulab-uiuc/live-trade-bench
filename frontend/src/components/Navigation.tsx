@@ -1,10 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [views, setViews] = useState<number>(0);
+
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace('.0', '') + 'M';
+    } else {
+      return num.toLocaleString();
+    }
+  };
+
+  useEffect(() => {
+    const fetchViews = async () => {
+      try {
+        const baseUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001';
+
+        const response = await fetch(`${baseUrl}/api/views`);
+        if (response.ok) {
+          const data = await response.json();
+          setViews(data.views);
+        }
+
+        await fetch(`${baseUrl}/api/views`, { method: 'POST' });
+
+        const updatedResponse = await fetch(`${baseUrl}/api/views`);
+        if (updatedResponse.ok) {
+          const updatedData = await updatedResponse.json();
+          setViews(updatedData.views);
+        }
+      } catch (error) {
+        console.error('Failed to fetch views:', error);
+      }
+    };
+
+    fetchViews();
+  }, []);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -20,9 +55,9 @@ const Navigation: React.FC = () => {
       <div className="navigation-container">
         {/* Logo Section */}
         <div className="nav-logo">
-          <div className="live-badge">
-            <div className="live-indicator"></div>
-            LIVE
+          <div className="views-badge">
+            <div className="views-indicator"></div>
+            Views: {formatNumber(views)}
           </div>
           <button
             className="brand-button"

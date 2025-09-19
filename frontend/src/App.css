@@ -34,7 +34,7 @@
   gap: 0.5rem;
 }
 
-.live-badge {
+.views-badge {
   display: inline-flex;
   align-items: center;
   background-color: #ef4444;
@@ -48,7 +48,7 @@
   position: relative;
 }
 
-.live-indicator {
+.views-indicator {
   width: 0.4rem;
   height: 0.4rem;
   background-color: #ffffff;
@@ -301,6 +301,26 @@
 
   .mobile-menu-toggle {
     display: flex !important;
+  }
+
+  .nav-logo {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .views-badge {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .brand-button {
+    font-size: 1rem;
+    line-height: 1.2;
+    text-align: left;
+    flex: 1;
+    min-width: 0;
   }
 }
 
