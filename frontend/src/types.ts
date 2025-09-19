@@ -36,6 +36,11 @@ export interface Model {
   portfolio: Portfolio;
   profitHistory: any;
   allocationHistory: any;
+  // Index specific fields
+  is_index?: boolean;
+  current_price?: number;
+  historical_price?: number;
+  return_rate?: number;
 }
 
 export interface NewsArticle {

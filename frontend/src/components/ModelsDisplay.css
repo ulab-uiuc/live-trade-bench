@@ -1433,3 +1433,47 @@ html:has(.modal-overlay) {
     /* 增加顶部距离 */
   }
 }
+
+/* Index Information Styles */
+.index-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.index-price,
+.index-return {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.price-label,
+.return-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.price-value {
+  color: #ffffff;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+}
+
+.return-value {
+  font-weight: 600;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+}
+
+.return-value.positive {
+  color: #10b981;
+}
+
+.return-value.negative {
+  color: #ef4444;
+}

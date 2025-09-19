@@ -49,6 +49,95 @@
   text-decoration: none;
 }
 
+/* Index-specific styles */
+.index-cell {
+  color: #9c9ef8;
+  font-weight: 600;
+  font-style: italic;
+}
+
+/* Indices Section Styles */
+.indices-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(156, 158, 248, 0.05);
+  border: 1px solid rgba(156, 158, 248, 0.2);
+  border-radius: 8px;
+}
+
+.indices-header {
+  color: #9c9ef8;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.indices-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.index-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(156, 158, 248, 0.1);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.index-card:hover {
+  background: rgba(156, 158, 248, 0.08);
+  border-color: rgba(156, 158, 248, 0.3);
+}
+
+.index-name {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.index-description {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+.index-name::after {
+  content: "↗";
+  color: #9c9ef8;
+  font-size: 0.8rem;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.index-card:hover .index-name::after {
+  opacity: 1;
+}
+
+.index-return {
+  font-weight: 600;
+  font-size: 0.85rem;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+}
+
+.index-return.positive {
+  color: #10b981;
+}
+
+.index-return.negative {
+  color: #ef4444;
+}
+
 .leaderboard-grid {
   max-width: 1200px;
   margin: 0 auto;
@@ -268,8 +357,10 @@
 .model-avatar.deepseek {
   background-color: #000000;
 }
+
 .model-avatar.xai {
-  background-color: #000000; /* Example: white background for xAI logo */
+  background-color: #000000;
+  /* Example: white background for xAI logo */
 }
 
 .model-info {

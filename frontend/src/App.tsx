@@ -160,23 +160,39 @@ function App() {
   const fetchModelsData = useCallback(async () => {
     try {
       console.log('🔄 Background fetching models data...');
-      const response = await fetch('/api/models/');
-      if (response.ok) {
-        const currentModels: Model[] = await response.json();
+      const [modelsResponse, indicesResponse] = await Promise.all([
+        fetch('/api/models/'),
+        fetch('/api/indices')
+      ]);
+
+      if (modelsResponse.ok) {
+        const currentModels: Model[] = await modelsResponse.json();
+        let indicesData: Model[] = [];
+
+        if (indicesResponse.ok) {
+          indicesData = await indicesResponse.json();
+        }
+
+        // Combine models and indices data
+        const allModels = [...currentModels, ...indicesData];
 
         // --- RANKING LOGIC ---
-        // 1. Sort models by performance to determine rank
-        const sortedModels = [...currentModels].sort((a, b) => b.performance - a.performance);
+        // 1. Separate models and indices for different ranking logic
+        const regularModels = allModels.filter(model => !model.is_index);
+        const indices = allModels.filter(model => model.is_index);
 
-        // 2. Create a map of model.id -> rank
+        // 2. Sort only regular models by performance to determine rank
+        const sortedModels = [...regularModels].sort((a, b) => b.performance - a.performance);
+
+        // 3. Create a map of model.id -> rank (only for regular models)
         const newRanks: { [key: string]: number } = {};
         sortedModels.forEach((model, index) => {
           newRanks[model.id] = index + 1;
         });
 
-        // 3. Calculate rank changes by comparing with previous ranks
+        // 4. Calculate rank changes by comparing with previous ranks (only for regular models)
         const newRankChanges: { [key: string]: number } = {};
-        currentModels.forEach(model => {
+        regularModels.forEach(model => {
           const oldRank = prevRanks.current[model.id];
           const newRank = newRanks[model.id];
           if (oldRank && newRank) {
@@ -188,19 +204,31 @@ function App() {
           }
         });
 
-        // 4. Add rank and rank_change to each model object
-        const modelsWithRanks = currentModels.map(model => ({
-          ...model,
-          rank: newRanks[model.id],
-          rank_change: newRankChanges[model.id] || 0,
-        }));
+        // 5. Add rank and rank_change to each model object
+        const modelsWithRanks = allModels.map(model => {
+          if (model.is_index) {
+            // Indices don't participate in ranking
+            return {
+              ...model,
+              rank: null,
+              rank_change: 0,
+            };
+          } else {
+            // Regular models get ranks
+            return {
+              ...model,
+              rank: newRanks[model.id],
+              rank_change: newRankChanges[model.id] || 0,
+            };
+          }
+        });
 
         // 5. Update state and store current ranks for the next fetch
         setModelsData(modelsWithRanks);
         setModelsLastRefresh(new Date());
         prevRanks.current = newRanks; // Store for next comparison
 
-        console.log(`✅ Background models updated: ${currentModels.length} models with ranks`);
+        console.log(`✅ Background models updated: ${allModels.length} models with ranks (${currentModels.length} models + ${indicesData.length} indices)`);
       }
     } catch (error) {
       console.error('❌ Background models fetch failed:', error);

@@ -678,21 +678,38 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               </div>
 
               <div className="card-allocation">
-                <div className="allocation-label">Asset Allocation</div>
-                <div className="allocation-bar-mini">
-                  {allocations.map((asset) => (
-                    <div
-                      key={asset.name}
-                      className="allocation-segment-mini"
-                      style={{
-                        flex: `${asset.allocation} 1 0`,
-                        backgroundColor: asset.color
-                      }}
-                      onMouseMove={(e) => handleMouseMove(e, `${formatAssetName(asset.name, model.category)}: ${(asset.allocation * 100).toFixed(1)}%`)}
-                      onMouseLeave={handleMouseLeave}
-                    />
-                  ))}
+                <div className="allocation-label">
+                  {model.is_index ? 'Index Info' : 'Asset Allocation'}
                 </div>
+                {model.is_index ? (
+                  <div className="index-info">
+                    <div className="index-price">
+                      <span className="price-label">Current Price:</span>
+                      <span className="price-value">${model.current_price?.toFixed(2) || 'N/A'}</span>
+                    </div>
+                    <div className="index-return">
+                      <span className="return-label">Return Rate:</span>
+                      <span className={`return-value ${(model.return_rate ?? 0) >= 0 ? 'positive' : 'negative'}`}>
+                        {model.return_rate?.toFixed(2) || '0.00'}%
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="allocation-bar-mini">
+                    {allocations.map((asset) => (
+                      <div
+                        key={asset.name}
+                        className="allocation-segment-mini"
+                        style={{
+                          flex: `${asset.allocation} 1 0`,
+                          backgroundColor: asset.color
+                        }}
+                        onMouseMove={(e) => handleMouseMove(e, `${formatAssetName(asset.name, model.category)}: ${(asset.allocation * 100).toFixed(1)}%`)}
+                        onMouseLeave={handleMouseLeave}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           );
