@@ -24,7 +24,7 @@ class PolymarketPortfolioSystem:
         self.initialize_for_live()
 
     def initialize_from_init_data(self):
-        """Initialize markets from init data file with real token IDs"""
+        """Initialize markets from init data file with real token IDs, fallback to trending markets if needed"""
         import json
         import os
 
@@ -78,9 +78,56 @@ class PolymarketPortfolioSystem:
                 else:
                     print(f"  ❌ No market data found for {event_slug}")
 
+            # If we don't have enough markets from init data, supplement with trending markets
+            if len(markets) < self.universe_size:
+                needed_markets = self.universe_size - len(markets)
+                print(
+                    f"\n📈 Only found {len(markets)} markets from init data, need {needed_markets} more"
+                )
+                print("Fetching trending markets to supplement...")
+
+                try:
+                    from ..fetchers.polymarket_fetcher import fetch_trending_markets
+
+                    trending_markets = fetch_trending_markets(
+                        limit=needed_markets * 2
+                    )  # Get extra to filter out duplicates
+
+                    # Filter out markets we already have (by question)
+                    existing_questions = {
+                        market.get("question", "") for market in markets
+                    }
+                    new_markets = []
+
+                    for trending_market in trending_markets:
+                        if len(new_markets) >= needed_markets:
+                            break
+
+                        question = trending_market.get("question", "")
+                        if question not in existing_questions and question not in {
+                            m.get("question", "") for m in new_markets
+                        }:
+                            # Ensure the market has valid token IDs
+                            token_ids = trending_market.get("token_ids", [])
+                            if token_ids and len(token_ids) >= 2:
+                                new_markets.append(trending_market)
+                                print(f"  ✅ Added trending market: {question[:50]}...")
+                            else:
+                                print(
+                                    f"  ⚠️ Skipped trending market (no valid token IDs): {question[:50]}..."
+                                )
+
+                    markets.extend(new_markets)
+                    print(
+                        f"📈 Added {len(new_markets)} trending markets, total: {len(markets)}"
+                    )
+
+                except Exception as e:
+                    print(f"❌ Failed to fetch trending markets: {e}")
+
             self.set_universe(markets)
             print(
-                f"Initialized {len(markets)} markets from init data with real token IDs"
+                f"🎯 Final result: Initialized {len(markets)} markets (target: {self.universe_size})"
             )
 
         except Exception as e:
