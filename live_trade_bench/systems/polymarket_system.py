@@ -13,7 +13,7 @@ from ..fetchers.polymarket_fetcher import (
 
 
 class PolymarketPortfolioSystem:
-    def __init__(self, universe_size: int = 5) -> None:
+    def __init__(self, universe_size: int = 10) -> None:
         self.agents: Dict[str, LLMPolyMarketAgent] = {}
         self.accounts: Dict[str, PolymarketAccount] = {}
         self.universe: List[str] = []
