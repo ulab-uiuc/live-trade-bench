@@ -1,11 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Union
 
 import yfinance as yf
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
-
-from datetime import datetime, timedelta, timezone
 
 
 class StockFetcher(BaseFetcher):
@@ -72,8 +70,8 @@ class StockFetcher(BaseFetcher):
                 price_history.append(
                     {
                         "date": idx.strftime("%Y-%m-%d"),
-                        "price": float(row["Close"].iloc[0]) if "Close" in row else 0.0,
-                        "volume": int(row["Volume"].iloc[0]) if "Volume" in row else 0,
+                        "price": float(row["Close"]) if "Close" in row else 0.0,
+                        "volume": int(row["Volume"]) if "Volume" in row else 0,
                     }
                 )
 
@@ -91,7 +89,9 @@ class StockFetcher(BaseFetcher):
         df = yf.download(
             tickers=ticker,
             start=start_date,
-            end=(datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d"),
+            end=(datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)).strftime(
+                "%Y-%m-%d"
+            ),
             interval=interval,
             progress=False,
             auto_adjust=True,

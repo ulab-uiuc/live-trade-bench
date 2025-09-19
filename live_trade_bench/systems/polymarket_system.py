@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 from ..accounts import PolymarketAccount, create_polymarket_account
@@ -202,7 +202,7 @@ class PolymarketPortfolioSystem:
             current_time_str = for_date
         else:
             print("--- 🚀 Live Trading Mode ---")
-            current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            current_time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         self.cycle_count += 1
         print("Fetching data for polymarket portfolio...")
@@ -216,11 +216,9 @@ class PolymarketPortfolioSystem:
             market_data, current_time_str if for_date else None
         )
         allocations = self._generate_allocations(
-            market_data, news_data, current_time_str if for_date else None
+            market_data, news_data, current_time_str
         )
-        self._update_accounts(
-            allocations, market_data, current_time_str if for_date else None
-        )
+        self._update_accounts(allocations, market_data, current_time_str)
 
     def _fetch_market_data(
         self, for_date: str | None = None
