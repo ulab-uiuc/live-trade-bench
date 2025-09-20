@@ -59,6 +59,7 @@ function App() {
     polymarket: []
   });
   const [systemStatus, setSystemStatus] = useState<any>(null);
+  const [views, setViews] = useState<number>(0);
 
   // Add a global loading state
   const [isLoading, setIsLoading] = useState(true);
@@ -222,6 +223,28 @@ function App() {
     }
   }, []);
 
+  const fetchViews = useCallback(async () => {
+    try {
+      const baseUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001';
+
+      const response = await fetch(`${baseUrl}/api/views`);
+      if (response.ok) {
+        const data = await response.json();
+        setViews(data.views);
+      }
+
+      await fetch(`${baseUrl}/api/views`, { method: 'POST' });
+
+      const updatedResponse = await fetch(`${baseUrl}/api/views`);
+      if (updatedResponse.ok) {
+        const updatedData = await updatedResponse.json();
+        setViews(updatedData.views);
+      }
+    } catch (error) {
+      console.error('Failed to fetch views:', error);
+    }
+  }, []);
+
   // Parallel data fetching function
   const fetchAllDataInParallel = useCallback(async () => {
     console.log('🔄 Starting parallel data fetch...');
@@ -233,7 +256,8 @@ function App() {
         fetchModelsData(),
         fetchNewsData(),
         fetchSocialData(),
-        fetchSystemStatus()
+        fetchSystemStatus(),
+        fetchViews()
       ]);
 
       const elapsed = Date.now() - startTime;
@@ -286,7 +310,7 @@ function App() {
       console.log('🛑 All parallel intervals cleared');
     };
     // The dependency array is correct, but we've added a ref guard to prevent re-runs from HMR.
-  }, [fetchAllDataInParallel, fetchModelsData, fetchNewsData, fetchSocialData, fetchSystemStatus]);
+  }, [fetchAllDataInParallel, fetchModelsData, fetchNewsData, fetchSocialData, fetchSystemStatus, fetchViews]);
 
   return (
     <Router>
@@ -299,6 +323,7 @@ function App() {
               modelsLastRefresh={modelsLastRefresh}
               systemStatus={systemStatus}
               systemLastRefresh={systemLastRefresh}
+              views={views}
             />
           } />
           <Route path="/stocks" element={

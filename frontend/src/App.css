@@ -302,6 +302,20 @@
   .mobile-menu-toggle {
     display: flex !important;
   }
+
+  .nav-logo {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .brand-button {
+    font-size: 1rem;
+    line-height: 1.2;
+    text-align: left;
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 /* Responsive Design - 桌面端 */
