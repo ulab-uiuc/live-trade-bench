@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
 
@@ -17,6 +17,7 @@ export type DashboardProps = {
   modelsLastRefresh?: Date | string;
   systemStatus?: any;
   systemLastRefresh?: Date | string;
+  views?: number; // 添加views属性
 };
 
 // ------- Helpers -------
@@ -297,8 +298,17 @@ const LeaderboardCard: React.FC<{
 
 // ------- Main Dashboard Component -------
 
-const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], modelsLastRefresh = new Date(), systemStatus, systemLastRefresh }) => {
+const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], modelsLastRefresh = new Date(), systemStatus, systemLastRefresh, views = 0 }) => {
   const navigate = useNavigate();
+
+  // 格式化数字显示
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace('.0', '') + 'M';
+    } else {
+      return num.toLocaleString();
+    }
+  };
 
   const stock = modelsData.filter((m) => (m?.category ?? "").toString().toLowerCase() === "stock").map(normalize);
   const poly = modelsData
@@ -308,9 +318,14 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-        <h1 className="dashboard-title">
-          Live Trading Benchmark
-        </h1>
+        <div className="title-container">
+          <h1 className="dashboard-title">
+            Live Trading Benchmark
+          </h1>
+          <div className="views-badge-small">
+            Views: {formatNumber(views)}
+          </div>
+        </div>
         <p className="dashboard-subtitle">
           Real-time leaderboard for LLM-powered portfolio management. Know more at {" "}
           <button
