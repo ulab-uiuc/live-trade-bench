@@ -1,0 +1,44 @@
+.footnote {
+    background-color: #1f2937;
+    border-top: 1px solid #374151;
+    padding: 1rem 0;
+    margin-top: auto;
+    width: 100%;
+}
+
+.footnote-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.footnote-text {
+    color: #9ca3af;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    text-align: center;
+    margin: 0;
+    font-weight: 400;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 767px) {
+    .footnote {
+        padding: 0.75rem 0;
+    }
+
+    .footnote-content {
+        padding: 0 0.75rem;
+    }
+
+    .footnote-text {
+        font-size: 0.8rem;
+    }
+}
+
+/* Desktop adjustments */
+@media (min-width: 768px) {
+    .footnote-content {
+        padding: 0 2rem;
+    }
+}

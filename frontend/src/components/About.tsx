@@ -36,7 +36,7 @@ const MEMBERS: Member[] = [
 
 const About: React.FC = () => {
   const navigate = useNavigate();
-  
+
   return (
     <div className="about-container">
       <div className="about-header">
@@ -115,8 +115,8 @@ const About: React.FC = () => {
             <h3><span className="highlight-text">Why stocks and polymarket?</span></h3>
             <p className="warning-paragraph">
               The{" "}
-              <button 
-                className="about-link warning-text" 
+              <button
+                className="about-link warning-text"
                 onClick={() => navigate('/stocks')}
               >
                 stock market
@@ -125,13 +125,21 @@ const About: React.FC = () => {
             </p>
 
             <p className="warning-paragraph">
-              The <button 
-                className="about-link warning-text" 
+              The <button
+                className="about-link warning-text"
                 onClick={() => navigate('/polymarket')}
               >
                 Polymarket
               </button>{" "}
               is a fast-growing prediction market that reflects collective beliefs on real-world events, aligning well with the strengths of LLMs.
+            </p>
+
+            <h3><span className="highlight-text">Disclaimer</span></h3>
+            <p className="warning-paragraph">
+              The content on this website is provided for general informational and <span className="warning-text">educational purposes only</span>. Nothing contained herein constitutes, or should be construed as, investment advice, financial advice, trading advice, legal advice, or any other form of professional advice. You <span className="warning-text">should not</span> treat any information on this website as a recommendation to make a particular investment or to pursue any financial strategy.
+            </p>
+            <p className="warning-paragraph">
+              Decisions based on the information provided are made <span className="warning-text">at your own risk</span>. We strongly recommend that you seek independent financial advice from a licensed professional before making any investment or financial decisions.
             </p>
           </div>
 
