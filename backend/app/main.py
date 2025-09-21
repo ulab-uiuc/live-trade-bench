@@ -1,7 +1,6 @@
 import logging
 import os
 import shutil
-import threading
 from datetime import datetime
 
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -34,6 +33,7 @@ from .config import (
 )
 from .models_data import generate_models_data, load_historical_data_to_accounts
 from .news_data import update_news_data
+from .price_data import update_realtime_prices_and_values
 from .routers import models, news, social, system
 from .social_data import update_social_data
 from .system_data import update_system_status
@@ -183,6 +183,11 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         replace_existing=True,
     )
     logger.info(f"📅 Scheduled trading job for UTC {schedule_hour}:00 ({schedule_desc})")
+
+    price_interval = UPDATE_FREQUENCY["realtime_prices"]
+    logger.info(
+        f"📈 Scheduled realtime price update job for every {price_interval} seconds ({price_interval//60} minutes)"
+    )
     scheduler.add_job(
         update_news_data,
         "interval",
@@ -204,6 +209,14 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         "interval",
         seconds=UPDATE_FREQUENCY["system_status"],
         id="update_system_status",
+        replace_existing=True,
+        next_run_time=datetime.now(),  # run immediately once
+    )
+    scheduler.add_job(
+        update_realtime_prices_and_values,
+        "interval",
+        seconds=UPDATE_FREQUENCY["realtime_prices"],  # 使用config中的配置
+        id="update_realtime_prices",
         replace_existing=True,
         next_run_time=datetime.now(),  # run immediately once
     )
@@ -231,8 +244,8 @@ def startup_event():
     #     daemon=True,
     # ).start()
 
-    threading.Thread(target=update_news_data, daemon=True).start()
-    threading.Thread(target=update_social_data, daemon=True).start()
+    # threading.Thread(target=update_news_data, daemon=True).start()
+    # threading.Thread(target=update_social_data, daemon=True).start()
 
     logger.info("🚀 FastAPI app startup completed - data loading in background")
 

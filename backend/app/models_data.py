@@ -117,6 +117,8 @@ def generate_models_data(stock_system, polymarket_system) -> None:
         print("🚀 Starting data generation for both markets...")
         all_market_data = []
 
+        existing_benchmarks = _preserve_existing_benchmarks()
+
         systems = {"stock": stock_system, "polymarket": polymarket_system}
 
         for market_type, system in systems.items():
@@ -135,14 +137,45 @@ def generate_models_data(stock_system, polymarket_system) -> None:
                 trades_count = len(account.allocation_history)
                 print(f"✅ Generated data for {agent_name}: {trades_count} total trades")
 
+        # 添加保留的benchmark模型
+        all_market_data.extend(existing_benchmarks)
+
         with open(MODELS_DATA_FILE, "w") as f:
             json.dump(all_market_data, f, indent=4)
 
-        print(f"🎉 Successfully generated data for {len(all_market_data)} models")
+        total_models = len(all_market_data)
+        benchmark_count = len(existing_benchmarks)
+        print(
+            f"🎉 Successfully generated data for {total_models} models ({benchmark_count} benchmarks preserved)"
+        )
 
     except Exception as e:
         print(f"❌ Failed to generate models data: {e}")
         raise
+
+
+def _preserve_existing_benchmarks():
+    """保留现有的benchmark模型，避免被trading cycle覆盖"""
+    try:
+        if not os.path.exists(MODELS_DATA_FILE):
+            return []
+
+        with open(MODELS_DATA_FILE, "r") as f:
+            existing_data = json.load(f)
+
+        # 筛选出benchmark类别的模型
+        benchmarks = [
+            model for model in existing_data if model.get("category") == "benchmark"
+        ]
+
+        if benchmarks:
+            print(f"📊 Preserving {len(benchmarks)} existing benchmark models")
+
+        return benchmarks
+
+    except Exception as e:
+        print(f"⚠️ Failed to preserve benchmarks: {e}")
+        return []
 
 
 if __name__ == "__main__":
