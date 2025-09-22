@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -14,15 +15,45 @@ class RealtimePriceUpdater:
     def __init__(self):
         self.stock_fetcher = StockFetcher()
 
+    def _is_first_startup(self) -> bool:
+        """检查是否需要初始化benchmark模型（没有benchmark模型）"""
+        try:
+            # 文件不存在时肯定需要初始化
+            if not os.path.exists(MODELS_DATA_FILE):
+                return True
+
+            with open(MODELS_DATA_FILE, "r") as f:
+                data = json.load(f)
+
+            # 检查是否存在benchmark模型 (QQQ/VOO)
+            benchmark_models = [
+                m for m in data if m.get("id") in ["qqq-benchmark", "voo-benchmark"]
+            ]
+            has_benchmarks = len(benchmark_models) > 0
+
+            logger.debug(
+                f"Found {len(benchmark_models)} benchmark models, needs initialization: {not has_benchmarks}"
+            )
+            return not has_benchmarks
+
+        except Exception as e:
+            logger.error(f"Failed to check benchmark status: {e}")
+            return True  # 出错时默认认为需要初始化
+
     def update_realtime_prices_and_values(self) -> None:
         """主要入口函数：更新所有模型的实时价格和计算值"""
         try:
-            # 检查是否为交易日
-            if not is_trading_day():
+            needs_benchmark_init = self._is_first_startup()
+
+            # 检查是否为交易日，但需要初始化benchmark时允许运行
+            if not is_trading_day() and not needs_benchmark_init:
                 logger.info("📅 Not a trading day, skipping price update")
                 return
 
-            logger.info("🔄 Starting realtime price update...")
+            if needs_benchmark_init:
+                logger.info("🔄 No benchmark models found, running initialization...")
+            else:
+                logger.info("🔄 Starting realtime price update...")
 
             # 读取当前JSON数据
             models_data = self._load_models_data()
@@ -137,7 +168,7 @@ class RealtimePriceUpdater:
             # 更新模型级别的profit和performance（基于stock初始资金1000）
             initial_cash = 1000.0
             model["profit"] = total_value - initial_cash
-            model["performance"] = model["profit"] / initial_cash
+            model["performance"] = model["profit"] / initial_cash * 100
 
             # 更新profit history - 添加新的数据点
             self._update_profit_history(model, total_value, model["profit"])
@@ -177,7 +208,7 @@ class RealtimePriceUpdater:
 
     def _find_earliest_allocation_date(self, models_data: List[Dict]) -> Optional[str]:
         """找到所有stock模型中最早的allocation历史日期"""
-        earliest_date = None
+        earliest_date = "2025-08-18"
 
         for model in models_data:
             if model.get("category") == "stock":
@@ -206,11 +237,16 @@ class RealtimePriceUpdater:
 
             # 计算return rate
             profit = current_price - earliest_price
-            performance = profit / earliest_price
+            performance = profit / earliest_price * 100
+
+            benchmark_names = {
+                "QQQ": "QQQ (Invesco QQQ Trust)",
+                "VOO": "VOO (Vanguard S&P 500 ETF)",
+            }
 
             benchmark_model = {
                 "id": f"{symbol.lower()}-benchmark",
-                "name": f"{symbol} ETF",
+                "name": benchmark_names.get(symbol, f"{symbol} ETF"),
                 "category": "benchmark",
                 "status": "active",
                 "performance": performance,

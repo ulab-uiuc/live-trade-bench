@@ -184,11 +184,30 @@
   transition: all 0.2s ease;
 }
 
+.table-row.benchmark {
+  border-left: 3px solid rgba(250, 204, 21, 0.75);
+  background: linear-gradient(
+    90deg,
+    rgba(250, 204, 21, 0.16) 0%,
+    rgba(250, 204, 21, 0.04) 100%
+  );
+  box-shadow: 0 4px 20px rgba(250, 204, 21, 0.15);
+}
+
 .table-row:hover {
   background: rgba(255, 255, 255, 0.08);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transition: all 0.2s ease;
+}
+
+.table-row.benchmark:hover {
+  background: linear-gradient(
+    90deg,
+    rgba(250, 204, 21, 0.22) 0%,
+    rgba(250, 204, 21, 0.08) 100%
+  );
+  box-shadow: 0 6px 22px rgba(250, 204, 21, 0.25);
 }
 
 /* Removed .table-row-link styles since we're using onClick instead */
@@ -206,6 +225,13 @@
 .model-cell {
   justify-content: flex-start;
   gap: 0.5rem;
+}
+
+.model-name-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  align-items: flex-start;
 }
 
 /* Specific header alignment (overrides general .table-header flex) */
@@ -305,6 +331,10 @@
   background: linear-gradient(135deg, #6b7280, #374151);
 }
 
+.model-avatar.benchmark {
+  background: transparent;
+}
+
 .model-avatar.deepseek {
   background-color: #000000;
 }
@@ -331,6 +361,35 @@
   overflow: hidden;
   text-overflow: ellipsis;
   /* line-height is removed to allow natural flex alignment */
+}
+
+.benchmark-name {
+  position: relative;
+  color: #facc15;
+  text-shadow: 0 0 6px rgba(250, 204, 21, 0.3);
+}
+
+.benchmark-name::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -0.15rem;
+  width: 100%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #facc15, #fef08a);
+  opacity: 0.95;
+}
+
+.benchmark-tag {
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(250, 204, 21, 0.14);
+  color: #fef3c7;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(250, 204, 21, 0.35);
 }
 
 /* Removed .model-link styles since entire row is now clickable */

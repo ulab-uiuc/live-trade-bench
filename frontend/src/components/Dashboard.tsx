@@ -119,6 +119,8 @@ function getHomepageUrl(modelName?: string): string {
     "DeepSeek-V3.1": "https://huggingface.co/deepseek-ai/DeepSeek-V3.1",
     // Moonshot models
     "Kimi-K2-Instruct": "https://huggingface.co/moonshotai/Kimi-K2-Instruct-0905",
+    "QQQ (Invesco QQQ Trust)": "https://finance.yahoo.com/quote/QQQ/",
+    "VOO (Vanguard S&P 500 ETF)": "https://finance.yahoo.com/quote/VOO/",
   };
 
   return homepageMap[modelName] || "";
@@ -154,7 +156,7 @@ const ProviderIcon: React.FC<{ name?: string; provider?: string }> = ({ name, pr
     if (p.includes("xai") || p.includes("grok") || n.includes("grok")) {
       return "./xai.png";
     }
-    return "⚡"; // Default emoji
+    return "./benchmark.png"; // Default emoji
   };
 
   const getProviderClass = (provider?: string, name?: string) => {
@@ -171,7 +173,8 @@ const ProviderIcon: React.FC<{ name?: string; provider?: string }> = ({ name, pr
   };
 
   const icon = getProviderIcon(provider, name);
-  const cls = getProviderClass(provider, name);
+  const isBenchmarkIcon = typeof icon === 'string' && icon.includes('benchmark');
+  const cls = isBenchmarkIcon ? 'benchmark' : getProviderClass(provider, name);
   const isPng = icon.endsWith('.png');
 
   return (
@@ -247,11 +250,14 @@ const LeaderboardCard: React.FC<{
         {/* Rows */}
         {rows.map((row) => {
           const homepageUrl = getHomepageUrl(row.name);
+          const isBenchmark =
+            (typeof row.id === "string" && row.id.includes("benchmark")) ||
+            /\bQQQ\b|\bVOO\b/i.test(row.name);
 
           return (
             <div
               key={row.id}
-              className="table-row"
+              className={`table-row ${isBenchmark ? "benchmark" : ""}`}
               onClick={homepageUrl ? () => window.open(homepageUrl, '_blank') : undefined}
               style={{ cursor: homepageUrl ? 'pointer' : 'default' }}
             >
@@ -263,7 +269,11 @@ const LeaderboardCard: React.FC<{
               {/* Model */}
               <div className="model-cell">
                 <ProviderIcon name={row.name} provider={row.provider} />
-                <div className="model-name">{row.name}</div>
+                <div className="model-name-group">
+                  <div className={`model-name ${isBenchmark ? "benchmark-name" : ""}`}>
+                    {row.name}
+                  </div>
+                </div>
               </div>
 
               {/* Score/Performance */}
@@ -273,7 +283,7 @@ const LeaderboardCard: React.FC<{
 
               {/* Votes/Trades */}
               <div className="votes-cell">
-                {row.votes}
+                {row.votes === 0 ? '-' : row.votes}
               </div>
             </div>
           );
@@ -310,7 +320,12 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
     }
   };
 
-  const stock = modelsData.filter((m) => (m?.category ?? "").toString().toLowerCase() === "stock").map(normalize);
+  const stock = modelsData
+    .filter((m) => {
+      const category = (m?.category ?? "").toString().toLowerCase();
+      return category === "stock" || category === "benchmark";
+    })
+    .map(normalize);
   const poly = modelsData
     .filter((m) => (m?.category ?? "").toString().toLowerCase().includes("poly"))
     .map(normalize);

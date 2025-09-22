@@ -189,6 +189,14 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         f"📈 Scheduled realtime price update job for every {price_interval} seconds ({price_interval//60} minutes)"
     )
     scheduler.add_job(
+        update_realtime_prices_and_values,
+        "interval",
+        seconds=UPDATE_FREQUENCY["realtime_prices"],  # 使用config中的配置
+        id="update_realtime_prices",
+        replace_existing=True,
+        next_run_time=datetime.now(),  # run immediately once
+    )
+    scheduler.add_job(
         update_news_data,
         "interval",
         seconds=UPDATE_FREQUENCY["news_social"],
@@ -212,31 +220,24 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         replace_existing=True,
         next_run_time=datetime.now(),  # run immediately once
     )
-    scheduler.add_job(
-        update_realtime_prices_and_values,
-        "interval",
-        seconds=UPDATE_FREQUENCY["realtime_prices"],  # 使用config中的配置
-        id="update_realtime_prices",
-        replace_existing=True,
-        next_run_time=datetime.now(),  # run immediately once
-    )
 
 
 @app.on_event("startup")
 def startup_event():
     logger.info("🚀 FastAPI app starting up...")
 
-    # Start background scheduler immediately - don't wait for data
+    # Ensure initial data exists before any scheduled jobs run
+    load_backtest_as_initial_data()
+
+    # Start background scheduler
     global scheduler
-    executors = {"default": ThreadPoolExecutor(max_workers=1)}
+    # Allow background jobs to run concurrently so a slow price update doesn't block
+    executors = {"default": ThreadPoolExecutor(max_workers=4)}
     scheduler = BackgroundScheduler(executors=executors)
     schedule_background_tasks(scheduler)
     scheduler.start()
 
     logger.info("✅ Background scheduler started.")
-
-    # 📊 确保启动时有初始JSON文件供前端使用
-    load_backtest_as_initial_data()
 
     # Run all initial data generation in background threads - don't block startup
     # threading.Thread(

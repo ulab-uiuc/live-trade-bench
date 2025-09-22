@@ -163,9 +163,11 @@ def _preserve_existing_benchmarks():
         with open(MODELS_DATA_FILE, "r") as f:
             existing_data = json.load(f)
 
-        # 筛选出benchmark类别的模型
+        # 筛选出benchmark模型 (QQQ/VOO)
         benchmarks = [
-            model for model in existing_data if model.get("category") == "benchmark"
+            model
+            for model in existing_data
+            if model.get("id") in ["qqq-benchmark", "voo-benchmark"]
         ]
 
         if benchmarks:
