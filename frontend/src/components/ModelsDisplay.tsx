@@ -84,6 +84,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       }
     }
 
+
     const sortedModels = [...models].sort((a, b) => {
       if (sortOrder === 'performance-asc') {
         return a.performance - b.performance;

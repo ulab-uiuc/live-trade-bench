@@ -55,6 +55,7 @@ UPDATE_FREQUENCY = {
     "system_status": 60,
     "news_social": 600,
     "trading_cycle": "daily_before_close",
+    "realtime_prices": 600,  # 10 minutes in seconds
 }
 
 TRADING_CONFIG = {

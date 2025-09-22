@@ -1,7 +1,6 @@
 import logging
 import os
 import shutil
-import threading
 from datetime import datetime
 
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -34,6 +33,7 @@ from .config import (
 )
 from .models_data import generate_models_data, load_historical_data_to_accounts
 from .news_data import update_news_data
+from .price_data import update_realtime_prices_and_values
 from .routers import models, news, social, system
 from .social_data import update_social_data
 from .system_data import update_system_status
@@ -183,6 +183,19 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         replace_existing=True,
     )
     logger.info(f"📅 Scheduled trading job for UTC {schedule_hour}:00 ({schedule_desc})")
+
+    price_interval = UPDATE_FREQUENCY["realtime_prices"]
+    logger.info(
+        f"📈 Scheduled realtime price update job for every {price_interval} seconds ({price_interval//60} minutes)"
+    )
+    scheduler.add_job(
+        update_realtime_prices_and_values,
+        "interval",
+        seconds=UPDATE_FREQUENCY["realtime_prices"],  # 使用config中的配置
+        id="update_realtime_prices",
+        replace_existing=True,
+        next_run_time=datetime.now(),  # run immediately once
+    )
     scheduler.add_job(
         update_news_data,
         "interval",
@@ -213,17 +226,18 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
 def startup_event():
     logger.info("🚀 FastAPI app starting up...")
 
-    # Start background scheduler immediately - don't wait for data
+    # Ensure initial data exists before any scheduled jobs run
+    load_backtest_as_initial_data()
+
+    # Start background scheduler
     global scheduler
-    executors = {"default": ThreadPoolExecutor(max_workers=1)}
+    # Allow background jobs to run concurrently so a slow price update doesn't block
+    executors = {"default": ThreadPoolExecutor(max_workers=4)}
     scheduler = BackgroundScheduler(executors=executors)
     schedule_background_tasks(scheduler)
     scheduler.start()
 
     logger.info("✅ Background scheduler started.")
-
-    # 📊 确保启动时有初始JSON文件供前端使用
-    load_backtest_as_initial_data()
 
     # Run all initial data generation in background threads - don't block startup
     # threading.Thread(
@@ -231,8 +245,8 @@ def startup_event():
     #     daemon=True,
     # ).start()
 
-    threading.Thread(target=update_news_data, daemon=True).start()
-    threading.Thread(target=update_social_data, daemon=True).start()
+    # threading.Thread(target=update_news_data, daemon=True).start()
+    # threading.Thread(target=update_social_data, daemon=True).start()
 
     logger.info("🚀 FastAPI app startup completed - data loading in background")
 
