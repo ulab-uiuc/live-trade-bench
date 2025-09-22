@@ -7,6 +7,7 @@ import News from './components/News';
 import SocialMedia from './components/SocialMedia';
 import About from './components/About';
 import Navigation from './components/Navigation';
+import Footnote from './components/Footnote';
 import './App.css';
 import type { Model } from './types';
 
@@ -316,46 +317,49 @@ function App() {
     <Router>
       <div className="App">
         <Navigation />
-        <Routes>
-          <Route path="/" element={
-            <Dashboard
-              modelsData={modelsData}
-              modelsLastRefresh={modelsLastRefresh}
-              systemStatus={systemStatus}
-              systemLastRefresh={systemLastRefresh}
-              views={views}
-            />
-          } />
-          <Route path="/stocks" element={
-            <StockDashboard
-              modelsData={modelsData}
-              modelsLastRefresh={modelsLastRefresh}
-              isLoading={isLoading}
-            />
-          } />
-          <Route path="/polymarket" element={
-            <PolymarketDashboard
-              modelsData={modelsData}
-              modelsLastRefresh={modelsLastRefresh}
-              isLoading={isLoading}
-            />
-          } />
-          <Route path="/news" element={
-            <News
-              newsData={newsData}
-              lastRefresh={newsLastRefresh}
-              isLoading={isLoading}
-            />
-          } />
-          <Route path="/social" element={
-            <SocialMedia
-              socialData={socialData}
-              lastRefresh={socialLastRefresh}
-              isLoading={isLoading}
-            />
-          } />
-          <Route path="/about" element={<About />} />
-        </Routes>
+        <div className="main-content">
+          <Routes>
+            <Route path="/" element={
+              <Dashboard
+                modelsData={modelsData}
+                modelsLastRefresh={modelsLastRefresh}
+                systemStatus={systemStatus}
+                systemLastRefresh={systemLastRefresh}
+                views={views}
+              />
+            } />
+            <Route path="/stocks" element={
+              <StockDashboard
+                modelsData={modelsData}
+                modelsLastRefresh={modelsLastRefresh}
+                isLoading={isLoading}
+              />
+            } />
+            <Route path="/polymarket" element={
+              <PolymarketDashboard
+                modelsData={modelsData}
+                modelsLastRefresh={modelsLastRefresh}
+                isLoading={isLoading}
+              />
+            } />
+            <Route path="/news" element={
+              <News
+                newsData={newsData}
+                lastRefresh={newsLastRefresh}
+                isLoading={isLoading}
+              />
+            } />
+            <Route path="/social" element={
+              <SocialMedia
+                socialData={socialData}
+                lastRefresh={socialLastRefresh}
+                isLoading={isLoading}
+              />
+            } />
+            <Route path="/about" element={<About />} />
+          </Routes>
+        </div>
+        <Footnote />
       </div>
     </Router>
   );
