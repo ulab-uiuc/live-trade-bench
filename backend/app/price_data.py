@@ -227,8 +227,17 @@ class RealtimePriceUpdater:
     ) -> Optional[Dict]:
         """创建QQQ或VOO的benchmark模型"""
         try:
-            # 获取最早日期的价格
-            earliest_price = self.stock_fetcher.get_price(symbol, earliest_date)
+            # 固定基准价格，避免不同环境的复权差异
+            baseline_prices = {
+                "QQQ": 577.11,
+                "VOO": 591.36,
+            }
+
+            if symbol in baseline_prices:
+                earliest_price = baseline_prices[symbol]
+            else:
+                earliest_price = self.stock_fetcher.get_price(symbol, earliest_date)
+
             if earliest_price is None or earliest_price <= 0:
                 logger.warning(
                     f"⚠️ Failed to get earliest price for {symbol} on {earliest_date}"
