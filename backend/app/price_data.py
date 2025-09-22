@@ -1,10 +1,11 @@
 import json
 import logging
+from datetime import datetime
 from typing import Dict, List, Optional
 
 from live_trade_bench.fetchers.stock_fetcher import StockFetcher
 
-from .config import MODELS_DATA_FILE
+from .config import MODELS_DATA_FILE, is_trading_day
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,11 @@ class RealtimePriceUpdater:
     def update_realtime_prices_and_values(self) -> None:
         """主要入口函数：更新所有模型的实时价格和计算值"""
         try:
+            # 检查是否为交易日
+            if not is_trading_day():
+                logger.info("📅 Not a trading day, skipping price update")
+                return
+
             logger.info("🔄 Starting realtime price update...")
 
             # 读取当前JSON数据
@@ -133,6 +139,9 @@ class RealtimePriceUpdater:
             model["profit"] = total_value - initial_cash
             model["performance"] = model["profit"] / initial_cash
 
+            # 更新profit history - 添加新的数据点
+            self._update_profit_history(model, total_value, model["profit"])
+
             logger.debug(
                 f"Updated {model['name']}: total_value=${total_value:.2f}, profit=${model['profit']:.2f}, performance={model['performance']:.4f}"
             )
@@ -224,6 +233,52 @@ class RealtimePriceUpdater:
         except Exception as e:
             logger.error(f"Failed to create benchmark model for {symbol}: {e}")
             return None
+
+    def _update_profit_history(
+        self, model: Dict, total_value: float, profit: float
+    ) -> None:
+        try:
+            if "profitHistory" not in model:
+                model["profitHistory"] = []
+
+            current_timestamp = datetime.now().isoformat()
+            current_date = current_timestamp[:10]  # YYYY-MM-DD
+
+            new_entry = {
+                "timestamp": current_timestamp,
+                "profit": profit,
+                "totalValue": total_value,
+            }
+
+            profit_history = model["profitHistory"]
+
+            if profit_history:
+                last_entry = profit_history[-1]
+                last_entry_date = last_entry["timestamp"][:10]  # YYYY-MM-DD
+
+                if last_entry_date == current_date:
+                    profit_history[-1] = new_entry
+                    logger.debug(
+                        f"Updated today's profit history entry for {model.get('name', 'Unknown')}"
+                    )
+                else:
+                    profit_history.append(new_entry)
+                    logger.debug(
+                        f"Added new profit history entry for {model.get('name', 'Unknown')}"
+                    )
+            else:
+                profit_history.append(new_entry)
+                logger.debug(
+                    f"Added first profit history entry for {model.get('name', 'Unknown')}"
+                )
+            # keep length of profit_history to 500
+            # if len(profit_history) > 500:
+            #     model["profitHistory"] = profit_history[-500:]
+
+        except Exception as e:
+            logger.error(
+                f"Failed to update profit history for {model.get('name', 'Unknown')}: {e}"
+            )
 
 
 # 全局实例
