@@ -185,13 +185,12 @@
 }
 
 .table-row.benchmark {
-  border-left: 3px solid rgba(250, 204, 21, 0.75);
   background: linear-gradient(
     90deg,
     rgba(250, 204, 21, 0.16) 0%,
     rgba(250, 204, 21, 0.04) 100%
   );
-  box-shadow: 0 4px 20px rgba(250, 204, 21, 0.15);
+  box-shadow: inset 3px 0 0 rgba(250, 204, 21, 0.75), 0 4px 20px rgba(250, 204, 21, 0.15);
 }
 
 .table-row:hover {
@@ -207,7 +206,7 @@
     rgba(250, 204, 21, 0.22) 0%,
     rgba(250, 204, 21, 0.08) 100%
   );
-  box-shadow: 0 6px 22px rgba(250, 204, 21, 0.25);
+  box-shadow: inset 3px 0 0 rgba(250, 204, 21, 0.75), 0 6px 22px rgba(250, 204, 21, 0.25);
 }
 
 /* Removed .table-row-link styles since we're using onClick instead */
