@@ -1,14 +1,130 @@
 import json
 import logging
 import os
-from datetime import datetime
-from typing import Dict, List, Optional
+from datetime import datetime, time, timedelta
+from typing import Any, Dict, List, Optional
+
+import pytz
 
 from live_trade_bench.fetchers.stock_fetcher import StockFetcher
 
-from .config import MODELS_DATA_FILE, is_trading_day
+from .config import (
+    MARKET_HOURS,
+    MODELS_DATA_FILE,
+    TRADING_CONFIG,
+    UPDATE_FREQUENCY,
+    is_market_hours,
+    is_trading_day,
+)
 
 logger = logging.getLogger(__name__)
+
+_NEXT_UPDATE_TIMES: Dict[str, Optional[datetime]] = {
+    "stock": None,
+    "polymarket": None,
+}
+
+
+def get_next_price_update_time(
+    market: str = "stock", now_utc: Optional[datetime] = None
+) -> Optional[datetime]:
+    if market not in _NEXT_UPDATE_TIMES:
+        return None
+
+    if _NEXT_UPDATE_TIMES[market] is None:
+        reference = now_utc or datetime.now(pytz.UTC)
+        _NEXT_UPDATE_TIMES[market] = _compute_next_price_update_time(market, reference)
+
+    return _NEXT_UPDATE_TIMES[market]
+
+
+def _set_next_price_update_time(market: str, value: Optional[datetime]) -> None:
+    if market in _NEXT_UPDATE_TIMES:
+        _NEXT_UPDATE_TIMES[market] = value
+
+
+def _compute_next_price_update_time(market: str, now_utc: datetime) -> datetime:
+    if market == "polymarket":
+        interval = timedelta(seconds=UPDATE_FREQUENCY["polymarket_prices"])
+        return (now_utc + interval).astimezone(pytz.UTC)
+
+    # Default to stock market schedule
+    tz = pytz.timezone("US/Eastern")
+    est_now = now_utc.astimezone(tz)
+
+    interval = timedelta(seconds=UPDATE_FREQUENCY["realtime_prices"])
+    candidate = est_now + interval
+
+    open_hour, open_minute = map(int, MARKET_HOURS["stock_open"].split(":"))
+    close_hour, close_minute = map(int, MARKET_HOURS["stock_close"].split(":"))
+
+    close_today = est_now.replace(
+        hour=close_hour, minute=close_minute, second=0, microsecond=0
+    )
+
+    if candidate <= close_today:
+        open_today = est_now.replace(
+            hour=open_hour, minute=open_minute, second=0, microsecond=0
+        )
+        if candidate < open_today:
+            candidate = open_today
+        return candidate.astimezone(pytz.UTC)
+
+    trading_days = set(MARKET_HOURS["trading_days"])
+    next_day = est_now.date()
+
+    while True:
+        next_day += timedelta(days=1)
+        if next_day.weekday() in trading_days:
+            break
+
+    next_open_est = tz.localize(
+        datetime.combine(next_day, time(open_hour, open_minute))
+    )
+    return next_open_est.astimezone(pytz.UTC)
+
+
+def _load_models_data() -> Optional[List[Dict]]:
+    try:
+        with open(MODELS_DATA_FILE, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.warning(f"Models data file not found: {MODELS_DATA_FILE}")
+        return None
+    except Exception as exc:
+        logger.error(f"Failed to load models data: {exc}")
+        return None
+
+
+def _save_models_data(models_data: List[Dict]) -> None:
+    with open(MODELS_DATA_FILE, "w") as fh:
+        json.dump(models_data, fh, indent=4)
+
+
+def _update_profit_history(model: Dict, total_value: float, profit: float) -> None:
+    try:
+        history = model.setdefault("profitHistory", [])
+        current_timestamp = datetime.now().isoformat()
+        current_date = current_timestamp[:10]
+        new_entry = {
+            "timestamp": current_timestamp,
+            "profit": profit,
+            "totalValue": total_value,
+        }
+
+        if history:
+            last_entry = history[-1]
+            last_date = last_entry.get("timestamp", "")[:10]
+            if last_date == current_date:
+                history[-1] = new_entry
+            else:
+                history.append(new_entry)
+        else:
+            history.append(new_entry)
+    except Exception as exc:
+        logger.error(
+            f"Failed to update profit history for {model.get('name', 'Unknown')}: {exc}"
+        )
 
 
 class RealtimePriceUpdater:
@@ -46,9 +162,22 @@ class RealtimePriceUpdater:
             needs_benchmark_init = self._is_first_startup()
 
             # 检查是否为交易日，但需要初始化benchmark时允许运行
-            if not is_trading_day() and not needs_benchmark_init:
-                logger.info("📅 Not a trading day, skipping price update")
-                return
+            if not needs_benchmark_init:
+                if not is_trading_day():
+                    logger.info("📅 Not a trading day, skipping price update")
+                    next_time = _compute_next_price_update_time(
+                        "stock", datetime.now(pytz.UTC)
+                    )
+                    _set_next_price_update_time("stock", next_time)
+                    return
+
+                if not is_market_hours():
+                    logger.info("🕒 Outside market hours, skipping price update")
+                    next_time = _compute_next_price_update_time(
+                        "stock", datetime.now(pytz.UTC)
+                    )
+                    _set_next_price_update_time("stock", next_time)
+                    return
 
             if needs_benchmark_init:
                 logger.info("🔄 No benchmark models found, running initialization...")
@@ -56,9 +185,13 @@ class RealtimePriceUpdater:
                 logger.info("🔄 Starting realtime price update...")
 
             # 读取当前JSON数据
-            models_data = self._load_models_data()
+            models_data = _load_models_data()
             if not models_data:
                 logger.warning("⚠️ No models data found, skipping update")
+                next_time = _compute_next_price_update_time(
+                    "stock", datetime.now(pytz.UTC)
+                )
+                _set_next_price_update_time("stock", next_time)
                 return
 
             # 收集所有需要更新的股票symbols
@@ -79,32 +212,19 @@ class RealtimePriceUpdater:
             self._update_benchmark_models(models_data, price_cache)
 
             # 保存更新后的数据
-            self._save_models_data(models_data)
+            _save_models_data(models_data)
 
             logger.info(
                 f"✅ Successfully updated {updated_count} stock models + benchmarks"
             )
 
+            next_time = _compute_next_price_update_time("stock", datetime.now(pytz.UTC))
+            _set_next_price_update_time("stock", next_time)
+            logger.info(f"🕒 Next realtime price update target: {next_time.isoformat()}")
+
         except Exception as e:
             logger.error(f"❌ Failed to update realtime prices: {e}")
             raise
-
-    def _load_models_data(self) -> Optional[List[Dict]]:
-        """加载现有的模型数据"""
-        try:
-            with open(MODELS_DATA_FILE, "r") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            logger.warning(f"Models data file not found: {MODELS_DATA_FILE}")
-            return None
-        except Exception as e:
-            logger.error(f"Failed to load models data: {e}")
-            return None
-
-    def _save_models_data(self, models_data: List[Dict]) -> None:
-        """保存更新后的模型数据"""
-        with open(MODELS_DATA_FILE, "w") as f:
-            json.dump(models_data, f, indent=4)
 
     def _collect_all_symbols(self, models_data: List[Dict]) -> List[str]:
         """收集所有需要更新价格的股票symbols"""
@@ -166,12 +286,12 @@ class RealtimePriceUpdater:
             portfolio["total_value"] = total_value
 
             # 更新模型级别的profit和performance（基于stock初始资金1000）
-            initial_cash = 1000.0
+            initial_cash = TRADING_CONFIG["initial_cash_stock"]
             model["profit"] = total_value - initial_cash
             model["performance"] = model["profit"] / initial_cash * 100
 
             # 更新profit history - 添加新的数据点
-            self._update_profit_history(model, total_value, model["profit"])
+            _update_profit_history(model, total_value, model["profit"])
 
             logger.debug(
                 f"Updated {model['name']}: total_value=${total_value:.2f}, profit=${model['profit']:.2f}, performance={model['performance']:.4f}"
@@ -279,57 +399,141 @@ class RealtimePriceUpdater:
             logger.error(f"Failed to create benchmark model for {symbol}: {e}")
             return None
 
-    def _update_profit_history(
-        self, model: Dict, total_value: float, profit: float
-    ) -> None:
+    # keep length of profit_history to 500 if needed in future
+
+
+class PolymarketPriceUpdater:
+    def __init__(self) -> None:
+        self.initial_cash = TRADING_CONFIG["initial_cash_polymarket"]
+
+    def update_realtime_prices_and_values(self) -> None:
         try:
-            if "profitHistory" not in model:
-                model["profitHistory"] = []
+            models_data = _load_models_data()
+            if not models_data:
+                logger.warning("⚠️ No models data found, skipping polymarket update")
+                return
 
-            current_timestamp = datetime.now().isoformat()
-            current_date = current_timestamp[:10]  # YYYY-MM-DD
+            price_cache = self._build_price_cache()
+            if not price_cache:
+                logger.warning("⚠️ No polymarket price data available, skipping update")
+                return
 
-            new_entry = {
-                "timestamp": current_timestamp,
-                "profit": profit,
-                "totalValue": total_value,
-            }
+            updated_count = 0
+            for model in models_data:
+                if model.get("category") != "polymarket":
+                    continue
+                if self._update_single_model(model, price_cache):
+                    updated_count += 1
 
-            profit_history = model["profitHistory"]
+            _save_models_data(models_data)
+            logger.info(f"✅ Successfully updated {updated_count} polymarket models")
 
-            if profit_history:
-                last_entry = profit_history[-1]
-                last_entry_date = last_entry["timestamp"][:10]  # YYYY-MM-DD
-
-                if last_entry_date == current_date:
-                    profit_history[-1] = new_entry
-                    logger.debug(
-                        f"Updated today's profit history entry for {model.get('name', 'Unknown')}"
-                    )
-                else:
-                    profit_history.append(new_entry)
-                    logger.debug(
-                        f"Added new profit history entry for {model.get('name', 'Unknown')}"
-                    )
-            else:
-                profit_history.append(new_entry)
-                logger.debug(
-                    f"Added first profit history entry for {model.get('name', 'Unknown')}"
-                )
-            # keep length of profit_history to 500
-            # if len(profit_history) > 500:
-            #     model["profitHistory"] = profit_history[-500:]
-
-        except Exception as e:
-            logger.error(
-                f"Failed to update profit history for {model.get('name', 'Unknown')}: {e}"
+        except Exception as exc:
+            logger.error(f"❌ Failed to update polymarket prices: {exc}")
+            raise
+        finally:
+            next_time = _compute_next_price_update_time(
+                "polymarket", datetime.now(pytz.UTC)
             )
+            _set_next_price_update_time("polymarket", next_time)
+            logger.info(
+                f"🕒 Next polymarket price update target: {next_time.isoformat()}"
+            )
+
+    def _build_price_cache(self) -> Dict[str, float]:
+        system = self._get_polymarket_system()
+        if system is None:
+            return {}
+
+        try:
+            market_data = system._fetch_market_data()
+        except Exception as exc:
+            logger.error(f"❌ Failed to fetch polymarket market data: {exc}")
+            return {}
+
+        price_cache: Dict[str, float] = {}
+        for symbol, payload in market_data.items():
+            price = payload.get("price")
+            if price is None:
+                continue
+            try:
+                price_cache[symbol] = float(price)
+            except (TypeError, ValueError):
+                continue
+        return price_cache
+
+    def _get_polymarket_system(self):
+        try:
+            from .main import get_polymarket_system
+
+            system = get_polymarket_system()
+            if system is not None:
+                return system
+        except Exception:
+            pass
+
+        try:
+            from live_trade_bench.systems import PolymarketPortfolioSystem
+
+            return PolymarketPortfolioSystem.get_instance()
+        except Exception as exc:
+            logger.error(f"❌ Unable to access polymarket system: {exc}")
+            return None
+
+    def _update_single_model(
+        self, model: Dict[str, Any], price_cache: Dict[str, float]
+    ) -> bool:
+        try:
+            portfolio = model.get("portfolio", {})
+            positions = portfolio.get("positions", {}) or {}
+            cash = float(portfolio.get("cash", 0.0))
+            total_value = cash
+
+            for symbol, position in positions.items():
+                price = price_cache.get(symbol)
+                if price is not None:
+                    position["current_price"] = price
+                else:
+                    price = float(position.get("current_price", 0.0))
+
+                quantity = float(position.get("quantity", 0.0))
+                total_value += quantity * price
+
+            portfolio["total_value"] = total_value
+
+            profit = total_value - self.initial_cash
+            model["profit"] = profit
+            model["performance"] = (
+                (profit / self.initial_cash) * 100 if self.initial_cash else 0.0
+            )
+
+            _update_profit_history(model, total_value, profit)
+
+            logger.debug(
+                f"Updated polymarket model {model.get('name', 'Unknown')}: total_value=${total_value:.2f}, profit=${profit:.2f}"
+            )
+            return True
+
+        except Exception as exc:
+            logger.error(
+                f"❌ Failed to update polymarket model {model.get('name', 'Unknown')}: {exc}"
+            )
+            return False
 
 
 # 全局实例
-price_updater = RealtimePriceUpdater()
+stock_price_updater = RealtimePriceUpdater()
+polymarket_price_updater = PolymarketPriceUpdater()
 
 
-def update_realtime_prices_and_values():
-    """供定时任务调用的函数"""
-    price_updater.update_realtime_prices_and_values()
+def update_stock_prices_and_values() -> None:
+    stock_price_updater.update_realtime_prices_and_values()
+
+
+def update_polymarket_prices_and_values() -> None:
+    polymarket_price_updater.update_realtime_prices_and_values()
+
+
+def update_realtime_prices_and_values() -> None:
+    """Backward-compatible alias for stock price updates."""
+    update_stock_prices_and_values()

@@ -55,7 +55,8 @@ UPDATE_FREQUENCY = {
     "system_status": 60,
     "news_social": 600,
     "trading_cycle": "daily_before_close",
-    "realtime_prices": 600,  # 10 minutes in seconds
+    "realtime_prices": 600,  # Stock prices: 10 minutes
+    "polymarket_prices": 1800,  # Polymarket prices: 30 minutes by default
 }
 
 TRADING_CONFIG = {
@@ -138,6 +139,21 @@ def should_run_trading_cycle() -> bool:
         run_window_end = time(21, 5)  # UTC 21:05 (美东 4:05 PM EST)
 
     return run_window_start <= current_utc_time <= run_window_end
+
+
+def is_market_hours() -> bool:
+    if not is_trading_day():
+        return False
+
+    utc_now = datetime.now(pytz.UTC)
+    est_now = utc_now.astimezone(pytz.timezone("US/Eastern"))
+
+    stock_open = datetime.strptime(MARKET_HOURS["stock_open"], "%H:%M").time()
+    stock_close = datetime.strptime(MARKET_HOURS["stock_close"], "%H:%M").time()
+
+    current_time = est_now.time()
+
+    return stock_open <= current_time <= stock_close
 
 
 class MockMode(str, Enum):

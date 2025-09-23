@@ -70,6 +70,8 @@ function App() {
 
   // Last refresh timestamps for all data types
   const [modelsLastRefresh, setModelsLastRefresh] = useState<Date>(new Date());
+  const [stockNextRefresh, setStockNextRefresh] = useState<Date | null>(null);
+  const [polymarketNextRefresh, setPolymarketNextRefresh] = useState<Date | null>(null);
   const [newsLastRefresh, setNewsLastRefresh] = useState<Date>(new Date());
   const [socialLastRefresh, setSocialLastRefresh] = useState<Date>(new Date());
   const [systemLastRefresh, setSystemLastRefresh] = useState<Date>(new Date());
@@ -162,9 +164,13 @@ function App() {
   const fetchModelsData = useCallback(async () => {
     try {
       console.log('🔄 Background fetching models data...');
-      const response = await fetch('/api/models/');
-      if (response.ok) {
-        const currentModels: Model[] = await response.json();
+      const [modelsResponse, nextUpdateResponse] = await Promise.all([
+        fetch('/api/models/'),
+        fetch('/api/schedule/next-price-update')
+      ]);
+
+      if (modelsResponse.ok) {
+        const currentModels: Model[] = await modelsResponse.json();
 
         // --- RANKING LOGIC ---
         // 1. Sort models by performance to determine rank
@@ -203,6 +209,19 @@ function App() {
         prevRanks.current = newRanks; // Store for next comparison
 
         console.log(`✅ Background models updated: ${currentModels.length} models with ranks`);
+      }
+
+      if (nextUpdateResponse.ok) {
+        const scheduleData = await nextUpdateResponse.json();
+
+        const parseTime = (value: any) => {
+          if (typeof value !== 'string') return null;
+          const dt = new Date(value);
+          return Number.isNaN(dt.getTime()) ? null : dt;
+        };
+
+        setStockNextRefresh(parseTime(scheduleData?.stock ?? scheduleData?.next_run_time));
+        setPolymarketNextRefresh(parseTime(scheduleData?.polymarket));
       }
     } catch (error) {
       console.error('❌ Background models fetch failed:', error);
@@ -323,6 +342,8 @@ function App() {
               <Dashboard
                 modelsData={modelsData}
                 modelsLastRefresh={modelsLastRefresh}
+                stockNextRefresh={stockNextRefresh || undefined}
+                polymarketNextRefresh={polymarketNextRefresh || undefined}
                 systemStatus={systemStatus}
                 systemLastRefresh={systemLastRefresh}
                 views={views}
