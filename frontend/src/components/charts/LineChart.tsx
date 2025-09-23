@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -36,13 +36,61 @@ interface LineChartProps {
   showTotalValue?: boolean;
 }
 
+const DAYS_IN_MONTH = 30;
+
+const parseTimestamp = (value?: string): Date | null => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed;
+  }
+  const datePortion = value.slice(0, 10);
+  if (datePortion.length === 10) {
+    const fallback = new Date(`${datePortion}T00:00:00Z`);
+    if (!Number.isNaN(fallback.getTime())) {
+      return fallback;
+    }
+  }
+  return null;
+};
+
+const filterHistoryByDays = (history: ProfitDataPoint[], days = DAYS_IN_MONTH): ProfitDataPoint[] => {
+  if (!Array.isArray(history) || history.length === 0) {
+    return [];
+  }
+
+  let anchorDate: Date | null = null;
+
+  for (let i = history.length - 1; i >= 0; i -= 1) {
+    const candidate = parseTimestamp(history[i]?.timestamp);
+    if (candidate) {
+      anchorDate = candidate;
+      break;
+    }
+  }
+
+  if (!anchorDate) {
+    return history;
+  }
+
+  const cutoff = new Date(anchorDate);
+  cutoff.setDate(cutoff.getDate() - days);
+
+  return history.filter((entry) => {
+    const entryDate = parseTimestamp(entry?.timestamp);
+    return entryDate ? entryDate >= cutoff : false;
+  });
+};
+
 const LineChart: React.FC<LineChartProps> = ({
   profitHistory,
   title = "Profit History",
   size = 'medium',
   showTotalValue = false
 }) => {
-  if (!profitHistory || profitHistory.length === 0) {
+  const filteredHistory = useMemo(() => filterHistoryByDays(profitHistory), [profitHistory]);
+
+  if (!filteredHistory || filteredHistory.length === 0) {
     return (
       <div className={`line-chart-container ${size}`}>
         <h4 className="chart-title">{title}</h4>
@@ -53,7 +101,7 @@ const LineChart: React.FC<LineChartProps> = ({
     );
   }
 
-  const labels = profitHistory.map(point => {
+  const labels = filteredHistory.map(point => {
     const date = new Date(point.timestamp);
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -62,8 +110,8 @@ const LineChart: React.FC<LineChartProps> = ({
     });
   });
 
-  const profitData = profitHistory.map(point => point.profit);
-  const totalValueData = showTotalValue ? profitHistory.map(point => point.totalValue) : [];
+  const profitData = filteredHistory.map(point => point.profit);
+  const totalValueData = showTotalValue ? filteredHistory.map(point => point.totalValue) : [];
 
   const datasets = [
     {
