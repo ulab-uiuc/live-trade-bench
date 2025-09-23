@@ -15,7 +15,8 @@ export type ModelRow = {
 export type DashboardProps = {
   modelsData?: any[]; // raw input from your backend
   modelsLastRefresh?: Date | string;
-  modelsNextRefresh?: Date | string;
+  stockNextRefresh?: Date | string;
+  polymarketNextRefresh?: Date | string;
   systemStatus?: any;
   systemLastRefresh?: Date | string;
   views?: number; // 添加views属性
@@ -345,7 +346,7 @@ const LeaderboardCard: React.FC<{
 
 // ------- Main Dashboard Component -------
 
-const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], modelsLastRefresh = new Date(), modelsNextRefresh, systemStatus, systemLastRefresh, views = 0 }) => {
+const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], modelsLastRefresh = new Date(), stockNextRefresh, polymarketNextRefresh, systemStatus, systemLastRefresh, views = 0 }) => {
   const navigate = useNavigate();
 
   // 格式化数字显示
@@ -449,7 +450,7 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
           key="stock-leaderboard"
           title="Stock"
           updatedAt={modelsLastRefresh}
-          nextUpdate={modelsNextRefresh}
+          nextUpdate={stockNextRefresh}
           items={stock}
           category="stock"
         />
@@ -457,7 +458,7 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
           key="polymarket-leaderboard"
           title="Polymarket"
           updatedAt={modelsLastRefresh}
-          nextUpdate={modelsNextRefresh}
+          nextUpdate={polymarketNextRefresh}
           items={poly}
           category="polymarket"
         />

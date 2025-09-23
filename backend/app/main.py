@@ -33,7 +33,11 @@ from .config import (
 )
 from .models_data import generate_models_data, load_historical_data_to_accounts
 from .news_data import update_news_data
-from .price_data import get_next_price_update_time, update_realtime_prices_and_values
+from .price_data import (
+    get_next_price_update_time,
+    update_polymarket_prices_and_values,
+    update_stock_prices_and_values,
+)
 from .routers import models, news, social, system
 from .social_data import update_social_data
 from .system_data import update_system_status
@@ -142,12 +146,18 @@ async def api_root():
 @app.get("/api/schedule/next-price-update")
 def get_next_price_update():
     """Expose the next scheduled realtime price update."""
+    stock_time = get_next_price_update_time("stock")
+    poly_time = get_next_price_update_time("polymarket")
 
-    next_time = get_next_price_update_time()
-    if not next_time:
-        return {"next_run_time": None}
+    response = {
+        "stock": stock_time.isoformat() if stock_time else None,
+        "polymarket": poly_time.isoformat() if poly_time else None,
+    }
 
-    return {"next_run_time": next_time.isoformat()}
+    # Backward compatibility for older clients expecting single field
+    response["next_run_time"] = response["stock"]
+
+    return response
 
 
 def load_backtest_as_initial_data():
@@ -199,13 +209,25 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
 
     price_interval = UPDATE_FREQUENCY["realtime_prices"]
     logger.info(
-        f"📈 Scheduled realtime price update job for every {price_interval} seconds ({price_interval//60} minutes)"
+        f"📈 Scheduled stock price update job for every {price_interval} seconds ({price_interval//60} minutes)"
     )
     scheduler.add_job(
-        update_realtime_prices_and_values,
+        update_stock_prices_and_values,
         "interval",
-        seconds=UPDATE_FREQUENCY["realtime_prices"],  # 使用config中的配置
-        id="update_realtime_prices",
+        seconds=price_interval,
+        id="update_stock_prices",
+        replace_existing=True,
+    )
+
+    polymarket_interval = UPDATE_FREQUENCY["polymarket_prices"]
+    logger.info(
+        f"📊 Scheduled polymarket price update job for every {polymarket_interval} seconds ({polymarket_interval//60} minutes)"
+    )
+    scheduler.add_job(
+        update_polymarket_prices_and_values,
+        "interval",
+        seconds=polymarket_interval,
+        id="update_polymarket_prices",
         replace_existing=True,
     )
     scheduler.add_job(

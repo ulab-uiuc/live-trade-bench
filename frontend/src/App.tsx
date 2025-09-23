@@ -70,7 +70,8 @@ function App() {
 
   // Last refresh timestamps for all data types
   const [modelsLastRefresh, setModelsLastRefresh] = useState<Date>(new Date());
-  const [modelsNextRefresh, setModelsNextRefresh] = useState<Date | null>(null);
+  const [stockNextRefresh, setStockNextRefresh] = useState<Date | null>(null);
+  const [polymarketNextRefresh, setPolymarketNextRefresh] = useState<Date | null>(null);
   const [newsLastRefresh, setNewsLastRefresh] = useState<Date>(new Date());
   const [socialLastRefresh, setSocialLastRefresh] = useState<Date>(new Date());
   const [systemLastRefresh, setSystemLastRefresh] = useState<Date>(new Date());
@@ -212,16 +213,15 @@ function App() {
 
       if (nextUpdateResponse.ok) {
         const scheduleData = await nextUpdateResponse.json();
-        if (scheduleData?.next_run_time) {
-          const nextTime = new Date(scheduleData.next_run_time);
-          if (!Number.isNaN(nextTime.getTime())) {
-            setModelsNextRefresh(nextTime);
-          } else {
-            setModelsNextRefresh(null);
-          }
-        } else {
-          setModelsNextRefresh(null);
-        }
+
+        const parseTime = (value: any) => {
+          if (typeof value !== 'string') return null;
+          const dt = new Date(value);
+          return Number.isNaN(dt.getTime()) ? null : dt;
+        };
+
+        setStockNextRefresh(parseTime(scheduleData?.stock ?? scheduleData?.next_run_time));
+        setPolymarketNextRefresh(parseTime(scheduleData?.polymarket));
       }
     } catch (error) {
       console.error('❌ Background models fetch failed:', error);
@@ -342,7 +342,8 @@ function App() {
               <Dashboard
                 modelsData={modelsData}
                 modelsLastRefresh={modelsLastRefresh}
-                modelsNextRefresh={modelsNextRefresh || undefined}
+                stockNextRefresh={stockNextRefresh || undefined}
+                polymarketNextRefresh={polymarketNextRefresh || undefined}
                 systemStatus={systemStatus}
                 systemLastRefresh={systemLastRefresh}
                 views={views}
