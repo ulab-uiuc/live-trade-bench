@@ -33,7 +33,7 @@ from .config import (
 )
 from .models_data import generate_models_data, load_historical_data_to_accounts
 from .news_data import update_news_data
-from .price_data import update_realtime_prices_and_values
+from .price_data import get_next_price_update_time, update_realtime_prices_and_values
 from .routers import models, news, social, system
 from .social_data import update_social_data
 from .system_data import update_system_status
@@ -41,6 +41,8 @@ from .system_data import update_system_status
 # Global system instances - Initialize immediately
 stock_system = None
 polymarket_system = None
+# Background scheduler instance; assigned during startup to keep reference alive
+scheduler = None
 
 # System class mappings
 STOCK_SYSTEMS = {
@@ -135,6 +137,17 @@ async def api_root():
             "redoc": "/redoc",
         },
     }
+
+
+@app.get("/api/schedule/next-price-update")
+def get_next_price_update():
+    """Expose the next scheduled realtime price update."""
+
+    next_time = get_next_price_update_time()
+    if not next_time:
+        return {"next_run_time": None}
+
+    return {"next_run_time": next_time.isoformat()}
 
 
 def load_backtest_as_initial_data():

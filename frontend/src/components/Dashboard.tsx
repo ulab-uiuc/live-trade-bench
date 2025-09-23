@@ -15,6 +15,7 @@ export type ModelRow = {
 export type DashboardProps = {
   modelsData?: any[]; // raw input from your backend
   modelsLastRefresh?: Date | string;
+  modelsNextRefresh?: Date | string;
   systemStatus?: any;
   systemLastRefresh?: Date | string;
   views?: number; // 添加views属性
@@ -32,6 +33,36 @@ function relativeTime(dateLike?: Date | string) {
   if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
   const days = Math.floor(hrs / 24);
   return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+function formatNextUpdate(dateLike?: Date | string) {
+  if (!dateLike) return "";
+  const date = typeof dateLike === "string" ? new Date(dateLike) : dateLike;
+  if (Number.isNaN(date.getTime())) return "";
+
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: "America/New_York",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  };
+  const timeString = date.toLocaleTimeString([], options);
+
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  };
+  const nextDate = date.toLocaleDateString([], dateOptions);
+  const nowDate = new Date().toLocaleDateString([], dateOptions);
+
+  if (nextDate === nowDate) {
+    return `Next update (ET): ${timeString}`;
+  }
+
+  return `Next update (ET): ${nextDate} ${timeString}`;
 }
 
 // Utility function for conditional class names (keeping for potential future use)
@@ -202,9 +233,10 @@ const ProviderIcon: React.FC<{ name?: string; provider?: string }> = ({ name, pr
 const LeaderboardCard: React.FC<{
   title: string;
   updatedAt?: Date | string;
+  nextUpdate?: Date | string;
   items: ModelRow[];
   category: "stock" | "polymarket";
-}> = ({ title, updatedAt, items, category }) => {
+}> = ({ title, updatedAt, nextUpdate, items, category }) => {
   const [showAll, setShowAll] = useState(false);
 
   // Sort by score desc, compute rank
@@ -231,7 +263,9 @@ const LeaderboardCard: React.FC<{
         <div className="card-title-section">
           <h3 className="card-title">{title}</h3>
         </div>
-        <div className="card-updated">{relativeTime(updatedAt)}</div>
+        <div className="card-updated">
+          {nextUpdate ? formatNextUpdate(nextUpdate) : relativeTime(updatedAt)}
+        </div>
       </div>
 
       {/* Desktop Table */}
@@ -311,7 +345,7 @@ const LeaderboardCard: React.FC<{
 
 // ------- Main Dashboard Component -------
 
-const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], modelsLastRefresh = new Date(), systemStatus, systemLastRefresh, views = 0 }) => {
+const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], modelsLastRefresh = new Date(), modelsNextRefresh, systemStatus, systemLastRefresh, views = 0 }) => {
   const navigate = useNavigate();
 
   // 格式化数字显示
@@ -415,6 +449,7 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
           key="stock-leaderboard"
           title="Stock"
           updatedAt={modelsLastRefresh}
+          nextUpdate={modelsNextRefresh}
           items={stock}
           category="stock"
         />
@@ -422,6 +457,7 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
           key="polymarket-leaderboard"
           title="Polymarket"
           updatedAt={modelsLastRefresh}
+          nextUpdate={modelsNextRefresh}
           items={poly}
           category="polymarket"
         />

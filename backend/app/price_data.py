@@ -1,14 +1,79 @@
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, time, timedelta
 from typing import Dict, List, Optional
+
+import pytz
 
 from live_trade_bench.fetchers.stock_fetcher import StockFetcher
 
-from .config import MODELS_DATA_FILE, is_market_hours, is_trading_day
+from .config import (
+    MARKET_HOURS,
+    MODELS_DATA_FILE,
+    UPDATE_FREQUENCY,
+    is_market_hours,
+    is_trading_day,
+)
 
 logger = logging.getLogger(__name__)
+
+
+next_price_update_utc: Optional[datetime] = None
+
+
+def get_next_price_update_time(
+    now_utc: Optional[datetime] = None,
+) -> Optional[datetime]:
+    global next_price_update_utc
+
+    if next_price_update_utc is None:
+        reference = now_utc or datetime.now(pytz.UTC)
+        next_price_update_utc = _compute_next_price_update_time(reference)
+
+    return next_price_update_utc
+
+
+def _set_next_price_update_time(value: Optional[datetime]) -> None:
+    global next_price_update_utc
+    next_price_update_utc = value
+
+
+def _compute_next_price_update_time(now_utc: datetime) -> datetime:
+    tz = pytz.timezone("US/Eastern")
+    est_now = now_utc.astimezone(tz)
+
+    interval = timedelta(seconds=UPDATE_FREQUENCY["realtime_prices"])
+    candidate = est_now + interval
+
+    open_hour, open_minute = map(int, MARKET_HOURS["stock_open"].split(":"))
+    close_hour, close_minute = map(int, MARKET_HOURS["stock_close"].split(":"))
+
+    close_today = est_now.replace(
+        hour=close_hour, minute=close_minute, second=0, microsecond=0
+    )
+
+    if candidate <= close_today:
+        # Guard against theoretical drift before open
+        open_today = est_now.replace(
+            hour=open_hour, minute=open_minute, second=0, microsecond=0
+        )
+        if candidate < open_today:
+            candidate = open_today
+        return candidate.astimezone(pytz.UTC)
+
+    trading_days = set(MARKET_HOURS["trading_days"])
+    next_day = est_now.date()
+
+    while True:
+        next_day += timedelta(days=1)
+        if next_day.weekday() in trading_days:
+            break
+
+    next_open_est = tz.localize(
+        datetime.combine(next_day, time(open_hour, open_minute))
+    )
+    return next_open_est.astimezone(pytz.UTC)
 
 
 class RealtimePriceUpdater:
@@ -49,10 +114,14 @@ class RealtimePriceUpdater:
             if not needs_benchmark_init:
                 if not is_trading_day():
                     logger.info("📅 Not a trading day, skipping price update")
+                    next_time = _compute_next_price_update_time(datetime.now(pytz.UTC))
+                    _set_next_price_update_time(next_time)
                     return
 
                 if not is_market_hours():
                     logger.info("🕒 Outside market hours, skipping price update")
+                    next_time = _compute_next_price_update_time(datetime.now(pytz.UTC))
+                    _set_next_price_update_time(next_time)
                     return
 
             if needs_benchmark_init:
@@ -64,6 +133,8 @@ class RealtimePriceUpdater:
             models_data = self._load_models_data()
             if not models_data:
                 logger.warning("⚠️ No models data found, skipping update")
+                next_time = _compute_next_price_update_time(datetime.now(pytz.UTC))
+                _set_next_price_update_time(next_time)
                 return
 
             # 收集所有需要更新的股票symbols
@@ -89,6 +160,10 @@ class RealtimePriceUpdater:
             logger.info(
                 f"✅ Successfully updated {updated_count} stock models + benchmarks"
             )
+
+            next_time = _compute_next_price_update_time(datetime.now(pytz.UTC))
+            _set_next_price_update_time(next_time)
+            logger.info(f"🕒 Next realtime price update target: {next_time.isoformat()}")
 
         except Exception as e:
             logger.error(f"❌ Failed to update realtime prices: {e}")

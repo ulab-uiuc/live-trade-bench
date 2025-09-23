@@ -70,6 +70,7 @@ function App() {
 
   // Last refresh timestamps for all data types
   const [modelsLastRefresh, setModelsLastRefresh] = useState<Date>(new Date());
+  const [modelsNextRefresh, setModelsNextRefresh] = useState<Date | null>(null);
   const [newsLastRefresh, setNewsLastRefresh] = useState<Date>(new Date());
   const [socialLastRefresh, setSocialLastRefresh] = useState<Date>(new Date());
   const [systemLastRefresh, setSystemLastRefresh] = useState<Date>(new Date());
@@ -162,9 +163,13 @@ function App() {
   const fetchModelsData = useCallback(async () => {
     try {
       console.log('🔄 Background fetching models data...');
-      const response = await fetch('/api/models/');
-      if (response.ok) {
-        const currentModels: Model[] = await response.json();
+      const [modelsResponse, nextUpdateResponse] = await Promise.all([
+        fetch('/api/models/'),
+        fetch('/api/schedule/next-price-update')
+      ]);
+
+      if (modelsResponse.ok) {
+        const currentModels: Model[] = await modelsResponse.json();
 
         // --- RANKING LOGIC ---
         // 1. Sort models by performance to determine rank
@@ -203,6 +208,20 @@ function App() {
         prevRanks.current = newRanks; // Store for next comparison
 
         console.log(`✅ Background models updated: ${currentModels.length} models with ranks`);
+      }
+
+      if (nextUpdateResponse.ok) {
+        const scheduleData = await nextUpdateResponse.json();
+        if (scheduleData?.next_run_time) {
+          const nextTime = new Date(scheduleData.next_run_time);
+          if (!Number.isNaN(nextTime.getTime())) {
+            setModelsNextRefresh(nextTime);
+          } else {
+            setModelsNextRefresh(null);
+          }
+        } else {
+          setModelsNextRefresh(null);
+        }
       }
     } catch (error) {
       console.error('❌ Background models fetch failed:', error);
@@ -323,6 +342,7 @@ function App() {
               <Dashboard
                 modelsData={modelsData}
                 modelsLastRefresh={modelsLastRefresh}
+                modelsNextRefresh={modelsNextRefresh || undefined}
                 systemStatus={systemStatus}
                 systemLastRefresh={systemLastRefresh}
                 views={views}
