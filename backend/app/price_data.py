@@ -386,11 +386,11 @@ class RealtimePriceUpdater:
                     logger.debug(
                         f"Updated today's profit history entry for {model.get('name', 'Unknown')}"
                     )
-                else:
-                    profit_history.append(new_entry)
-                    logger.debug(
-                        f"Added new profit history entry for {model.get('name', 'Unknown')}"
-                    )
+                # else:
+                #     profit_history.append(new_entry)
+                #     logger.debug(
+                #         f"Added new profit history entry for {model.get('name', 'Unknown')}"
+                #     )
             else:
                 profit_history.append(new_entry)
                 logger.debug(
