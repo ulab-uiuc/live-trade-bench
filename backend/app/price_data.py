@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 
 from live_trade_bench.fetchers.stock_fetcher import StockFetcher
 
-from .config import MODELS_DATA_FILE, is_trading_day
+from .config import MODELS_DATA_FILE, is_market_hours, is_trading_day
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +46,14 @@ class RealtimePriceUpdater:
             needs_benchmark_init = self._is_first_startup()
 
             # 检查是否为交易日，但需要初始化benchmark时允许运行
-            if not is_trading_day() and not needs_benchmark_init:
-                logger.info("📅 Not a trading day, skipping price update")
-                return
+            if not needs_benchmark_init:
+                if not is_trading_day():
+                    logger.info("📅 Not a trading day, skipping price update")
+                    return
+
+                if not is_market_hours():
+                    logger.info("🕒 Outside market hours, skipping price update")
+                    return
 
             if needs_benchmark_init:
                 logger.info("🔄 No benchmark models found, running initialization...")

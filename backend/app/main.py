@@ -194,7 +194,6 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         seconds=UPDATE_FREQUENCY["realtime_prices"],  # 使用config中的配置
         id="update_realtime_prices",
         replace_existing=True,
-        next_run_time=datetime.now(),  # run immediately once
     )
     scheduler.add_job(
         update_news_data,

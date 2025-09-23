@@ -140,6 +140,21 @@ def should_run_trading_cycle() -> bool:
     return run_window_start <= current_utc_time <= run_window_end
 
 
+def is_market_hours() -> bool:
+    if not is_trading_day():
+        return False
+
+    utc_now = datetime.now(pytz.UTC)
+    est_now = utc_now.astimezone(pytz.timezone("US/Eastern"))
+
+    stock_open = datetime.strptime(MARKET_HOURS["stock_open"], "%H:%M").time()
+    stock_close = datetime.strptime(MARKET_HOURS["stock_close"], "%H:%M").time()
+
+    current_time = est_now.time()
+
+    return stock_open <= current_time <= stock_close
+
+
 class MockMode(str, Enum):
     NONE = "NONE"
     MOCK_AGENTS = "MOCK_AGENTS"
