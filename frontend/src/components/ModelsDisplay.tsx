@@ -4,6 +4,60 @@ import type { Model } from '../types';
 import { getAssetColor, getCashColor } from '../utils/colors';
 // Removed: import { AllocationHistoryItem, AssetAllocation, AssetMetadata } from '../types';
 
+type TimestampedHistoryItem = { timestamp?: string };
+
+const DAYS_IN_MONTH = 30;
+
+const parseHistoryTimestamp = (value?: string): Date | null => {
+  if (!value) return null;
+
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed;
+  }
+
+  const datePortion = value.slice(0, 10);
+  if (datePortion.length === 10) {
+    const fallback = new Date(`${datePortion}T00:00:00Z`);
+    if (!Number.isNaN(fallback.getTime())) {
+      return fallback;
+    }
+  }
+
+  return null;
+};
+
+const filterHistoryByDays = <T extends TimestampedHistoryItem>(
+  history: T[],
+  days = DAYS_IN_MONTH,
+): T[] => {
+  if (!Array.isArray(history) || history.length === 0) {
+    return [];
+  }
+
+  let anchorDate: Date | null = null;
+
+  for (let i = history.length - 1; i >= 0; i -= 1) {
+    const candidate = parseHistoryTimestamp(history[i]?.timestamp);
+    if (candidate) {
+      anchorDate = candidate;
+      break;
+    }
+  }
+
+  if (!anchorDate) {
+    return history;
+  }
+
+  const cutoff = new Date(anchorDate);
+  cutoff.setDate(cutoff.getDate() - days);
+
+  return history.filter((entry) => {
+    const entryDate = parseHistoryTimestamp(entry?.timestamp);
+    return entryDate ? entryDate >= cutoff : false;
+  });
+};
+
 // Custom Tooltip State
 type TooltipInfo = {
   content: string;
@@ -145,7 +199,10 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     const margin = { top: 20, right: 5, bottom: 40, left: 50 };
     const padding = 40;
 
-    const chartData = useMemo(() => Array.isArray(data) ? data.slice(-30) : [], [data]);
+    const chartData = useMemo(() => {
+      if (!Array.isArray(data)) return [];
+      return filterHistoryByDays(data);
+    }, [data]);
 
     // Get color based on category
     const getChartColor = (category: string) => {
@@ -836,10 +893,15 @@ const AssetRatioChart: React.FC<{
   // Create unique ID for this chart instance to avoid SVG gradient conflicts
   const chartId = useMemo(() => Math.random().toString(36).substr(2, 9), []);
 
+  const recentHistory = useMemo(() => {
+    if (!Array.isArray(allocationHistory)) return [] as any[];
+    return filterHistoryByDays(allocationHistory);
+  }, [allocationHistory]);
+
   const chartData = useMemo(() => {
-    if (!Array.isArray(allocationHistory) || allocationHistory.length === 0) return [] as any[];
-    // Slice to the last 30 entries and normalize allocations into { [name]: weight }
-    return allocationHistory.slice(-30).map((snapshot: any) => {
+    if (recentHistory.length === 0) return [] as any[];
+    // Normalize allocations into { [name]: weight }
+    return recentHistory.map((snapshot: any) => {
       const alloc = snapshot?.allocations;
       if (Array.isArray(alloc)) {
         const obj: Record<string, number> = {};
@@ -850,7 +912,7 @@ const AssetRatioChart: React.FC<{
       }
       return { ...(alloc || {}), timestamp: snapshot.timestamp };
     });
-  }, [allocationHistory]);
+  }, [recentHistory]);
 
   const allAssets = useMemo(() => {
     const assetSet = new Set<string>();
@@ -899,8 +961,7 @@ const AssetRatioChart: React.FC<{
     }
 
     // Then, get URLs from allocation history (if format supports it)
-    if (Array.isArray(allocationHistory)) {
-      allocationHistory.forEach(snapshot => {
+    recentHistory.forEach(snapshot => {
         // Try new allocations_array format first
         if (snapshot && Array.isArray(snapshot.allocations_array)) {
           snapshot.allocations_array.forEach((a: any) => {
@@ -916,10 +977,9 @@ const AssetRatioChart: React.FC<{
           // URLs will only come from current portfolio positions
         }
       });
-    }
 
     return map;
-  }, [allocationHistory, portfolio]);
+  }, [recentHistory, portfolio]);
 
   // Get colors based on the category passed as prop
   const getAssetColorForChart = useCallback(

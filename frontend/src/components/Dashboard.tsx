@@ -238,7 +238,10 @@ const LeaderboardCard: React.FC<{
       <div className="leaderboard-table">
         {/* Header */}
         <div className="table-header">
-          <div>Rank</div>
+          <div>
+            <span className="rank-header-full">Rank</span>
+            <span className="rank-header-short">🏆</span>
+          </div>
           <div>Model</div>
           <div>Return</div>
           <div>

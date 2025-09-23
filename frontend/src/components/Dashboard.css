@@ -453,6 +453,15 @@
   display: inline;
 }
 
+/* Rank header responsive text */
+.rank-header-short {
+  display: none;
+}
+
+.rank-header-full {
+  display: inline;
+}
+
 /* Mobile Card Layout */
 @media (max-width: 640px) {
   .trades-header-full {
@@ -460,6 +469,14 @@
   }
 
   .trades-header-short {
+    display: inline;
+  }
+
+  .rank-header-full {
+    display: none;
+  }
+
+  .rank-header-short {
     display: inline;
   }
 
@@ -484,9 +501,9 @@
   .table-header,
   .table-row {
     display: grid !important;
-    grid-template-columns: 40px minmax(0, 1fr) 80px 5px;
-    gap: 0.25rem;
-    font-size: 0.85rem;
+    grid-template-columns: 10px minmax(0, 1fr) 60px 0px;
+    gap: 0.5rem;
+    font-size: 0.75rem;
   }
 
   /* Hide mobile card layout */
@@ -505,8 +522,8 @@
 
   /* Smaller circles for mobile - all ranks get same size */
   .rank-cell {
-    width: 20px;
-    height: 20px;
+    width: 15px;
+    height: 15px;
     font-size: 0.75rem;
   }
 
