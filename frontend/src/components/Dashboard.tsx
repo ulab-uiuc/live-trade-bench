@@ -87,8 +87,8 @@ function normalize(raw: any): ModelRow {
   }
 
   // Count trades/allocations
-  const trades = raw?.allocationHistory?.length ||
-    raw?.trades ||
+  const trades = raw?.trades ||
+    raw?.allocationHistory?.length ||
     raw?.votes ||
     raw?.popularity ||
     0;

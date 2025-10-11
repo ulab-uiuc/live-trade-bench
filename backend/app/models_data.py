@@ -1,10 +1,83 @@
 import json
 import os
 from dataclasses import asdict
+from datetime import datetime, timedelta
 
 from live_trade_bench.accounts.base_account import Position
 
-from .config import MODELS_DATA_FILE, MODELS_DATA_INIT_FILE
+from .config import MODELS_DATA_FILE, MODELS_DATA_HIST_FILE, MODELS_DATA_INIT_FILE
+
+
+def _filter_recent_days(allocation_history, days=30):
+    """Filter allocation history to keep only recent N days."""
+    if not allocation_history:
+        return []
+
+    # Find the most recent timestamp
+    dates = []
+    for snapshot in allocation_history:
+        if ts := snapshot.get("timestamp"):
+            try:
+                dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                dates.append((dt, snapshot))
+            except ValueError:
+                pass
+
+    if not dates:
+        return allocation_history
+
+    dates.sort(key=lambda x: x[0])
+    most_recent = dates[-1][0]
+    cutoff = most_recent - timedelta(days=days)
+
+    # Filter snapshots within the date range
+    return [snapshot for dt, snapshot in dates if dt >= cutoff]
+
+
+def _strip_llm_data_except_last(allocation_history):
+    """Remove llm_input and llm_output from all snapshots except the last one."""
+    if not allocation_history:
+        return []
+
+    result = []
+    for i, snapshot in enumerate(allocation_history):
+        snapshot_copy = snapshot.copy()
+        # Keep LLM data only in the last snapshot
+        if i < len(allocation_history) - 1:
+            snapshot_copy.pop("llm_input", None)
+            snapshot_copy.pop("llm_output", None)
+        result.append(snapshot_copy)
+
+    return result
+
+
+def _create_compact_model_data(model_data):
+    """Create a compact version of model data for frontend (30 days + last LLM only)."""
+    compact = model_data.copy()
+
+    # Filter to recent 30 days
+    allocation_history = compact.get("allocationHistory", [])
+    original_trades_count = len(allocation_history)  # Preserve original count
+    recent_history = _filter_recent_days(allocation_history, days=30)
+
+    # Strip LLM data except last entry
+    recent_history = _strip_llm_data_except_last(recent_history)
+
+    compact["allocationHistory"] = recent_history
+
+    # Update profitHistory to match
+    profit_history = compact.get("profitHistory", [])
+    if profit_history and recent_history:
+        # Get timestamps from recent_history
+        recent_timestamps = {s["timestamp"] for s in recent_history}
+        compact["profitHistory"] = [
+            p for p in profit_history if p.get("timestamp") in recent_timestamps
+        ]
+
+    # Keep original trades count (total historical trades, not just recent 30 days)
+    compact["trades"] = original_trades_count
+
+    return compact
 
 
 def _create_model_data(agent, account, market_type):
@@ -50,18 +123,28 @@ def _serialize_positions(model_data):
 
 
 def load_historical_data_to_accounts(stock_system, polymarket_system):
-    if not os.path.exists(MODELS_DATA_INIT_FILE):
+    """Load historical data to account memory on every startup.
+
+    This function ALWAYS loads data to restore account state, regardless of whether
+    models_data.json exists. The existence of models_data.json is only checked to
+    decide whether to run load_backtest_as_initial_data() in main.py.
+    """
+    # Try to load from hist file first (contains full data), fallback to init file
+    source_file = None
+    if os.path.exists(MODELS_DATA_HIST_FILE):
+        source_file = MODELS_DATA_HIST_FILE
+        print("📚 Loading from historical data file (complete data)...")
+    elif os.path.exists(MODELS_DATA_INIT_FILE):
+        source_file = MODELS_DATA_INIT_FILE
+        print("📄 Loading from init file...")
+    else:
         print("📄 No historical data file found, starting fresh")
         return
 
-    if os.path.exists(MODELS_DATA_FILE):
-        print("📋 Models data file already exists, skipping historical data loading")
-        return
-
-    print("🆕 First startup detected - loading historical data to account memory...")
+    print("🔄 Loading historical data to account memory...")
 
     try:
-        with open(MODELS_DATA_INIT_FILE, "r") as f:
+        with open(source_file, "r") as f:
             historical_data = json.load(f)
 
         print(f"📊 Loading historical data for {len(historical_data)} models...")
@@ -69,6 +152,11 @@ def load_historical_data_to_accounts(stock_system, polymarket_system):
         for model_data in historical_data:
             model_name = model_data.get("name", "")
             category = model_data.get("category", "")
+
+            # Skip benchmark models - they will be preserved separately
+            if category == "benchmark":
+                print(f"  📊 {model_name}: Benchmark model (will be preserved)")
+                continue
 
             system = stock_system if category == "stock" else polymarket_system
 
@@ -140,8 +228,16 @@ def generate_models_data(stock_system, polymarket_system) -> None:
         # 添加保留的benchmark模型
         all_market_data.extend(existing_benchmarks)
 
-        with open(MODELS_DATA_FILE, "w") as f:
+        # Write full historical data (for backend reload)
+        with open(MODELS_DATA_HIST_FILE, "w") as f:
             json.dump(all_market_data, f, indent=4)
+        print(f"💾 Saved complete historical data to {MODELS_DATA_HIST_FILE}")
+
+        # Create compact data for frontend (30 days + last LLM only)
+        compact_data = [_create_compact_model_data(model) for model in all_market_data]
+        with open(MODELS_DATA_FILE, "w") as f:
+            json.dump(compact_data, f, indent=4)
+        print(f"💾 Saved compact frontend data to {MODELS_DATA_FILE}")
 
         total_models = len(all_market_data)
         benchmark_count = len(existing_benchmarks)
@@ -157,10 +253,17 @@ def generate_models_data(stock_system, polymarket_system) -> None:
 def _preserve_existing_benchmarks():
     """保留现有的benchmark模型，避免被trading cycle覆盖"""
     try:
-        if not os.path.exists(MODELS_DATA_FILE):
+        # Try to read from hist file first (contains full data)
+        source_file = (
+            MODELS_DATA_HIST_FILE
+            if os.path.exists(MODELS_DATA_HIST_FILE)
+            else MODELS_DATA_FILE
+        )
+
+        if not os.path.exists(source_file):
             return []
 
-        with open(MODELS_DATA_FILE, "r") as f:
+        with open(source_file, "r") as f:
             existing_data = json.load(f)
 
         # 筛选出benchmark模型 (QQQ/VOO)

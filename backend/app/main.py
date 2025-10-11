@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import shutil
@@ -23,6 +24,7 @@ from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSy
 from .config import (
     ALLOWED_ORIGINS,
     MODELS_DATA_FILE,
+    MODELS_DATA_HIST_FILE,
     MODELS_DATA_INIT_FILE,
     POLYMARKET_MOCK_MODE,
     STOCK_MOCK_MODE,
@@ -164,9 +166,27 @@ def load_backtest_as_initial_data():
     """Load backtest data as initial trading data if no live data exists."""
     if not os.path.exists(MODELS_DATA_FILE) and os.path.exists(MODELS_DATA_INIT_FILE):
         try:
-            shutil.copy(MODELS_DATA_INIT_FILE, MODELS_DATA_FILE)
+            # Import helper functions from models_data
+            from .models_data import _create_compact_model_data
+
+            # Read init file
+            with open(MODELS_DATA_INIT_FILE, "r") as f:
+                init_data = json.load(f)
+
+            # Copy full data to hist file
+            shutil.copy(MODELS_DATA_INIT_FILE, MODELS_DATA_HIST_FILE)
+            os.chmod(MODELS_DATA_HIST_FILE, 0o644)
+            logger.info("📚 Created complete historical data file")
+
+            # Create compact version for frontend
+            compact_data = [_create_compact_model_data(model) for model in init_data]
+            with open(MODELS_DATA_FILE, "w") as f:
+                json.dump(compact_data, f, indent=4)
             os.chmod(MODELS_DATA_FILE, 0o644)
-            logger.info("📊 Loaded backtest data as initial trading data")
+
+            logger.info(
+                "📊 Loaded backtest data as initial trading data (compact frontend + full hist)"
+            )
         except Exception as e:
             logger.error(f"❌ Failed to load backtest data: {e}")
 
