@@ -18,6 +18,7 @@ FRONTEND_ROOT = os.path.join(PROJECT_ROOT, "frontend")
 FRONTEND_BUILD = os.path.join(FRONTEND_ROOT, "build")
 
 MODELS_DATA_FILE = os.path.join(BACKEND_ROOT, "models_data.json")
+MODELS_DATA_HIST_FILE = os.path.join(BACKEND_ROOT, "models_data_hist.json")
 MODELS_DATA_INIT_FILE = os.path.join(BACKEND_ROOT, "models_data_init.json")
 BACKTEST_RESULTS_FILE = os.path.join(BACKEND_ROOT, "backtest_results.json")
 NEWS_DATA_FILE = os.path.join(BACKEND_ROOT, "news_data.json")
