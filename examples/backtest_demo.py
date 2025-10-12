@@ -226,7 +226,7 @@ def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, s
 
 
 def save_models_data(
-    systems: Dict[str, Dict[str, Any]], out_path: str = "backend/models_data_init_full_month.json"
+    systems: Dict[str, Dict[str, Any]], out_path: str = "backend/models_data_init.json"
 ):
     all_models_data = []
     for market_type, sysmap in systems.items():
