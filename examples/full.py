@@ -449,6 +449,129 @@ def plot_metric_across_models(
     print(f"Saved plot: {output_path}")
 
 
+def plot_top5_mean_return(
+    results: List[Dict], output_path: Path, *, title: str
+) -> None:
+    """
+    Plot mean return rate with top 5 models highlighted and others in gray.
+    Also shows the average curve of all models.
+    """
+    valid = []
+    for res in results:
+        if "error" in res:
+            continue
+        values = [v.get("mean_return") for v in res["metrics"].values()]
+        if not values or all((isinstance(x, float) and math.isnan(x)) for x in values):
+            continue
+        valid.append(res)
+
+    if not valid:
+        print("No valid data to plot for top5_mean_rr")
+        return
+
+    # Identify top 5 models based on mean_return at k=0
+    model_scores = []
+    for res in valid:
+        k0_metric = res["metrics"].get(0, {})
+        mean_ret_k0 = k0_metric.get("mean_return", math.nan)
+        if not math.isnan(mean_ret_k0):
+            model_scores.append((res, mean_ret_k0))
+
+    # Sort by k=0 mean return (descending)
+    model_scores.sort(key=lambda x: x[1], reverse=True)
+    top5_models = set(id(res) for res, _ in model_scores[:5])
+
+    fig, ax = plt.subplots(figsize=(14, 6))
+    color_cycle = plt.rcParams["axes.prop_cycle"].by_key().get("color", [])
+
+    # Collect all k values
+    all_lags = []
+    for res in valid:
+        all_lags.extend(sorted(res["metrics"].keys()))
+    if all_lags:
+        xmin = float(min(all_lags))
+        xmax = float(max(all_lags))
+    else:
+        xmin, xmax = 0.0, 1.0
+
+    # Collect data for mean curve calculation
+    mean_data = defaultdict(list)
+
+    # Plot individual models
+    color_idx = 0
+    for res in valid:
+        metric_map = res["metrics"]
+        lags = sorted(metric_map.keys())
+        series = [metric_map[lag].get("mean_return", math.nan) for lag in lags]
+        name = res.get("model_name") or res.get("model_id") or "unknown"
+
+        # Collect data for mean curve
+        for k, val in zip(lags, series):
+            if not math.isnan(val):
+                mean_data[k].append(val)
+
+        is_top5 = id(res) in top5_models
+
+        if is_top5:
+            color = (
+                color_cycle[color_idx % max(1, len(color_cycle))]
+                if color_cycle
+                else None
+            )
+            color_idx += 1
+            ax.plot(
+                lags,
+                series,
+                marker="o",
+                markersize=2,
+                linewidth=1.0,
+                alpha=0.8,
+                color=color,
+                label=name,
+            )
+        else:
+            # Gray for non-top5
+            ax.plot(
+                lags,
+                series,
+                marker="o",
+                markersize=1,
+                linewidth=0.5,
+                alpha=0.3,
+                color="gray",
+            )
+
+    # Plot mean curve
+    if mean_data:
+        mean_lags = sorted(mean_data.keys())
+        mean_series = [float(np.mean(mean_data[k])) for k in mean_lags]
+        ax.plot(
+            mean_lags,
+            mean_series,
+            linestyle="--",
+            linewidth=2.0,
+            color="black",
+            label="All Models Mean",
+            alpha=0.7,
+        )
+
+    ax.set_xlabel("k")
+    ax.set_ylabel("Mean Daily Return")
+    ax.set_title(title)
+    ax.grid(alpha=0.3, linestyle="--")
+    ax.margins(x=0.0)
+    ax.set_xlim(xmin - 0.2, xmax + 0.2)
+
+    # Legend
+    ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5), frameon=False, fontsize=8)
+    fig.tight_layout(rect=[0.0, 0.0, 0.92, 0.97])
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+    print(f"Saved plot: {output_path}")
+
+
 def save_metrics_json(results: List[Dict], output_path: Path) -> None:
     serializable = []
     for res in results:
@@ -711,6 +834,11 @@ def main() -> None:
             out_dir / f"{base}_turnover.pdf",
             title=f"Turnover vs k ({cat})",
             ylabel="Turnover (0.5*L1)",
+        )
+        plot_top5_mean_return(
+            group,
+            out_dir / f"{base}_top5_mean_rr.pdf",
+            title=f"Top 5 Mean Return vs k ({cat})",
         )
 
     print("Analysis complete.")
