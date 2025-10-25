@@ -521,9 +521,131 @@ class PolymarketPriceUpdater:
             return False
 
 
+class BitMEXPriceUpdater:
+    """Price updater for BitMEX perpetual contracts."""
+
+    def __init__(self) -> None:
+        self.initial_cash = 10000.0  # BitMEX initial cash
+
+    def update_realtime_prices_and_values(self) -> None:
+        """Update BitMEX contract prices and account values (24/7 crypto markets)."""
+        try:
+            logger.info("🔄 Starting BitMEX price update...")
+            models_data = _load_models_data()
+            if not models_data:
+                logger.warning("⚠️ No models data found, skipping BitMEX update")
+                return
+
+            price_cache = self._build_price_cache()
+            if not price_cache:
+                logger.warning("⚠️ No BitMEX price data available, skipping update")
+                return
+
+            updated_count = 0
+            for model in models_data:
+                if model.get("category") != "bitmex":
+                    continue
+                if self._update_single_model(model, price_cache):
+                    updated_count += 1
+
+            _save_models_data(models_data)
+            logger.info(f"✅ Successfully updated {updated_count} BitMEX models")
+
+        except Exception as exc:
+            logger.error(f"❌ Failed to update BitMEX prices: {exc}")
+            raise
+
+    def _build_price_cache(self) -> Dict[str, float]:
+        """Fetch current prices for all BitMEX contracts."""
+        system = self._get_bitmex_system()
+        if system is None:
+            return {}
+
+        try:
+            # Fetch market data including current prices
+            market_data = system._fetch_market_data()
+        except Exception as exc:
+            logger.error(f"❌ Failed to fetch BitMEX market data: {exc}")
+            return {}
+
+        price_cache: Dict[str, float] = {}
+        for symbol, payload in market_data.items():
+            price = payload.get("current_price")
+            if price is None:
+                continue
+            try:
+                price_cache[symbol] = float(price)
+            except (TypeError, ValueError):
+                continue
+
+        logger.debug(f"📊 Fetched prices for {len(price_cache)} BitMEX contracts")
+        return price_cache
+
+    def _get_bitmex_system(self):
+        """Get BitMEX system instance."""
+        try:
+            from .main import get_bitmex_system
+
+            system = get_bitmex_system()
+            if system is not None:
+                return system
+        except Exception:
+            pass
+
+        try:
+            from live_trade_bench.systems import BitMEXPortfolioSystem
+
+            return BitMEXPortfolioSystem.get_instance()
+        except Exception as exc:
+            logger.error(f"❌ Unable to access BitMEX system: {exc}")
+            return None
+
+    def _update_single_model(
+        self, model: Dict[str, Any], price_cache: Dict[str, float]
+    ) -> bool:
+        """Update a single BitMEX model with new prices."""
+        try:
+            portfolio = model.get("portfolio", {})
+            positions = portfolio.get("positions", {}) or {}
+            cash = float(portfolio.get("cash", 0.0))
+            total_value = cash
+
+            for symbol, position in positions.items():
+                price = price_cache.get(symbol)
+                if price is not None:
+                    position["current_price"] = price
+                else:
+                    price = float(position.get("current_price", 0.0))
+
+                quantity = float(position.get("quantity", 0.0))
+                total_value += quantity * price
+
+            portfolio["total_value"] = total_value
+
+            profit = total_value - self.initial_cash
+            model["profit"] = profit
+            model["performance"] = (
+                (profit / self.initial_cash) * 100 if self.initial_cash else 0.0
+            )
+
+            _update_profit_history(model, total_value, profit)
+
+            logger.debug(
+                f"Updated BitMEX model {model.get('name', 'Unknown')}: total_value=${total_value:.2f}, profit=${profit:.2f}"
+            )
+            return True
+
+        except Exception as exc:
+            logger.error(
+                f"❌ Failed to update BitMEX model {model.get('name', 'Unknown')}: {exc}"
+            )
+            return False
+
+
 # 全局实例
 stock_price_updater = RealtimePriceUpdater()
 polymarket_price_updater = PolymarketPriceUpdater()
+bitmex_price_updater = BitMEXPriceUpdater()
 
 
 def update_stock_prices_and_values() -> None:
@@ -532,6 +654,11 @@ def update_stock_prices_and_values() -> None:
 
 def update_polymarket_prices_and_values() -> None:
     polymarket_price_updater.update_realtime_prices_and_values()
+
+
+def update_bitmex_prices_and_values() -> None:
+    """Update BitMEX perpetual contract prices (24/7 crypto markets)."""
+    bitmex_price_updater.update_realtime_prices_and_values()
 
 
 def update_realtime_prices_and_values() -> None:

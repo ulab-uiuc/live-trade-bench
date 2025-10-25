@@ -5,6 +5,7 @@ Fetchers Package - Data fetching utilities for various financial markets
 from typing import TYPE_CHECKING
 
 from .base_fetcher import BaseFetcher
+from .bitmex_fetcher import BitMEXFetcher
 from .news_fetcher import NewsFetcher
 from .polymarket_fetcher import PolymarketFetcher, fetch_trending_markets
 
@@ -44,6 +45,7 @@ else:
 # Export only the classes and main functions that are actually used
 __all__ = [
     "BaseFetcher",
+    "BitMEXFetcher",
     "NewsFetcher",
     "PolymarketFetcher",
     "fetch_trending_markets",

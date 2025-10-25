@@ -63,6 +63,7 @@ UPDATE_FREQUENCY = {
 TRADING_CONFIG = {
     "initial_cash_stock": 1000,
     "initial_cash_polymarket": 500,
+    "initial_cash_bitmex": 10000,
     "max_consecutive_failures": 3,
     "recovery_wait_time": 3600,
     "error_retry_time": 600,
