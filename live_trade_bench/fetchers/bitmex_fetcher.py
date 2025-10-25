@@ -8,6 +8,7 @@ perpetual contracts, futures, spot prices, funding rates, and order book data.
 import hashlib
 import hmac
 import json
+import logging
 import os
 import time
 from datetime import datetime, timedelta, timezone
@@ -15,6 +16,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 from .base_fetcher import BaseFetcher
+
+logger = logging.getLogger(__name__)
 
 
 class BitMEXFetcher(BaseFetcher):

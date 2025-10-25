@@ -4,11 +4,14 @@ BitMEX account management system for perpetual contracts trading.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from .base_account import BaseAccount, Position, Transaction
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass

@@ -4,6 +4,7 @@ BitMEX Portfolio System for managing multiple LLM agents trading perpetual contr
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
@@ -11,6 +12,8 @@ from ..accounts import BitMEXAccount, create_bitmex_account
 from ..agents.bitmex_agent import LLMBitMEXAgent
 from ..fetchers.bitmex_fetcher import BitMEXFetcher
 from ..fetchers.news_fetcher import fetch_news_data
+
+logger = logging.getLogger(__name__)
 
 
 class BitMEXPortfolioSystem:
@@ -41,7 +44,7 @@ class BitMEXPortfolioSystem:
         trending = self.fetcher.get_trending_contracts(limit=self.universe_size)
         symbols = [contract["symbol"] for contract in trending]
         self.set_universe(symbols)
-        print(f"🔄 Initialized BitMEX system with {len(symbols)} contracts")
+        logger.info(f"Initialized BitMEX system with {len(symbols)} contracts")
 
     def initialize_for_backtest(self, trading_days: List[datetime]) -> None:
         """
@@ -91,20 +94,20 @@ class BitMEXPortfolioSystem:
         Args:
             for_date: Optional date for backtesting (YYYY-MM-DD format)
         """
-        print(f"\n--- 🔄 Cycle {self.cycle_count + 1} for BitMEX System ---")
+        logger.info(f"Cycle {self.cycle_count + 1} started for BitMEX System")
         if for_date:
-            print(f"--- 📅 Backtest Date: {for_date} ---")
+            logger.info(f"Backtest mode - Date: {for_date}")
             current_time_str = for_date
         else:
-            print("--- 🚀 Live Trading Mode (UTC) ---")
+            logger.info("Live Trading Mode (UTC)")
             current_time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
 
         self.cycle_count += 1
-        print("Fetching data for BitMEX perpetual contracts...")
+        logger.info("Fetching data for BitMEX perpetual contracts...")
 
         market_data = self._fetch_market_data(current_time_str if for_date else None)
         if not market_data:
-            print("No market data for BitMEX, skipping cycle.")
+            logger.warning("No market data for BitMEX, skipping cycle")
             return
 
         news_data = self._fetch_news_data(
@@ -133,7 +136,7 @@ class BitMEXPortfolioSystem:
         Returns:
             Dictionary mapping symbol to market data
         """
-        print("  - Fetching BitMEX market data...")
+        logger.info("Fetching BitMEX market data...")
         market_data = {}
 
         for symbol in self.universe:
@@ -183,12 +186,12 @@ class BitMEXPortfolioSystem:
                         account.update_position_price(symbol, current_price)
 
             except Exception as e:
-                print(f"    - Failed to fetch data for {symbol}: {e}")
+                logger.error(f"Failed to fetch data for {symbol}: {e}")
 
-        print(f"  - ✅ Market data fetched for {len(market_data)} contracts")
+        logger.info(f"Market data fetched for {len(market_data)} contracts")
         for symbol, data in list(market_data.items())[:3]:
             funding = (data.get("funding_rate") or 0) * 100
-            print(f"    - {symbol}: ${data['current_price']:,.2f} (funding: {funding:.4f}%)")
+            logger.info(f"{symbol}: ${data['current_price']:,.2f} (funding: {funding:.4f}%)")
 
         return market_data
 
@@ -205,7 +208,7 @@ class BitMEXPortfolioSystem:
         Returns:
             Dictionary mapping symbol to news articles
         """
-        print("  - Fetching crypto news data...")
+        logger.info("Fetching crypto news data...")
         news_data_map: Dict[str, Any] = {}
 
         # Map symbols to crypto names for better news queries
@@ -245,7 +248,7 @@ class BitMEXPortfolioSystem:
                     target_date=for_date,
                 )
         except Exception as e:
-            print(f"    - News data fetch failed: {e}")
+            logger.error(f"News data fetch failed: {e}")
 
         return news_data_map
 
@@ -266,11 +269,11 @@ class BitMEXPortfolioSystem:
         Returns:
             Dictionary mapping agent name to allocation
         """
-        print("  - Generating allocations for all agents...")
+        logger.info("Generating allocations for all agents...")
         all_allocations = {}
 
         for agent_name, agent in self.agents.items():
-            print(f"    - Processing agent: {agent_name}...")
+            logger.info(f"Processing agent: {agent_name}")
             account = self.accounts[agent_name]
             account_data = account.get_account_data()
 
@@ -280,17 +283,17 @@ class BitMEXPortfolioSystem:
 
             if allocation:
                 all_allocations[agent_name] = allocation
-                print(
-                    f"    - ✅ Allocation for {agent_name}: "
+                logger.info(
+                    f"Allocation for {agent_name}: "
                     f"{ {k: f'{v:.1%}' for k, v in list(allocation.items())[:5]} }"
                 )
             else:
-                print(
-                    f"    - ⚠️ No allocation generated for {agent_name}, keeping previous target."
+                logger.warning(
+                    f"No allocation generated for {agent_name}, keeping previous target"
                 )
                 all_allocations[agent_name] = account.target_allocations
 
-        print("  - ✅ All allocations generated")
+        logger.info("All allocations generated")
         return all_allocations
 
     def _update_accounts(
@@ -307,7 +310,7 @@ class BitMEXPortfolioSystem:
             market_data: Market data dictionary
             for_date: Optional date string
         """
-        print("  - Updating all accounts...")
+        logger.info("Updating all accounts...")
         price_map = {s: d.get("current_price") for s, d in market_data.items()}
 
         for agent_name, allocation in allocations.items():
@@ -334,15 +337,15 @@ class BitMEXPortfolioSystem:
                     llm_output=llm_output,
                 )
 
-                print(
-                    f"    - ✅ Account for {agent_name} updated. "
+                logger.info(
+                    f"Account for {agent_name} updated. "
                     f"New Value: ${account.get_total_value():,.2f}, "
                     f"Cash: ${account.cash_balance:,.2f}"
                 )
             except Exception as e:
-                print(f"    - ❌ Failed to update account for {agent_name}: {e}")
+                logger.error(f"Failed to update account for {agent_name}: {e}")
 
-        print("  - ✅ All accounts updated")
+        logger.info("All accounts updated")
 
     @classmethod
     def get_instance(cls):
