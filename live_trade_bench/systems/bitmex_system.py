@@ -3,7 +3,7 @@ BitMEX Portfolio System for managing multiple LLM agents trading perpetual contr
 """
 
 from __future__ import annotations
-
+import traceback
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
@@ -187,6 +187,7 @@ class BitMEXPortfolioSystem:
 
             except Exception as e:
                 logger.error(f"Failed to fetch data for {symbol}: {e}")
+                logger.debug(f"Full traceback for {symbol}:\n{traceback.format_exc()}")
 
         logger.info(f"Market data fetched for {len(market_data)} contracts")
         for symbol, data in list(market_data.items())[:3]:

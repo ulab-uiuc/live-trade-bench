@@ -110,10 +110,10 @@ def build_systems(
 def fetch_shared_data(
     date_str: str, systems: Dict[str, Dict[str, Any]]
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    market_data: Dict[str, Any] = {"polymarket": {}, "stock": {}}
-    news_data: Dict[str, Any] = {"polymarket": {}, "stock": {}}
+    market_data: Dict[str, Any] = {"polymarket": {}, "stock": {}, "bitmex": {}}
+    news_data: Dict[str, Any] = {"polymarket": {}, "stock": {}, "bitmex": {}}
 
-    for market_type in ("polymarket", "stock"):
+    for market_type in ("polymarket", "stock", "bitmex"):
         sysmap = systems.get(market_type, {})
         if not sysmap:
             continue
@@ -274,6 +274,10 @@ def main():
     print("🔮 Parallel Backtest (Per-agent systems)")
     cfg = get_backtest_config()
     models = get_base_model_configs()
+
+    # TESTING: Limit to 2 agents for faster execution
+    models = models[:2]
+    print(f"⚡ Testing mode: Limited to {len(models)} agents")
 
     run_polymarket = False
     run_stock = False
