@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import StockDashboard from './components/StockDashboard';
 import PolymarketDashboard from './components/PolymarketDashboard';
+import BitMEXDashboard from './components/BitMEXDashboard';
 import News from './components/News';
 import SocialMedia from './components/SocialMedia';
 import About from './components/About';
@@ -48,16 +49,20 @@ function App() {
   const [newsData, setNewsData] = useState<{
     stock: NewsItem[];
     polymarket: NewsItem[];
+    bitmex: NewsItem[];
   }>({
     stock: [],
-    polymarket: []
+    polymarket: [],
+    bitmex: []
   });
   const [socialData, setSocialData] = useState<{
     stock: SocialPost[];
     polymarket: SocialPost[];
+    bitmex: SocialPost[];
   }>({
     stock: [],
-    polymarket: []
+    polymarket: [],
+    bitmex: []
   });
   const [systemStatus, setSystemStatus] = useState<any>(null);
   const [views, setViews] = useState<number>(0);
@@ -81,21 +86,31 @@ function App() {
     try {
       console.log('🔄 Background fetching news data...');
       const [stockResponse, polymarketResponse] = await Promise.all([
-        fetch('/api/news/stock?limit=500'), // Increase limit for more news articles
-        fetch('/api/news/polymarket?limit=500') // Increase limit for more news articles
+        fetch('/api/news/stock?limit=500'),
+        fetch('/api/news/polymarket?limit=500')
       ]);
 
-      if (stockResponse.ok && polymarketResponse.ok) {
-        const stockNews = await stockResponse.json();
-        const polymarketNews = await polymarketResponse.json();
+      const stockNews = stockResponse.ok ? await stockResponse.json() : [];
+      const polymarketNews = polymarketResponse.ok ? await polymarketResponse.json() : [];
 
-        setNewsData({
-          stock: stockNews,
-          polymarket: polymarketNews
-        });
-        setNewsLastRefresh(new Date());
-        console.log(`✅ Background news updated: ${stockNews.length} stock, ${polymarketNews.length} polymarket`);
+      // Fetch BitMEX news separately (optional endpoint)
+      let bitmexNews: NewsItem[] = [];
+      try {
+        const bitmexResponse = await fetch('/api/news/bitmex?limit=500');
+        if (bitmexResponse.ok) {
+          bitmexNews = await bitmexResponse.json();
+        }
+      } catch {
+        // BitMEX news endpoint optional, silently fail
       }
+
+      setNewsData({
+        stock: stockNews,
+        polymarket: polymarketNews,
+        bitmex: bitmexNews
+      });
+      setNewsLastRefresh(new Date());
+      console.log(`✅ Background news updated: ${stockNews.length} stock, ${polymarketNews.length} polymarket, ${bitmexNews.length} bitmex`);
     } catch (error) {
       console.error('❌ Background news fetch failed:', error);
     }
@@ -105,14 +120,25 @@ function App() {
     try {
       console.log('🔄 Background fetching social data...');
       const [stockResponse, polymarketResponse] = await Promise.all([
-        fetch('/api/social/stock?limit=500'), // Increase limit for more social media posts
-        fetch('/api/social/polymarket?limit=500') // Increase limit for more social media posts
+        fetch('/api/social/stock?limit=500'),
+        fetch('/api/social/polymarket?limit=500')
       ]);
 
       console.log("DEBUG: 1. Raw API Response (Social)", { stock: stockResponse, polymarket: polymarketResponse });
 
       const stockPosts = stockResponse.ok ? await stockResponse.json() : [];
       const polymarketPosts = polymarketResponse.ok ? await polymarketResponse.json() : [];
+
+      // Fetch BitMEX social separately (optional endpoint)
+      let bitmexPosts: any[] = [];
+      try {
+        const bitmexResponse = await fetch('/api/social/bitmex?limit=500');
+        if (bitmexResponse.ok) {
+          bitmexPosts = await bitmexResponse.json();
+        }
+      } catch {
+        // BitMEX social endpoint optional, silently fail
+      }
 
       console.log("DEBUG: 2. Parsed JSON Data (Social)", { stockPosts, polymarketPosts });
 
@@ -150,12 +176,29 @@ function App() {
         url: post.url || '',
       }));
 
+      const transformBitmexPosts = bitmexPosts.map((post: any, index: number) => ({
+        ...post,
+        id: post.id || `bitmex_${index}`,
+        platform: post.platform || 'Reddit',
+        username: `u/${post.author}`,
+        displayName: `u/${post.author}`,
+        title: post.title,
+        content: post.content || '',
+        created_at: post.created_at || '',
+        upvotes: post.upvotes || 0,
+        num_comments: post.num_comments || 0,
+        avatar: '₿',
+        tag: post.tag,
+        url: post.url || '',
+      }));
+
       setSocialData({
         stock: transformStockPosts,
-        polymarket: transformPolymarketPosts
+        polymarket: transformPolymarketPosts,
+        bitmex: transformBitmexPosts
       });
       setSocialLastRefresh(new Date());
-      console.log(`✅ Background social updated: ${transformStockPosts.length} stock, ${transformPolymarketPosts.length} polymarket`);
+      console.log(`✅ Background social updated: ${transformStockPosts.length} stock, ${transformPolymarketPosts.length} polymarket, ${transformBitmexPosts.length} bitmex`);
     } catch (error) {
       console.error('❌ Background social fetch failed:', error);
     }
@@ -358,6 +401,13 @@ function App() {
             } />
             <Route path="/polymarket" element={
               <PolymarketDashboard
+                modelsData={modelsData}
+                modelsLastRefresh={modelsLastRefresh}
+                isLoading={isLoading}
+              />
+            } />
+            <Route path="/bitmex" element={
+              <BitMEXDashboard
                 modelsData={modelsData}
                 modelsLastRefresh={modelsLastRefresh}
                 isLoading={isLoading}
