@@ -141,9 +141,9 @@ class BitMEXPortfolioSystem:
 
         for symbol in self.universe:
             try:
-                # Get price with history
+                # Get price with history (pass for_date for backtesting)
                 price_data = self.fetcher.get_price_with_history(
-                    symbol, lookback_days=10, price_type="mark"
+                    symbol, lookback_days=10, price_type="mark", date=for_date
                 )
 
                 # Get funding rate

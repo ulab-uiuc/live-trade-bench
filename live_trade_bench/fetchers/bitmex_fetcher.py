@@ -254,7 +254,8 @@ class BitMEXFetcher(BaseFetcher):
         self,
         symbol: str,
         lookback_days: int = 10,
-        price_type: str = "mark"
+        price_type: str = "mark",
+        date: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Get current price with historical data.
@@ -263,29 +264,60 @@ class BitMEXFetcher(BaseFetcher):
             symbol: Contract symbol
             lookback_days: Number of days of history to fetch
             price_type: Type of current price to fetch
+            date: Optional date for backtesting (YYYY-MM-DD format)
 
         Returns:
             Dictionary with current price and price history
         """
-        # Get current price
-        current_price = self.get_price(symbol, price_type)
+        # For backtesting: use historical date
+        if date:
+            target_date = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            end_date = target_date
+            start_date = target_date - timedelta(days=lookback_days)
 
-        # Calculate date range for history
-        end_date = datetime.now(timezone.utc)
-        start_date = end_date - timedelta(days=lookback_days)
+            # Get historical data
+            history = self.get_price_history(symbol, start_date, end_date, "1d")
 
-        # Get historical data
-        history = self.get_price_history(symbol, start_date, end_date, "1d")
+            # Format history
+            price_history = []
+            current_price = None
+            for point in history:
+                if point.get("close") is not None:
+                    price_history.append({
+                        "date": point["date"],
+                        "price": point["close"],
+                        "volume": point.get("volume", 0)
+                    })
+                    # Use the last available price as current price
+                    if point["date"] <= date:
+                        current_price = point["close"]
 
-        # Format history for consistency with other fetchers
-        price_history = []
-        for point in history:
-            if point.get("close") is not None:
-                price_history.append({
-                    "date": point["date"],
-                    "price": point["close"],
-                    "volume": point.get("volume", 0)
-                })
+            if current_price is None and price_history:
+                current_price = price_history[-1]["price"]
+
+            if current_price is None:
+                raise ValueError(f"No price data available for {symbol} on {date}")
+
+        else:
+            # For live trading: get current price
+            current_price = self.get_price(symbol, price_type)
+
+            # Calculate date range for history
+            end_date = datetime.now(timezone.utc)
+            start_date = end_date - timedelta(days=lookback_days)
+
+            # Get historical data
+            history = self.get_price_history(symbol, start_date, end_date, "1d")
+
+            # Format history for consistency with other fetchers
+            price_history = []
+            for point in history:
+                if point.get("close") is not None:
+                    price_history.append({
+                        "date": point["date"],
+                        "price": point["close"],
+                        "volume": point.get("volume", 0)
+                    })
 
         return {
             "symbol": symbol,

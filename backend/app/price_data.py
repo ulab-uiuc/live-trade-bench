@@ -548,8 +548,11 @@ class BitMEXPriceUpdater:
                 if self._update_single_model(model, price_cache):
                     updated_count += 1
 
+            # Add/update crypto benchmarks (BTC-HOLD, ETH-HOLD)
+            self._update_crypto_benchmark_models(models_data, price_cache)
+
             _save_models_data(models_data)
-            logger.info(f"✅ Successfully updated {updated_count} BitMEX models")
+            logger.info(f"✅ Successfully updated {updated_count} BitMEX models + benchmarks")
 
         except Exception as exc:
             logger.error(f"❌ Failed to update BitMEX prices: {exc}")
@@ -640,6 +643,116 @@ class BitMEXPriceUpdater:
                 f"❌ Failed to update BitMEX model {model.get('name', 'Unknown')}: {exc}"
             )
             return False
+
+    def _update_crypto_benchmark_models(
+        self, models_data: List[Dict], price_cache: Dict[str, float]
+    ) -> None:
+        """Add or update BTC-HOLD and ETH-HOLD benchmark models."""
+        # Find earliest allocation date from BitMEX models
+        earliest_date = self._find_earliest_bitmex_date(models_data)
+        if not earliest_date:
+            logger.warning("⚠️ No BitMEX allocation history found, skipping crypto benchmarks")
+            return
+
+        # Remove existing crypto benchmark models
+        models_data[:] = [
+            m for m in models_data
+            if m.get("category") != "crypto-benchmark"
+        ]
+
+        # Create benchmarks for BTC and ETH
+        benchmarks = [
+            ("XBTUSD", "BTC-HOLD (Bitcoin Buy & Hold)"),
+            ("ETHUSD", "ETH-HOLD (Ethereum Buy & Hold)"),
+        ]
+
+        for symbol, name in benchmarks:
+            if symbol in price_cache:
+                benchmark_model = self._create_crypto_benchmark(
+                    symbol, name, earliest_date, price_cache[symbol]
+                )
+                if benchmark_model:
+                    models_data.append(benchmark_model)
+                    logger.info(f"📈 Added crypto benchmark: {name}")
+
+    def _find_earliest_bitmex_date(self, models_data: List[Dict]) -> Optional[str]:
+        """Find the earliest allocation date from all BitMEX models."""
+        earliest_date = None
+
+        for model in models_data:
+            if model.get("category") == "bitmex":
+                allocation_history = model.get("allocationHistory", [])
+                for entry in allocation_history:
+                    timestamp = entry.get("timestamp", "")
+                    if timestamp:
+                        date_str = timestamp[:10]  # Extract YYYY-MM-DD
+                        if earliest_date is None or date_str < earliest_date:
+                            earliest_date = date_str
+
+        return earliest_date
+
+    def _create_crypto_benchmark(
+        self, symbol: str, name: str, earliest_date: str, current_price: float
+    ) -> Optional[Dict]:
+        """Create a crypto buy-and-hold benchmark model."""
+        try:
+            from live_trade_bench.fetchers.bitmex_fetcher import BitMEXFetcher
+
+            fetcher = BitMEXFetcher()
+
+            # Get historical price for earliest date
+            from datetime import datetime, timedelta
+            earliest_dt = datetime.strptime(earliest_date, "%Y-%m-%d")
+            start_dt = earliest_dt - timedelta(days=1)
+            end_dt = earliest_dt + timedelta(days=1)
+
+            try:
+                history = fetcher.get_price_history(symbol, start_dt, end_dt, "1d")
+                if history and len(history) > 0:
+                    earliest_price = float(history[0].get("close", 0))
+                else:
+                    logger.warning(f"⚠️ No historical price for {symbol} on {earliest_date}")
+                    return None
+            except Exception as e:
+                logger.error(f"Failed to fetch historical price for {symbol}: {e}")
+                return None
+
+            if earliest_price is None or earliest_price <= 0:
+                logger.warning(f"⚠️ Invalid earliest price for {symbol}")
+                return None
+
+            # Calculate return
+            profit = current_price - earliest_price
+            performance = profit / earliest_price * 100
+
+            benchmark_id = symbol.lower().replace("usd", "-hold")
+
+            benchmark_model = {
+                "id": benchmark_id,
+                "name": name,
+                "category": "crypto-benchmark",
+                "status": "active",
+                "performance": performance,
+                "profit": profit,
+                "trades": 0,
+                "asset_allocation": {symbol: 1.0},
+                "benchmark_data": {
+                    "symbol": symbol,
+                    "earliest_price": earliest_price,
+                    "earliest_date": earliest_date,
+                    "current_price": current_price,
+                },
+            }
+
+            logger.info(
+                f"📊 {symbol} benchmark: earliest=${earliest_price:.2f}, "
+                f"current=${current_price:.2f}, return={performance:.2f}%"
+            )
+            return benchmark_model
+
+        except Exception as e:
+            logger.error(f"Failed to create crypto benchmark for {symbol}: {e}")
+            return None
 
 
 # 全局实例

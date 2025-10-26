@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple
 
+from live_trade_bench.systems.bitmex_system import BitMEXPortfolioSystem
 from live_trade_bench.systems.polymarket_system import PolymarketPortfolioSystem
 from live_trade_bench.systems.stock_system import StockPortfolioSystem
 
@@ -21,11 +22,12 @@ def get_backtest_config() -> Dict[str, Any]:
         "start_date": "2025-08-17",
         "end_date": "2025-09-17",
         "interval_days": 1,
-        "initial_cash": {"polymarket": 500.0, "stock": 1000.0},
+        "initial_cash": {"polymarket": 500.0, "stock": 1000.0, "bitmex": 10000.0},
         "parallelism": int(os.environ.get("LTB_PARALLELISM", "8")),
         "threshold": 0.2,
         "market_num": 10,
         "stock_num": 15,
+        "bitmex_num": 12,
     }
 
 
@@ -51,11 +53,13 @@ def build_systems(
     cash_cfg: Dict[str, float],
     run_polymarket: bool = False,
     run_stock: bool = True,
+    run_bitmex: bool = False,
     threshold: float = 0.2,
     market_num: int = 5,
     stock_num: int = 15,
+    bitmex_num: int = 12,
 ):
-    systems: Dict[str, Dict[str, Any]] = {"polymarket": {}, "stock": {}}
+    systems: Dict[str, Dict[str, Any]] = {"polymarket": {}, "stock": {}, "bitmex": {}}
 
     if run_polymarket:
         print("Pre-fetching verified markets...")
@@ -66,6 +70,14 @@ def build_systems(
         print("Pre-fetching stock data...")
         from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
         verified_stocks = fetch_trending_stocks(stock_num)
+
+    if run_bitmex:
+        print("Pre-fetching BitMEX contracts...")
+        from live_trade_bench.fetchers.bitmex_fetcher import BitMEXFetcher
+        fetcher = BitMEXFetcher()
+        trending_contracts = fetcher.get_trending_contracts(limit=bitmex_num)
+        bitmex_symbols = [c["symbol"] for c in trending_contracts]
+        print(f"  Using {len(bitmex_symbols)} BitMEX contracts: {bitmex_symbols[:5]}...")
 
     for model_name, model_id in models:
         if run_polymarket:
@@ -83,6 +95,14 @@ def build_systems(
                 name=model_name, initial_cash=cash_cfg["stock"], model_name=model_id
             )
             systems["stock"][model_name] = st
+
+        if run_bitmex:
+            bx = BitMEXPortfolioSystem()
+            bx.set_universe(bitmex_symbols)
+            bx.add_agent(
+                name=model_name, initial_cash=cash_cfg["bitmex"], model_name=model_id
+            )
+            systems["bitmex"][model_name] = bx
 
     return systems
 
@@ -155,7 +175,7 @@ def run_day(
 def collect_results(
     systems: Dict[str, Dict[str, Any]], start_date: str, end_date: str
 ) -> Dict[str, Dict[str, Any]]:
-    out: Dict[str, Dict[str, Any]] = {"polymarket": {}, "stock": {}}
+    out: Dict[str, Dict[str, Any]] = {"polymarket": {}, "stock": {}, "bitmex": {}}
     for market_type, sysmap in systems.items():
         for agent_name, system in sysmap.items():
             for acc_agent_name, account in system.accounts.items():
@@ -175,14 +195,16 @@ def collect_results(
     return out
 
 
-def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, str]], run_polymarket: bool = True, run_stock: bool = True):
+def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, str]], run_polymarket: bool = True, run_stock: bool = True, run_bitmex: bool = False):
     name_to_id = {n: mid for n, mid in models}
-    
+
     market_types = []
     if run_stock:
         market_types.append("stock")
     if run_polymarket:
         market_types.append("polymarket")
+    if run_bitmex:
+        market_types.append("bitmex")
     
     for market_type in market_types:
         bucket = results.get(market_type, {})
@@ -223,6 +245,8 @@ def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, s
         print(f"   Stock Agents: {len(results.get('stock', {}))}")
     if run_polymarket:
         print(f"   Polymarket Agents: {len(results.get('polymarket', {}))}")
+    if run_bitmex:
+        print(f"   BitMEX Agents: {len(results.get('bitmex', {}))}")
 
 
 def save_models_data(
@@ -251,27 +275,32 @@ def main():
     cfg = get_backtest_config()
     models = get_base_model_configs()
 
-    run_polymarket = True
-    run_stock = True
-    market_count = sum([run_polymarket, run_stock])
+    run_polymarket = False
+    run_stock = False
+    run_bitmex = True
+    market_count = sum([run_polymarket, run_stock, run_bitmex])
     market_names = []
     if run_stock:
         market_names.append("stock")
     if run_polymarket:
         market_names.append("polymarket")
-    
+    if run_bitmex:
+        market_names.append("bitmex")
+
     print(f"🤖 {len(models)} models × {market_count} markets ({', '.join(market_names)})")
     days = get_trading_days(cfg["start_date"], cfg["end_date"], cfg["interval_days"])
     print(f"📅 Trading days: {len(days)}  ({cfg['start_date']} → {cfg['end_date']})")
     print(f"⚙️  Parallelism: {cfg['parallelism']} (env LTB_PARALLELISM)")
 
     systems = build_systems(
-        models, days, cfg["initial_cash"], 
-        run_polymarket=run_polymarket, 
-        run_stock=run_stock, 
+        models, days, cfg["initial_cash"],
+        run_polymarket=run_polymarket,
+        run_stock=run_stock,
+        run_bitmex=run_bitmex,
         threshold=cfg["threshold"],
         market_num=cfg["market_num"],
-        stock_num=cfg["stock_num"]
+        stock_num=cfg["stock_num"],
+        bitmex_num=cfg["bitmex_num"]
     )
 
     for i, d in enumerate(days, 1):
@@ -280,7 +309,7 @@ def main():
         run_day(date_str, systems, cfg["parallelism"])
 
     results = collect_results(systems, cfg["start_date"], cfg["end_date"])
-    print_rankings(results, models, run_polymarket=run_polymarket, run_stock=run_stock)
+    print_rankings(results, models, run_polymarket=run_polymarket, run_stock=run_stock, run_bitmex=run_bitmex)
     save_models_data(systems)
     print("\n✅ Backtest complete.")
 
