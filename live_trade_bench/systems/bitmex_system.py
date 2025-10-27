@@ -253,6 +253,82 @@ class BitMEXPortfolioSystem:
 
         return news_data_map
 
+    def _fetch_social_data(self) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Fetch social media posts for crypto contracts.
+
+        Returns:
+            Dictionary mapping symbol to list of social posts
+        """
+        logger.info("Fetching crypto social media data...")
+        from ..fetchers.reddit_fetcher import RedditFetcher
+
+        social_data_map: Dict[str, List[Dict[str, Any]]] = {}
+        fetcher = RedditFetcher()
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+
+        # Map symbols to searchable crypto terms
+        symbol_to_search = {
+            "XBTUSD": "Bitcoin",
+            "XBTUSDT": "Bitcoin",
+            "ETHUSD": "Ethereum",
+            "ETHUSDT": "Ethereum",
+            "ETH_XBT": "Ethereum",
+            "SOLUSDT": "Solana",
+            "SOL_USDT": "Solana",
+            "BNBUSDT": "BNB",
+            "XRPUSDT": "XRP",
+            "ADAUSDT": "Cardano",
+            "DOGEUSDT": "Dogecoin",
+            "AVAXUSDT": "Avalanche",
+            "LINKUSDT": "Chainlink",
+            "LINK_USDT": "Chainlink",
+            "LTCUSDT": "Litecoin",
+            "BCHUSDT": "Bitcoin Cash",
+            "PEPEUSDT": "Pepe",
+            "FLOKIUSDT": "Floki",
+            "BONK_USDT": "Bonk",
+            "SHIBUSDT": "Shiba Inu",
+            "SUIUSDT": "Sui",
+            "ARBUSDT": "Arbitrum",
+            "PUMPUSDT": "Pump",
+            "STLS_USDT": "Starknet",
+            "BMEX_USDT": "BitMEX",
+        }
+
+        for symbol in self.universe:
+            try:
+                crypto_name = symbol_to_search.get(symbol, symbol)
+                logger.info(f"Fetching social data for crypto: {crypto_name} ({symbol})")
+
+                # Fetch Reddit posts by crypto name query
+                posts = fetcher.fetch(
+                    category="crypto", query=crypto_name, max_limit=10
+                )
+                logger.info(f"Fetched {len(posts)} social posts for {symbol}")
+
+                formatted_posts = []
+                for post in posts:
+                    formatted_posts.append({
+                        "id": post.get("id", ""),
+                        "title": post.get("title", ""),
+                        "content": post.get("content", ""),
+                        "author": post.get("author", "Unknown"),
+                        "platform": "Reddit",
+                        "url": post.get("url", ""),
+                        "created_at": post.get("created_utc", ""),
+                        "subreddit": post.get("subreddit", ""),
+                        "upvotes": post.get("score", 0),
+                        "num_comments": post.get("num_comments", 0),
+                        "tag": symbol,
+                    })
+                social_data_map[symbol] = formatted_posts
+            except Exception as e:
+                logger.error(f"Failed to fetch social data for {symbol}: {e}")
+                social_data_map[symbol] = []
+
+        return social_data_map
+
     def _generate_allocations(
         self,
         market_data: Dict[str, Any],
