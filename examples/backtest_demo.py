@@ -19,11 +19,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def get_backtest_config() -> Dict[str, Any]:
     return {
-        "start_date": "2025-08-17",
-        "end_date": "2025-09-17",
+        "start_date": "2025-09-26",
+        "end_date": "2025-10-26",
         "interval_days": 1,
         "initial_cash": {"polymarket": 500.0, "stock": 1000.0, "bitmex": 10000.0},
-        "parallelism": int(os.environ.get("LTB_PARALLELISM", "8")),
+        "parallelism": int(os.environ.get("LTB_PARALLELISM", "16")),
         "threshold": 0.2,
         "market_num": 10,
         "stock_num": 15,
@@ -275,12 +275,19 @@ def main():
     cfg = get_backtest_config()
     models = get_base_model_configs()
 
-    # TESTING: Limit to 2 agents for faster execution
-    models = models[:2]
-    print(f"⚡ Testing mode: Limited to {len(models)} agents")
+    # Filter to flagship models: GPT-5, GPT-4.1, GPT-4o, Claude-Opus-4.1, Claude-Sonnet-4
+    flagship_models = [
+        ("GPT-5", "openai/gpt-5"),
+        ("GPT-4.1", "openai/gpt-4.1"),
+        ("GPT-4o", "openai/gpt-4o"),
+        ("Claude-Opus-4.1", "anthropic/claude-opus-4-1-20250805"),
+        ("Claude-Sonnet-4", "anthropic/claude-sonnet-4-20250514"),
+    ]
+    models = flagship_models
+    print(f"⚡ Using {len(models)} flagship models")
 
-    run_polymarket = False
-    run_stock = False
+    run_polymarket = True
+    run_stock = True
     run_bitmex = True
     market_count = sum([run_polymarket, run_stock, run_bitmex])
     market_names = []

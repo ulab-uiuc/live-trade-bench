@@ -11,7 +11,7 @@ interface BitMEXDashboardProps {
 
 const BitMEXDashboard: React.FC<BitMEXDashboardProps> = ({ modelsData, modelsLastRefresh, isLoading }) => {
   const bitmexModels = useMemo(() =>
-    modelsData.filter(m => m.category === 'bitmex' || m.category === 'crypto-benchmark'),
+    modelsData.filter(m => m.category === 'bitmex' || m.category === 'bitmex-benchmark'),
     [modelsData]
   );
 

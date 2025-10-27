@@ -654,10 +654,10 @@ class BitMEXPriceUpdater:
             logger.warning("⚠️ No BitMEX allocation history found, skipping crypto benchmarks")
             return
 
-        # Remove existing crypto benchmark models
+        # Remove existing bitmex benchmark models
         models_data[:] = [
             m for m in models_data
-            if m.get("category") != "crypto-benchmark"
+            if m.get("category") != "bitmex-benchmark"
         ]
 
         # Create benchmarks for BTC and ETH
@@ -730,7 +730,7 @@ class BitMEXPriceUpdater:
             benchmark_model = {
                 "id": benchmark_id,
                 "name": name,
-                "category": "crypto-benchmark",
+                "category": "bitmex-benchmark",
                 "status": "active",
                 "performance": performance,
                 "profit": profit,
