@@ -122,7 +122,7 @@ def _serialize_positions(model_data):
     return model_data
 
 
-def load_historical_data_to_accounts(stock_system, polymarket_system):
+def load_historical_data_to_accounts(stock_system, polymarket_system, bitmex_system=None):
     """Load historical data to account memory on every startup.
 
     This function ALWAYS loads data to restore account state, regardless of whether
@@ -158,7 +158,14 @@ def load_historical_data_to_accounts(stock_system, polymarket_system):
                 print(f"  📊 {model_name}: Benchmark model (will be preserved)")
                 continue
 
-            system = stock_system if category == "stock" else polymarket_system
+            if category == "stock":
+                system = stock_system
+            elif category == "polymarket":
+                system = polymarket_system
+            elif category == "bitmex" and bitmex_system is not None:
+                system = bitmex_system
+            else:
+                continue
 
             account = None
             for agent_name, acc in system.accounts.items():
@@ -199,15 +206,17 @@ def restore_account_from_historical_data(account, historical_model_data):
     account.total_fees = historical_model_data.get("total_fees", 0.0)
 
 
-def generate_models_data(stock_system, polymarket_system) -> None:
+def generate_models_data(stock_system, polymarket_system, bitmex_system=None) -> None:
     """Generate and save model data for all systems"""
     try:
-        print("🚀 Starting data generation for both markets...")
+        print("🚀 Starting data generation for all markets...")
         all_market_data = []
 
         existing_benchmarks = _preserve_existing_benchmarks()
 
         systems = {"stock": stock_system, "polymarket": polymarket_system}
+        if bitmex_system is not None:
+            systems["bitmex"] = bitmex_system
 
         for market_type, system in systems.items():
             print(f"--- Processing {market_type.upper()} market ---")

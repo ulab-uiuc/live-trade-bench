@@ -8,17 +8,18 @@ interface SocialMediaProps {
   socialData: {
     stock: SocialPost[]; // Use SocialPost type
     polymarket: SocialPost[]; // Use SocialPost type
+    bitmex: SocialPost[]; // Use SocialPost type
   };
   lastRefresh: Date;
   isLoading: boolean;
 }
 
 const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLoading }) => {
-  const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket'>('stock');
+  const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket' | 'bitmex'>('stock');
   const [sortBy, setSortBy] = useState<'ticker' | 'time'>('time');
 
   const posts = useMemo(() => {
-    const rawPosts = activeCategory === 'stock' ? socialData.stock : socialData.polymarket;
+    const rawPosts = activeCategory === 'stock' ? socialData.stock : activeCategory === 'polymarket' ? socialData.polymarket : socialData.bitmex;
     console.log("DEBUG: activeCategory in posts useMemo", activeCategory); // Debug activeCategory
 
     const mappedPosts = rawPosts.map((post: SocialPost, index: number) => {
@@ -58,6 +59,9 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
       item.question && tags.add(item.question);
       item.tag && tags.add(item.tag);
     });
+    socialData.bitmex.forEach(item => {
+      item.tag && tags.add(item.tag);
+    });
     return Array.from(tags).sort((a, b) => a.localeCompare(b));
   }, [socialData]);
 
@@ -84,20 +88,20 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
       <div className="social-media-header">
         <h1>Social Media</h1>
         <p className="social-media-subtitle">
-          Track real-time social media discussions about stocks and polymarkets.
+          Track real-time social media discussions about stocks, polymarkets, and crypto.
         </p>
         <div className="social-media-controls">
           {/* Mobile Layout */}
           <div className="social-media-controls-mobile">
             <div className="social-media-controls-top-row">
               <div className="social-media-category-tabs">
-                {(['stock', 'polymarket'] as const).map((market) => (
+                {(['stock', 'polymarket', 'bitmex'] as const).map((market) => (
                   <button
                     key={market}
                     onClick={() => setActiveCategory(market)}
                     className={activeCategory === market ? 'active' : ''}
                   >
-                    {market === 'stock' ? 'Stock' : 'Polymarket'}
+                    {market === 'stock' ? 'Stock' : market === 'polymarket' ? 'Polymarket' : 'BitMEX'}
                   </button>
                 ))}
               </div>
@@ -122,13 +126,13 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
           {/* Desktop Layout */}
           <div className="social-media-controls-desktop">
             <div className="social-media-category-tabs">
-              {(['stock', 'polymarket'] as const).map((market) => (
+              {(['stock', 'polymarket', 'bitmex'] as const).map((market) => (
                 <button
                   key={market}
                   onClick={() => setActiveCategory(market)}
                   className={activeCategory === market ? 'active' : ''}
                 >
-                  {market === 'stock' ? 'Stock' : 'Polymarket'}
+                  {market === 'stock' ? 'Stock' : market === 'polymarket' ? 'Polymarket' : 'BitMEX'}
                 </button>
               ))}
             </div>

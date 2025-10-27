@@ -143,9 +143,34 @@ const BASE_POLYMARKET_COLORS = [
   '#87CEFA', // Light Sky Blue
 ] as const;
 
+// Green colors for BitMEX/Crypto (greens, cyans, emeralds)
+const BASE_BITMEX_COLORS = [
+  '#10b981', // Emerald-500
+  '#14b8a6', // Teal-500
+  '#22c55e', // Green-500
+  '#06b6d4', // Cyan-500
+  '#34d399', // Emerald-400
+  '#2dd4bf', // Teal-400
+  '#4ade80', // Green-400
+  '#22d3ee', // Cyan-400
+  '#059669', // Emerald-600
+  '#0d9488', // Teal-600
+  '#16a34a', // Green-600
+  '#0891b2', // Cyan-600
+  '#6ee7b7', // Emerald-300
+  '#5eead4', // Teal-300
+  '#86efac', // Green-300
+  '#67e8f9', // Cyan-300
+  '#047857', // Emerald-700
+  '#0f766e', // Teal-700
+  '#15803d', // Green-700
+  '#0e7490', // Cyan-700
+] as const;
+
 // Processed colors: sorted by hue and desaturated
 const STOCK_COLORS = processColors([...BASE_STOCK_COLORS], 0.075);
 const POLYMARKET_COLORS = processColors([...BASE_POLYMARKET_COLORS], 0.075);
+const BITMEX_COLORS = processColors([...BASE_BITMEX_COLORS], 0.075);
 
 // Special color for CASH (consistent across both systems)
 const CASH_COLOR = '#6b7280'; // Gray-500
@@ -156,7 +181,7 @@ const CASH_COLOR = '#6b7280'; // Gray-500
 export function getAssetColor(
   ticker: string,
   index: number,
-  category: 'stock' | 'polymarket'
+  category: 'stock' | 'polymarket' | 'bitmex'
 ): string {
   // CASH always uses the same color
   if (ticker === 'CASH') {
@@ -164,7 +189,7 @@ export function getAssetColor(
   }
 
   // Select the processed color palette
-  const colors = category === 'stock' ? STOCK_COLORS : POLYMARKET_COLORS;
+  const colors = category === 'stock' ? STOCK_COLORS : category === 'polymarket' ? POLYMARKET_COLORS : BITMEX_COLORS;
 
   // Return consistent color from the sorted and desaturated palette based on the sorted index
   return colors[index % colors.length];
@@ -174,9 +199,9 @@ export function getAssetColor(
  * Get all available colors for a category (useful for legends)
  */
 export function getColorPalette(
-  category: 'stock' | 'polymarket'
+  category: 'stock' | 'polymarket' | 'bitmex'
 ): readonly string[] {
-  return category === 'stock' ? STOCK_COLORS : POLYMARKET_COLORS;
+  return category === 'stock' ? STOCK_COLORS : category === 'polymarket' ? POLYMARKET_COLORS : BITMEX_COLORS;
 }
 
 /**
@@ -191,7 +216,7 @@ export function getCashColor(): string {
  */
 export function generateColorMap(
   assets: string[],
-  category: 'stock' | 'polymarket'
+  category: 'stock' | 'polymarket' | 'bitmex'
 ): Record<string, string> {
   const colorMap: Record<string, string> = {};
 

@@ -90,10 +90,10 @@
 }
 
 .leaderboard-grid {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   align-items: start;
   /* Prevents cards from stretching to match height */
@@ -143,6 +143,11 @@
 .leaderboard-card.polymarket .card-title {
   color: #9597f3;
   /* Sky 500 */
+}
+
+.leaderboard-card.bitmex .card-title {
+  color: #10b981;
+  /* Green 500 - BitMEX theme */
 }
 
 .card-updated {
@@ -548,6 +553,13 @@
     flex-shrink: 0;
   }
 
+}
+
+/* Tablet responsiveness - 2 columns for medium screens */
+@media (max-width: 1400px) and (min-width: 1025px) {
+  .leaderboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* Mobile and Tablet responsiveness - Always single column below 1024px */

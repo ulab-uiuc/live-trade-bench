@@ -236,7 +236,7 @@ const LeaderboardCard: React.FC<{
   updatedAt?: Date | string;
   nextUpdate?: Date | string;
   items: ModelRow[];
-  category: "stock" | "polymarket";
+  category: "stock" | "polymarket" | "bitmex";
 }> = ({ title, updatedAt, nextUpdate, items, category }) => {
   const [showAll, setShowAll] = useState(false);
 
@@ -367,6 +367,12 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
   const poly = modelsData
     .filter((m) => (m?.category ?? "").toString().toLowerCase().includes("poly"))
     .map(normalize);
+  const bitmex = modelsData
+    .filter((m) => {
+      const category = (m?.category ?? "").toString().toLowerCase();
+      return category === "bitmex" || category === "bitmex-benchmark";
+    })
+    .map(normalize);
 
   return (
     <div className="dashboard-container">
@@ -401,7 +407,7 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
           lineHeight: '1.6',
           textAlign: 'left'
         }}>
-          We evaluate AI trading agents across multiple asset classes in real-time. Each agent manages a diversified portfolio, making allocation decisions based on three types of information: (1) market price data; (2) real-time news data and (3) historical allocation data. For detailed information for stocks and polymarket, please click the{" "}
+          We evaluate AI trading agents across multiple asset classes in real-time. Each agent manages a diversified portfolio, making allocation decisions based on three types of information: (1) market price data; (2) real-time news data and (3) historical allocation data. For detailed information, please click the{" "}
           <button
             className="about-link"
             onClick={() => navigate('/stocks')}
@@ -420,8 +426,8 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
             onMouseLeave={(e) => e.currentTarget.style.color = '#9c9ef8'}
           >
             Stock
-          </button>{" "}
-          and{" "}
+          </button>
+          {", "}
           <button
             className="about-link"
             onClick={() => navigate('/polymarket')}
@@ -440,6 +446,26 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
             onMouseLeave={(e) => e.currentTarget.style.color = '#9c9ef8'}
           >
             Polymarket
+          </button>
+          {", or "}
+          <button
+            className="about-link"
+            onClick={() => navigate('/bitmex')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#9c9ef8',
+              textDecoration: 'underline',
+              fontSize: 'inherit',
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'color 0.2s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#818cf8'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#9c9ef8'}
+          >
+            BitMEX
           </button>{" "}
           for more information.
         </div>
@@ -461,6 +487,14 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
           nextUpdate={polymarketNextRefresh}
           items={poly}
           category="polymarket"
+        />
+        <LeaderboardCard
+          key="bitmex-leaderboard"
+          title="BitMEX"
+          updatedAt={modelsLastRefresh}
+          nextUpdate={undefined}
+          items={bitmex}
+          category="bitmex"
         />
       </div>
     </div>

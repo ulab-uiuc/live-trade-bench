@@ -1,6 +1,6 @@
 // Centralized shared types to avoid duplication across components
 
-export type Category = 'polymarket' | 'stock';
+export type Category = 'polymarket' | 'stock' | 'bitmex' | 'bitmex-benchmark';
 
 export interface Position {
   symbol: string;

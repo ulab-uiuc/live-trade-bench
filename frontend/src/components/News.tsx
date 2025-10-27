@@ -8,13 +8,14 @@ interface NewsProps {
   newsData: {
     stock: NewsItem[]; // Use NewsItem type
     polymarket: NewsItem[]; // Use NewsItem type
+    bitmex: NewsItem[]; // Use NewsItem type
   };
   lastRefresh: Date;
   isLoading: boolean;
 }
 
 const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
-  const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket'>('stock');
+  const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket' | 'bitmex'>('stock');
   const [sortBy, setSortBy] = useState<'ticker' | 'time'>('time');
 
   const getBrief = (news: NewsItem): string => {
@@ -31,6 +32,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
     const tags = new Set<string>();
     newsData.stock.forEach(item => item.tag && tags.add(item.tag));
     newsData.polymarket.forEach(item => item.tag && tags.add(item.tag));
+    newsData.bitmex.forEach(item => item.tag && tags.add(item.tag));
     return Array.from(tags).sort((a, b) => a.localeCompare(b));
   }, [newsData]);
 
@@ -78,14 +80,14 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
       <div className="news-header">
         <h1>Market News</h1>
         <p className="news-subtitle">
-          Stay updated with the latest news affecting stock and polymarket prices.
+          Stay updated with the latest news affecting stock, polymarket, and crypto prices.
         </p>
         <div className="news-controls">
           {/* Mobile Layout */}
           <div className="news-controls-mobile">
             <div className="news-controls-top-row">
               <div className="news-category-tabs">
-                {(['stock', 'polymarket'] as const).map((market) => (
+                {(['stock', 'polymarket', 'bitmex'] as const).map((market) => (
                   <button
                     key={market}
                     onClick={() => setActiveCategory(market)}
@@ -103,7 +105,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
                       textAlign: 'center'
                     }}
                   >
-                    {market === 'stock' ? 'Stock' : 'Polymarket'}
+                    {market === 'stock' ? 'Stock' : market === 'polymarket' ? 'Polymarket' : 'BitMEX'}
                   </button>
                 ))}
               </div>
@@ -128,7 +130,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
           {/* Desktop Layout */}
           <div className="news-controls-desktop">
             <div className="news-category-tabs">
-              {(['stock', 'polymarket'] as const).map((market) => (
+              {(['stock', 'polymarket', 'bitmex'] as const).map((market) => (
                 <button
                   key={market}
                   onClick={() => setActiveCategory(market)}
@@ -146,7 +148,7 @@ const News: React.FC<NewsProps> = ({ newsData, lastRefresh, isLoading }) => {
                     textAlign: 'center'
                   }}
                 >
-                  {market === 'stock' ? 'Stock' : 'Polymarket'}
+                  {market === 'stock' ? 'Stock' : market === 'polymarket' ? 'Polymarket' : 'BitMEX'}
                 </button>
               ))}
             </div>
