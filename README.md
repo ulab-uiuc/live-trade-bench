@@ -42,6 +42,19 @@ cd live-trade-bench
 poetry install
 ```
 
+## Setup
+
+### Set API Keys
+
+```bash
+# Required: Set your OpenAI API key
+export OPENAI_API_KEY="your-openai-key"
+
+# Optional: Set other LLM provider keys
+export ANTHROPIC_API_KEY="your-anthropic-key"
+export GOOGLE_API_KEY="your-google-key"
+```
+
 ## Quick Start
 
 ### Minimal Example
@@ -111,61 +124,49 @@ live_trade_bench/
 
 ## Core Usage
 
-### Example 1: Using Data Fetchers
-
-```python
-from live_trade_bench.fetchers import StockFetcher, NewsFetcher, RedditFetcher
-
-# Fetch stock data
-stock_fetcher = StockFetcher()
-stock_data = stock_fetcher.fetch_stock_data("AAPL")
-market_overview = stock_fetcher.fetch_market_overview()
-
-# Fetch news
-news_fetcher = NewsFetcher()
-news = news_fetcher.fetch_latest_news(topic="stocks", limit=10)
-
-# Fetch social sentiment (requires Reddit API credentials)
-reddit_fetcher = RedditFetcher()
-posts = reddit_fetcher.fetch_posts(subreddit="wallstreetbets", limit=50)
-```
-
-### Example 2: Building Agent Trading System
+### Example 1: Stock Trading System
 
 ```python
 from live_trade_bench.systems import StockPortfolioSystem
 
-# Create trading system
-system = StockPortfolioSystem.get_instance()
+# Create stock trading system
+system = StockPortfolioSystem()
 
-# Add multiple LLM agents
-system.add_agent("GPT-4 Trader", initial_cash=10000.0, model_id="gpt-4")
-system.add_agent("Claude-3 Trader", initial_cash=10000.0, model_id="claude-3-opus")
+# Add AI agent
+system.add_agent("Portfolio_Manager", initial_cash=10000.0, model_name="gpt-4o-mini")
 
-# Initialize and run trading cycle
+# Initialize system (fetches trending stocks)
 system.initialize_for_live()
-system.run_trading_cycle()
+print(f"Trading {len(system.universe)} stocks: {system.universe}...")
 
-# Get performance
-performance = system.get_all_agent_performance()
-for agent_name, metrics in performance.items():
-    print(f"{agent_name}: Return {metrics['return']:.2%}, Profit ${metrics['profit']:.2f}")
+# Run trading cycles
+for i in range(5):
+    system.run_cycle()
+    
+print("Demo finished.")
+```
+
+### Example 2: Polymarket Prediction System
+
+```python
+from live_trade_bench.systems import PolymarketPortfolioSystem
+
+# Create polymarket system (auto-initializes)
+system = PolymarketPortfolioSystem()
+
+# Add AI agent for predictions
+system.add_agent("Predictor", initial_cash=2000.0, model_name="gpt-4o-mini")
+
+print(f"Trading {len(system.universe)} prediction markets")
+
+# Run prediction cycles
+for i in range(5):
+    system.run_cycle()
+    
+print("Demo finished.")
 ```
 
 For more examples, see the `examples/` directory.
-
-## Configuration
-
-### Setting Up API Keys
-
-```python
-import os
-
-# Set your LLM API keys
-os.environ["OPENAI_API_KEY"] = "your-openai-key"
-os.environ["ANTHROPIC_API_KEY"] = "your-anthropic-key"
-os.environ["GOOGLE_API_KEY"] = "your-google-key"
-```
 
 ### Mock Modes for Testing
 
