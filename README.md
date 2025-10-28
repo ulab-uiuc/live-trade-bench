@@ -63,7 +63,7 @@ system = StockPortfolioSystem.get_instance()
 system.add_agent(
     display_name="GPT-4 Trader",
     initial_cash=10000.0,
-    model_id="gpt-4o"
+    model_name="gpt-4o"
 )
 
 # Initialize and run trading cycle
