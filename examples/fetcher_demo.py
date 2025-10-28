@@ -2,11 +2,12 @@
 """Data Fetcher Demo - Stock prices and financial news"""
 
 from datetime import datetime, timedelta
-from live_trade_bench.fetchers.stock_fetcher import (
-    fetch_trending_stocks,
-    fetch_stock_price_with_history,
-)
+
 from live_trade_bench.fetchers.news_fetcher import fetch_news_data
+from live_trade_bench.fetchers.stock_fetcher import (
+    fetch_stock_price_with_history,
+    fetch_trending_stocks,
+)
 
 print("📊 Data Fetcher Demo")
 print("=" * 60)
@@ -25,7 +26,9 @@ print(stock_data)
 print("\n📰 Fetching financial news...")
 today = datetime.now().strftime("%Y-%m-%d")
 start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-news = fetch_news_data(query="stock market", start_date=start_date, end_date=today, max_pages=1)
+news = fetch_news_data(
+    query="stock market", start_date=start_date, end_date=today, max_pages=1
+)
 print(f"Found {len(news)} news articles:")
 for article in news[:5]:
     print(f"- {article['title']}")

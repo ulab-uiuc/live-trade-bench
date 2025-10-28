@@ -24,7 +24,9 @@ def main() -> None:
     print("\n🔄 Initializing system and fetching trending stocks...")
     system.initialize_for_live()
 
-    print(f"✅ Created system with {len(system.universe)} stocks: {system.universe[:5]}...")
+    print(
+        f"✅ Created system with {len(system.universe)} stocks: {system.universe[:5]}..."
+    )
     print(f"✅ Added agents: {list(system.agents.keys())}")
 
     try:

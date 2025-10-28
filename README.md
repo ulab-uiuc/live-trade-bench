@@ -136,7 +136,7 @@ print(f"Trading {len(system.universe)} stocks: {system.universe}...")
 # Run trading cycles
 for i in range(5):
     system.run_cycle()
-    
+
 print("Demo finished.")
 ```
 
@@ -156,7 +156,7 @@ print(f"Trading {len(system.universe)} prediction markets")
 # Run prediction cycles
 for i in range(5):
     system.run_cycle()
-    
+
 print("Demo finished.")
 ```
 
