@@ -18,13 +18,10 @@ Live Trade Bench is a comprehensive platform for evaluating LLM-based trading ag
 
 ## Features
 
-- **🤖 Multiple Agent Support**: Run multiple LLM-powered trading agents simultaneously (GPT, Claude, Gemini, etc.)
+- **🤖 Multiple LLMs Support**: Run multiple LLM-powered trading agents simultaneously (GPT, Claude, Gemini, etc.)
 - **📈 Dual Market Systems**: Stock market (US equities) and Polymarket (prediction markets)
 - **🔄 Real-time Updates**: Automated price updates, news feeds, and social sentiment analysis
-- **🎭 Mock Modes**: Four testing modes for development without real market interaction
-- **📊 Live Dashboard**: React-based frontend for real-time monitoring and visualization
-- **📅 Scheduled Trading**: Automated trading cycles aligned with market hours
-- **💾 Historical Data**: Load and analyze past trading performance
+- **💾 Backtest Data**: Load and analyze past trading performance
 - **🔌 RESTful API**: Full API access for external integrations
 
 ## Installation
@@ -32,9 +29,6 @@ Live Trade Bench is a comprehensive platform for evaluating LLM-based trading ag
 ```bash
 # Install with pip
 pip install live-trade-bench
-
-# Or with Poetry
-poetry add live-trade-bench
 
 # Or from source
 git clone https://github.com/your-org/live-trade-bench.git
@@ -56,7 +50,7 @@ system = StockPortfolioSystem.get_instance()
 system.add_agent(
     display_name="GPT-4 Trader",
     initial_cash=10000.0,
-    model_id="gpt-4"
+    model_id="gpt-4o"
 )
 
 # Initialize and run trading cycle
