@@ -61,14 +61,14 @@ system = StockPortfolioSystem.get_instance()
 
 # Add an LLM agent with $10,000 initial capital
 system.add_agent(
-    display_name="GPT-4 Trader",
+    name="GPT-4o-mini Trader",
     initial_cash=10000.0,
-    model_id="gpt-4o"
+    model_name="gpt-4o-mini"
 )
 
 # Initialize and run trading cycle
 system.initialize_for_live()
-system.run_trading_cycle()
+system.run_cycle()
 
 # Get agent performance
 performance = system.get_all_agent_performance()
@@ -140,7 +140,7 @@ for i in range(5):
 print("Demo finished.")
 ```
 
-### Example 2: Polymarket Prediction System
+### Example 2: Polymarket Trading System
 
 ```python
 from live_trade_bench.systems import PolymarketPortfolioSystem
