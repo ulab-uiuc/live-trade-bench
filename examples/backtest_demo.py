@@ -19,8 +19,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def get_backtest_config() -> Dict[str, Any]:
     return {
-        "start_date": "2025-09-26",
-        "end_date": "2025-10-26",
+        "start_date": "2025-09-27",
+        "end_date": "2025-10-27",
         "interval_days": 1,
         "initial_cash": {"polymarket": 500.0, "stock": 1000.0, "bitmex": 10000.0},
         "parallelism": int(os.environ.get("LTB_PARALLELISM", "16")),
@@ -275,16 +275,8 @@ def main():
     cfg = get_backtest_config()
     models = get_base_model_configs()
 
-    # Filter to flagship models: GPT-5, GPT-4.1, GPT-4o, Claude-Opus-4.1, Claude-Sonnet-4
-    flagship_models = [
-        ("GPT-5", "openai/gpt-5"),
-        ("GPT-4.1", "openai/gpt-4.1"),
-        ("GPT-4o", "openai/gpt-4o"),
-        ("Claude-Opus-4.1", "anthropic/claude-opus-4-1-20250805"),
-        ("Claude-Sonnet-4", "anthropic/claude-sonnet-4-20250514"),
-    ]
-    models = flagship_models
-    print(f"⚡ Using {len(models)} flagship models")
+    # Use ALL models for comprehensive testing
+    print(f"⚡ Using {len(models)} models (all available)")
 
     run_polymarket = True
     run_stock = True
