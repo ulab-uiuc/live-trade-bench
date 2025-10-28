@@ -42,9 +42,9 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({ modelsData, m
           }}>
             Polymarket Models
           </h1>
-          <a 
-            href="https://polymarket.com" 
-            target="_blank" 
+          <a
+            href="https://polymarket.com"
+            target="_blank"
             rel="noopener noreferrer"
             style={{
               position: 'absolute',
@@ -75,7 +75,7 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({ modelsData, m
         }}>
           AI-powered prediction market portfolio management
         </p>
-        
+
         <div style={{
           maxWidth: '1000px',
           margin: '1.5rem auto 0',

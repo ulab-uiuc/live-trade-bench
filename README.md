@@ -136,7 +136,7 @@ print(f"Trading {len(system.universe)} stocks: {system.universe}...")
 # Run trading cycles
 for i in range(5):
     system.run_cycle()
-    
+
 print("Demo finished.")
 ```
 
@@ -156,8 +156,34 @@ print(f"Trading {len(system.universe)} prediction markets")
 # Run prediction cycles
 for i in range(5):
     system.run_cycle()
-    
+
 print("Demo finished.")
+```
+
+### Example 3: Using Data Fetchers
+
+```python
+from datetime import datetime, timedelta
+from live_trade_bench.fetchers.stock_fetcher import (
+    fetch_trending_stocks,
+    fetch_stock_price_with_history,
+)
+from live_trade_bench.fetchers.news_fetcher import fetch_news_data
+
+# Fetch trending stocks
+trending = fetch_trending_stocks(limit=10)
+print(f"Trending stocks: {trending}")
+
+# Fetch stock price data
+stock_data = fetch_stock_price_with_history("AAPL")
+print(stock_data)
+
+# Fetch financial news
+today = datetime.now().strftime("%Y-%m-%d")
+start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+news = fetch_news_data(query="stock market", start_date=start_date, end_date=today)
+for article in news[:5]:
+    print(f"- {article['title']}")
 ```
 
 For more examples, see the `examples/` directory.
