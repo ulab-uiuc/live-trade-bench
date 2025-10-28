@@ -14,63 +14,176 @@
 
 ## Overview
 
-Trading agent evaluation in the live environment. We target at avoiding overfitting on back test and build an arena for LLM-based trading agents.
+Live Trade Bench is a comprehensive platform for evaluating LLM-based trading agents in real-time market environments. Built with FastAPI, it provides a full-stack solution for running, monitoring, and benchmarking AI trading agents across multiple markets while avoiding backtest overfitting.
 
 ## Features
 
-- **AI Agents**: GPT-4 powered trading decisions
-- **Multi-Asset**: Stocks and prediction markets
-- **Real-time Data**: Live market feeds
-- **Portfolio Management**: Automated tracking and execution
+- **🤖 Multiple LLMs Support**: Run multiple LLM-powered trading agents simultaneously (GPT, Claude, Gemini, etc.)
+- **📈 Dual Market Systems**: Stock market (US equities) and Polymarket (prediction markets)
+- **🔄 Real-time Updates**: Automated price updates, news feeds, and social sentiment analysis
+- **💾 Backtest Data**: Load and analyze past trading performance
+- **🔌 RESTful API**: Full API access for external integrations
+
+## Installation
+
+```bash
+# Install with pip
+pip install live-trade-bench
+
+# Or from source
+git clone https://github.com/your-org/live-trade-bench.git
+cd live-trade-bench
+poetry install
+```
 
 ## Quick Start
 
-```bash
-# Install
-poetry install
+### Minimal Example
 
-# Stock trading
-from live_trade_bench import LLMStockAgent, create_stock_account
-agent = LLMStockAgent("Trader")
-account = create_stock_account(10000.0)
+```python
+from live_trade_bench.systems import StockPortfolioSystem
 
-# Prediction markets
-from live_trade_bench import LLMPolyMarketAgent, fetch_trending_markets
-agent = LLMPolyMarketAgent("Predictor")
-markets = fetch_trending_markets(5)
+# Create a trading system
+system = StockPortfolioSystem.get_instance()
+
+# Add an LLM agent with $10,000 initial capital
+system.add_agent(
+    display_name="GPT-4 Trader",
+    initial_cash=10000.0,
+    model_id="gpt-4o"
+)
+
+# Initialize and run trading cycle
+system.initialize_for_live()
+system.run_trading_cycle()
+
+# Get agent performance
+performance = system.get_all_agent_performance()
+print(performance)
 ```
 
-## Structure
+## Package Structure
 
 ```
 live_trade_bench/
-├── agents/                     # AI trading agents
+├── fetchers/                   # Data crawlers and fetchers
+│   ├── base_fetcher.py        # Base fetcher interface
+│   ├── stock_fetcher.py       # Stock price & info (Yahoo Finance)
+│   ├── polymarket_fetcher.py  # Polymarket data (CLOB API)
+│   ├── news_fetcher.py        # Financial news (NewsAPI, Finnhub)
+│   ├── reddit_fetcher.py      # Reddit sentiment (PRAW)
+│   └── constants.py           # Stock symbols and constants
+│
+├── agents/                     # LLM trading agents
 │   ├── base_agent.py          # Base LLM agent class
 │   ├── stock_agent.py         # Stock trading agent
-│   ├── polymarket_agent.py    # Prediction market agent
+│   └── polymarket_agent.py    # Prediction market agent
+│
+├── accounts/                   # Portfolio & execution
+│   ├── base_account.py        # Base account with portfolio tracking
+│   ├── stock_account.py       # Stock portfolio management
+│   └── polymarket_account.py  # Polymarket portfolio management
+│
+├── systems/                    # Complete trading systems
 │   ├── stock_system.py        # Stock trading system
 │   └── polymarket_system.py   # Polymarket trading system
-├── accounts/                   # Portfolio management
-│   ├── base_account.py        # Base account class
-│   ├── stock_account.py       # Stock portfolio & execution
-│   ├── polymarket_account.py  # Prediction market portfolio
-│   ├── action.py              # Trading action definitions
-│   └── utils.py               # Account utilities
-├── fetchers/                   # Real-time data sources
-│   ├── base_fetcher.py        # Base fetcher class
-│   ├── stock_fetcher.py       # Yahoo Finance integration
-│   ├── polymarket_fetcher.py  # Polymarket API
-│   ├── news_fetcher.py        # Financial news
-│   ├── option_fetcher.py      # Options data
-│   └── reddit_fetcher.py      # Social sentiment
-└── utils/                      # LLM & utilities
-    ├── llm_client.py          # LLM integration
-    └── logger.py              # Logging utilities
+│
+├── backtest/                   # Backtesting framework
+│   └── backtest_runner.py     # Historical strategy evaluation
+│
+├── mock/                       # Mock implementations for testing
+│   ├── mock_agent.py          # Fake agent with random decisions
+│   ├── mock_fetcher.py        # Fake fetcher with synthetic data
+│   └── mock_system.py         # Combined mock systems
+│
+└── utils/                      # Utilities
+    ├── llm_client.py          # LLM API wrapper (OpenAI, Anthropic, etc.)
+    ├── logger.py              # Logging utilities
+    └── agent_utils.py         # Agent helper functions
 ```
 
-## Examples
 
-See `examples/` directory for demo scripts.
+## Core Usage
+
+### Example 1: Using Data Fetchers
+
+```python
+from live_trade_bench.fetchers import StockFetcher, NewsFetcher, RedditFetcher
+
+# Fetch stock data
+stock_fetcher = StockFetcher()
+stock_data = stock_fetcher.fetch_stock_data("AAPL")
+market_overview = stock_fetcher.fetch_market_overview()
+
+# Fetch news
+news_fetcher = NewsFetcher()
+news = news_fetcher.fetch_latest_news(topic="stocks", limit=10)
+
+# Fetch social sentiment (requires Reddit API credentials)
+reddit_fetcher = RedditFetcher()
+posts = reddit_fetcher.fetch_posts(subreddit="wallstreetbets", limit=50)
+```
+
+### Example 2: Building Agent Trading System
+
+```python
+from live_trade_bench.systems import StockPortfolioSystem
+
+# Create trading system
+system = StockPortfolioSystem.get_instance()
+
+# Add multiple LLM agents
+system.add_agent("GPT-4 Trader", initial_cash=10000.0, model_id="gpt-4")
+system.add_agent("Claude-3 Trader", initial_cash=10000.0, model_id="claude-3-opus")
+
+# Initialize and run trading cycle
+system.initialize_for_live()
+system.run_trading_cycle()
+
+# Get performance
+performance = system.get_all_agent_performance()
+for agent_name, metrics in performance.items():
+    print(f"{agent_name}: Return {metrics['return']:.2%}, Profit ${metrics['profit']:.2f}")
+```
+
+For more examples, see the `examples/` directory.
+
+## Configuration
+
+### Setting Up API Keys
+
+```python
+import os
+
+# Set your LLM API keys
+os.environ["OPENAI_API_KEY"] = "your-openai-key"
+os.environ["ANTHROPIC_API_KEY"] = "your-anthropic-key"
+os.environ["GOOGLE_API_KEY"] = "your-google-key"
+```
+
+### Mock Modes for Testing
+
+```python
+from live_trade_bench.mock import (
+    MockAgentStockSystem,
+    MockFetcherStockSystem,
+    MockAgentFetcherStockSystem
+)
+
+# Option 1: Mock agents only (no LLM API calls)
+system = MockAgentStockSystem.get_instance()
+
+# Option 2: Mock fetchers only (no real market data)
+system = MockFetcherStockSystem.get_instance()
+
+# Option 3: Mock both (fastest for testing)
+system = MockAgentFetcherStockSystem.get_instance()
+```
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
 
 ## License
 
