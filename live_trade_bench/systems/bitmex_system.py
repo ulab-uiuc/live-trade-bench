@@ -209,7 +209,7 @@ class BitMEXPortfolioSystem:
         Returns:
             Dictionary mapping symbol to news articles
         """
-        logger.info("Fetching crypto news data...")
+        print("  - Fetching crypto news data...")
         news_data_map: Dict[str, Any] = {}
 
         # Map symbols to crypto names for better news queries
@@ -249,7 +249,7 @@ class BitMEXPortfolioSystem:
                     target_date=for_date,
                 )
         except Exception as e:
-            logger.error(f"News data fetch failed: {e}")
+            print(f"    - Crypto news data fetch failed: {e}")
 
         return news_data_map
 

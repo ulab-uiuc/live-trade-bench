@@ -278,8 +278,8 @@ def main():
     # Use ALL models for comprehensive testing
     print(f"⚡ Using {len(models)} models (all available)")
 
-    run_polymarket = True
-    run_stock = True
+    run_polymarket = False
+    run_stock = False
     run_bitmex = True
     market_count = sum([run_polymarket, run_stock, run_bitmex])
     market_names = []
