@@ -140,7 +140,7 @@ for i in range(5):
 print("Demo finished.")
 ```
 
-### Example 2: Polymarket Prediction System
+### Example 2: Polymarket Trading System
 
 ```python
 from live_trade_bench.systems import PolymarketPortfolioSystem
