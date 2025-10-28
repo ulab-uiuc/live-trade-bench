@@ -9,7 +9,7 @@ from matplotlib.colors import LinearSegmentedColormap
 # Set seaborn theme
 sns.set_theme(style="white")
 
-# Data
+# Data (from table)
 data = {
     "Model": [
         "OpenAI GPT-o3", "OpenAI GPT-4.1", "OpenAI GPT-5",
@@ -27,10 +27,10 @@ data = {
         1300, 1412, 1415, 1385, 1371, 1343, 1397, 1452,
         1409, 1417, 1416, 1317, 1415
     ],
-    "stock Return": [
-        0.033, 0.031, 0.026, 0.024, 0.024, 0.023, 0.023, 0.021,
-        0.019, 0.019, 0.019, 0.012, 0.009, 0.008, 0.008, 0.008,
-        0.008, 0.007, 0.007, 0.002, -0.001
+    "Stock SR": [
+        2.57, 2.64, 2.19, 1.65, 0.72, 1.99, 0.72, 1.51,
+        2.18, 1.72, 1.75, 1.45, 1.32, 1.39, 0.60, 0.61,
+        1.26, 0.78, 1.15, 0.88, 0.86
     ]
 }
 
@@ -67,42 +67,68 @@ def extract_model_family(full_name):
 df['Model_Name'] = df['Model'].apply(lambda x: extract_model_family(x)[0])
 df['Family'] = df['Model'].apply(lambda x: extract_model_family(x)[1])
 
-# Assign colors to families (blue gradient for stock)
+# Assign distinct colors to each family (Stock - cool colors: blue, green, teal)
 family_colors = {
-    'GPT': ['#85C1E9', '#5DADE2', '#3498DB', '#2E86C1'],  # Light to dark blue
-    'Claude': ['#A9CCE3', '#7FB3D5', '#5499C7', '#2874A6'],
-    'Llama': ['#AED6F1', '#85C1E9', '#5DADE2', '#3498DB'],
-    'Gemini': ['#D6EAF8', '#AED6F1', '#85C1E9', '#5DADE2'],
-    'Grok': ['#5DADE2', '#3498DB', '#2E86C1', '#21618C'],
-    'DeepSeek': ['#7FB3D5', '#5499C7', '#2874A6', '#1B4F72'],
-    'Qwen': ['#85C1E9', '#5DADE2', '#3498DB', '#2E86C1'],
-    'Kimi': ['#AED6F1', '#85C1E9', '#5DADE2', '#3498DB']
+    'GPT': '#1565C0',        # Blue
+    'Claude': '#0288D1',     # Light blue
+    'Llama': '#00695C',      # Teal
+    'Gemini': '#2E7D32',     # Green
+    'Grok': '#0277BD',       # Sky blue
+    'DeepSeek': '#004D40',   # Dark teal
+    'Qwen': '#00796B',       # Medium teal
+    'Kimi': '#0097A7'        # Cyan
 }
 
-# Assign colors to each point based on family and performance rank within family
+# Assign colors to each point based on family
 df['Color'] = '#2E5F8E'  # default
 for family in df['Family'].unique():
-    family_data = df[df['Family'] == family].sort_values('stock Return', ascending=False)
-    colors = family_colors.get(family, ['#2E5F8E'])
-    for idx, (i, row) in enumerate(family_data.iterrows()):
-        color_idx = min(idx, len(colors) - 1)
-        df.at[i, 'Color'] = colors[color_idx]
+    color = family_colors.get(family, '#2E5F8E')
+    df.loc[df['Family'] == family, 'Color'] = color
 
 # Plot with Seaborn (square aspect, matching visualize_metrics.py)
 fig, ax = plt.subplots(figsize=(14, 14))
 
 # Plot each point with its family color
 for idx, row in df.iterrows():
-    ax.scatter(row['LMArena'], row['stock Return'], 
-              s=800, alpha=0.7, color=row['Color'], 
+    ax.scatter(row['LMArena'], row['Stock SR'], 
+              s=2000, alpha=0.7, color=row['Color'], 
               marker='^', linewidths=2, edgecolors='white', zorder=3)
+
+# Manual position offsets for each model (x_offset, y_offset)
+# You can edit these values to adjust label positions
+position_offsets = {
+    "GPT-o3": (0, 0),
+    "GPT-4.1": (0, 0),
+    "GPT-5": (0, 0),
+    "Llama4-Maverick": (0, 0),
+    "Gemini-2.5-Flash": (0, 0),
+    "Llama4-Scout": (0, 0),
+    "Claude-Sonnet-4": (-60, 0),
+    "Claude-Opus-4.1": (0, 0.05),
+    "Qwen2.5-72B-Instruct": (0, 0),
+    "Claude-Opus-4": (0, 0),
+    "Grok-4": (30, 0),
+    "Claude-Sonnet-3.7": (0, -0.03),
+    "Qwen3-235B-A22B-Instruct": (0, 0),
+    "GPT-4o": (0, 0),
+    "Qwen3-235B-A22B-Thinking": (-84, 0),
+    "Gemini-2.5-Pro": (0, 0),
+    "Grok-3": (0, 0),
+    "DeepSeek-R1": (45, 0.05),
+    "Kimi-K2-Instruct": (0, 0),
+    "Llama3.3-70B-Instruct-Turbo": (0, 0),
+    "DeepSeek-V3.1": (40, 0.08),
+}
 
 # Add model names as labels (without company prefix)
 x_median = df["LMArena"].median()
 for i, row in df.iterrows():
     x_val = row["LMArena"]
-    y_val = row["stock Return"]
+    y_val = row["Stock SR"]
     model_name = row["Model_Name"]
+    
+    # Get manual offset for this model
+    x_offset, y_offset = position_offsets.get(model_name, (0, 0))
     
     # Smart positioning
     if x_val > x_median:
@@ -112,17 +138,19 @@ for i, row in df.iterrows():
         text = f"  {model_name}"
         ha = 'left'
     
-    ax.text(x_val, y_val, text,
-           fontsize=20, va='center', ha=ha, zorder=4)
+    ax.text(x_val + x_offset, y_val + y_offset, text,
+           fontsize=30, va='center', ha=ha, zorder=4)
 
-# Add y=x reference line for perfect correlation
-x_min, x_max = ax.get_xlim()
-y_min, y_max = ax.get_ylim()
-ax.plot([x_min, x_max], [y_min, y_max], 'k--', alpha=0.3, linewidth=2, zorder=1)
+# Add linear regression fit line
+from scipy import stats
+slope, intercept, r_value, p_value, std_err = stats.linregress(df['LMArena'], df['Stock SR'])
+x_fit = np.array([df['LMArena'].min(), df['LMArena'].max()])
+y_fit = slope * x_fit + intercept
+ax.plot(x_fit, y_fit, 'k--', alpha=0.4, linewidth=2.5, zorder=1)
 
 # Style adjustments
 ax.set_xlabel("LMArena Score", fontsize=44)
-ax.set_ylabel("Stock Return Rate", fontsize=44)
+ax.set_ylabel("Stock Sharpe Ratio", fontsize=44)
 ax.tick_params(labelsize=36, width=2, length=8)
 ax.grid(False)
 
