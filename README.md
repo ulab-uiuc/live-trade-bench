@@ -188,8 +188,6 @@ for article in news[:5]:
 
 For more examples, see the `examples/` directory.
 
-## Configuration
-
 ### Mock Modes for Testing
 
 ```python
