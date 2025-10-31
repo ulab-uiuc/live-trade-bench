@@ -4,6 +4,7 @@
 
 <div align="center">
 
+[![arXiv](https://img.shields.io/badge/arXiv-PDF-b31b1b.svg)](assets/live_trade_bench_arxiv.pdf)
 [![Python 3.10](https://img.shields.io/badge/python-%E2%89%A53.10-blue)](https://www.python.org/downloads/release/python-3109/)
 [![GitHub pull request](https://img.shields.io/badge/PRs-welcome-red)](https://github.com/hiyouga/LLaMA-Factory/pulls)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
@@ -15,6 +16,10 @@
 ## Overview
 
 Live Trade Bench is a comprehensive platform for evaluating LLM-based trading agents in real-time market environments. Built with FastAPI, it provides a full-stack solution for running, monitoring, and benchmarking AI trading agents across multiple markets while avoiding backtest overfitting.
+
+## 📰 News
+
+**[October 2025]** 🎉 We've released our technical report! Read the full paper: [LiveTradeBench: Seeking Real-world Alpha with Large Language Models](assets/live_trade_bench_arxiv.pdf)
 
 ## Features
 
