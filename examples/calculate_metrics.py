@@ -228,34 +228,96 @@ for model in data:
     
 print(f"✓ Calculated metrics for {len(all_metrics)} models\n")
 
+# Calculate overall composite scores
+def calculate_composite_score(metrics_list: List[Dict]) -> List[Dict]:
+    """
+    Calculate composite performance score based on 5 key metrics:
+    - CR (Total Return): higher is better
+    - SR (Sharpe Ratio): higher is better  
+    - MDD (Max Drawdown): lower is better
+    - WR (Win Rate): higher is better
+    - σ (Volatility): lower is better
+    
+    Each metric is normalized to 0-1 scale, then averaged with equal weights (0.2 each)
+    """
+    if len(metrics_list) == 0:
+        return metrics_list
+    
+    # Extract metrics for normalization
+    returns = np.array([m['total_return_pct'] for m in metrics_list])
+    sharpes = np.array([m['sharpe_ratio'] for m in metrics_list])
+    mdds = np.array([m['max_drawdown_pct'] for m in metrics_list])
+    winrates = np.array([m['win_rate_pct'] for m in metrics_list])
+    vols = np.array([m['volatility_annual_pct'] for m in metrics_list])
+    
+    # Min-max normalization (0-1 scale)
+    def normalize(x):
+        x_min, x_max = x.min(), x.max()
+        if x_max == x_min:
+            return np.ones_like(x) * 0.5
+        return (x - x_min) / (x_max - x_min)
+    
+    # Normalize each metric
+    cr_norm = normalize(returns)  # Higher is better
+    sr_norm = normalize(sharpes)  # Higher is better
+    mdd_norm = 1 - normalize(mdds)  # Lower is better (invert)
+    wr_norm = normalize(winrates)  # Higher is better
+    vol_norm = 1 - normalize(vols)  # Lower is better (invert)
+    
+    # Calculate composite score (equal weights: 0.2 each)
+    weights = {'cr': 0.2, 'sr': 0.2, 'mdd': 0.2, 'wr': 0.2, 'vol': 0.2}
+    
+    for i, m in enumerate(metrics_list):
+        composite = (
+            weights['cr'] * cr_norm[i] +
+            weights['sr'] * sr_norm[i] +
+            weights['mdd'] * mdd_norm[i] +
+            weights['wr'] * wr_norm[i] +
+            weights['vol'] * vol_norm[i]
+        )
+        m['composite_score'] = composite * 100  # Scale to 0-100
+        m['score_components'] = {
+            'cr_normalized': float(cr_norm[i]),
+            'sr_normalized': float(sr_norm[i]),
+            'mdd_normalized': float(mdd_norm[i]),
+            'wr_normalized': float(wr_norm[i]),
+            'vol_normalized': float(vol_norm[i])
+        }
+    
+    return metrics_list
+
 # Group by category
 stock_metrics = [m for m in all_metrics if m['category'] == 'stock' and 'error' not in m]
 polymarket_metrics = [m for m in all_metrics if m['category'] == 'polymarket' and 'error' not in m]
 benchmark_metrics = [m for m in all_metrics if m['category'] == 'benchmark' and 'error' not in m]
 
-# Display stock market metrics
-print("=" * 100)
-print(f"Stock Market Models - Sorted by Sharpe Ratio (Total: {len(stock_metrics)})")
-print("=" * 100)
-print(f"{'Rank':<5} {'Model Name':<30} {'Return%':<10} {'Sharpe':<10} {'MaxDD%':<12} {'WinRate%':<10} {'Vol%':<10}")
-print("-" * 100)
+# Calculate composite scores
+stock_metrics = calculate_composite_score(stock_metrics)
+polymarket_metrics = calculate_composite_score(polymarket_metrics)
 
-stock_sorted = sorted(stock_metrics, key=lambda x: x['sharpe_ratio'], reverse=True)
+# Display stock market metrics
+print("=" * 110)
+print(f"Stock Market Models - Sorted by Composite Score (Total: {len(stock_metrics)})")
+print("=" * 110)
+print(f"{'Rank':<5} {'Model Name':<30} {'Score':<8} {'Return%':<10} {'Sharpe':<10} {'MaxDD%':<10} {'WinRate%':<10} {'Vol%':<10}")
+print("-" * 110)
+
+stock_sorted = sorted(stock_metrics, key=lambda x: x['composite_score'], reverse=True)
 for i, m in enumerate(stock_sorted, 1):
-    print(f"{i:<5} {m['model_name'][:28]:<30} {m['total_return_pct']:<10.2f} {m['sharpe_ratio']:<10.2f} "
-          f"{m['max_drawdown_pct']:<12.2f} {m['win_rate_pct']:<10.2f} {m['volatility_annual_pct']:<10.2f}")
+    print(f"{i:<5} {m['model_name'][:28]:<30} {m['composite_score']:<8.2f} {m['total_return_pct']:<10.2f} {m['sharpe_ratio']:<10.2f} "
+          f"{m['max_drawdown_pct']:<10.2f} {m['win_rate_pct']:<10.2f} {m['volatility_annual_pct']:<10.2f}")
 
 # Display Polymarket metrics
-print("\n" + "=" * 100)
-print(f"Polymarket Models - Sorted by Sharpe Ratio (Total: {len(polymarket_metrics)})")
-print("=" * 100)
-print(f"{'Rank':<5} {'Model Name':<30} {'Return%':<10} {'Sharpe':<10} {'MaxDD%':<12} {'WinRate%':<10} {'Vol%':<10}")
-print("-" * 100)
+print("\n" + "=" * 110)
+print(f"Polymarket Models - Sorted by Composite Score (Total: {len(polymarket_metrics)})")
+print("=" * 110)
+print(f"{'Rank':<5} {'Model Name':<30} {'Score':<8} {'Return%':<10} {'Sharpe':<10} {'MaxDD%':<10} {'WinRate%':<10} {'Vol%':<10}")
+print("-" * 110)
 
-poly_sorted = sorted(polymarket_metrics, key=lambda x: x['sharpe_ratio'], reverse=True)
+poly_sorted = sorted(polymarket_metrics, key=lambda x: x['composite_score'], reverse=True)
 for i, m in enumerate(poly_sorted, 1):
-    print(f"{i:<5} {m['model_name'][:28]:<30} {m['total_return_pct']:<10.2f} {m['sharpe_ratio']:<10.2f} "
-          f"{m['max_drawdown_pct']:<12.2f} {m['win_rate_pct']:<10.2f} {m['volatility_annual_pct']:<10.2f}")
+    print(f"{i:<5} {m['model_name'][:28]:<30} {m['composite_score']:<8.2f} {m['total_return_pct']:<10.2f} {m['sharpe_ratio']:<10.2f} "
+          f"{m['max_drawdown_pct']:<10.2f} {m['win_rate_pct']:<10.2f} {m['volatility_annual_pct']:<10.2f}")
 
 # Display benchmark metrics
 print("\n" + "=" * 100)
@@ -319,19 +381,26 @@ for category, metrics_list in [('stock', stock_metrics), ('polymarket', polymark
         category_file = output_dir / f"{category}_metrics.json"
         with open(category_file, "w") as f:
             json.dump(metrics_list, f, indent=2)
-        print(f"✓ {category} metrics saved to: {category_file}")
+        print(f"\n✓ {category} metrics saved to: {category_file}")
 
 # Generate detailed report
 print("\n" + "=" * 100)
 print("Detailed Metrics Explanation:")
 print("=" * 100)
 print("""
-1. Sharpe Ratio: Measures risk-adjusted return, higher is better (>1 is good, >2 is excellent)
-2. Calmar Ratio: Annualized return divided by maximum drawdown, higher is better
-3. Max Drawdown: Maximum loss from peak to trough, lower is better
-4. Win Rate: Percentage of profitable trading days
-5. Volatility: Annualized standard deviation of returns, measures risk
-6. VaR (Value at Risk): Maximum loss at 95% confidence level
-7. Max Consecutive Losses: Robustness metric, lower is better
+1. Composite Score: Overall performance score (0-100) based on 5 key metrics with equal weights:
+   - Total Return (20%): Cumulative return, higher is better
+   - Sharpe Ratio (20%): Risk-adjusted return, higher is better
+   - Max Drawdown (20%): Maximum loss, lower is better (inverted in score)
+   - Win Rate (20%): Percentage of profitable days, higher is better
+   - Volatility (20%): Price fluctuation, lower is better (inverted in score)
+   
+2. Sharpe Ratio: Measures risk-adjusted return, higher is better (>1 is good, >2 is excellent)
+3. Calmar Ratio: Annualized return divided by maximum drawdown, higher is better
+4. Max Drawdown: Maximum loss from peak to trough, lower is better
+5. Win Rate: Percentage of profitable trading days
+6. Volatility: Annualized standard deviation of returns, measures risk
+7. VaR (Value at Risk): Maximum loss at 95% confidence level
+8. Max Consecutive Losses: Robustness metric, lower is better
 """)
 

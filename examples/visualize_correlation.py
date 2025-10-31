@@ -8,6 +8,19 @@ from matplotlib.colors import LinearSegmentedColormap
 
 # Set seaborn theme
 sns.set_theme(style="white")
+plt.rcParams.update({
+    "figure.figsize": (4.0, 3.4),
+    "figure.dpi": 300,
+    "savefig.bbox": "tight",
+    "pdf.fonttype": 42, "ps.fonttype": 42,
+    "font.family": "sans-serif",
+    "font.sans-serif": ["DejaVu Sans", "Helvetica", "Arial"],
+    "font.size": 10,
+    "axes.labelsize": 20,
+    "xtick.labelsize": 20, "ytick.labelsize": 16,
+    "axes.spines.top": False, "axes.spines.right": False,
+    "axes.linewidth": 0.8,
+})
 
 # Data (from table)
 data = {
