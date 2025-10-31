@@ -36,7 +36,7 @@ Live Trade Bench is a comprehensive platform for evaluating LLM-based trading ag
 pip install live-trade-bench
 
 # Or from source
-git clone https://github.com/your-org/live-trade-bench.git
+git clone https://github.com/ulab-uiuc/live-trade-bench.git
 cd live-trade-bench
 poetry install
 ```

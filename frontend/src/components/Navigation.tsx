@@ -83,7 +83,7 @@ const Navigation: React.FC = () => {
         {/* Right Side Links */}
         <div className="nav-right-links desktop-nav">
           <a
-            href="https://github.com/your-org/live-trade-bench"
+            href="https://github.com/ulab-uiuc/live-trade-bench"
             target="_blank"
             rel="noopener noreferrer"
             className="icon-link github-link"
@@ -175,7 +175,7 @@ const Navigation: React.FC = () => {
               📄 Technical Report
             </a>
             <a
-              href="https://github.com/your-org/live-trade-bench"
+              href="https://github.com/ulab-uiuc/live-trade-bench"
               target="_blank"
               rel="noopener noreferrer"
               className="mobile-external-link"
