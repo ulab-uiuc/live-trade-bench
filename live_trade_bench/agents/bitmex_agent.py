@@ -121,10 +121,12 @@ class LLMBitMEXAgent(BaseAgent[BitMEXAccount, Dict[str, Any]]):
             "Analyze the market data and generate a complete portfolio allocation.\n\n"
             f"{analysis}\n\n"
             "PORTFOLIO MANAGEMENT OBJECTIVE:\n"
-            "- Maximize returns by selecting contracts with favorable risk/reward profiles.\n"
+            "- Maximize risk-adjusted returns by selecting contracts with favorable risk/reward profiles.\n"
             "- Consider funding rates as they affect carry costs (paid every 8 hours).\n"
             "- Outperform equal-weight baseline over 1-2 week timeframes.\n"
-            "- Use CASH tactically during adverse market conditions.\n\n"
+            "- CRITICAL: Preserve capital during downtrends - significantly reduce crypto exposure and increase CASH when markets decline.\n"
+            "- In strong downtrends (>5% decline): Move to 60-80% CASH for capital preservation.\n"
+            "- In strong uptrends (>5% gain): Increase crypto exposure to 60-80% to capture momentum.\n\n"
             "CRYPTO MARKET CONSIDERATIONS:\n"
             "- Markets trade 24/7 with high volatility.\n"
             "- Funding rates create carry costs/profits (positive rate = longs pay shorts).\n"
@@ -147,14 +149,15 @@ class LLMBitMEXAgent(BaseAgent[BitMEXAccount, Dict[str, Any]]):
             "CRITICAL: Return ONLY valid JSON. No extra text.\n\n"
             "REQUIRED JSON FORMAT:\n"
             "{\n"
-            ' "reasoning": "Brief explanation of allocation strategy considering funding rates and market conditions",\n'
+            ' "reasoning": "Your detailed analysis here",\n'
             ' "allocations": {\n'
-            f'   "{sample[0]}": 0.30,\n'
-            f'   "{sample[1]}": 0.25,\n'
-            f'   "{sample[2]}": 0.20,\n'
-            '   "CASH": 0.25\n'
+            f'   "{sample[0]}": <weight>,\n'
+            f'   "{sample[1]}": <weight>,\n'
+            f'   "{sample[2]}": <weight>,\n'
+            '   "CASH": <weight>\n'
             " }\n"
-            "}\n\n"
+            "}\n"
+            "Where <weight> is a float between 0.0 and 1.0, and all weights sum to 1.0.\n\n"
             "RULES:\n"
             "1. Return ONLY the JSON object.\n"
             "2. Allocations must sum to 1.0.\n"
