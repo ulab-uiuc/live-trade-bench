@@ -90,9 +90,9 @@ if POLYMARKET_MOCK_MODE == MockMode.NONE:
     for display_name, model_id in get_base_model_configs():
         polymarket_system.add_agent(display_name, 500.0, model_id)
 
-# Add BitMEX agents (paper trading with $10,000 each)
+# Add BitMEX agents (paper trading with $1,000 each)
 for display_name, model_id in get_base_model_configs():
-    bitmex_system.add_agent(display_name, 10000.0, model_id)
+    bitmex_system.add_agent(display_name, 1000.0, model_id)
 
 # 🆕 加载历史数据到Account内存中
 print("🔄 Loading historical data to account memory...")

@@ -104,6 +104,7 @@ def _create_model_data(agent, account, market_type):
                 "timestamp": snapshot["timestamp"],
                 "profit": snapshot["profit"],
                 "totalValue": snapshot["total_value"],
+                "performance": snapshot.get("performance", 0),
             }
             for snapshot in allocation_history
         ],
