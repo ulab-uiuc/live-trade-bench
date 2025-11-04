@@ -34,6 +34,7 @@ def get_base_model_configs() -> List[Tuple[str, str]]:
         ("GPT-o3", "openai/o3-2025-04-16"),
         ("Claude-Opus-4.1", "anthropic/claude-opus-4-1-20250805"),
         ("Claude-Opus-4", "anthropic/claude-opus-4-20250514"),
+        ("Claude-Sonnet-4.5", "anthropic/claude-sonnet-4-5-20250929"),
         ("Claude-Sonnet-4", "anthropic/claude-sonnet-4-20250514"),
         ("Claude-Sonnet-3.7", "anthropic/claude-3-7-sonnet-latest"),
         ("Gemini-2.5-Flash", "gemini/gemini-2.5-flash"),

@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def get_backtest_config() -> Dict[str, Any]:
     return {
-        "start_date": "2025-10-25",  # Last week
+        "start_date": "2025-10-01",
         "end_date": "2025-11-01",
         "interval_days": 1,
         "initial_cash": {"polymarket": 500.0, "stock": 1000.0, "bitmex": 1000.0},  # Updated to $1,000
@@ -250,7 +250,7 @@ def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, s
 
 
 def save_models_data(
-    systems: Dict[str, Dict[str, Any]], out_path: str = "backend/models_data_init_full_month.json"
+    systems: Dict[str, Dict[str, Any]], out_path: str = "backend/models_data_init.json"
 ):
     all_models_data = []
     for market_type, sysmap in systems.items():
@@ -273,13 +273,20 @@ def save_models_data(
 def main():
     print("🔮 Parallel Backtest (Per-agent systems)")
     cfg = get_backtest_config()
-    models = get_base_model_configs()
+    all_models = get_base_model_configs()
 
-    # Use ALL models for comprehensive testing
-    print(f"⚡ Using {len(models)} models (all available)")
+    # Filter to GPT + Anthropic only
+    models = [
+        (name, model_id)
+        for name, model_id in all_models
+        if model_id.startswith("openai/") or model_id.startswith("anthropic/")
+    ]
 
-    run_polymarket = False
-    run_stock = False
+    print(f"⚡ Using {len(models)} models (GPT + Anthropic only)")
+    print(f"   Filtered from {len(all_models)} total models")
+
+    run_polymarket = True
+    run_stock = True
     run_bitmex = True
     market_count = sum([run_polymarket, run_stock, run_bitmex])
     market_names = []
