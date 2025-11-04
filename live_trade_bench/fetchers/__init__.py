@@ -11,7 +11,6 @@ from .polymarket_fetcher import PolymarketFetcher, fetch_trending_markets
 
 if TYPE_CHECKING:
     # Optional imports for type checking only
-    from .option_fetcher import OptionFetcher
     from .reddit_fetcher import RedditFetcher
     from .stock_fetcher import (
         StockFetcher,
