@@ -20,11 +20,6 @@ if TYPE_CHECKING:
 else:
     # Runtime imports - try but degrade gracefully
     try:
-        from .option_fetcher import OptionFetcher  # type: ignore
-    except Exception:
-        OptionFetcher = None  # type: ignore
-
-    try:
         from .stock_fetcher import (
             StockFetcher,
             fetch_current_stock_price,
@@ -49,9 +44,6 @@ __all__ = [
     "PolymarketFetcher",
     "fetch_trending_markets",
 ]
-
-if OptionFetcher is not None:
-    __all__.append("OptionFetcher")
 
 if StockFetcher is not None:
     __all__.extend(
