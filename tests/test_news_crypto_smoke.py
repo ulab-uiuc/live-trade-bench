@@ -8,8 +8,9 @@ This test makes REAL Google News scraping calls to validate functionality.
 """
 
 import os
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 from dotenv import load_dotenv
 
 # Load environment variables

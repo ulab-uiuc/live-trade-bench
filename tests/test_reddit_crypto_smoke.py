@@ -8,6 +8,7 @@ This test makes REAL Reddit API calls to validate functionality.
 """
 
 import os
+
 import pytest
 from dotenv import load_dotenv
 

@@ -11,6 +11,7 @@ Expected Behavior:
 """
 
 import os
+
 import pytest
 from dotenv import load_dotenv
 
@@ -18,7 +19,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from live_trade_bench.agents.bitmex_agent import LLMBitMEXAgent
-from tests.scenarios_config import get_scenario, get_expected_results
+from tests.scenarios_config import get_expected_results, get_scenario
 
 
 @pytest.mark.integration

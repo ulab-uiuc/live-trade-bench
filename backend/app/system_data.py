@@ -3,7 +3,11 @@ import os
 import sys
 from datetime import datetime
 
-from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem, BitMEXPortfolioSystem
+from live_trade_bench.systems import (
+    BitMEXPortfolioSystem,
+    PolymarketPortfolioSystem,
+    StockPortfolioSystem,
+)
 
 from .config import SYSTEM_DATA_FILE, TRADING_CONFIG, get_base_model_configs
 

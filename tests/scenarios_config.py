@@ -7,7 +7,6 @@ Centralizes test data for easier modification and understanding.
 
 from datetime import datetime, timedelta
 
-
 # =============================================================================
 # BULLISH SCENARIO: Strong Uptrend
 # =============================================================================

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
-from urllib.parse import parse_qs, urlparse, quote_plus
+from urllib.parse import parse_qs, quote_plus, urlparse
 
 from bs4 import BeautifulSoup
 
