@@ -9,14 +9,14 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from live_trade_bench.systems import BitMEXPortfolioSystem
+
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Load environment variables from .env file
 load_dotenv()
-
-from live_trade_bench.systems import BitMEXPortfolioSystem
 
 
 def main():

@@ -12,10 +12,10 @@ import os
 import pytest
 from dotenv import load_dotenv
 
+from live_trade_bench.fetchers.reddit_fetcher import RedditFetcher
+
 # Load environment variables (including Reddit API keys)
 load_dotenv()
-
-from live_trade_bench.fetchers.reddit_fetcher import RedditFetcher
 
 
 @pytest.mark.integration
@@ -260,7 +260,7 @@ def test_reddit_crypto_general_without_query():
         assert "upvotes" in post, "All posts should have upvotes"
         assert "subreddit" in post, "All posts should have subreddit"
 
-    print(f"\n✓ All posts have valid structure")
+    print("\n✓ All posts have valid structure")
 
     # Print top posts
     print("\nTop Posts from Crypto Subreddits:")

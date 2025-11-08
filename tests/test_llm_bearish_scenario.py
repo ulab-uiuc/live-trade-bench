@@ -11,15 +11,16 @@ Expected Behavior:
 """
 
 import os
+from datetime import datetime, timedelta
 
 import pytest
 from dotenv import load_dotenv
 
-# Load environment variables (including API keys)
-load_dotenv()
-
 from live_trade_bench.agents.bitmex_agent import LLMBitMEXAgent
 from tests.scenarios_config import get_expected_results, get_scenario
+
+# Load environment variables (including API keys)
+load_dotenv()
 
 
 def create_strong_bearish_scenario():
@@ -193,7 +194,7 @@ def test_strong_bearish_scenario():
                 reasoning = response_json.get("reasoning", llm_response)
             else:
                 reasoning = llm_response
-        except:
+        except Exception:
             reasoning = llm_response
 
     # Display Results
@@ -206,13 +207,12 @@ def test_strong_bearish_scenario():
         for asset, weight in sorted(allocation.items(), key=lambda x: x[1], reverse=True):
             print(f"  {asset:10s}: {weight:5.1%}")
 
-        print(f"\nLLM Reasoning:")
+        print("\nLLM Reasoning:")
         print(f"  {reasoning}")
 
         # Calculate metrics
         crypto_total = allocation.get("XBTUSD", 0) + allocation.get("ETHUSD", 0) + allocation.get("SOLUSDT", 0)
         btc_allocation = allocation.get("XBTUSD", 0)
-        eth_allocation = allocation.get("ETHUSD", 0)
         cash_allocation = allocation.get("CASH", 0)
 
         print("\n" + "=" * 80)
@@ -246,18 +246,18 @@ def test_strong_bearish_scenario():
             print(f"   ⚠️  WARNING: BTC ≥ {btc_max:.0%} (might be overweight given sharp decline)")
 
         # Assertion 4: Check reasoning mentions bearish factors
-        print(f"\n4. Reasoning content analysis:")
+        print("\n4. Reasoning content analysis:")
         reasoning_lower = reasoning.lower()
         found_keywords = [kw for kw in expected["keywords"] if kw in reasoning_lower]
 
         if found_keywords:
             print(f"   ✅ PASS: Reasoning mentions bearish factors: {', '.join(found_keywords)}")
         else:
-            print(f"   ⚠️  WARNING: Reasoning doesn't clearly mention bearish factors")
+            print("   ⚠️  WARNING: Reasoning doesn't clearly mention bearish factors")
 
         # Check for contradictory bullish mentions
         if "uptrend" in reasoning_lower or "bullish" in reasoning_lower:
-            print(f"   ⚠️  WARNING: Reasoning mentions bullish factors in bearish scenario")
+            print("   ⚠️  WARNING: Reasoning mentions bullish factors in bearish scenario")
 
         # Soft warnings
         print("\n" + "=" * 80)

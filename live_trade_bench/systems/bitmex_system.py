@@ -266,7 +266,6 @@ class BitMEXPortfolioSystem:
 
         social_data_map: Dict[str, List[Dict[str, Any]]] = {}
         fetcher = RedditFetcher()
-        today = datetime.utcnow().strftime("%Y-%m-%d")
 
         # Map symbols to searchable crypto terms
         symbol_to_search = {

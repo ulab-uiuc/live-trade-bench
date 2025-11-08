@@ -7,16 +7,15 @@ the most popular crypto coins (Bitcoin, Ethereum, Solana).
 This test makes REAL Google News scraping calls to validate functionality.
 """
 
-import os
 from datetime import datetime, timedelta
 
 import pytest
 from dotenv import load_dotenv
 
+from live_trade_bench.fetchers.news_fetcher import fetch_news_data
+
 # Load environment variables
 load_dotenv()
-
-from live_trade_bench.fetchers.news_fetcher import fetch_news_data
 
 
 @pytest.mark.integration
@@ -101,7 +100,7 @@ def test_news_fetches_bitcoin_articles():
             try:
                 article_date = datetime.fromtimestamp(article['date'])
                 print(f"     Date: {article_date.strftime('%Y-%m-%d')}")
-            except:
+            except Exception:
                 print(f"     Date: {article.get('date')}")
 
         snippet = article.get('snippet', '')

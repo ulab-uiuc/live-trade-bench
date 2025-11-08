@@ -5,7 +5,7 @@ Contains market data, news, and expected results for LLM integration tests.
 Centralizes test data for easier modification and understanding.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # =============================================================================
 # BULLISH SCENARIO: Strong Uptrend

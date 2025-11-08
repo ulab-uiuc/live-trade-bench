@@ -4,11 +4,6 @@ import os
 import shutil
 from datetime import datetime
 
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
-
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException
@@ -53,6 +48,10 @@ from .price_data import (
 from .routers import models, news, social, system
 from .social_data import update_social_data
 from .system_data import update_system_status
+
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
 
 # Global system instances - Initialize immediately
 stock_system = None
