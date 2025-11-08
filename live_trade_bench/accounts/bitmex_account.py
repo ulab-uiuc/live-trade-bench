@@ -132,12 +132,12 @@ class BitMEXAccount(BaseAccount[Position, Transaction]):
         pass
 
 
-def create_bitmex_account(initial_cash: float = 10000.0) -> BitMEXAccount:
+def create_bitmex_account(initial_cash: float = 1000.0) -> BitMEXAccount:
     """
     Create a new BitMEX trading account.
 
     Args:
-        initial_cash: Starting capital (default $10,000)
+        initial_cash: Starting capital (default $1,000)
 
     Returns:
         Initialized BitMEXAccount instance

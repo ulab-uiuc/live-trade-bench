@@ -525,7 +525,7 @@ class BitMEXPriceUpdater:
     """Price updater for BitMEX perpetual contracts."""
 
     def __init__(self) -> None:
-        self.initial_cash = 10000.0  # BitMEX initial cash
+        self.initial_cash = 1000.0  # BitMEX initial cash
 
     def update_realtime_prices_and_values(self) -> None:
         """Update BitMEX contract prices and account values (synced with stock market hours)."""
