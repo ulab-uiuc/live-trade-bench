@@ -209,7 +209,7 @@ def print_rankings(results: Dict[str, Dict[str, Any]], models: List[Tuple[str, s
         market_types.append("stock")
     if run_polymarket:
         market_types.append("polymarket")
-if run_bitmex:
+    if run_bitmex:
         market_types.append("bitmex")
 
     for market_type in market_types:
@@ -301,7 +301,7 @@ def main():
         market_names.append("stock")
     if run_polymarket:
         market_names.append("polymarket")
-if run_bitmex:
+    if run_bitmex:
         market_names.append("bitmex")
 
     print(f"🤖 {len(models)} models × {market_count} markets ({', '.join(market_names)})")

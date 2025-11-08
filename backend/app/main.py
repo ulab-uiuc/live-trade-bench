@@ -260,18 +260,19 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
     )
     logger.info(f"📅 Scheduled trading job for UTC {schedule_hour}:00 ({schedule_desc})")
 
-    # Schedule BitMEX cycles 4x daily (00:00, 06:00, 12:00, 18:00 UTC)
-    for hour in [0, 6, 12, 18]:
-        scheduler.add_job(
-            safe_generate_bitmex_cycle,
-            "cron",
-            hour=hour,
-            minute=0,
-            timezone="UTC",
-            id=f"bitmex_cycle_{hour:02d}00",
-            replace_existing=True,
-        )
-    logger.info("📅 Scheduled BitMEX cycles 4x daily (00:00, 06:00, 12:00, 18:00 UTC)")
+    # Schedule BitMEX cycle at same time as stock (3 PM ET, Mon-Fri)
+    # This prevents file conflicts and ensures all systems update together
+    scheduler.add_job(
+        safe_generate_bitmex_cycle,
+        "cron",
+        day_of_week="mon-fri",
+        hour=schedule_hour,  # Same as stock (19 or 20 UTC for 3 PM ET)
+        minute=0,
+        timezone="UTC",
+        id="bitmex_daily_cycle",
+        replace_existing=True,
+    )
+    logger.info(f"📅 Scheduled BitMEX cycle for UTC {schedule_hour}:00 ({schedule_desc}), Mon-Fri")
 
     price_interval = UPDATE_FREQUENCY["realtime_prices"]
     logger.info(

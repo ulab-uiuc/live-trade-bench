@@ -219,7 +219,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     const chartColor = getChartColor(category);
 
     const initialCash = category === 'stock' ? 1000
-                      : category === 'bitmex' ? 10000
+                      : category === 'bitmex' ? 1000
                       : 500;
 
     const { maxPerformance, minPerformance, range, pathData } = useMemo(() => {

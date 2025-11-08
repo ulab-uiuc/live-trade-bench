@@ -528,8 +528,17 @@ class BitMEXPriceUpdater:
         self.initial_cash = 10000.0  # BitMEX initial cash
 
     def update_realtime_prices_and_values(self) -> None:
-        """Update BitMEX contract prices and account values (24/7 crypto markets)."""
+        """Update BitMEX contract prices and account values (synced with stock market hours)."""
         try:
+            # Check if it's trading hours (sync with stock market to prevent file conflicts)
+            if not is_trading_day():
+                logger.info("📅 Not a trading day, skipping BitMEX price update")
+                return
+
+            if not is_market_hours():
+                logger.info("🕒 Outside market hours, skipping BitMEX price update")
+                return
+
             logger.info("🔄 Starting BitMEX price update...")
             models_data = _load_models_data()
             if not models_data:

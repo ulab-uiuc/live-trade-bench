@@ -161,6 +161,9 @@ cython_debug/
 #.idea/
 backend/**/*.json
 
+# Test data (generated during tests, should not be committed)
+tests/fixtures/test_data/
+
 .claude
 .idea
 CLAUDE.md
