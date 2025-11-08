@@ -6,6 +6,9 @@ from datetime import datetime
 
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
+
+# Load environment variables from .env file
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -49,8 +52,6 @@ from .routers import models, news, social, system
 from .social_data import update_social_data
 from .system_data import update_system_status
 
-# Load environment variables from .env file
-from dotenv import load_dotenv
 load_dotenv()
 
 # Global system instances - Initialize immediately
