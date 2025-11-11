@@ -71,7 +71,7 @@ const Navigation: React.FC = () => {
             About
           </button>
           <a
-            href="/assets/live_trade_bench_arxiv.pdf"
+            href="https://arxiv.org/abs/2511.03628"
             target="_blank"
             rel="noopener noreferrer"
             className="nav-link report-link"
@@ -167,7 +167,7 @@ const Navigation: React.FC = () => {
           {/* Mobile External Links */}
           <div className="mobile-external-links">
             <a
-              href="/assets/live_trade_bench_arxiv.pdf"
+              href="https://arxiv.org/abs/2511.03628"
               target="_blank"
               rel="noopener noreferrer"
               className="mobile-external-link"
