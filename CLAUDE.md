@@ -1,2 +1,0 @@
-- never ever commit api keys to git
-- never ever create test files out of test directory, never ever add scripts you generte on your own will to project root, always use scripts or tests forlder for that
