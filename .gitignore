@@ -168,3 +168,5 @@ tests/fixtures/test_data/
 .idea
 CLAUDE.md
 
+# macOS system files
+.DS_Store
