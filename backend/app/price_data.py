@@ -521,9 +521,253 @@ class PolymarketPriceUpdater:
             return False
 
 
+class BitMEXPriceUpdater:
+    """Price updater for BitMEX perpetual contracts."""
+
+    def __init__(self) -> None:
+        self.initial_cash = 1000.0  # BitMEX initial cash
+
+    def update_realtime_prices_and_values(self) -> None:
+        """Update BitMEX contract prices and account values (synced with stock market hours)."""
+        try:
+            # Check if it's trading hours (sync with stock market to prevent file conflicts)
+            if not is_trading_day():
+                logger.info("📅 Not a trading day, skipping BitMEX price update")
+                return
+
+            if not is_market_hours():
+                logger.info("🕒 Outside market hours, skipping BitMEX price update")
+                return
+
+            logger.info("🔄 Starting BitMEX price update...")
+            models_data = _load_models_data()
+            if not models_data:
+                logger.warning("⚠️ No models data found, skipping BitMEX update")
+                return
+
+            price_cache = self._build_price_cache()
+            if not price_cache:
+                logger.warning("⚠️ No BitMEX price data available, skipping update")
+                return
+
+            updated_count = 0
+            for model in models_data:
+                if model.get("category") != "bitmex":
+                    continue
+                if self._update_single_model(model, price_cache):
+                    updated_count += 1
+
+            # Add/update crypto benchmarks (BTC-HOLD, ETH-HOLD)
+            self._update_crypto_benchmark_models(models_data, price_cache)
+
+            _save_models_data(models_data)
+            logger.info(f"✅ Successfully updated {updated_count} BitMEX models + benchmarks")
+
+        except Exception as exc:
+            logger.error(f"❌ Failed to update BitMEX prices: {exc}")
+            raise
+
+    def _build_price_cache(self) -> Dict[str, float]:
+        """Fetch current prices for all BitMEX contracts."""
+        system = self._get_bitmex_system()
+        if system is None:
+            return {}
+
+        try:
+            # Fetch market data including current prices
+            market_data = system._fetch_market_data()
+        except Exception as exc:
+            logger.error(f"❌ Failed to fetch BitMEX market data: {exc}")
+            return {}
+
+        price_cache: Dict[str, float] = {}
+        for symbol, payload in market_data.items():
+            price = payload.get("current_price")
+            if price is None:
+                continue
+            try:
+                price_cache[symbol] = float(price)
+            except (TypeError, ValueError):
+                continue
+
+        logger.debug(f"📊 Fetched prices for {len(price_cache)} BitMEX contracts")
+        return price_cache
+
+    def _get_bitmex_system(self):
+        """Get BitMEX system instance."""
+        try:
+            from .main import get_bitmex_system
+
+            system = get_bitmex_system()
+            if system is not None:
+                return system
+        except Exception:
+            pass
+
+        try:
+            from live_trade_bench.systems import BitMEXPortfolioSystem
+
+            return BitMEXPortfolioSystem.get_instance()
+        except Exception as exc:
+            logger.error(f"❌ Unable to access BitMEX system: {exc}")
+            return None
+
+    def _update_single_model(
+        self, model: Dict[str, Any], price_cache: Dict[str, float]
+    ) -> bool:
+        """Update a single BitMEX model with new prices."""
+        try:
+            portfolio = model.get("portfolio", {})
+            positions = portfolio.get("positions", {}) or {}
+            cash = float(portfolio.get("cash", 0.0))
+            total_value = cash
+
+            for symbol, position in positions.items():
+                price = price_cache.get(symbol)
+                if price is not None:
+                    position["current_price"] = price
+                else:
+                    price = float(position.get("current_price", 0.0))
+
+                quantity = float(position.get("quantity", 0.0))
+                total_value += quantity * price
+
+            portfolio["total_value"] = total_value
+
+            profit = total_value - self.initial_cash
+            model["profit"] = profit
+            model["performance"] = (
+                (profit / self.initial_cash) * 100 if self.initial_cash else 0.0
+            )
+
+            _update_profit_history(model, total_value, profit)
+
+            logger.debug(
+                f"Updated BitMEX model {model.get('name', 'Unknown')}: total_value=${total_value:.2f}, profit=${profit:.2f}"
+            )
+            return True
+
+        except Exception as exc:
+            logger.error(
+                f"❌ Failed to update BitMEX model {model.get('name', 'Unknown')}: {exc}"
+            )
+            return False
+
+    def _update_crypto_benchmark_models(
+        self, models_data: List[Dict], price_cache: Dict[str, float]
+    ) -> None:
+        """Add or update BTC-HOLD and ETH-HOLD benchmark models."""
+        # Find earliest allocation date from BitMEX models
+        earliest_date = self._find_earliest_bitmex_date(models_data)
+        if not earliest_date:
+            logger.warning("⚠️ No BitMEX allocation history found, skipping crypto benchmarks")
+            return
+
+        # Remove existing bitmex benchmark models
+        models_data[:] = [
+            m for m in models_data
+            if m.get("category") != "bitmex-benchmark"
+        ]
+
+        # Create benchmarks for BTC and ETH
+        benchmarks = [
+            ("XBTUSD", "BTC-HOLD (Bitcoin Buy & Hold)"),
+            ("ETHUSD", "ETH-HOLD (Ethereum Buy & Hold)"),
+        ]
+
+        for symbol, name in benchmarks:
+            if symbol in price_cache:
+                benchmark_model = self._create_crypto_benchmark(
+                    symbol, name, earliest_date, price_cache[symbol]
+                )
+                if benchmark_model:
+                    models_data.append(benchmark_model)
+                    logger.info(f"📈 Added crypto benchmark: {name}")
+
+    def _find_earliest_bitmex_date(self, models_data: List[Dict]) -> Optional[str]:
+        """Find the earliest allocation date from all BitMEX models."""
+        earliest_date = None
+
+        for model in models_data:
+            if model.get("category") == "bitmex":
+                allocation_history = model.get("allocationHistory", [])
+                for entry in allocation_history:
+                    timestamp = entry.get("timestamp", "")
+                    if timestamp:
+                        date_str = timestamp[:10]  # Extract YYYY-MM-DD
+                        if earliest_date is None or date_str < earliest_date:
+                            earliest_date = date_str
+
+        return earliest_date
+
+    def _create_crypto_benchmark(
+        self, symbol: str, name: str, earliest_date: str, current_price: float
+    ) -> Optional[Dict]:
+        """Create a crypto buy-and-hold benchmark model."""
+        try:
+            from live_trade_bench.fetchers.bitmex_fetcher import BitMEXFetcher
+
+            fetcher = BitMEXFetcher()
+
+            # Get historical price for earliest date
+            from datetime import datetime, timedelta
+            earliest_dt = datetime.strptime(earliest_date, "%Y-%m-%d")
+            start_dt = earliest_dt - timedelta(days=1)
+            end_dt = earliest_dt + timedelta(days=1)
+
+            try:
+                history = fetcher.get_price_history(symbol, start_dt, end_dt, "1d")
+                if history and len(history) > 0:
+                    earliest_price = float(history[0].get("close", 0))
+                else:
+                    logger.warning(f"⚠️ No historical price for {symbol} on {earliest_date}")
+                    return None
+            except Exception as e:
+                logger.error(f"Failed to fetch historical price for {symbol}: {e}")
+                return None
+
+            if earliest_price is None or earliest_price <= 0:
+                logger.warning(f"⚠️ Invalid earliest price for {symbol}")
+                return None
+
+            # Calculate return
+            profit = current_price - earliest_price
+            performance = profit / earliest_price * 100
+
+            benchmark_id = symbol.lower().replace("usd", "-hold")
+
+            benchmark_model = {
+                "id": benchmark_id,
+                "name": name,
+                "category": "bitmex-benchmark",
+                "status": "active",
+                "performance": performance,
+                "profit": profit,
+                "trades": 0,
+                "asset_allocation": {symbol: 1.0},
+                "benchmark_data": {
+                    "symbol": symbol,
+                    "earliest_price": earliest_price,
+                    "earliest_date": earliest_date,
+                    "current_price": current_price,
+                },
+            }
+
+            logger.info(
+                f"📊 {symbol} benchmark: earliest=${earliest_price:.2f}, "
+                f"current=${current_price:.2f}, return={performance:.2f}%"
+            )
+            return benchmark_model
+
+        except Exception as e:
+            logger.error(f"Failed to create crypto benchmark for {symbol}: {e}")
+            return None
+
+
 # 全局实例
 stock_price_updater = RealtimePriceUpdater()
 polymarket_price_updater = PolymarketPriceUpdater()
+bitmex_price_updater = BitMEXPriceUpdater()
 
 
 def update_stock_prices_and_values() -> None:
@@ -532,6 +776,11 @@ def update_stock_prices_and_values() -> None:
 
 def update_polymarket_prices_and_values() -> None:
     polymarket_price_updater.update_realtime_prices_and_values()
+
+
+def update_bitmex_prices_and_values() -> None:
+    """Update BitMEX perpetual contract prices (24/7 crypto markets)."""
+    bitmex_price_updater.update_realtime_prices_and_values()
 
 
 def update_realtime_prices_and_values() -> None:

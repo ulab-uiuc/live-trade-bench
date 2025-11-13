@@ -53,6 +53,12 @@ const Navigation: React.FC = () => {
             Polymarket
           </button>
           <button
+            className={`nav-link ${location.pathname === '/bitmex' ? 'active' : ''}`}
+            onClick={() => navigate('/bitmex')}
+          >
+            BitMEX
+          </button>
+          <button
             className={`nav-link ${location.pathname === '/news' ? 'active' : ''}`}
             onClick={() => navigate('/news')}
           >
@@ -143,6 +149,12 @@ const Navigation: React.FC = () => {
             onClick={() => navigateAndCloseMobile('/polymarket')}
           >
             Polymarket
+          </button>
+          <button
+            className={`mobile-nav-link ${location.pathname === '/bitmex' ? 'active' : ''}`}
+            onClick={() => navigateAndCloseMobile('/bitmex')}
+          >
+            BitMEX
           </button>
           <button
             className={`mobile-nav-link ${location.pathname === '/news' ? 'active' : ''}`}

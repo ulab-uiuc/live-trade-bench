@@ -34,6 +34,7 @@ def get_base_model_configs() -> List[Tuple[str, str]]:
         ("GPT-o3", "openai/o3-2025-04-16"),
         ("Claude-Opus-4.1", "anthropic/claude-opus-4-1-20250805"),
         ("Claude-Opus-4", "anthropic/claude-opus-4-20250514"),
+        ("Claude-Sonnet-4.5", "anthropic/claude-sonnet-4-5-20250929"),
         ("Claude-Sonnet-4", "anthropic/claude-sonnet-4-20250514"),
         ("Claude-Sonnet-3.7", "anthropic/claude-3-7-sonnet-latest"),
         ("Gemini-2.5-Flash", "gemini/gemini-2.5-flash"),
@@ -63,6 +64,7 @@ UPDATE_FREQUENCY = {
 TRADING_CONFIG = {
     "initial_cash_stock": 1000,
     "initial_cash_polymarket": 500,
+    "initial_cash_bitmex": 1000,
     "max_consecutive_failures": 3,
     "recovery_wait_time": 3600,
     "error_retry_time": 600,

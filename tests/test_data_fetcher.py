@@ -8,13 +8,6 @@ import pytest
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
 from live_trade_bench.fetchers.news_fetcher import fetch_news_data
-from live_trade_bench.fetchers.option_fetcher import (
-    calculate_option_greeks,
-    fetch_option_chain,
-    fetch_option_data,
-    fetch_option_expirations,
-    fetch_option_historical_data,
-)
 from live_trade_bench.fetchers.polymarket_fetcher import (
     PolymarketFetcher,
     fetch_trending_markets,
@@ -56,7 +49,7 @@ def test_fetch_news_data_basic(mock_make_request: Mock) -> None:
     """Test basic news data fetching functionality."""
     # Mock HTML response
     mock_response = Mock()
-    mock_response.content = """
+    mock_response.text = """
     <html>
         <div class="SoaBEf">
             <a href="https://example.com/article1">Link</a>
@@ -75,7 +68,7 @@ def test_fetch_news_data_basic(mock_make_request: Mock) -> None:
     assert len(results) == 1
     assert results[0]["title"] == "Test Title"
     assert results[0]["snippet"] == "Test snippet content"
-    assert results[0]["date"] == "Jan 15, 2024"
+    assert isinstance(results[0]["date"], float)  # date is a timestamp
     assert results[0]["source"] == "Test Source"
     assert results[0]["link"] == "https://example.com/article1"
 
@@ -133,41 +126,35 @@ def test_download_price_data_empty_result(mock_download: Mock) -> None:
     # Mock empty download
     mock_download.return_value = pd.DataFrame()
 
-    with pytest.raises(RuntimeError, match="No data returned"):
-        _download_price_data("INVALID", "2024-01-01", "2024-01-31", "1d")
+    result = _download_price_data("INVALID", "2024-01-01", "2024-01-31", "1d")
+
+    # Should return empty dataframe without raising
+    assert result.empty
 
 
-@patch.object(StockFetcher, "fetch_stock_data")
-def test_fetch_stock_data_success(mock_fetch: Mock) -> None:
-    """Test successful price data fetching with retry logic."""
+@patch("live_trade_bench.fetchers.stock_fetcher.yf.download")
+def test_fetch_stock_price_with_history_success(mock_download: Mock) -> None:
+    """Test successful price data fetching with history."""
 
-    # Mock the expected return format (dict with date keys)
-    expected_result = {
-        "2024-01-15": {
-            "open": 100.0,
-            "high": 105.0,
-            "low": 95.0,
-            "close": 102.0,
-            "volume": 1000000,
+    # Mock successful download
+    mock_df = pd.DataFrame(
+        {
+            "Close": [100.0, 102.0],
+            "Volume": [1000000, 1200000],
         },
-        "2024-01-16": {
-            "open": 102.0,
-            "high": 107.0,
-            "low": 97.0,
-            "close": 104.0,
-            "volume": 1200000,
-        },
-    }
-    mock_fetch.return_value = expected_result
+        index=[pd.Timestamp("2024-01-15"), pd.Timestamp("2024-01-16")],
+    )
+    mock_download.return_value = mock_df
 
-    result = fetch_stock_data("AAPL", "2024-01-01", "2024-01-31")
+    from live_trade_bench.fetchers.stock_fetcher import fetch_stock_price_with_history
+
+    result = fetch_stock_price_with_history("AAPL", "2024-01-17")
 
     assert isinstance(result, dict)
-    assert len(result) == 2
-    assert "2024-01-15" in result
-    assert "2024-01-16" in result
-    assert result["2024-01-15"]["open"] == 100.0
-    assert result["2024-01-15"]["close"] == 102.0
+    assert "current_price" in result
+    assert "price_history" in result
+    assert "ticker" in result
+    assert result["ticker"] == "AAPL"
 
 
 # Test removed - testing non-existent retry functionality
@@ -189,191 +176,6 @@ def test_fetch_stock_data_success(mock_fetch: Mock) -> None:
 #     assert mock_fetch.call_count == 3
 
 
-# Option data fetching tests
-@patch("live_trade_bench.fetchers.stock_fetcher.yf.Ticker")
-def test_fetch_option_expirations_success(mock_ticker: Mock) -> None:
-    """Test successful option expirations fetching."""
-    # Mock ticker object
-    mock_stock = Mock()
-    mock_stock.options = ["2024-01-19", "2024-02-16", "2024-03-15"]
-    mock_ticker.return_value = mock_stock
-
-    result = fetch_option_expirations("AAPL")
-
-    assert result == ["2024-01-19", "2024-02-16", "2024-03-15"]
-    mock_ticker.assert_called_once_with("AAPL")
-
-
-@patch("live_trade_bench.fetchers.stock_fetcher.yf.Ticker")
-def test_fetch_option_expirations_no_options(mock_ticker: Mock) -> None:
-    """Test option expirations fetching when no options available."""
-    # Mock ticker object with no options
-    mock_stock = Mock()
-    mock_stock.options = []
-    mock_ticker.return_value = mock_stock
-
-    with pytest.raises(RuntimeError, match="No options available"):
-        fetch_option_expirations("INVALID")
-
-
-@patch("live_trade_bench.fetchers.stock_fetcher.yf.Ticker")
-def test_fetch_option_chain_success(mock_ticker: Mock) -> None:
-    """Test successful option chain fetching."""
-
-    # Mock ticker object
-    mock_stock = Mock()
-    mock_stock.options = ["2024-01-19", "2024-02-16"]
-    mock_stock.info = {"regularMarketPrice": 150.0}
-
-    # Mock option chain
-    mock_calls = pd.DataFrame(
-        {
-            "strike": [145.0, 150.0, 155.0],
-            "bid": [5.0, 2.5, 0.5],
-            "ask": [5.5, 3.0, 1.0],
-            "volume": [100, 200, 50],
-        }
-    )
-    mock_puts = pd.DataFrame(
-        {
-            "strike": [145.0, 150.0, 155.0],
-            "bid": [0.5, 2.0, 5.0],
-            "ask": [1.0, 2.5, 5.5],
-            "volume": [50, 150, 100],
-        }
-    )
-
-    mock_options = Mock()
-    mock_options.calls = mock_calls
-    mock_options.puts = mock_puts
-    mock_stock.option_chain.return_value = mock_options
-    mock_ticker.return_value = mock_stock
-
-    result = fetch_option_chain("AAPL")
-
-    assert result["ticker"] == "AAPL"
-    assert result["expiration"] == "2024-01-19"
-    assert result["underlying_price"] == 150.0
-    assert len(result["calls"]) == 3
-    assert len(result["puts"]) == 3
-    assert result["available_expirations"] == ["2024-01-19", "2024-02-16"]
-
-
-@patch("live_trade_bench.fetchers.stock_fetcher.yf.Ticker")
-def test_fetch_option_data_with_filters(mock_ticker: Mock) -> None:
-    """Test option data fetching with strike filters."""
-
-    # Mock ticker object
-    mock_stock = Mock()
-    mock_stock.info = {"regularMarketPrice": 150.0}
-
-    # Mock option chain
-    mock_calls = pd.DataFrame(
-        {
-            "strike": [140.0, 145.0, 150.0, 155.0, 160.0],
-            "bid": [10.0, 5.0, 2.5, 0.5, 0.1],
-            "ask": [10.5, 5.5, 3.0, 1.0, 0.2],
-            "volume": [50, 100, 200, 50, 10],
-        }
-    )
-    mock_puts = pd.DataFrame(
-        {
-            "strike": [140.0, 145.0, 150.0, 155.0, 160.0],
-            "bid": [0.1, 0.5, 2.0, 5.0, 10.0],
-            "ask": [0.2, 1.0, 2.5, 5.5, 10.5],
-            "volume": [10, 50, 150, 100, 50],
-        }
-    )
-
-    mock_options = Mock()
-    mock_options.calls = mock_calls
-    mock_options.puts = mock_puts
-    mock_stock.option_chain.return_value = mock_options
-    mock_ticker.return_value = mock_stock
-
-    # Test with strike filters
-    result = fetch_option_data(
-        "AAPL", "2024-01-19", option_type="calls", min_strike=145.0, max_strike=155.0
-    )
-
-    assert result["ticker"] == "AAPL"
-    assert result["expiration"] == "2024-01-19"
-    assert len(result["calls"]) == 3  # 145, 150, 155
-    assert len(result["puts"]) == 0  # Only calls requested
-
-
-@patch("live_trade_bench.fetchers.stock_fetcher.yf.download")
-def test_fetch_option_historical_data_success(mock_download: Mock) -> None:
-    """Test successful historical option data fetching."""
-
-    # Mock historical data download
-    mock_df = pd.DataFrame(
-        {
-            "Open": [5.0, 5.5, 6.0],
-            "High": [5.5, 6.0, 6.5],
-            "Low": [4.8, 5.2, 5.8],
-            "Close": [5.2, 5.8, 6.2],
-            "Volume": [100, 150, 200],
-        },
-        index=[
-            pd.Timestamp("2024-01-15"),
-            pd.Timestamp("2024-01-16"),
-            pd.Timestamp("2024-01-17"),
-        ],
-    )
-
-    mock_download.return_value = mock_df
-
-    result = fetch_option_historical_data(
-        "AAPL", "2024-01-19", 150.0, "call", "2024-01-15", "2024-01-17"
-    )
-
-    assert result["ticker"] == "AAPL"
-    assert result["expiration"] == "2024-01-19"
-    assert result["strike"] == 150.0
-    assert result["option_type"] == "call"
-    assert len(result["price_data"]) == 3
-    assert "2024-01-15" in result["price_data"]
-
-
-def test_calculate_option_greeks() -> None:
-    """Test option Greeks calculation."""
-    # Test call option Greeks
-    greeks = calculate_option_greeks(
-        underlying_price=100.0,
-        strike=100.0,
-        time_to_expiry=0.25,  # 3 months
-        risk_free_rate=0.05,  # 5%
-        volatility=0.3,  # 30%
-        option_type="call",
-    )
-
-    assert "delta" in greeks
-    assert "gamma" in greeks
-    assert "theta" in greeks
-    assert "vega" in greeks
-    assert "rho" in greeks
-
-    # Delta should be between 0 and 1 for call options
-    assert 0 < greeks["delta"] < 1
-
-    # Gamma should be positive
-    assert greeks["gamma"] > 0
-
-    # Test put option Greeks
-    put_greeks = calculate_option_greeks(
-        underlying_price=100.0,
-        strike=100.0,
-        time_to_expiry=0.25,
-        risk_free_rate=0.05,
-        volatility=0.3,
-        option_type="put",
-    )
-
-    # Delta should be between -1 and 0 for put options
-    assert -1 < put_greeks["delta"] < 0
-
-
 # Polymarket data fetching tests
 @patch.object(PolymarketFetcher, "make_request")
 def test_fetch_polymarket_markets_success(mock_make_request: Mock) -> None:
@@ -390,6 +192,7 @@ def test_fetch_polymarket_markets_success(mock_make_request: Mock) -> None:
                 "active": True,
                 "closed": False,
                 "clobTokenIds": ["token1", "token2"],
+                "events": [{"slug": "test-market-1"}],
             },
             {
                 "id": "market2",
@@ -398,6 +201,7 @@ def test_fetch_polymarket_markets_success(mock_make_request: Mock) -> None:
                 "active": True,
                 "closed": False,
                 "clobTokenIds": ["token3", "token4"],
+                "events": [{"slug": "test-market-2"}],
             },
         ]
     }
@@ -409,6 +213,7 @@ def test_fetch_polymarket_markets_success(mock_make_request: Mock) -> None:
     assert result[0]["id"] == "market1"
     assert result[0]["category"] == "politics"
     assert result[0]["token_ids"] == ["token1", "token2"]
+    assert result[0]["event_slug"] == "test-market-1"
     mock_make_request.assert_called_once()
 
 

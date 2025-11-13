@@ -22,4 +22,5 @@ CATEGORY_SUBREDDITS = {
     "company_news": ["stocks", "investing", "StockMarket", "wallstreetbets"],
     "market": ["StockMarket", "investing", "stocks"],
     "tech": ["technology", "stocks"],
+    "crypto": ["cryptocurrency", "CryptoMarkets", "Bitcoin", "ethereum", "CryptoCurrency", "altcoin"],
 }

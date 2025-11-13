@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote_plus, urlparse
 
 from bs4 import BeautifulSoup
 
@@ -33,6 +33,8 @@ class NewsFetcher(BaseFetcher):
 
     def _parse_relative_or_absolute(self, text: str, ref: datetime) -> float:
         t = text.strip().lower()
+
+        # English patterns: "5 days ago", "1 hour ago"
         m = re.match(r"^\s*(\d+)\s+(second|minute|hour|day)s?\s+ago\s*$", t)
         if m:
             num = int(m.group(1))
@@ -44,6 +46,32 @@ class NewsFetcher(BaseFetcher):
                 "day": timedelta(days=num),
             }[unit]
             return (ref - delta).timestamp()
+
+        # Polish patterns: "5 dni temu", "16 godzin temu", "dzień temu"
+        # Handle special case "dzień temu" (day ago) without number
+        if t == "dzień temu":
+            return (ref - timedelta(days=1)).timestamp()
+        if t == "godzinę temu":
+            return (ref - timedelta(hours=1)).timestamp()
+
+        m = re.match(r"^\s*(\d+)\s+(sekund[ya]?|minut[ya]?|godzin[ya]?|dni)\s+temu\s*$", t)
+        if m:
+            num = int(m.group(1))
+            unit = m.group(2)
+            # Map Polish units to timedelta
+            if unit.startswith("sekund"):
+                delta = timedelta(seconds=num)
+            elif unit.startswith("minut"):
+                delta = timedelta(minutes=num)
+            elif unit.startswith("godzin"):
+                delta = timedelta(hours=num)
+            elif unit == "dni":
+                delta = timedelta(days=num)
+            else:
+                delta = timedelta(0)
+            return (ref - delta).timestamp()
+
+        # Absolute date formats
         for fmt in ("%b %d, %Y", "%B %d, %Y"):
             try:
                 return datetime.strptime(text.strip(), fmt).timestamp()
@@ -64,16 +92,33 @@ class NewsFetcher(BaseFetcher):
         start_fmt, _ = self._normalize_date(start_date)
         end_fmt, ref_date = self._normalize_date(end_date)
 
+        # Use HTML-specific headers for Google News scraping
+        html_headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/101.0.4951.54 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate",  # Removed 'br' - brotli package not installed
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+        }
+
         results: List[Dict[str, Any]] = []
         for page in range(max_pages):
+            # URL-encode the query to handle spaces and special characters
+            encoded_query = quote_plus(query)
             url = (
-                f"https://www.google.com/search?q={query}"
+                f"https://www.google.com/search?q={encoded_query}"
                 f"&tbs=cdr:1,cd_min:{start_fmt},cd_max:{end_fmt}"
                 f"&tbm=nws&start={page * 10}"
             )
             try:
-                resp = self.make_request(url, timeout=15)
-                soup = BeautifulSoup(resp.content, "html.parser")
+                resp = self.make_request(url, headers=html_headers, timeout=15)
+                # Use resp.text instead of resp.content to handle gzip encoding properly
+                soup = BeautifulSoup(resp.text, "html.parser")
             except Exception as e:
                 print(f"Request/parse failed: {e}")
                 break

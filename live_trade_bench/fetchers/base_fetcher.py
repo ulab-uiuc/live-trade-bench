@@ -24,6 +24,10 @@ class BaseFetcher(ABC):
                 "Chrome/101.0.4951.54 Safari/537.36"
             ),
             "Accept": "application/json",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
         }
 
     def _rate_limit_delay(self) -> None:
@@ -47,6 +51,16 @@ class BaseFetcher(ABC):
         self._rate_limit_delay()
         headers = headers or self.default_headers
         kwargs.setdefault("timeout", 8)
+
+        # Add Google consent cookies to bypass GDPR consent page
+        cookies = kwargs.get("cookies", {})
+        if "google.com" in url:
+            cookies.update({
+                "CONSENT": "YES+cb.20210720-07-p0.en+FX+410",
+                "SOCS": "CAESEwgDEgk0ODE3Nzk3MjQaAmVuIAEaBgiA_LyaBg",
+            })
+            kwargs["cookies"] = cookies
+
         return requests.get(url, headers=headers, **kwargs)
 
     @retry(

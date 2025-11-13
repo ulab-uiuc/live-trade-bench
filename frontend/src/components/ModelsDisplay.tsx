@@ -218,7 +218,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
     const chartColor = getChartColor(category);
 
-    const initialCash = category === 'stock' ? 1000 : 500;
+    const initialCash = category === 'stock' ? 1000
+                      : category === 'bitmex' ? 1000
+                      : 500;
 
     const { maxPerformance, minPerformance, range, pathData } = useMemo(() => {
       // Ensure data is an array before mapping
@@ -245,7 +247,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       }
 
       return { maxPerformance: maxP, minPerformance: minP, range: r, pathData: path };
-    }, [chartData, margin.left, margin.right, margin.top, chartWidth, chartHeight, category]);
+    }, [chartData, margin.left, margin.right, margin.top, chartWidth, chartHeight, initialCash]);
 
     if (chartData.length === 0) {
       return (
@@ -370,7 +372,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
             {/* Data points */}
             {chartData.map((point, index) => {
-              const performance = (point.profit / initialCash) * 100 || 0;
+              const performance = point.performance || 0;  // Use pre-calculated performance
               const x = margin.left + (index / (chartData.length - 1)) * (chartWidth - margin.left - margin.right);
               const y = margin.top + ((maxPerformance - performance) / range) * (chartHeight - 2 * margin.top);
               return (

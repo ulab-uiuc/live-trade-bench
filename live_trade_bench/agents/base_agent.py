@@ -159,7 +159,7 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                     try:
                         news_date = datetime.fromtimestamp(date_timestamp)
                         date_str = f" ({news_date.strftime('%Y-%m-%d')})"
-                    except:
+                    except Exception:
                         pass
                 if i == 0:
                     news_summaries.append(f"• {display_name}:\n  - {title}{date_str}")

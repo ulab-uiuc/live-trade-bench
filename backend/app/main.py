@@ -6,6 +6,9 @@ from datetime import datetime
 
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
+
+# Load environment variables from .env file
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -19,7 +22,11 @@ from live_trade_bench.mock.mock_system import (
     MockFetcherPolymarketSystem,
     MockFetcherStockSystem,
 )
-from live_trade_bench.systems import PolymarketPortfolioSystem, StockPortfolioSystem
+from live_trade_bench.systems import (
+    BitMEXPortfolioSystem,
+    PolymarketPortfolioSystem,
+    StockPortfolioSystem,
+)
 
 from .config import (
     ALLOWED_ORIGINS,
@@ -37,6 +44,7 @@ from .models_data import generate_models_data, load_historical_data_to_accounts
 from .news_data import update_news_data
 from .price_data import (
     get_next_price_update_time,
+    update_bitmex_prices_and_values,
     update_polymarket_prices_and_values,
     update_stock_prices_and_values,
 )
@@ -44,9 +52,12 @@ from .routers import models, news, social, system
 from .social_data import update_social_data
 from .system_data import update_system_status
 
+load_dotenv()
+
 # Global system instances - Initialize immediately
 stock_system = None
 polymarket_system = None
+bitmex_system = None
 # Background scheduler instance; assigned during startup to keep reference alive
 scheduler = None
 
@@ -68,6 +79,7 @@ POLYMARKET_SYSTEMS = {
 # Initialize systems immediately when module loads
 stock_system = STOCK_SYSTEMS[STOCK_MOCK_MODE].get_instance()
 polymarket_system = POLYMARKET_SYSTEMS[POLYMARKET_MOCK_MODE].get_instance()
+bitmex_system = BitMEXPortfolioSystem()
 
 # Add agents for real systems
 if STOCK_MOCK_MODE == MockMode.NONE:
@@ -78,13 +90,18 @@ if POLYMARKET_MOCK_MODE == MockMode.NONE:
     for display_name, model_id in get_base_model_configs():
         polymarket_system.add_agent(display_name, 500.0, model_id)
 
+# Add BitMEX agents (paper trading with $1,000 each)
+for display_name, model_id in get_base_model_configs():
+    bitmex_system.add_agent(display_name, 1000.0, model_id)
+
 # 🆕 加载历史数据到Account内存中
 print("🔄 Loading historical data to account memory...")
-load_historical_data_to_accounts(stock_system, polymarket_system)
+load_historical_data_to_accounts(stock_system, polymarket_system, bitmex_system)
 print("✅ Historical data loading completed")
 
 stock_system.initialize_for_live()
 polymarket_system.initialize_for_live()
+bitmex_system.initialize_for_live()
 
 
 def get_stock_system():
@@ -97,6 +114,12 @@ def get_polymarket_system():
     """Get the current polymarket system instance (real or mock)."""
     global polymarket_system
     return polymarket_system
+
+
+def get_bitmex_system():
+    """Get the BitMEX system instance."""
+    global bitmex_system
+    return bitmex_system
 
 
 logging.basicConfig(level=logging.INFO)
@@ -194,9 +217,19 @@ def load_backtest_as_initial_data():
 def safe_generate_models_data():
     if should_run_trading_cycle():
         logger.info("🕐 Running trading cycle at market close time...")
-        generate_models_data(stock_system, polymarket_system)
+        generate_models_data(stock_system, polymarket_system, bitmex_system)
     else:
         logger.info("⏰ Skipping trading cycle - not in market time window")
+
+
+def safe_generate_bitmex_cycle():
+    """Run BitMEX trading cycle (24/7 crypto markets)."""
+    logger.info("🔄 Running BitMEX trading cycle...")
+    try:
+        bitmex_system.run_cycle()
+        logger.info("✅ BitMEX cycle completed")
+    except Exception as e:
+        logger.error(f"❌ BitMEX cycle failed: {e}")
 
 
 def schedule_background_tasks(scheduler: BackgroundScheduler):
@@ -227,6 +260,20 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
     )
     logger.info(f"📅 Scheduled trading job for UTC {schedule_hour}:00 ({schedule_desc})")
 
+    # Schedule BitMEX cycle at same time as stock (3 PM ET, Mon-Fri)
+    # This prevents file conflicts and ensures all systems update together
+    scheduler.add_job(
+        safe_generate_bitmex_cycle,
+        "cron",
+        day_of_week="mon-fri",
+        hour=schedule_hour,  # Same as stock (19 or 20 UTC for 3 PM ET)
+        minute=0,
+        timezone="UTC",
+        id="bitmex_daily_cycle",
+        replace_existing=True,
+    )
+    logger.info(f"📅 Scheduled BitMEX cycle for UTC {schedule_hour}:00 ({schedule_desc}), Mon-Fri")
+
     price_interval = UPDATE_FREQUENCY["realtime_prices"]
     logger.info(
         f"📈 Scheduled stock price update job for every {price_interval} seconds ({price_interval//60} minutes)"
@@ -248,6 +295,19 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         "interval",
         seconds=polymarket_interval,
         id="update_polymarket_prices",
+        replace_existing=True,
+    )
+
+    # BitMEX price updates (every 10 minutes, 24/7)
+    bitmex_interval = 600  # 10 minutes
+    logger.info(
+        f"📈 Scheduled BitMEX price update job for every {bitmex_interval} seconds ({bitmex_interval//60} minutes)"
+    )
+    scheduler.add_job(
+        update_bitmex_prices_and_values,
+        "interval",
+        seconds=bitmex_interval,
+        id="update_bitmex_prices",
         replace_existing=True,
     )
     scheduler.add_job(

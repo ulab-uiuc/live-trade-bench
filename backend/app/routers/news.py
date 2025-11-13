@@ -10,7 +10,7 @@ router = APIRouter()
 
 @router.get("/news/{market_type}", response_model=List[Dict[str, Any]])
 def get_news(market_type: str, limit: int = 100):
-    if market_type not in ["stock", "polymarket"]:
+    if market_type not in ["stock", "polymarket", "bitmex"]:
         raise HTTPException(status_code=404, detail="Market type not found")
 
     data = read_json_or_404(NEWS_DATA_FILE)
