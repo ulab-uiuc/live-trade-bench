@@ -168,3 +168,4 @@ class MockMode(str, Enum):
 
 STOCK_MOCK_MODE = MockMode.NONE
 POLYMARKET_MOCK_MODE = MockMode.NONE
+BITMEX_MOCK_MODE = MockMode.NONE
