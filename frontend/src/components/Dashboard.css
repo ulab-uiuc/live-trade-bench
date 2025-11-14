@@ -162,9 +162,9 @@
 .table-header,
 .table-row {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 96px 72px;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
+  grid-template-columns: 56px minmax(0, 1fr) 78px 35px;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem 0.5rem 0.2rem;
   align-items: center;
 }
 
@@ -190,11 +190,9 @@
 }
 
 .table-row.benchmark {
-  background: linear-gradient(
-    90deg,
-    rgba(250, 204, 21, 0.16) 0%,
-    rgba(250, 204, 21, 0.04) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(250, 204, 21, 0.16) 0%,
+      rgba(250, 204, 21, 0.04) 100%);
   box-shadow: inset 3px 0 0 rgba(250, 204, 21, 0.75), 0 4px 20px rgba(250, 204, 21, 0.15);
 }
 
@@ -206,11 +204,9 @@
 }
 
 .table-row.benchmark:hover {
-  background: linear-gradient(
-    90deg,
-    rgba(250, 204, 21, 0.22) 0%,
-    rgba(250, 204, 21, 0.08) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(250, 204, 21, 0.22) 0%,
+      rgba(250, 204, 21, 0.08) 100%);
   box-shadow: inset 3px 0 0 rgba(250, 204, 21, 0.75), 0 6px 22px rgba(250, 204, 21, 0.25);
 }
 
