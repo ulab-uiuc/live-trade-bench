@@ -54,7 +54,9 @@ class NewsFetcher(BaseFetcher):
         if t == "godzinę temu":
             return (ref - timedelta(hours=1)).timestamp()
 
-        m = re.match(r"^\s*(\d+)\s+(sekund[ya]?|minut[ya]?|godzin[ya]?|dni)\s+temu\s*$", t)
+        m = re.match(
+            r"^\s*(\d+)\s+(sekund[ya]?|minut[ya]?|godzin[ya]?|dni)\s+temu\s*$", t
+        )
         if m:
             num = int(m.group(1))
             unit = m.group(2)
@@ -97,7 +99,7 @@ class NewsFetcher(BaseFetcher):
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/101.0.4951.54 Safari/537.36"
+                "Chrome/120.0.0.0 Safari/537.36"
             ),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
