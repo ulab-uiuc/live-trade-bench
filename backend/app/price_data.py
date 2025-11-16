@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 _NEXT_UPDATE_TIMES: Dict[str, Optional[datetime]] = {
     "stock": None,
     "polymarket": None,
+    "forex": None,
 }
 
 
@@ -46,6 +47,9 @@ def _set_next_price_update_time(market: str, value: Optional[datetime]) -> None:
 def _compute_next_price_update_time(market: str, now_utc: datetime) -> datetime:
     if market == "polymarket":
         interval = timedelta(seconds=UPDATE_FREQUENCY["polymarket_prices"])
+        return (now_utc + interval).astimezone(pytz.UTC)
+    if market == "forex":
+        interval = timedelta(seconds=UPDATE_FREQUENCY["forex_prices"])
         return (now_utc + interval).astimezone(pytz.UTC)
 
     # Default to stock market schedule
@@ -521,6 +525,115 @@ class PolymarketPriceUpdater:
             return False
 
 
+class ForexPriceUpdater:
+    def __init__(self) -> None:
+        self.initial_cash = TRADING_CONFIG["initial_cash_forex"]
+
+    def update_realtime_prices_and_values(self) -> None:
+        try:
+            models_data = _load_models_data()
+            if not models_data:
+                logger.warning("⚠️ No models data found, skipping forex update")
+                return
+
+            price_cache = self._build_price_cache()
+            if not price_cache:
+                logger.warning("⚠️ No forex price data available, skipping update")
+                return
+
+            updated_count = 0
+            for model in models_data:
+                if model.get("category") != "forex":
+                    continue
+                if self._update_single_model(model, price_cache):
+                    updated_count += 1
+
+            _save_models_data(models_data)
+            logger.info(f"✅ Successfully updated {updated_count} forex models")
+        except Exception as exc:
+            logger.error(f"❌ Failed to update forex prices: {exc}")
+            raise
+        finally:
+            next_time = _compute_next_price_update_time("forex", datetime.now(pytz.UTC))
+            _set_next_price_update_time("forex", next_time)
+            logger.info(f"🕒 Next forex price update target: {next_time.isoformat()}")
+
+    def _build_price_cache(self) -> Dict[str, float]:
+        system = self._get_forex_system()
+        if system is None:
+            return {}
+
+        try:
+            market_data = system._fetch_market_data()
+        except Exception as exc:
+            logger.error(f"❌ Failed to fetch forex market data: {exc}")
+            return {}
+
+        price_cache: Dict[str, float] = {}
+        for pair, payload in market_data.items():
+            price = payload.get("current_price")
+            if price is None:
+                continue
+            try:
+                price_cache[pair] = float(price)
+            except (TypeError, ValueError):
+                continue
+        return price_cache
+
+    def _get_forex_system(self):
+        try:
+            from .main import get_forex_system
+
+            system = get_forex_system()
+            if system is not None:
+                return system
+        except Exception:
+            pass
+
+        try:
+            from live_trade_bench.systems import ForexPortfolioSystem
+
+            return ForexPortfolioSystem.get_instance()
+        except Exception as exc:
+            logger.error(f"❌ Unable to access forex system: {exc}")
+            return None
+
+    def _update_single_model(
+        self, model: Dict[str, Any], price_cache: Dict[str, float]
+    ) -> bool:
+        try:
+            portfolio = model.get("portfolio", {})
+            positions = portfolio.get("positions", {}) or {}
+            cash = float(portfolio.get("cash", 0.0))
+            total_value = cash
+
+            for pair, position in positions.items():
+                price = price_cache.get(pair)
+                if price is not None:
+                    position["current_price"] = price
+                else:
+                    price = float(position.get("current_price", 0.0))
+
+                quantity = float(position.get("quantity", 0.0))
+                total_value += quantity * price
+
+            portfolio["total_value"] = total_value
+
+            profit = total_value - self.initial_cash
+            model["profit"] = profit
+            model["performance"] = (
+                (profit / self.initial_cash) * 100 if self.initial_cash else 0.0
+            )
+
+            _update_profit_history(model, total_value, profit)
+            return True
+        except Exception as exc:
+            logger.error(
+                f"❌ Failed to update forex model {model.get('name', 'Unknown')}: {exc}"
+            )
+            return False
+
+
 class BitMEXPriceUpdater:
     """Price updater for BitMEX perpetual contracts."""
 
@@ -768,6 +881,7 @@ class BitMEXPriceUpdater:
 stock_price_updater = RealtimePriceUpdater()
 polymarket_price_updater = PolymarketPriceUpdater()
 bitmex_price_updater = BitMEXPriceUpdater()
+forex_price_updater = ForexPriceUpdater()
 
 
 def update_stock_prices_and_values() -> None:
@@ -781,6 +895,10 @@ def update_polymarket_prices_and_values() -> None:
 def update_bitmex_prices_and_values() -> None:
     """Update BitMEX perpetual contract prices (24/7 crypto markets)."""
     bitmex_price_updater.update_realtime_prices_and_values()
+
+
+def update_forex_prices_and_values() -> None:
+    forex_price_updater.update_realtime_prices_and_values()
 
 
 def update_realtime_prices_and_values() -> None:

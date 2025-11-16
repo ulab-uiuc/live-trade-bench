@@ -7,11 +7,17 @@ from .config import SOCIAL_DATA_FILE
 def update_social_data() -> None:
     print("📱 Updating social media data...")
 
-    all_social_data: Dict[str, List[Dict]] = {"stock": [], "polymarket": [], "bitmex": []}
+    all_social_data: Dict[str, List[Dict]] = {
+        "stock": [],
+        "polymarket": [],
+        "bitmex": [],
+        "forex": [],
+    }
 
     try:
-        from .main import (  # Import system getters
+        from .main import (
             get_bitmex_system,
+            get_forex_system,
             get_polymarket_system,
             get_stock_system,
         )
@@ -19,8 +25,14 @@ def update_social_data() -> None:
         stock_system = get_stock_system()
         polymarket_system = get_polymarket_system()
         bitmex_system = get_bitmex_system()
+        forex_system = get_forex_system()
 
-        if not stock_system or not polymarket_system or not bitmex_system:
+        if (
+            not stock_system
+            or not polymarket_system
+            or not bitmex_system
+            or not forex_system
+        ):
             print("❌ Failed to get system instances")
             return
 
@@ -31,6 +43,8 @@ def update_social_data() -> None:
             polymarket_system.initialize_for_live()
         if not bitmex_system.universe:
             bitmex_system.initialize_for_live()
+        if not forex_system.universe:
+            forex_system.initialize_for_live()
 
         # Fetch social data using system methods
         print("  - Fetching stock social media data...")
@@ -51,6 +65,12 @@ def update_social_data() -> None:
             f"  - Fetched {len([item for sublist in bitmex_social.values() for item in sublist])} bitmex social media posts."
         )
 
+        print("  - Fetching forex social media data...")
+        forex_social = forex_system._fetch_social_data()
+        print(
+            f"  - Fetched {len([item for sublist in forex_social.values() for item in sublist])} forex social media posts."
+        )
+
         all_social_data["stock"] = [
             item for sublist in stock_social.values() for item in sublist
         ]
@@ -59,6 +79,9 @@ def update_social_data() -> None:
         ]
         all_social_data["bitmex"] = [
             item for sublist in bitmex_social.values() for item in sublist
+        ]
+        all_social_data["forex"] = [
+            item for sublist in forex_social.values() for item in sublist
         ]
 
     except Exception as e:

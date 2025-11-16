@@ -17,6 +17,7 @@ export type DashboardProps = {
   modelsLastRefresh?: Date | string;
   stockNextRefresh?: Date | string;
   polymarketNextRefresh?: Date | string;
+  forexNextRefresh?: Date | string;
   systemStatus?: any;
   systemLastRefresh?: Date | string;
   views?: number; // 添加views属性
@@ -236,7 +237,7 @@ const LeaderboardCard: React.FC<{
   updatedAt?: Date | string;
   nextUpdate?: Date | string;
   items: ModelRow[];
-  category: "stock" | "polymarket" | "bitmex";
+  category: "stock" | "polymarket" | "bitmex" | "forex";
 }> = ({ title, updatedAt, nextUpdate, items, category }) => {
   const [showAll, setShowAll] = useState(false);
 
@@ -346,7 +347,7 @@ const LeaderboardCard: React.FC<{
 
 // ------- Main Dashboard Component -------
 
-const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], modelsLastRefresh = new Date(), stockNextRefresh, polymarketNextRefresh, systemStatus, systemLastRefresh, views = 0 }) => {
+const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], modelsLastRefresh = new Date(), stockNextRefresh, polymarketNextRefresh, forexNextRefresh, systemStatus, systemLastRefresh, views = 0 }) => {
   const navigate = useNavigate();
 
   // 格式化数字显示
@@ -372,6 +373,9 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
       const category = (m?.category ?? "").toString().toLowerCase();
       return category === "bitmex" || category === "bitmex-benchmark";
     })
+    .map(normalize);
+  const forex = modelsData
+    .filter((m) => (m?.category ?? "").toString().toLowerCase() === "forex")
     .map(normalize);
 
   return (
@@ -467,6 +471,26 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
           >
             BitMEX
           </button>{" "}
+          {", or "}
+          <button
+            className="about-link"
+            onClick={() => navigate('/forex')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#9c9ef8',
+              textDecoration: 'underline',
+              fontSize: 'inherit',
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'color 0.2s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#818cf8'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#9c9ef8'}
+          >
+            Forex
+          </button>{" "}
           for more information.
         </div>
       </div>
@@ -495,6 +519,14 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
           nextUpdate={undefined}
           items={bitmex}
           category="bitmex"
+        />
+        <LeaderboardCard
+          key="forex-leaderboard"
+          title="Forex"
+          updatedAt={modelsLastRefresh}
+          nextUpdate={forexNextRefresh}
+          items={forex}
+          category="forex"
         />
       </div>
     </div>

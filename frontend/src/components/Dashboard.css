@@ -150,6 +150,10 @@
   /* Green 500 - BitMEX theme */
 }
 
+.leaderboard-card.forex .card-title {
+  color: #34d399;
+}
+
 .card-updated {
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.875rem;

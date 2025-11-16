@@ -13,16 +13,19 @@ from __future__ import annotations
 # Accounts
 from .accounts import (
     BaseAccount,
+    ForexAccount,
     PolymarketAccount,
     Position,
     StockAccount,
     Transaction,
+    create_forex_account,
     create_polymarket_account,
     create_stock_account,
 )
 
 # Agents
 from .agents.base_agent import BaseAgent
+from .agents.forex_agent import LLMForexAgent
 from .agents.polymarket_agent import LLMPolyMarketAgent
 from .agents.stock_agent import LLMStockAgent
 
@@ -35,10 +38,15 @@ from .fetchers.base_fetcher import BaseFetcher
 # Constants
 from .fetchers.constants import CATEGORY_SUBREDDITS, TICKER_TO_COMPANY
 from .fetchers.news_fetcher import NewsFetcher, fetch_news_data
+from .fetchers.forex_fetcher import ForexFetcher, fetch_trending_fx_pairs
 from .fetchers.polymarket_fetcher import PolymarketFetcher, fetch_trending_markets
 from .fetchers.stock_fetcher import StockFetcher
 
 # Core Systems
+from .systems.forex_system import (
+    ForexPortfolioSystem,
+    create_forex_portfolio_system,
+)
 from .systems.polymarket_system import (
     PolymarketPortfolioSystem,
     create_polymarket_portfolio_system,
@@ -55,6 +63,8 @@ __all__ = [
     "create_stock_portfolio_system",
     "PolymarketPortfolioSystem",
     "create_polymarket_portfolio_system",
+    "ForexPortfolioSystem",
+    "create_forex_portfolio_system",
     # Accounts
     "BaseAccount",
     "Position",
@@ -63,10 +73,13 @@ __all__ = [
     "create_stock_account",
     "PolymarketAccount",
     "create_polymarket_account",
+    "ForexAccount",
+    "create_forex_account",
     # Agents
     "BaseAgent",
     "LLMStockAgent",
     "LLMPolyMarketAgent",
+    "LLMForexAgent",
     # Fetchers
     "BaseFetcher",
     "StockFetcher",
@@ -75,6 +88,8 @@ __all__ = [
     "OptionFetcher",
     "PolymarketFetcher",
     "fetch_trending_markets",
+    "ForexFetcher",
+    "fetch_trending_fx_pairs",
     "fetch_current_market_price",
     "fetch_token_price",
     "RedditFetcher",

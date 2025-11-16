@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from .base_fetcher import BaseFetcher
 from .bitmex_fetcher import BitMEXFetcher
+from .forex_fetcher import ForexFetcher, fetch_trending_fx_pairs
 from .news_fetcher import NewsFetcher
 from .polymarket_fetcher import PolymarketFetcher, fetch_trending_markets
 
@@ -40,9 +41,11 @@ else:
 __all__ = [
     "BaseFetcher",
     "BitMEXFetcher",
+    "ForexFetcher",
     "NewsFetcher",
     "PolymarketFetcher",
     "fetch_trending_markets",
+    "fetch_trending_fx_pairs",
 ]
 
 if StockFetcher is not None:

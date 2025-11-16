@@ -6,20 +6,28 @@ import { formatTimeAgo } from '../utils/time';
 
 interface SocialMediaProps {
   socialData: {
-    stock: SocialPost[]; // Use SocialPost type
-    polymarket: SocialPost[]; // Use SocialPost type
-    bitmex: SocialPost[]; // Use SocialPost type
+    stock: SocialPost[];
+    polymarket: SocialPost[];
+    bitmex: SocialPost[];
+    forex: SocialPost[];
   };
   lastRefresh: Date;
   isLoading: boolean;
 }
 
 const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLoading }) => {
-  const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket' | 'bitmex'>('stock');
+  const [activeCategory, setActiveCategory] = useState<'stock' | 'polymarket' | 'bitmex' | 'forex'>('stock');
   const [sortBy, setSortBy] = useState<'ticker' | 'time'>('time');
 
   const posts = useMemo(() => {
-    const rawPosts = activeCategory === 'stock' ? socialData.stock : activeCategory === 'polymarket' ? socialData.polymarket : socialData.bitmex;
+    const rawPosts =
+      activeCategory === 'stock'
+        ? socialData.stock
+        : activeCategory === 'polymarket'
+        ? socialData.polymarket
+        : activeCategory === 'bitmex'
+        ? socialData.bitmex
+        : socialData.forex;
     console.log("DEBUG: activeCategory in posts useMemo", activeCategory); // Debug activeCategory
 
     const mappedPosts = rawPosts.map((post: SocialPost, index: number) => {
@@ -62,6 +70,9 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
     socialData.bitmex.forEach(item => {
       item.tag && tags.add(item.tag);
     });
+    socialData.forex.forEach(item => {
+      item.tag && tags.add(item.tag);
+    });
     return Array.from(tags).sort((a, b) => a.localeCompare(b));
   }, [socialData]);
 
@@ -88,20 +99,26 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
       <div className="social-media-header">
         <h1>Social Media</h1>
         <p className="social-media-subtitle">
-          Track real-time social media discussions about stocks, polymarkets, and crypto.
+          Track real-time social media discussions about stocks, polymarkets, crypto, and FX.
         </p>
         <div className="social-media-controls">
           {/* Mobile Layout */}
           <div className="social-media-controls-mobile">
             <div className="social-media-controls-top-row">
               <div className="social-media-category-tabs">
-                {(['stock', 'polymarket', 'bitmex'] as const).map((market) => (
+                {(['stock', 'polymarket', 'bitmex', 'forex'] as const).map((market) => (
                   <button
                     key={market}
                     onClick={() => setActiveCategory(market)}
                     className={activeCategory === market ? 'active' : ''}
                   >
-                    {market === 'stock' ? 'Stock' : market === 'polymarket' ? 'Polymarket' : 'BitMEX'}
+                    {market === 'stock'
+                      ? 'Stock'
+                      : market === 'polymarket'
+                      ? 'Polymarket'
+                      : market === 'bitmex'
+                      ? 'BitMEX'
+                      : 'Forex'}
                   </button>
                 ))}
               </div>
@@ -126,13 +143,19 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
           {/* Desktop Layout */}
           <div className="social-media-controls-desktop">
             <div className="social-media-category-tabs">
-              {(['stock', 'polymarket', 'bitmex'] as const).map((market) => (
+              {(['stock', 'polymarket', 'bitmex', 'forex'] as const).map((market) => (
                 <button
                   key={market}
                   onClick={() => setActiveCategory(market)}
                   className={activeCategory === market ? 'active' : ''}
                 >
-                  {market === 'stock' ? 'Stock' : market === 'polymarket' ? 'Polymarket' : 'BitMEX'}
+                  {market === 'stock'
+                    ? 'Stock'
+                    : market === 'polymarket'
+                    ? 'Polymarket'
+                    : market === 'bitmex'
+                    ? 'BitMEX'
+                    : 'Forex'}
                 </button>
               ))}
             </div>

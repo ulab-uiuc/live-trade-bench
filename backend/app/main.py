@@ -24,6 +24,7 @@ from live_trade_bench.mock.mock_system import (
 )
 from live_trade_bench.systems import (
     BitMEXPortfolioSystem,
+    ForexPortfolioSystem,
     PolymarketPortfolioSystem,
     StockPortfolioSystem,
 )
@@ -31,6 +32,7 @@ from live_trade_bench.systems import (
 from .config import (
     ALLOWED_ORIGINS,
     BITMEX_MOCK_MODE,
+    FOREX_MOCK_MODE,
     MODELS_DATA_FILE,
     MODELS_DATA_HIST_FILE,
     MODELS_DATA_INIT_FILE,
@@ -46,6 +48,7 @@ from .news_data import update_news_data
 from .price_data import (
     get_next_price_update_time,
     update_bitmex_prices_and_values,
+    update_forex_prices_and_values,
     update_polymarket_prices_and_values,
     update_stock_prices_and_values,
 )
@@ -59,6 +62,7 @@ load_dotenv()
 stock_system = None
 polymarket_system = None
 bitmex_system = None
+forex_system = None
 # Background scheduler instance; assigned during startup to keep reference alive
 scheduler = None
 
@@ -81,10 +85,15 @@ BITMEX_SYSTEMS = {
     MockMode.NONE: BitMEXPortfolioSystem,
 }
 
+FOREX_SYSTEMS = {
+    MockMode.NONE: ForexPortfolioSystem,
+}
+
 # Initialize systems immediately when module loads
 stock_system = STOCK_SYSTEMS[STOCK_MOCK_MODE].get_instance()
 polymarket_system = POLYMARKET_SYSTEMS[POLYMARKET_MOCK_MODE].get_instance()
 bitmex_system = BITMEX_SYSTEMS[BITMEX_MOCK_MODE].get_instance()
+forex_system = FOREX_SYSTEMS[FOREX_MOCK_MODE].get_instance()
 
 # Add agents for real systems
 if STOCK_MOCK_MODE == MockMode.NONE:
@@ -99,14 +108,21 @@ if POLYMARKET_MOCK_MODE == MockMode.NONE:
 for display_name, model_id in get_base_model_configs():
     bitmex_system.add_agent(display_name, 1000.0, model_id)
 
+# Add Forex agents (paper trading with $1,000 each)
+for display_name, model_id in get_base_model_configs():
+    forex_system.add_agent(display_name, 1000.0, model_id)
+
 # 🆕 加载历史数据到Account内存中
 print("🔄 Loading historical data to account memory...")
-load_historical_data_to_accounts(stock_system, polymarket_system, bitmex_system)
+load_historical_data_to_accounts(
+    stock_system, polymarket_system, bitmex_system, forex_system
+)
 print("✅ Historical data loading completed")
 
 stock_system.initialize_for_live()
 polymarket_system.initialize_for_live()
 bitmex_system.initialize_for_live()
+forex_system.initialize_for_live()
 
 
 def get_stock_system():
@@ -126,6 +142,11 @@ def get_bitmex_system():
     global bitmex_system
     return bitmex_system
 
+
+def get_forex_system():
+    """Get the forex system instance."""
+    global forex_system
+    return forex_system
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -178,10 +199,12 @@ def get_next_price_update():
     """Expose the next scheduled realtime price update."""
     stock_time = get_next_price_update_time("stock")
     poly_time = get_next_price_update_time("polymarket")
+    forex_time = get_next_price_update_time("forex")
 
     response = {
         "stock": stock_time.isoformat() if stock_time else None,
         "polymarket": poly_time.isoformat() if poly_time else None,
+        "forex": forex_time.isoformat() if forex_time else None,
     }
 
     # Backward compatibility for older clients expecting single field
@@ -222,7 +245,7 @@ def load_backtest_as_initial_data():
 def safe_generate_models_data():
     if should_run_trading_cycle():
         logger.info("🕐 Running trading cycle at market close time...")
-        generate_models_data(stock_system, polymarket_system, bitmex_system)
+        generate_models_data(stock_system, polymarket_system, bitmex_system, forex_system)
     else:
         logger.info("⏰ Skipping trading cycle - not in market time window")
 
@@ -299,6 +322,17 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         "interval",
         seconds=bitmex_interval,
         id="update_bitmex_prices",
+        replace_existing=True,
+    )
+    forex_interval = UPDATE_FREQUENCY["forex_prices"]
+    logger.info(
+        f"💱 Scheduled forex price update job for every {forex_interval} seconds ({forex_interval//60} minutes)"
+    )
+    scheduler.add_job(
+        update_forex_prices_and_values,
+        "interval",
+        seconds=forex_interval,
+        id="update_forex_prices",
         replace_existing=True,
     )
     scheduler.add_job(
