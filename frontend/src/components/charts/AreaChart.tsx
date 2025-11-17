@@ -42,6 +42,24 @@ const AreaChart: React.FC<AreaChartProps> = ({
   title = "Portfolio Composition Over Time",
   size = 'medium'
 }) => {
+  // Format price with adaptive precision for small crypto values
+  const formatPrice = (value: number): string => {
+    if (value >= 1.0) {
+      // Standard formatting for larger values
+      return value.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 4
+      });
+    } else if (value >= 0.0001) {
+      // Show 8 decimals for small values
+      return value.toFixed(8).replace(/\.?0+$/, '');
+    } else if (value > 0) {
+      // Scientific notation for very small values (micro-cap tokens)
+      return value.toExponential(2);
+    }
+    return '0';
+  };
+
   if (!portfolioHistory || portfolioHistory.length === 0) {
     return (
       <div className={`area-chart-container ${size}`}>
@@ -157,11 +175,11 @@ const AreaChart: React.FC<AreaChartProps> = ({
           label: (context: any) => {
             const label = context.dataset.label || '';
             const value = context.parsed.y;
-            return `${label}: $${value.toFixed(2)}`;
+            return `${label}: $${formatPrice(value)}`;
           },
           footer: (tooltipItems: any[]) => {
             const total = tooltipItems.reduce((sum, item) => sum + item.parsed.y, 0);
-            return `Total: $${total.toFixed(2)}`;
+            return `Total: $${formatPrice(total)}`;
           },
         },
       },
@@ -193,7 +211,7 @@ const AreaChart: React.FC<AreaChartProps> = ({
             size: size === 'small' ? 8 : 10,
           },
           callback: (value: any) => {
-            return `$${value}`;
+            return `$${formatPrice(value)}`;
           },
         },
       },
