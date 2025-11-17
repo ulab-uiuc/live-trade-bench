@@ -1,10 +1,11 @@
 # backtest_demo_simple.py
+import argparse
 import json
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from live_trade_bench.systems.bitmex_system import BitMEXPortfolioSystem
 from live_trade_bench.systems.polymarket_system import PolymarketPortfolioSystem
@@ -17,17 +18,37 @@ from backend.app.models_data import _create_model_data, _serialize_positions
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
-def get_backtest_config() -> Dict[str, Any]:
+def get_backtest_config(args: Optional[argparse.Namespace] = None) -> Dict[str, Any]:
+    """Get backtest configuration from CLI args or defaults."""
+    if args is None:
+        # Defaults when no args provided
+        return {
+            "start_date": "2025-10-01",
+            "end_date": "2025-11-01",
+            "interval_days": 1,
+            "initial_cash": {"polymarket": 500.0, "stock": 1000.0, "bitmex": 1000.0},
+            "parallelism": int(os.environ.get("LTB_PARALLELISM", "16")),
+            "threshold": 0.2,
+            "market_num": 10,
+            "stock_num": 15,
+            "bitmex_num": 12,
+        }
+
+    # Use CLI args with fallback to defaults
     return {
-        "start_date": "2025-10-01",
-        "end_date": "2025-11-01",
-        "interval_days": 1,
-        "initial_cash": {"polymarket": 500.0, "stock": 1000.0, "bitmex": 1000.0},  # Updated to $1,000
+        "start_date": args.start_date or "2025-10-01",
+        "end_date": args.end_date or "2025-11-01",
+        "interval_days": args.interval_days,
+        "initial_cash": {
+            "polymarket": args.initial_cash_polymarket,
+            "stock": args.initial_cash_stock,
+            "bitmex": args.initial_cash_bitmex,
+        },
         "parallelism": int(os.environ.get("LTB_PARALLELISM", "16")),
-        "threshold": 0.2,
-        "market_num": 10,
-        "stock_num": 15,
-        "bitmex_num": 12,
+        "threshold": args.threshold,
+        "market_num": args.polymarket_count,
+        "stock_num": args.stock_count,
+        "bitmex_num": args.bitmex_count,
     }
 
 
@@ -58,6 +79,8 @@ def build_systems(
     market_num: int = 5,
     stock_num: int = 15,
     bitmex_num: int = 12,
+    custom_stocks: Optional[List[str]] = None,
+    custom_bitmex_symbols: Optional[List[str]] = None,
 ):
     systems: Dict[str, Dict[str, Any]] = {"polymarket": {}, "stock": {}, "bitmex": {}}
 
@@ -70,18 +93,26 @@ def build_systems(
         )
 
     if run_stock:
-        print("Pre-fetching stock data...")
-        from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
+        if custom_stocks:
+            print(f"Using custom stock list: {custom_stocks}")
+            verified_stocks = custom_stocks
+        else:
+            print("Pre-fetching trending stock data...")
+            from live_trade_bench.fetchers.stock_fetcher import fetch_trending_stocks
 
-        verified_stocks = fetch_trending_stocks(stock_num)
+            verified_stocks = fetch_trending_stocks(stock_num)
 
     if run_bitmex:
-        print("Pre-fetching BitMEX contracts...")
-        from live_trade_bench.fetchers.bitmex_fetcher import BitMEXFetcher
-        fetcher = BitMEXFetcher()
-        trending_contracts = fetcher.get_trending_contracts(limit=bitmex_num)
-        bitmex_symbols = [c["symbol"] for c in trending_contracts]
-        print(f"  Using {len(bitmex_symbols)} BitMEX contracts: {bitmex_symbols[:5]}...")
+        if custom_bitmex_symbols:
+            print(f"Using custom BitMEX symbols: {custom_bitmex_symbols}")
+            bitmex_symbols = custom_bitmex_symbols
+        else:
+            print("Pre-fetching trending BitMEX contracts...")
+            from live_trade_bench.fetchers.bitmex_fetcher import BitMEXFetcher
+            fetcher = BitMEXFetcher()
+            trending_contracts = fetcher.get_trending_contracts(limit=bitmex_num)
+            bitmex_symbols = [c["symbol"] for c in trending_contracts]
+            print(f"  Using {len(bitmex_symbols)} BitMEX contracts: {bitmex_symbols[:5]}...")
 
     for model_name, model_id in models:
         if run_polymarket:
@@ -277,9 +308,125 @@ def save_models_data(
     )
 
 
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for backtest configuration."""
+    parser = argparse.ArgumentParser(
+        description="Run backtests for trading models across multiple exchanges",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    # Time period
+    parser.add_argument(
+        "--start-date",
+        type=str,
+        default="2025-10-01",
+        help="Backtest start date (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--end-date",
+        type=str,
+        default="2025-11-01",
+        help="Backtest end date (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--interval-days",
+        type=int,
+        default=1,
+        help="Interval between trading days",
+    )
+
+    # Exchange selection
+    parser.add_argument(
+        "--exchanges",
+        type=str,
+        default="stock,polymarket,bitmex",
+        help="Comma-separated list of exchanges to test (stock,polymarket,bitmex)",
+    )
+
+    # Asset counts (for auto-fetching trending assets)
+    parser.add_argument(
+        "--stock-count",
+        type=int,
+        default=15,
+        help="Number of trending stocks to fetch",
+    )
+    parser.add_argument(
+        "--polymarket-count",
+        type=int,
+        default=10,
+        help="Number of Polymarket markets to fetch",
+    )
+    parser.add_argument(
+        "--bitmex-count",
+        type=int,
+        default=12,
+        help="Number of BitMEX contracts to fetch",
+    )
+
+    # Custom asset lists (override auto-fetching)
+    parser.add_argument(
+        "--stocks",
+        type=str,
+        default=None,
+        help="Custom stock symbols (comma-separated, e.g., AAPL,TSLA,MSFT)",
+    )
+    parser.add_argument(
+        "--bitmex-symbols",
+        type=str,
+        default=None,
+        help="Custom BitMEX symbols (comma-separated, e.g., XBTUSDT,PEPEUSDT)",
+    )
+
+    # Initial cash
+    parser.add_argument(
+        "--initial-cash-stock",
+        type=float,
+        default=1000.0,
+        help="Initial cash for stock trading",
+    )
+    parser.add_argument(
+        "--initial-cash-polymarket",
+        type=float,
+        default=500.0,
+        help="Initial cash for Polymarket trading",
+    )
+    parser.add_argument(
+        "--initial-cash-bitmex",
+        type=float,
+        default=1000.0,
+        help="Initial cash for BitMEX trading",
+    )
+
+    # Polymarket specific
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.2,
+        help="Polymarket volume threshold filter",
+    )
+
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
     print("🔮 Parallel Backtest (Per-agent systems)")
-    cfg = get_backtest_config()
+
+    # Parse exchange selection
+    exchanges = [x.strip().lower() for x in args.exchanges.split(",")]
+    run_polymarket = "polymarket" in exchanges
+    run_stock = "stock" in exchanges
+    run_bitmex = "bitmex" in exchanges
+
+    # Parse custom asset lists
+    custom_stocks = [s.strip() for s in args.stocks.split(",")] if args.stocks else None
+    custom_bitmex_symbols = (
+        [s.strip() for s in args.bitmex_symbols.split(",")]
+        if args.bitmex_symbols
+        else None
+    )
+
+    cfg = get_backtest_config(args)
     all_models = get_base_model_configs()
 
     # Filter to GPT + Anthropic only
@@ -291,10 +438,6 @@ def main():
 
     print(f"⚡ Using {len(models)} models (GPT + Anthropic only)")
     print(f"   Filtered from {len(all_models)} total models")
-
-    run_polymarket = True
-    run_stock = True
-    run_bitmex = True
     market_count = sum([run_polymarket, run_stock, run_bitmex])
     market_names = []
     if run_stock:
@@ -317,7 +460,9 @@ def main():
         threshold=cfg["threshold"],
         market_num=cfg["market_num"],
         stock_num=cfg["stock_num"],
-        bitmex_num=cfg["bitmex_num"]
+        bitmex_num=cfg["bitmex_num"],
+        custom_stocks=custom_stocks,
+        custom_bitmex_symbols=custom_bitmex_symbols,
     )
 
     for i, d in enumerate(days, 1):
