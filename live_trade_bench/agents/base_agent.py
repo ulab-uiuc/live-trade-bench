@@ -196,7 +196,11 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                     if prev_day_price > 0:
                         change = hist_price - prev_day_price
                         change_pct = (change / prev_day_price) * 100
-                        change_str = f"{change:+.2f} ({change_pct:+.2f}%)"
+                        # Use scientific notation for small crypto price changes
+                        if not is_stock and abs(change) < 0.01:
+                            change_str = f"{change:+.2e} ({change_pct:+.2f}%)"
+                        else:
+                            change_str = f"{change:+.2f} ({change_pct:+.2f}%)"
                 lines.append(f"  - {hist_date}: {price_str} (Change: {change_str})")
         else:
             current_price = self.history_tail(ticker, 1)
