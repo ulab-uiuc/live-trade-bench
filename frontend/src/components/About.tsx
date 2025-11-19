@@ -32,6 +32,13 @@ const MEMBERS: Member[] = [
     initials: "JX",
     website: "https://cs.stanford.edu/~jiaxuan/"
   },
+  {
+    name: "Andriy Batutin",
+    role: "Core contributor",
+    photo: "/team-photos/andriy-batutin.png",
+    initials: "AB",
+    website: "https://www.linkedin.com/in/andrewbatutin/"
+  },
 ];
 
 const About: React.FC = () => {

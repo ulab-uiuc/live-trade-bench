@@ -30,6 +30,7 @@ from live_trade_bench.systems import (
 
 from .config import (
     ALLOWED_ORIGINS,
+    BITMEX_MOCK_MODE,
     MODELS_DATA_FILE,
     MODELS_DATA_HIST_FILE,
     MODELS_DATA_INIT_FILE,
@@ -76,10 +77,14 @@ POLYMARKET_SYSTEMS = {
     MockMode.MOCK_AGENTS_AND_FETCHERS: MockAgentFetcherPolymarketSystem,
 }
 
+BITMEX_SYSTEMS = {
+    MockMode.NONE: BitMEXPortfolioSystem,
+}
+
 # Initialize systems immediately when module loads
 stock_system = STOCK_SYSTEMS[STOCK_MOCK_MODE].get_instance()
 polymarket_system = POLYMARKET_SYSTEMS[POLYMARKET_MOCK_MODE].get_instance()
-bitmex_system = BitMEXPortfolioSystem()
+bitmex_system = BITMEX_SYSTEMS[BITMEX_MOCK_MODE].get_instance()
 
 # Add agents for real systems
 if STOCK_MOCK_MODE == MockMode.NONE:
@@ -259,20 +264,6 @@ def schedule_background_tasks(scheduler: BackgroundScheduler):
         replace_existing=True,
     )
     logger.info(f"📅 Scheduled trading job for UTC {schedule_hour}:00 ({schedule_desc})")
-
-    # Schedule BitMEX cycle at same time as stock (3 PM ET, Mon-Fri)
-    # This prevents file conflicts and ensures all systems update together
-    scheduler.add_job(
-        safe_generate_bitmex_cycle,
-        "cron",
-        day_of_week="mon-fri",
-        hour=schedule_hour,  # Same as stock (19 or 20 UTC for 3 PM ET)
-        minute=0,
-        timezone="UTC",
-        id="bitmex_daily_cycle",
-        replace_existing=True,
-    )
-    logger.info(f"📅 Scheduled BitMEX cycle for UTC {schedule_hour}:00 ({schedule_desc}), Mon-Fri")
 
     price_interval = UPDATE_FREQUENCY["realtime_prices"]
     logger.info(
