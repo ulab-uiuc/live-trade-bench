@@ -88,6 +88,45 @@ class NewsFetcher(BaseFetcher):
                 return qs["q"][0]
         return href
 
+    def _extract_snippet_from_url(self, url: str) -> str:
+        try:
+            # Add small delay to avoid rate limiting
+            import time
+
+            time.sleep(0.5)
+
+            # Fetch the article page with timeout
+            resp = self.make_request(url, timeout=10)
+            if resp.status_code != 200:
+                return ""
+
+            soup = BeautifulSoup(resp.text, "html.parser")
+
+            # Try to find article content in common containers
+            content_selectors = [
+                "article p",
+                "[itemprop='articleBody'] p",
+                ".article-content p",
+                ".post-content p",
+                "main p",
+                "p",
+            ]
+
+            for selector in content_selectors:
+                paragraphs = soup.select(selector)
+                for p in paragraphs:
+                    text = p.get_text(strip=True)
+                    # Return first paragraph with substantial content (>50 chars)
+                    if len(text) > 50:
+                        # Limit snippet to 300 chars
+                        return text[:300] if len(text) > 300 else text
+
+            return ""
+
+        except Exception:
+            # Silently fail - snippet extraction is optional
+            return ""
+
     def fetch(
         self, query: str, start_date: str, end_date: str, max_pages: int = 10
     ) -> List[Dict[str, Any]]:
@@ -137,11 +176,27 @@ class NewsFetcher(BaseFetcher):
                     link = self._clean_google_href(a["href"])
 
                     title_el = el.select_one("div.MBeuO")
-                    snippet_el = el.select_one(".GI74Re")
+                    # Try multiple snippet selectors (Google frequently changes these)
+                    snippet_el = (
+                        el.select_one(".GI74Re")
+                        or el.select_one(".yXK7lf")
+                        or el.select_one(".st")
+                    )
                     date_el = el.select_one(".LfVVr")
                     source_el = el.select_one(".NUnG9d span")
-                    if not (title_el and snippet_el and date_el and source_el):
+
+                    # Snippet is optional - title, date, and source are required
+                    if not (title_el and date_el and source_el):
                         continue
+
+                    # Get snippet with 3-tier fallback
+                    snippet = ""
+                    if snippet_el:
+                        snippet = snippet_el.get_text(strip=True)
+                    elif (
+                        link and page == 0
+                    ):  # Only fetch from URL for first page to avoid slowdown
+                        snippet = self._extract_snippet_from_url(link)
 
                     ts = self._parse_relative_or_absolute(
                         date_el.get_text(strip=True), ref_date
@@ -151,7 +206,7 @@ class NewsFetcher(BaseFetcher):
                         {
                             "link": link,
                             "title": title_el.get_text(strip=True),
-                            "snippet": snippet_el.get_text(strip=True),
+                            "snippet": snippet,
                             "date": ts,
                             "source": source_el.get_text(strip=True),
                         }
