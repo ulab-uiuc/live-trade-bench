@@ -1,6 +1,6 @@
 import os
 import sys
-from datetime import datetime, time
+from datetime import datetime
 from enum import Enum
 from typing import List, Tuple
 
@@ -122,26 +122,7 @@ def is_trading_day() -> bool:
 
 
 def should_run_trading_cycle() -> bool:
-    if not is_trading_day():
-        return False
-
-    utc_now = datetime.now(pytz.UTC)
-    current_utc_time = utc_now.time()
-
-    est_now = utc_now.astimezone(pytz.timezone("US/Eastern"))
-
-    from datetime import timedelta
-
-    is_dst = est_now.dst() != timedelta(0)
-
-    if is_dst:
-        run_window_start = time(18, 55)  # UTC 18:55 (美东 2:55 PM EDT)
-        run_window_end = time(20, 5)  # UTC 20:05 (美东 4:05 PM EDT)
-    else:
-        run_window_start = time(19, 55)  # UTC 19:55 (美东 2:55 PM EST)
-        run_window_end = time(21, 5)  # UTC 21:05 (美东 4:05 PM EST)
-
-    return run_window_start <= current_utc_time <= run_window_end
+    return is_trading_day()
 
 
 def is_market_hours() -> bool:
