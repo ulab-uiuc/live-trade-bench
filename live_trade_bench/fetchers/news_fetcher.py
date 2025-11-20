@@ -127,6 +127,32 @@ class NewsFetcher(BaseFetcher):
             # Silently fail - snippet extraction is optional
             return ""
 
+    def _find_snippet_dynamically(
+        self, card, title_text, source_text, date_text
+    ) -> str:
+        candidates = []
+        for div in card.find_all(["div", "span"]):
+            text = div.get_text(strip=True)
+            # Filter out empty or too short text
+            if not text or len(text) < 20:
+                continue
+
+            # Filter out text that is exactly the title, source, or date
+            if text in [title_text, source_text, date_text]:
+                continue
+
+            # Filter out text that contains the title (parent containers)
+            if title_text in text and len(text) < len(title_text) + 50:
+                continue
+
+            candidates.append(text)
+
+        # Return the longest candidate that remains
+        if candidates:
+            return max(candidates, key=len)
+
+        return ""
+
     def fetch(
         self, query: str, start_date: str, end_date: str, max_pages: int = 10
     ) -> List[Dict[str, Any]]:
@@ -176,12 +202,6 @@ class NewsFetcher(BaseFetcher):
                     link = self._clean_google_href(a["href"])
 
                     title_el = el.select_one("div.MBeuO")
-                    # Try multiple snippet selectors (Google frequently changes these)
-                    snippet_el = (
-                        el.select_one(".GI74Re")
-                        or el.select_one(".yXK7lf")
-                        or el.select_one(".st")
-                    )
                     date_el = el.select_one(".LfVVr")
                     source_el = el.select_one(".NUnG9d span")
 
@@ -189,13 +209,15 @@ class NewsFetcher(BaseFetcher):
                     if not (title_el and date_el and source_el):
                         continue
 
-                    # Get snippet with 3-tier fallback
-                    snippet = ""
-                    if snippet_el:
-                        snippet = snippet_el.get_text(strip=True)
-                    elif (
-                        link and page == 0
-                    ):  # Only fetch from URL for first page to avoid slowdown
+                    # Get snippet with dynamic fallback strategy
+                    snippet = self._find_snippet_dynamically(
+                        el,
+                        title_el.get_text(strip=True),
+                        source_el.get_text(strip=True),
+                        date_el.get_text(strip=True),
+                    )
+
+                    if not snippet and link and page == 0:
                         snippet = self._extract_snippet_from_url(link)
 
                     ts = self._parse_relative_or_absolute(
