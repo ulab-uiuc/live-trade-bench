@@ -143,13 +143,18 @@ const StockChart: React.FC<StockChartProps> = ({
         const parseHistory = (model: any) => {
             const history = model.profitHistory || [];
             return history.map((h: any) => {
-                const date = new Date(h.timestamp);
+                // Ensure timestamp is treated as UTC by appending Z if not present
+                let timestampStr = h.timestamp;
+                if (timestampStr && !timestampStr.endsWith('Z') && !timestampStr.includes('+') && !timestampStr.includes('-', 10)) {
+                    timestampStr = timestampStr + 'Z';
+                }
+                const date = new Date(timestampStr);
                 // Robust check for invalid date
                 if (isNaN(date.getTime())) return null;
                 return {
                     x: date.getTime(),
                     y: h.totalValue || h.profit || 0,  // Use totalValue if available, fallback to profit
-                    date: h.timestamp
+                    date: timestampStr  // Store the UTC timestamp
                 };
             })
                 .filter((p: any) => p !== null)
@@ -330,7 +335,9 @@ const StockChart: React.FC<StockChartProps> = ({
                     setTooltipData({
                         x,
                         data: currentData,
-                        date: currentData[0]?.currentDate
+                        date: currentData[0]?.currentDate,
+                        dataIndex,
+                        totalDataPoints: currentFilteredData[0]?.data.length || 0
                     });
                 }
             }
@@ -400,14 +407,35 @@ const StockChart: React.FC<StockChartProps> = ({
 
                             if (!isNaN(date.getTime())) {
                                 try {
-                                    const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                                    return `${monthDay} 3:30 EST`;
+                                    // Check if this is the last tick AND we're in 1M view
+                                    const isLastTick = index === ticks.length - 1;
+                                    const is1MView = timeRange === '1M';
+
+                                    const monthDay = date.toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        timeZone: 'America/New_York'
+                                    });
+
+                                    // For the last tick in 1M view, show actual time (convert UTC to EST)
+                                    if (isLastTick && is1MView) {
+                                        const time = date.toLocaleTimeString('en-US', {
+                                            hour: 'numeric',
+                                            minute: '2-digit',
+                                            hour12: false,
+                                            timeZone: 'America/New_York'
+                                        });
+                                        return `${monthDay} ${time} EST`;
+                                    }
+
+                                    // For all other ticks, use 15:30 EST
+                                    return `${monthDay} 15:30 EST`;
                                 } catch (e) {
-                                    return `${index + 1} 3:30 EST`;
+                                    return `${index + 1} 15:30 EST`;
                                 }
                             }
                         }
-                        return `Day ${index + 1} 3:30 EST`;
+                        return `Day ${index + 1} 15:30 EST`;
                     },
                     maxTicksLimit: 8,
                     color: '#9ca3af',
@@ -601,11 +629,31 @@ const StockChart: React.FC<StockChartProps> = ({
                 {tooltipData && (
                     <div className="chart-tooltip-overlay" style={{ left: tooltipData.x }}>
                         <div className="tooltip-date">
-                            {new Date(tooltipData.date).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                            })} 3:30 EST
+                            {(() => {
+                                const date = new Date(tooltipData.date);
+                                const dateStr = date.toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                    timeZone: 'America/New_York'
+                                });
+
+                                // Show actual time for last node in 1M view
+                                const isLastNode = tooltipData.dataIndex === tooltipData.totalDataPoints - 1;
+                                const is1MView = timeRange === '1M';
+
+                                if (isLastNode && is1MView) {
+                                    const time = date.toLocaleTimeString('en-US', {
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                        hour12: false,
+                                        timeZone: 'America/New_York'
+                                    });
+                                    return `${dateStr} ${time} EST`;
+                                }
+
+                                return `${dateStr} 15:30 EST`;
+                            })()}
                         </div>
                         {tooltipData.data.map((item: any) => {
                             const isHovered = hoveredModelId === item.id;
