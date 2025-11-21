@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import ModelsDisplay from './ModelsDisplay';
 import './Dashboard.css';
 import { Model } from '../types';
@@ -10,6 +11,9 @@ interface BitMEXDashboardProps {
 }
 
 const BitMEXDashboard: React.FC<BitMEXDashboardProps> = ({ modelsData, modelsLastRefresh, isLoading }) => {
+  const location = useLocation();
+  const selectedModelId = (location.state as any)?.selectedModelId;
+
   const bitmexModels = useMemo(() =>
     modelsData.filter(m => m.category === 'bitmex' || m.category === 'bitmex-benchmark'),
     [modelsData]
@@ -73,6 +77,7 @@ const BitMEXDashboard: React.FC<BitMEXDashboardProps> = ({ modelsData, modelsLas
         stockModels={[]}
         polymarketModels={[]}
         onRefresh={undefined}
+        initialSelectedModelId={selectedModelId}
       />
     </div>
   );

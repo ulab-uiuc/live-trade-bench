@@ -70,6 +70,7 @@ interface ModelsDisplayProps {
   stockModels: Model[];
   polymarketModels: Model[];
   onRefresh?: () => void;
+  initialSelectedModelId?: string | number;
   // Removed assetMetadata prop
 }
 
@@ -78,6 +79,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   stockModels,
   polymarketModels,
   onRefresh,
+  initialSelectedModelId
   // assetMetadata // Removed from destructuring
 }) => {
   // Format Polymarket asset names from "Question_YES" to "Question buy YES"
@@ -118,6 +120,28 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       };
     }
   }, [showModal]);
+
+  // Auto-open model details when initialSelectedModelId is provided
+  useEffect(() => {
+    console.log('🔍 Auto-open effect triggered:', {
+      initialSelectedModelId,
+      modelsDataLength: modelsData.length,
+      modelIds: modelsData.map(m => m.id)
+    });
+
+    if (initialSelectedModelId && modelsData.length > 0) {
+      const model = modelsData.find(m => m.id === initialSelectedModelId);
+      console.log('🔍 Found model:', model);
+
+      if (model) {
+        console.log('✅ Auto-opening modal for:', model.name);
+        setSelectedModel(model);
+        setShowModal(true);
+      } else {
+        console.log('❌ Model not found with ID:', initialSelectedModelId);
+      }
+    }
+  }, [initialSelectedModelId, modelsData]);
 
 
   const showCategoryTabs = useMemo(() => {

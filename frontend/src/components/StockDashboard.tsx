@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import ModelsDisplay from './ModelsDisplay';
 import './Dashboard.css';
 import { Model } from '../types';
@@ -10,6 +11,9 @@ interface StockDashboardProps {
 }
 
 const StockDashboard: React.FC<StockDashboardProps> = ({ modelsData, modelsLastRefresh, isLoading }) => {
+  const location = useLocation();
+  const selectedModelId = (location.state as any)?.selectedModelId;
+
   const stockModels = useMemo(() =>
     modelsData.filter(m => m.category === 'stock'),
     [modelsData]
@@ -74,6 +78,7 @@ const StockDashboard: React.FC<StockDashboardProps> = ({ modelsData, modelsLastR
         stockModels={stockModels}
         polymarketModels={[]}
         onRefresh={undefined}
+        initialSelectedModelId={selectedModelId}
       />
 
 

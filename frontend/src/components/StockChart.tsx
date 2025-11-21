@@ -33,6 +33,7 @@ interface StockChartProps {
     historyData: any[];
     timeRange: '1M' | 'ALL';
     category: 'stock' | 'polymarket' | 'bitmex';
+    onModelClick?: (model: any) => void;
 }
 
 interface ChartPoint {
@@ -53,7 +54,8 @@ const StockChart: React.FC<StockChartProps> = ({
     modelsData,
     historyData,
     timeRange,
-    category
+    category,
+    onModelClick
 }) => {
     const [hoveredModelId, setHoveredModelId] = useState<string | null>(null);
     const [verticalLineX, setVerticalLineX] = useState<number | null>(null);
@@ -166,6 +168,7 @@ const StockChart: React.FC<StockChartProps> = ({
             return {
                 id: model.id,
                 name: model.name,
+                category: model.category,
                 provider: extractProvider(model.name),
                 data: parsedData,
                 color: getModelColor(model.name),
@@ -590,11 +593,12 @@ const StockChart: React.FC<StockChartProps> = ({
                                         alignItems: 'center',
                                         gap: '6px',
                                         pointerEvents: 'auto',
-                                        cursor: 'pointer',
+                                        cursor: onModelClick ? 'pointer' : 'default',
                                         opacity,
                                         transition: 'opacity 0.2s',
                                         whiteSpace: 'nowrap'
                                     }}
+                                    onClick={() => onModelClick?.(model)}
                                     onMouseEnter={() => {
                                         isHoveringIconRef.current = true;
                                         setHoveredModelId(model.id);

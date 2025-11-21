@@ -563,6 +563,22 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], histor
           historyData={historyData}
           timeRange={timeRange}
           category={category}
+          onModelClick={(model) => {
+            console.log('📍 Model clicked on chart:', { id: model.id, name: model.name, category: model.category });
+
+            // Navigate to the appropriate category page based on model category
+            const modelCategory = (model?.category ?? '').toString().toLowerCase();
+            if (modelCategory === 'stock' || modelCategory === 'benchmark') {
+              console.log('📍 Navigating to /stocks with model ID:', model.id);
+              navigate('/stocks', { state: { selectedModelId: model.id } });
+            } else if (modelCategory.includes('poly')) {
+              console.log('📍 Navigating to /polymarket with model ID:', model.id);
+              navigate('/polymarket', { state: { selectedModelId: model.id } });
+            } else if (modelCategory === 'bitmex' || modelCategory === 'bitmex-benchmark') {
+              console.log('📍 Navigating to /bitmex with model ID:', model.id);
+              navigate('/bitmex', { state: { selectedModelId: model.id } });
+            }
+          }}
         />
       </div>
 
