@@ -32,9 +32,15 @@ class LLMBitMEXAgent(BaseAgent[BitMEXAccount, Dict[str, Any]]):
             price = data.get("current_price", 0.0)
             price_history = data.get("price_history", [])
 
-            # Format price with crypto-specific styling
+            # Format price with crypto-specific styling (LLM-friendly)
+            # Use scientific notation for small values to save tokens and enable math
             if "USD" in symbol or "USDT" in symbol:
-                analysis_parts.append(f"{symbol}: Current price is ${price:,.2f}")
+                if price >= 1.0:
+                    # Standard formatting for larger prices
+                    analysis_parts.append(f"{symbol}: Current price is ${price:,.4f}")
+                else:
+                    # Scientific notation for micro-cap tokens (PEPE, BONK, etc.)
+                    analysis_parts.append(f"{symbol}: Current price is ${price:.2e}")
             else:
                 analysis_parts.append(f"{symbol}: Current price is {price:.6f}")
 

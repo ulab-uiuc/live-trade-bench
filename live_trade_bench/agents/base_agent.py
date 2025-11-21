@@ -178,11 +178,15 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
             for i, h in enumerate(reversed(recent_history)):
                 hist_price = h.get("price", 0.0)
                 hist_date = h.get("date", "Unknown Date")
-                price_str = (
-                    f"close price ${hist_price:,.2f}"
-                    if is_stock
-                    else f"{hist_price:.4f}"
-                )
+                # LLM-friendly formatting: scientific notation for small values
+                if is_stock:
+                    price_str = f"close price ${hist_price:,.2f}"
+                else:
+                    # Crypto: use scientific notation for micro-cap tokens
+                    if hist_price >= 1.0:
+                        price_str = f"{hist_price:.4f}"
+                    else:
+                        price_str = f"{hist_price:.2e}"
                 change_str = "N/A"
                 original_index = len(recent_history) - 1 - i
                 if original_index > 0:
@@ -192,7 +196,11 @@ class BaseAgent(ABC, Generic[AccountType, DataType]):
                     if prev_day_price > 0:
                         change = hist_price - prev_day_price
                         change_pct = (change / prev_day_price) * 100
-                        change_str = f"{change:+.2f} ({change_pct:+.2f}%)"
+                        # Use scientific notation for small crypto price changes
+                        if not is_stock and abs(change) < 0.01:
+                            change_str = f"{change:+.2e} ({change_pct:+.2f}%)"
+                        else:
+                            change_str = f"{change:+.2f} ({change_pct:+.2f}%)"
                 lines.append(f"  - {hist_date}: {price_str} (Change: {change_str})")
         else:
             current_price = self.history_tail(ticker, 1)
