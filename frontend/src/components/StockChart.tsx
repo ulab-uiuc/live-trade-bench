@@ -145,18 +145,38 @@ const StockChart: React.FC<StockChartProps> = ({
         const parseHistory = (model: any) => {
             const history = model.profitHistory || [];
             return history.map((h: any) => {
-                // Ensure timestamp is treated as UTC by appending Z if not present
-                let timestampStr = h.timestamp;
+                const rawTs: string = h.timestamp;
+                if (!rawTs) return null;
+
+                // Normalize timestamp: treat naive strings as UTC, then remap date-only points to EST close time (15:30) to keep calendar days aligned.
+                let timestampStr = rawTs;
+                const hasExplicitTime = /T\d{2}:\d{2}/.test(rawTs);
                 if (timestampStr && !timestampStr.endsWith('Z') && !timestampStr.includes('+') && !timestampStr.includes('-', 10)) {
                     timestampStr = timestampStr + 'Z';
                 }
-                const date = new Date(timestampStr);
-                // Robust check for invalid date
-                if (isNaN(date.getTime())) return null;
+
+                const parsedDate = new Date(timestampStr);
+                if (isNaN(parsedDate.getTime())) return null;
+
+                const estOffsetMinutes = getTimeZoneOffset(parsedDate, 'America/New_York');
+                let effectiveMs = parsedDate.getTime();
+
+                // If no explicit time (daily data), anchor to 15:30 EST so the day doesn't shift backward when displayed in EST.
+                if (!hasExplicitTime || (parsedDate.getUTCHours() === 0 && parsedDate.getUTCMinutes() === 0 && parsedDate.getUTCSeconds() === 0)) {
+                    const year = parsedDate.getUTCFullYear();
+                    const month = parsedDate.getUTCMonth();
+                    const day = parsedDate.getUTCDate();
+                    const closeUtc = Date.UTC(year, month, day, 15, 30, 0, 0) - (estOffsetMinutes * 60 * 1000);
+                    effectiveMs = closeUtc;
+                }
+
+                const effectiveDate = new Date(effectiveMs);
+
                 return {
-                    x: date.getTime(),
+                    x: effectiveMs,
                     y: h.totalValue || h.profit || 0,  // Use totalValue if available, fallback to profit
-                    date: timestampStr  // Store the UTC timestamp
+                    date: effectiveDate.toISOString(),  // Store display time aligned to EST
+                    originalX: effectiveMs
                 };
             })
                 .filter((p: any) => p !== null)
@@ -275,16 +295,44 @@ const StockChart: React.FC<StockChartProps> = ({
         return { datasets };
     }, [filteredData, hoveredModelId]);
 
+    // Build x-axis ticks from actual data points but subsampled to keep the axis uncluttered.
+    const tickValues = useMemo(() => {
+        const allX: number[] = [];
+        filteredData.forEach(model => {
+            model.data.forEach((p: any) => {
+                if (typeof p.x === 'number') {
+                    allX.push(p.x);
+                }
+            });
+        });
+        if (!allX.length) return [];
+        const uniqueSorted = Array.from(new Set(allX)).sort((a, b) => a - b);
+        const maxTicks = 8;
+        if (uniqueSorted.length <= maxTicks) return uniqueSorted;
+
+        const minX = uniqueSorted[0];
+        const maxX = uniqueSorted[uniqueSorted.length - 1];
+        const targetStep = (maxX - minX) / (maxTicks - 1);
+        const ticks: number[] = [];
+
+        // Walk through uniqueSorted once to pick nearest points to evenly spaced targets
+        let cursor = 0;
+        for (let i = 0; i < maxTicks; i++) {
+            const target = minX + i * targetStep;
+            while (cursor + 1 < uniqueSorted.length &&
+                Math.abs(uniqueSorted[cursor + 1] - target) < Math.abs(uniqueSorted[cursor] - target)) {
+                cursor += 1;
+            }
+            ticks.push(uniqueSorted[cursor]);
+        }
+
+        return Array.from(new Set(ticks));
+    }, [filteredData]);
+
     // Custom Plugin for Vertical Line and Tooltip
     const verticalLinePlugin: Plugin = useMemo(() => ({
         id: 'verticalLine',
         afterDraw: (chart) => {
-            if (chart.tooltip?.opacity === 0) {
-                setVerticalLineX(null);
-                setTooltipData(null);
-                return;
-            }
-
             // Calculate max data X pixel to restrict tooltip area
             let maxDataX = 0;
             const currentFilteredData = filteredDataRef.current;
@@ -303,7 +351,13 @@ const StockChart: React.FC<StockChartProps> = ({
                 return;
             }
 
-            const activeElements = chart.tooltip?.dataPoints;
+            const activeElements = chart.tooltip?.getActiveElements?.() || chart.tooltip?.dataPoints;
+            if (!activeElements || activeElements.length === 0) {
+                setVerticalLineX(null);
+                setTooltipData(null);
+                return;
+            }
+
             if (activeElements && activeElements.length > 0) {
                 const ctx = chart.ctx;
                 const x = activeElements[0].element.x;
@@ -326,7 +380,7 @@ const StockChart: React.FC<StockChartProps> = ({
                 if (verticalLineX !== x) {
                     setVerticalLineX(x);
                     // Extract data for all models at this X index
-                    const dataIndex = activeElements[0].dataIndex;
+                    const dataIndex = (activeElements[0] as any).index ?? (activeElements[0] as any).dataIndex ?? 0;
                     const currentFilteredData = filteredDataRef.current;
 
                     const currentData = currentFilteredData.map(m => ({
@@ -370,9 +424,9 @@ const StockChart: React.FC<StockChartProps> = ({
             duration: 0 // Disable animation for instant rendering
         },
         interaction: {
-            mode: 'nearest',
+            mode: 'index', // prioritize same X index
             intersect: false,
-            axis: 'xy'
+            axis: 'x'
         },
         layout: {
             padding: {
@@ -410,20 +464,18 @@ const StockChart: React.FC<StockChartProps> = ({
 
                             if (!isNaN(date.getTime())) {
                                 try {
-                                    // Check if this is the last tick AND we're in 1M view
                                     const isLastTick = index === ticks.length - 1;
-                                    const is1MView = timeRange === '1M';
-
                                     const monthDay = date.toLocaleDateString('en-US', {
                                         month: 'short',
                                         day: 'numeric',
                                         timeZone: 'America/New_York'
                                     });
 
-                                    // For the last tick in 1M view, show actual time (convert UTC to EST)
-                                    if (isLastTick && is1MView) {
+                                    // Show real time (EST) for the last tick or when data carries a time component
+                                    const hasTimeComponent = date.getUTCHours() !== 0 || date.getUTCMinutes() !== 0;
+                                    if (isLastTick || hasTimeComponent) {
                                         const time = date.toLocaleTimeString('en-US', {
-                                            hour: 'numeric',
+                                            hour: '2-digit',
                                             minute: '2-digit',
                                             hour12: false,
                                             timeZone: 'America/New_York'
@@ -431,21 +483,24 @@ const StockChart: React.FC<StockChartProps> = ({
                                         return `${monthDay} ${time} EST`;
                                     }
 
-                                    // For all other ticks, use 15:30 EST
-                                    return `${monthDay} 15:30 EST`;
+                                    return `${monthDay} EST`;
                                 } catch (e) {
-                                    return `${index + 1} 15:30 EST`;
+                                    return `${index + 1}`;
                                 }
                             }
                         }
-                        return `Day ${index + 1} 15:30 EST`;
+                        return `Day ${index + 1}`;
                     },
-                    maxTicksLimit: 8,
+                    maxTicksLimit: tickValues.length || 8,
                     color: '#9ca3af',
                     font: {
                         size: 10,
                         family: 'Inter, sans-serif'
                     }
+                },
+                afterBuildTicks: (scale) => {
+                    if (!tickValues.length) return;
+                    (scale as any).ticks = tickValues.map(v => ({ value: v }));
                 }
             },
             y: {
@@ -480,19 +535,114 @@ const StockChart: React.FC<StockChartProps> = ({
                 mouseXRef.current = event.x;
             }
 
-            // Find the dataset being hovered
+            const chart = chartRef.current;
+            if (!chart) return;
+
+            const currentFiltered = filteredDataRef.current;
+            if (!currentFiltered?.length) return;
+
+            const xScale: any = chart.scales?.x;
+            if (!xScale || typeof xScale.getValueForPixel !== 'function') return;
+
+            const hoveredX = xScale.getValueForPixel(event.x);
+            if (hoveredX === null || hoveredX === undefined || Number.isNaN(hoveredX)) return;
+
+            // Prefer Chart.js computed elements (mouse truly on/near a line)
             if (elements && elements.length > 0) {
-                const datasetIndex = elements[0].datasetIndex;
-                const modelId = filteredData[datasetIndex].id;
-                if (hoveredModelId !== modelId) {
-                    setHoveredModelId(modelId);
-                }
-            } else {
-                // Only clear if we are NOT hovering an icon
-                if (!isHoveringIconRef.current) {
-                    setHoveredModelId(null);
+                // Pick the closest element to the pointer (by Euclidean distance)
+                let nearest = elements[0] as any;
+                let bestD = Infinity;
+                elements.forEach((el: any) => {
+                    const dx = (el.element?.x ?? 0) - (event.x ?? 0);
+                    const dy = (el.element?.y ?? 0) - (event.y ?? 0);
+                    const d = dx * dx + dy * dy;
+                    if (d < bestD) {
+                        bestD = d;
+                        nearest = el;
+                    }
+                });
+
+                const bestDistance = Math.sqrt(bestD);
+                const SNAP_THRESHOLD = 24; // px
+                if (bestDistance <= SNAP_THRESHOLD) {
+                    const activeElements = [{
+                        datasetIndex: nearest.datasetIndex,
+                        index: nearest.index
+                    }];
+
+                    const datasetIndex = nearest.datasetIndex;
+                    const modelId = filteredData[datasetIndex]?.id;
+                    if (modelId && hoveredModelId !== modelId) {
+                        setHoveredModelId(modelId);
+                    }
+
+                    chart.setActiveElements(activeElements);
+                    chart.tooltip?.setActiveElements(activeElements, { x: event.x, y: event.y });
+                    chart.update();
+                    return;
                 }
             }
+
+            // Otherwise, synthesize active elements based purely on X (mouse can be off the line)
+            // Use the longest series as baseline for nearest-index mapping to avoid gaps
+            let baselineIdx = 0;
+            let baseline = currentFiltered[0];
+            currentFiltered.forEach((m: any, idx: number) => {
+                const len = m.data?.length || 0;
+                const baselineLen = baseline?.data?.length || 0;
+                if (len > baselineLen) {
+                    baseline = m;
+                    baselineIdx = idx;
+                }
+            });
+            if (!baseline?.data?.length) return;
+
+            // Find nearest index on baseline
+            let nearestIdx = 0;
+            let bestDiff = Infinity;
+            baseline.data.forEach((p: any, idx: number) => {
+                if (typeof p.x !== 'number') return;
+                const diff = Math.abs(p.x - hoveredX);
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    nearestIdx = idx;
+                }
+            });
+
+            const activeElements: { datasetIndex: number; index: number }[] = [];
+
+            // Baseline first to drive vertical line x position
+            const baseLast = (baseline.data?.length || 0) - 1;
+            const baseIdx = Math.min(nearestIdx, baseLast);
+            if (baseline.data?.[baseIdx] && chart.getDatasetMeta(baselineIdx)?.data?.[baseIdx]) {
+                activeElements.push({ datasetIndex: baselineIdx, index: baseIdx });
+            }
+
+            // Other datasets aligned to same nearest index (clamped to their length)
+            currentFiltered.forEach((m: any, datasetIndex: number) => {
+                if (datasetIndex === baselineIdx) return;
+                const lastIdx = (m.data?.length || 0) - 1;
+                if (lastIdx < 0) return;
+                const idx = Math.min(nearestIdx, lastIdx);
+                if (!m.data[idx]) return;
+                const meta = chart.getDatasetMeta(datasetIndex);
+                if (!(meta?.data && meta.data[idx])) return;
+                activeElements.push({ datasetIndex, index: idx });
+            });
+
+            if (!activeElements.length) {
+                if (!isHoveringIconRef.current) setHoveredModelId(null);
+                return;
+            }
+
+            // Off-line hover: don't force-highlight a specific model; clear unless over icons
+            if (!isHoveringIconRef.current && hoveredModelId !== null) {
+                setHoveredModelId(null);
+            }
+
+            chart.setActiveElements(activeElements);
+            chart.tooltip?.setActiveElements(activeElements, { x: event.x, y: event.y });
+            chart.update();
         }
     };
 
@@ -504,6 +654,10 @@ const StockChart: React.FC<StockChartProps> = ({
                     setHoveredModelId(null);
                     setVerticalLineX(null);
                     setTooltipData(null);
+                    const chart = chartRef.current;
+                    chart?.setActiveElements([]);
+                    chart?.tooltip?.setActiveElements([], { x: 0, y: 0 });
+                    chart?.update();
                 }}
             >
                 <Line
@@ -642,21 +796,14 @@ const StockChart: React.FC<StockChartProps> = ({
                                     timeZone: 'America/New_York'
                                 });
 
-                                // Show actual time for last node in 1M view
-                                const isLastNode = tooltipData.dataIndex === tooltipData.totalDataPoints - 1;
-                                const is1MView = timeRange === '1M';
+                                const time = date.toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false,
+                                    timeZone: 'America/New_York'
+                                });
 
-                                if (isLastNode && is1MView) {
-                                    const time = date.toLocaleTimeString('en-US', {
-                                        hour: 'numeric',
-                                        minute: '2-digit',
-                                        hour12: false,
-                                        timeZone: 'America/New_York'
-                                    });
-                                    return `${dateStr} ${time} EST`;
-                                }
-
-                                return `${dateStr} 15:30 EST`;
+                                return `${dateStr} ${time} EST`;
                             })()}
                         </div>
                         {tooltipData.data.map((item: any) => {
@@ -700,6 +847,39 @@ function extractProvider(name?: string): string {
     if (n.includes("deepseek")) return "DeepSeek";
     if (n.includes("grok")) return "xAI";
     return "Benchmark";
+}
+
+// Compute timezone offset in minutes for a given date and zone (positive if zone ahead of UTC)
+function getTimeZoneOffset(date: Date, timeZone: string): number {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    });
+
+    const parts = dtf.formatToParts(date);
+    const values: any = {};
+    for (const { type, value } of parts) {
+        if (type !== 'literal') {
+            values[type] = value;
+        }
+    }
+
+    const asUTC = Date.UTC(
+        Number(values.year),
+        Number(values.month) - 1,
+        Number(values.day),
+        Number(values.hour),
+        Number(values.minute),
+        Number(values.second),
+    );
+
+    return (asUTC - date.getTime()) / 60000;
 }
 
 export default StockChart;
