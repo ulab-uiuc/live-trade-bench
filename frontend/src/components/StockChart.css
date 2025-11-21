@@ -1,0 +1,123 @@
+.stock-chart-container {
+    width: 100%;
+    height: 750px;
+    /* Increased from 600px (1.25x) */
+    background: transparent;
+    /* Transparent to match dashboard */
+    border-radius: 12px;
+    padding: 0;
+    /* Reduced padding to move chart up */
+    /* Remove side padding to maximize width */
+    margin-bottom: 24px;
+    margin-top: -20px;
+    /* Move chart up */
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.stock-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #374151;
+    padding-bottom: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.stock-chart-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #e5e7eb;
+    /* Light text for dark mode */
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stock-chart-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.toggle-group {
+    display: flex;
+    background: #1f2937;
+    /* Darker background for toggles */
+    border-radius: 6px;
+    padding: 2px;
+    border: 1px solid #374151;
+}
+
+.toggle-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+    color: #e5e7eb;
+}
+
+.toggle-btn.active {
+    background: #374151;
+    color: #ffffff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.chart-wrapper {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    min-height: 0;
+    /* Important for flex child to shrink */
+}
+
+/* Tooltip styling for dark mode */
+.chart-tooltip-overlay {
+    position: absolute;
+    top: 10px;
+    background: rgba(17, 24, 39, 0.95);
+    /* Dark background */
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    z-index: 100;
+    min-width: 200px;
+    transform: translateX(10px);
+    /* Offset from line */
+}
+
+.tooltip-date {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #374151;
+    padding-bottom: 4px;
+}
+
+.tooltip-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.tooltip-item.hovered {
+    background: rgba(255, 255, 255, 0.1);
+    font-weight: 700;
+    transform: scale(1.02);
+}

@@ -46,6 +46,7 @@ function App() {
 
   // Global platform data - all managed in background
   const [modelsData, setModelsData] = useState<Model[]>([]);
+  const [historyData, setHistoryData] = useState<Model[]>([]); // Chart history data
   const [newsData, setNewsData] = useState<{
     stock: NewsItem[];
     polymarket: NewsItem[];
@@ -286,6 +287,27 @@ function App() {
     }
   }, []);
 
+  const fetchHistoryData = useCallback(async () => {
+    try {
+      console.log('🔄 Background fetching history data...');
+      const response = await fetch('/api/models/history');
+      if (response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const history = await response.json();
+          setHistoryData(history);
+          console.log(`✅ Background history updated: ${history.length} models`);
+        } else {
+          console.error('❌ Background history fetch failed: Received non-JSON response (likely HTML fallback)');
+        }
+      } else {
+        console.error(`❌ Background history fetch failed: ${response.status} ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('❌ Background history fetch failed:', error);
+    }
+  }, []);
+
   const fetchViews = useCallback(async () => {
     try {
       const baseUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001';
@@ -317,6 +339,7 @@ function App() {
       // Execute all fetch functions in parallel
       await Promise.all([
         fetchModelsData(),
+        fetchHistoryData(),
         fetchNewsData(),
         fetchSocialData(),
         fetchSystemStatus(),
@@ -333,7 +356,7 @@ function App() {
         setIsLoading(false);
       }
     }
-  }, [fetchModelsData, fetchNewsData, fetchSocialData, fetchSystemStatus]);
+  }, [fetchModelsData, fetchHistoryData, fetchNewsData, fetchSocialData, fetchSystemStatus, fetchViews]);
 
   // Unified background data management
   useEffect(() => {
@@ -352,10 +375,10 @@ function App() {
     // Smart parallel interval management
     // Group updates that can happen together to maximize parallel efficiency
 
-    // High frequency: Models + System (every 1 minute for debugging)
+    // High frequency: Models + History + System (every 1 minute for debugging)
     const highFreqInterval = setInterval(async () => {
       console.log('🔄 High frequency parallel update (1 min)...');
-      await Promise.all([fetchModelsData(), fetchSystemStatus()]);
+      await Promise.all([fetchModelsData(), fetchHistoryData(), fetchSystemStatus()]);
     }, 1 * 60 * 1000);
 
     // Medium frequency: News + Social (every 10 minutes, parallel)
@@ -373,7 +396,7 @@ function App() {
       console.log('🛑 All parallel intervals cleared');
     };
     // The dependency array is correct, but we've added a ref guard to prevent re-runs from HMR.
-  }, [fetchAllDataInParallel, fetchModelsData, fetchNewsData, fetchSocialData, fetchSystemStatus, fetchViews]);
+  }, [fetchAllDataInParallel, fetchModelsData, fetchHistoryData, fetchNewsData, fetchSocialData, fetchSystemStatus, fetchViews]);
 
   return (
     <Router>
@@ -384,6 +407,7 @@ function App() {
             <Route path="/" element={
               <Dashboard
                 modelsData={modelsData}
+                historyData={historyData}
                 modelsLastRefresh={modelsLastRefresh}
                 stockNextRefresh={stockNextRefresh || undefined}
                 polymarketNextRefresh={polymarketNextRefresh || undefined}
