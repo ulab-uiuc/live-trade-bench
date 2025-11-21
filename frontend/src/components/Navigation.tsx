@@ -59,6 +59,12 @@ const Navigation: React.FC = () => {
             BitMEX
           </button>
           <button
+            className={`nav-link ${location.pathname === '/forex' ? 'active' : ''}`}
+            onClick={() => navigate('/forex')}
+          >
+            Forex
+          </button>
+          <button
             className={`nav-link ${location.pathname === '/news' ? 'active' : ''}`}
             onClick={() => navigate('/news')}
           >
@@ -155,6 +161,12 @@ const Navigation: React.FC = () => {
             onClick={() => navigateAndCloseMobile('/bitmex')}
           >
             BitMEX
+          </button>
+          <button
+            className={`mobile-nav-link ${location.pathname === '/forex' ? 'active' : ''}`}
+            onClick={() => navigateAndCloseMobile('/forex')}
+          >
+            Forex
           </button>
           <button
             className={`mobile-nav-link ${location.pathname === '/news' ? 'active' : ''}`}

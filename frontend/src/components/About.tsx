@@ -26,18 +26,25 @@ const MEMBERS: Member[] = [
     website: "https://fenghaili.com"
   },
   {
-    name: "Jiaxuan You",
-    role: "Core Advisor",
-    photo: "/team-photos/jiaxuan.png",
-    initials: "JX",
-    website: "https://cs.stanford.edu/~jiaxuan/"
-  },
-  {
     name: "Andriy Batutin",
     role: "Core contributor",
     photo: "/team-photos/andriy-batutin.png",
     initials: "AB",
     website: "https://www.linkedin.com/in/andrewbatutin/"
+  },
+  {
+    name: "Boyu Liu",
+    role: "Core Contributor",
+    photo: "/team-photos/boyu.png",
+    initials: "BL",
+    website: "https://boyul.vercel.app/"
+  },
+  {
+    name: "Jiaxuan You",
+    role: "Core Advisor",
+    photo: "/team-photos/jiaxuan.png",
+    initials: "JX",
+    website: "https://cs.stanford.edu/~jiaxuan/"
   },
 ];
 

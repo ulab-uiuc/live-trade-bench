@@ -5,6 +5,7 @@ import { getAssetColor, getCashColor } from '../utils/colors';
 // Removed: import { AllocationHistoryItem, AssetAllocation, AssetMetadata } from '../types';
 
 type TimestampedHistoryItem = { timestamp?: string };
+type ThemeCategory = 'stock' | 'polymarket' | 'bitmex' | 'forex';
 
 const DAYS_IN_MONTH = 30;
 
@@ -87,6 +88,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       const question = name.substring(0, lastUnderscoreIndex);
       const outcome = name.substring(lastUnderscoreIndex + 1);
       return `${question} Buy ${outcome}`;
+    }
+    if (category === 'forex' && name.length >= 6) {
+      return `${name.substring(0, 3)}/${name.substring(3, 6)}`;
     }
     return name;
   }, []);
@@ -208,19 +212,27 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     const getChartColor = (category: string) => {
       switch (category) {
         case 'stock':
-          return '#f59e0b'; // Yellow for stock
+          return '#f59e0b';
         case 'polymarket':
-          return '#06b6d4'; // Cyan for polymarket
+          return '#06b6d4';
+        case 'bitmex':
+          return '#10b981';
+        case 'forex':
+          return '#34d399';
         default:
-          return '#3b82f6'; // Blue as default
+          return '#3b82f6';
       }
     };
 
     const chartColor = getChartColor(category);
 
-    const initialCash = category === 'stock' ? 1000
-                      : category === 'bitmex' ? 1000
-                      : 500;
+    const initialCash = category === 'stock'
+      ? 1000
+      : category === 'bitmex'
+      ? 1000
+      : category === 'forex'
+      ? 1000
+      : 500;
 
     const { maxPerformance, minPerformance, range, pathData } = useMemo(() => {
       // Ensure data is an array before mapping
@@ -471,7 +483,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
           allocation,
           isCash: name === 'CASH',
           isPolymarket: category === 'polymarket',
-          color: getAssetColor(name, index, category as 'stock' | 'polymarket'),
+          color: getAssetColor(name, index, category as ThemeCategory),
         };
       });
     }, [portfolioData, category]);
@@ -697,7 +709,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
                       if (b === 'CASH') return -1;
                       return a.localeCompare(b);
                     }).indexOf(name),
-                    model.category as 'stock' | 'polymarket')
+                    model.category as ThemeCategory)
                 }))
                 .sort((a, b) => {
                   if (a.name === 'CASH') return 1;
@@ -988,7 +1000,7 @@ const AssetRatioChart: React.FC<{
     (assetName: string) => {
       const foundAssetIndex = allAssets.indexOf(assetName);
       if (foundAssetIndex !== -1) {
-        return getAssetColor(assetName, foundAssetIndex, category as 'stock' | 'polymarket'); // Add type assertion here
+        return getAssetColor(assetName, foundAssetIndex, category as ThemeCategory); // Add type assertion here
       }
       return getCashColor();
     },

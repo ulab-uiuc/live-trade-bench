@@ -23,4 +23,5 @@ CATEGORY_SUBREDDITS = {
     "market": ["StockMarket", "investing", "stocks"],
     "tech": ["technology", "stocks"],
     "crypto": ["cryptocurrency", "CryptoMarkets", "Bitcoin", "ethereum", "CryptoCurrency", "altcoin"],
+    "forex": ["Forex", "ForexTrading", "Daytrading", "wallstreetbets"],
 }

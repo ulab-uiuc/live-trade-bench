@@ -11,6 +11,16 @@
   /* Cyan 500 */
   --polymarket-color-hover-border: #06b6d4;
   --polymarket-color-positive: #06b6d4;
+
+  /* BitMEX Theme */
+  --bitmex-color-primary: #10b981;
+  --bitmex-color-hover-border: #10b981;
+  --bitmex-color-positive: #10b981;
+
+  /* Forex Theme */
+  --forex-color-primary: #34d399;
+  --forex-color-hover-border: #34d399;
+  --forex-color-positive: #34d399;
 }
 
 .theme-stock {
@@ -23,6 +33,18 @@
   --theme-color-primary: var(--polymarket-color-primary);
   --theme-color-hover-border: var(--polymarket-color-hover-border);
   --theme-color-positive: var(--polymarket-color-positive);
+}
+
+.theme-bitmex {
+  --theme-color-primary: var(--bitmex-color-primary);
+  --theme-color-hover-border: var(--bitmex-color-hover-border);
+  --theme-color-positive: var(--bitmex-color-positive);
+}
+
+.theme-forex {
+  --theme-color-primary: var(--forex-color-primary);
+  --theme-color-hover-border: var(--forex-color-hover-border);
+  --theme-color-positive: var(--forex-color-positive);
 }
 
 .models-container {
@@ -62,6 +84,14 @@
 .theme-polymarket .models-header h2 {
   color: #06b6d4;
   /* Cyan 500 */
+}
+
+.theme-bitmex .models-header h2 {
+  color: #10b981;
+}
+
+.theme-forex .models-header h2 {
+  color: #34d399;
 }
 
 .refresh-btn {

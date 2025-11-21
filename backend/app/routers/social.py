@@ -10,7 +10,7 @@ router = APIRouter()
 
 @router.get("/social/{market_type}", response_model=List[Dict[str, Any]])
 def get_social_feed(market_type: str, limit: int = 100):
-    if market_type not in ["stock", "polymarket", "bitmex"]:
+    if market_type not in ["stock", "polymarket", "bitmex", "forex"]:
         raise HTTPException(status_code=404, detail="Market type not found")
 
     data = read_json_or_404(SOCIAL_DATA_FILE)

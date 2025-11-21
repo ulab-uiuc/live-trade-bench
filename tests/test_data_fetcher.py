@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from live_trade_bench.fetchers.base_fetcher import BaseFetcher
+from live_trade_bench.fetchers.forex_fetcher import ForexFetcher
 from live_trade_bench.fetchers.news_fetcher import fetch_news_data
 from live_trade_bench.fetchers.polymarket_fetcher import (
     PolymarketFetcher,
@@ -83,6 +84,12 @@ def test_fetch_news_data_date_conversion() -> None:
 @patch("live_trade_bench.fetchers.base_fetcher.BaseFetcher.make_request")
 def test_fetch_news_data_no_results(mock_make_request: Mock) -> None:
     """Test news data fetching when no results are found."""
+def test_forex_fetcher_major_pairs() -> None:
+    """Ensure forex fetcher returns ordered major pairs."""
+    fetcher = ForexFetcher()
+    pairs = fetcher.get_major_pairs(limit=5)
+    assert len(pairs) == 5
+    assert all(isinstance(pair, str) for pair in pairs)
     # Mock empty response
     mock_response = Mock()
     mock_response.content = "<html><body></body></html>"

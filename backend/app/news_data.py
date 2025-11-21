@@ -6,16 +6,22 @@ from .config import NEWS_DATA_FILE
 def update_news_data() -> None:
     print("📰 Updating news data...")
 
-    all_news_data = {"stock": [], "polymarket": [], "bitmex": []}
+    all_news_data = {"stock": [], "polymarket": [], "bitmex": [], "forex": []}
 
     try:
-        from .main import get_bitmex_system, get_polymarket_system, get_stock_system
+        from .main import (
+            get_bitmex_system,
+            get_forex_system,
+            get_polymarket_system,
+            get_stock_system,
+        )
 
         stock_system = get_stock_system()
         polymarket_system = get_polymarket_system()
         bitmex_system = get_bitmex_system()
+        forex_system = get_forex_system()
 
-        if not stock_system or not polymarket_system or not bitmex_system:
+        if not stock_system or not polymarket_system or not bitmex_system or not forex_system:
             print("❌ Failed to get system instances")
             return
 
@@ -26,11 +32,14 @@ def update_news_data() -> None:
             polymarket_system.initialize_for_live()
         if not bitmex_system.universe:
             bitmex_system.initialize_for_live()
+        if not forex_system.universe:
+            forex_system.initialize_for_live()
 
         # Fetch market data
         stock_market_data = stock_system._fetch_market_data(for_date=None)
         polymarket_market_data = polymarket_system._fetch_market_data(for_date=None)
         bitmex_market_data = bitmex_system._fetch_market_data(for_date=None)
+        forex_market_data = forex_system._fetch_market_data(for_date=None)
 
         # Fetch news data
         stock_news = stock_system._fetch_news_data(stock_market_data, for_date=None)
@@ -38,6 +47,7 @@ def update_news_data() -> None:
             polymarket_market_data, for_date=None
         )
         bitmex_news = bitmex_system._fetch_news_data(bitmex_market_data, for_date=None)
+        forex_news = forex_system._fetch_news_data(forex_market_data, for_date=None)
 
         all_news_data["stock"] = [
             item for sublist in stock_news.values() for item in sublist
@@ -47,6 +57,9 @@ def update_news_data() -> None:
         ]
         all_news_data["bitmex"] = [
             item for sublist in bitmex_news.values() for item in sublist
+        ]
+        all_news_data["forex"] = [
+            item for sublist in forex_news.values() for item in sublist
         ]
 
         with open(NEWS_DATA_FILE, "w") as f:

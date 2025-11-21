@@ -59,12 +59,14 @@ UPDATE_FREQUENCY = {
     "trading_cycle": "daily_before_close",
     "realtime_prices": 600,  # Stock prices: 10 minutes
     "polymarket_prices": 1800,  # Polymarket prices: 30 minutes by default
+    "forex_prices": 900,  # Forex prices: 15 minutes
 }
 
 TRADING_CONFIG = {
     "initial_cash_stock": 1000,
     "initial_cash_polymarket": 500,
     "initial_cash_bitmex": 1000,
+    "initial_cash_forex": 1000,
     "max_consecutive_failures": 3,
     "recovery_wait_time": 3600,
     "error_retry_time": 600,
@@ -150,3 +152,4 @@ class MockMode(str, Enum):
 STOCK_MOCK_MODE = MockMode.NONE
 POLYMARKET_MOCK_MODE = MockMode.NONE
 BITMEX_MOCK_MODE = MockMode.NONE
+FOREX_MOCK_MODE = MockMode.NONE
