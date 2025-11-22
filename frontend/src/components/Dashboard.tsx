@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Dashboard.css";
+import StockChart from './StockChart';
 
 // ------- Types -------
 export type ModelRow = {
@@ -14,6 +15,7 @@ export type ModelRow = {
 
 export type DashboardProps = {
   modelsData?: any[]; // raw input from your backend
+  historyData?: any[]; // chart history data
   modelsLastRefresh?: Date | string;
   stockNextRefresh?: Date | string;
   polymarketNextRefresh?: Date | string;
@@ -344,10 +346,17 @@ const LeaderboardCard: React.FC<{
   );
 };
 
+
+
+// ... (existing imports)
+
 // ------- Main Dashboard Component -------
 
-const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], modelsLastRefresh = new Date(), stockNextRefresh, polymarketNextRefresh, systemStatus, systemLastRefresh, views = 0 }) => {
+const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], historyData = [], modelsLastRefresh = new Date(), stockNextRefresh, polymarketNextRefresh, systemStatus, systemLastRefresh, views = 0 }) => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'chart' | 'rankings'>('chart');
+  const [timeRange, setTimeRange] = useState<'1M' | 'ALL'>('1M');
+  const [category, setCategory] = useState<'stock' | 'polymarket' | 'bitmex'>('stock');
 
   // 格式化数字显示
   const formatNumber = (num: number): string => {
@@ -395,6 +404,7 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
           </button>.
         </p>
 
+        {/* Description Section */}
         <div style={{
           maxWidth: '1000px',
           margin: '2rem auto 0',
@@ -469,9 +479,111 @@ const TwoPanelLeaderboard: React.FC<DashboardProps> = ({ modelsData = [], models
           </button>{" "}
           for more information.
         </div>
+
+        {/* Tab Switcher - Aligned with chart controls */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: '2rem',
+          marginBottom: '1rem',
+          paddingLeft: '10px',
+          paddingRight: '10px',
+          borderBottom: '1px solid #374151',
+          paddingBottom: '10px'
+        }}>
+          {/* Category selector - only show when chart is active */}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
+            {activeTab === 'chart' && (
+              <div className="toggle-group">
+                <button
+                  className={`toggle-btn ${category === 'stock' ? 'active' : ''}`}
+                  onClick={() => setCategory('stock')}
+                >
+                  Stock
+                </button>
+                <button
+                  className={`toggle-btn ${category === 'polymarket' ? 'active' : ''}`}
+                  onClick={() => setCategory('polymarket')}
+                >
+                  Polymarket
+                </button>
+                <button
+                  className={`toggle-btn ${category === 'bitmex' ? 'active' : ''}`}
+                  onClick={() => setCategory('bitmex')}
+                >
+                  BitMEX
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Chart/Rankings selector - center */}
+          <div className="toggle-group">
+            <button
+              className={`toggle-btn ${activeTab === 'chart' ? 'active' : ''}`}
+              onClick={() => setActiveTab('chart')}
+            >
+              Chart
+            </button>
+            <button
+              className={`toggle-btn ${activeTab === 'rankings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('rankings')}
+            >
+              Rankings
+            </button>
+          </div>
+
+          {/* Time range selector - only show when chart is active */}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            {activeTab === 'chart' && (
+              <div className="toggle-group">
+                <button
+                  className={`toggle-btn ${timeRange === '1M' ? 'active' : ''}`}
+                  onClick={() => setTimeRange('1M')}
+                >
+                  30 Days
+                </button>
+                <button
+                  className={`toggle-btn ${timeRange === 'ALL' ? 'active' : ''}`}
+                  onClick={() => setTimeRange('ALL')}
+                >
+                  ALL
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="leaderboard-grid">
+      {/* Chart Section */}
+      <div style={{ marginTop: '0', display: activeTab === 'chart' ? 'block' : 'none' }}>
+        <StockChart
+          modelsData={modelsData}
+          historyData={historyData}
+          timeRange={timeRange}
+          category={category}
+          onModelClick={(model) => {
+            console.log('📍 Model clicked on chart:', { id: model.id, name: model.name, category: model.category });
+
+            // Navigate to the appropriate category page based on model category
+            const modelCategory = (model?.category ?? '').toString().toLowerCase();
+            if (modelCategory === 'stock' || modelCategory === 'benchmark') {
+              console.log('📍 Navigating to /stocks with model ID:', model.id);
+              navigate('/stocks', { state: { selectedModelId: model.id } });
+            } else if (modelCategory.includes('poly')) {
+              console.log('📍 Navigating to /polymarket with model ID:', model.id);
+              navigate('/polymarket', { state: { selectedModelId: model.id } });
+            } else if (modelCategory === 'bitmex' || modelCategory === 'bitmex-benchmark') {
+              console.log('📍 Navigating to /bitmex with model ID:', model.id);
+              navigate('/bitmex', { state: { selectedModelId: model.id } });
+            }
+          }}
+        />
+      </div>
+
+      {/* Rankings Section */}
+      <div className="leaderboard-grid" style={{ display: activeTab === 'rankings' ? 'grid' : 'none' }}>
         <LeaderboardCard
           key="stock-leaderboard"
           title="Stock"

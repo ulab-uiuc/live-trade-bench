@@ -70,6 +70,7 @@ interface ModelsDisplayProps {
   stockModels: Model[];
   polymarketModels: Model[];
   onRefresh?: () => void;
+  initialSelectedModelId?: string | number;
   // Removed assetMetadata prop
 }
 
@@ -78,6 +79,7 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
   stockModels,
   polymarketModels,
   onRefresh,
+  initialSelectedModelId
   // assetMetadata // Removed from destructuring
 }) => {
   // Format Polymarket asset names from "Question_YES" to "Question buy YES"
@@ -118,6 +120,28 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
       };
     }
   }, [showModal]);
+
+  // Auto-open model details when initialSelectedModelId is provided
+  useEffect(() => {
+    console.log('🔍 Auto-open effect triggered:', {
+      initialSelectedModelId,
+      modelsDataLength: modelsData.length,
+      modelIds: modelsData.map(m => m.id)
+    });
+
+    if (initialSelectedModelId && modelsData.length > 0) {
+      const model = modelsData.find(m => m.id === initialSelectedModelId);
+      console.log('🔍 Found model:', model);
+
+      if (model) {
+        console.log('✅ Auto-opening modal for:', model.name);
+        setSelectedModel(model);
+        setShowModal(true);
+      } else {
+        console.log('❌ Model not found with ID:', initialSelectedModelId);
+      }
+    }
+  }, [initialSelectedModelId, modelsData]);
 
 
   const showCategoryTabs = useMemo(() => {
@@ -219,8 +243,8 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
     const chartColor = getChartColor(category);
 
     const initialCash = category === 'stock' ? 1000
-                      : category === 'bitmex' ? 1000
-                      : 500;
+      : category === 'bitmex' ? 1000
+        : 500;
 
     const { maxPerformance, minPerformance, range, pathData } = useMemo(() => {
       // Ensure data is an array before mapping
@@ -372,8 +396,10 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
 
             {/* Data points */}
             {chartData.map((point, index) => {
-              const performance = point.performance || 0;  // Use pre-calculated performance
-              const x = margin.left + (index / (chartData.length - 1)) * (chartWidth - margin.left - margin.right);
+              const performance = (point.profit / initialCash) * 100 || 0;  // Calculate performance consistently with path
+              const x = chartData.length === 1
+                ? margin.left + (chartWidth - margin.left - margin.right) / 2  // Center single point
+                : margin.left + (index / (chartData.length - 1)) * (chartWidth - margin.left - margin.right);
               const y = margin.top + ((maxPerformance - performance) / range) * (chartHeight - 2 * margin.top);
               return (
                 <circle
@@ -404,7 +430,9 @@ const ModelsDisplay: React.FC<ModelsDisplayProps> = ({
               if (chartData.length > 10 && index % Math.floor(chartData.length / 5) !== 0) {
                 return null;
               }
-              const x = margin.left + (index / (chartData.length - 1)) * (chartWidth - margin.left - margin.right);
+              const x = chartData.length === 1
+                ? margin.left + (chartWidth - margin.left - margin.right) / 2  // Center single point
+                : margin.left + (index / (chartData.length - 1)) * (chartWidth - margin.left - margin.right);
 
               // Format timestamp for display
               let dateLabel = '';
@@ -964,21 +992,21 @@ const AssetRatioChart: React.FC<{
 
     // Then, get URLs from allocation history (if format supports it)
     recentHistory.forEach(snapshot => {
-        // Try new allocations_array format first
-        if (snapshot && Array.isArray(snapshot.allocations_array)) {
-          snapshot.allocations_array.forEach((a: any) => {
-            // Add to map if it has a URL, overwriting older entries is fine
-            if (a && a.name && a.url) {
-              map[a.name] = { url: a.url, question: a.question };
-            }
-          });
-        }
-        // Fallback to old allocations format (object)
-        else if (snapshot && snapshot.allocations && typeof snapshot.allocations === 'object') {
-          // For old format, we can't get URLs from allocation history
-          // URLs will only come from current portfolio positions
-        }
-      });
+      // Try new allocations_array format first
+      if (snapshot && Array.isArray(snapshot.allocations_array)) {
+        snapshot.allocations_array.forEach((a: any) => {
+          // Add to map if it has a URL, overwriting older entries is fine
+          if (a && a.name && a.url) {
+            map[a.name] = { url: a.url, question: a.question };
+          }
+        });
+      }
+      // Fallback to old allocations format (object)
+      else if (snapshot && snapshot.allocations && typeof snapshot.allocations === 'object') {
+        // For old format, we can't get URLs from allocation history
+        // URLs will only come from current portfolio positions
+      }
+    });
 
     return map;
   }, [recentHistory, portfolio]);

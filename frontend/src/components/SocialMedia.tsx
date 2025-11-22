@@ -19,8 +19,17 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
   const [sortBy, setSortBy] = useState<'ticker' | 'time'>('time');
 
   const posts = useMemo(() => {
-    const rawPosts = activeCategory === 'stock' ? socialData.stock : activeCategory === 'polymarket' ? socialData.polymarket : socialData.bitmex;
-    console.log("DEBUG: activeCategory in posts useMemo", activeCategory); // Debug activeCategory
+    let rawPosts: SocialPost[] = [];
+
+    if (activeCategory === 'stock') {
+      rawPosts = socialData.stock;
+    } else if (activeCategory === 'polymarket') {
+      rawPosts = socialData.polymarket;
+    } else if (activeCategory === 'bitmex') {
+      rawPosts = socialData.bitmex;
+    }
+
+    console.log("DEBUG: activeCategory in posts useMemo", activeCategory, "posts count:", rawPosts.length); // Debug activeCategory
 
     const mappedPosts = rawPosts.map((post: SocialPost, index: number) => {
       if (activeCategory === 'polymarket') {
@@ -46,7 +55,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
         return timeB - timeA;
       }
     });
-  }, [activeCategory, socialData, sortBy]);
+  }, [activeCategory, socialData.stock, socialData.polymarket, socialData.bitmex, sortBy]);
 
   // Collect and sort all unique tags for consistent color assignment
   const allUniqueTags = useMemo(() => {
@@ -155,7 +164,7 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
         </div>
       </div>
 
-      <div className="social-media-grid">
+      <div className="social-media-grid" key={activeCategory}>
         {posts.map((post) => (
           <div
             key={post.id}
@@ -178,10 +187,24 @@ const SocialMedia: React.FC<SocialMediaProps> = ({ socialData, lastRefresh, isLo
                   ))
                 )}
 
-                {/* Tag for Stock or Polymarket Question */}
-                {((activeCategory === 'stock' && post.tag) || (activeCategory === 'polymarket' && (post.question || post.tag))) && (
-                  <span className="social-media-tag" style={{ color: getTagColor((activeCategory === 'polymarket' ? (post.question || post.tag) : post.tag) || null) }}>
-                    {activeCategory === 'polymarket' ? (post.question || post.tag) : post.tag}
+                {/* Stock Tag (in addition to stock_symbols) */}
+                {activeCategory === 'stock' && post.tag && (
+                  <span className="social-media-tag" style={{ color: getTagColor(post.tag) }}>
+                    {post.tag}
+                  </span>
+                )}
+
+                {/* Polymarket Question Tag */}
+                {activeCategory === 'polymarket' && (post.question || post.tag) && (
+                  <span className="social-media-tag" style={{ color: getTagColor(post.question || post.tag || null) }}>
+                    {post.question || post.tag}
+                  </span>
+                )}
+
+                {/* BitMEX Tag */}
+                {activeCategory === 'bitmex' && post.tag && (
+                  <span className="social-media-tag" style={{ color: getTagColor(post.tag) }}>
+                    {post.tag}
                   </span>
                 )}
               </div>

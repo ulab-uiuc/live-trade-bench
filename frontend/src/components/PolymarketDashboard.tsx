@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import ModelsDisplay from './ModelsDisplay';
 import './Dashboard.css';
 import { Model } from '../types';
@@ -10,6 +11,9 @@ interface PolymarketDashboardProps {
 }
 
 const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({ modelsData, modelsLastRefresh, isLoading }) => {
+  const location = useLocation();
+  const selectedModelId = (location.state as any)?.selectedModelId;
+
   const polymarketModels = useMemo(() =>
     modelsData.filter(m => m.category === 'polymarket'),
     [modelsData]
@@ -98,6 +102,7 @@ const PolymarketDashboard: React.FC<PolymarketDashboardProps> = ({ modelsData, m
         stockModels={[]}
         polymarketModels={polymarketModels}
         onRefresh={undefined}
+        initialSelectedModelId={selectedModelId}
       />
 
 
