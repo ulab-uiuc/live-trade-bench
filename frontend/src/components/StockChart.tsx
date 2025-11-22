@@ -287,7 +287,7 @@ const StockChart: React.FC<StockChartProps> = ({
                 borderWidth,
                 pointRadius: 0, // Hide points by default
                 pointHoverRadius: 0,
-                tension: 0.4, // Smooth curves
+                tension: 0, // Straight lines between nodes
                 order: isHovered ? -1 : 1, // Bring hovered to front
             };
         });
